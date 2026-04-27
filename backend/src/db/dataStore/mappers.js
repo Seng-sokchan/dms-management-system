@@ -1,18 +1,17 @@
 function mapOrder(row) {
   const orderAddressName = row.order_address_name != null ? row.order_address_name : null;
-  const orderAddressGroup = row.order_address_group != null ? row.order_address_group : null;
   const customerSubAddress = row.customer_sub_address != null ? row.customer_sub_address : null;
   return {
     id: String(row.id),
     customerName: orderAddressName || row.customer_name,
     addressId: row.address != null ? String(row.address) : null,
     orderAddressName,
-    orderAddressGroup,
     customerAddressId: row.customer_address_id != null ? String(row.customer_address_id) : null,
     customerAddressName: row.customer_address_name != null ? row.customer_address_name : null,
-    customerAddressGroup: row.customer_address_group != null ? row.customer_address_group : null,
     customerSubAddress,
     customerId: row.customer_id != null ? String(row.customer_id) : null,
+    orderGroupId: row.order_group_id != null ? String(row.order_group_id) : null,
+    orderGroupName: row.order_group_name != null ? row.order_group_name : null,
     customerPhone: row.customer_phone != null ? row.customer_phone : null,
     itemId: row.item_id != null ? String(row.item_id) : null,
     itemSku: row.item_sku != null ? row.item_sku : null,
@@ -82,19 +81,14 @@ function mapCustomer(row) {
     userName: row.user_name || "",
     userUsername: row.user_username || "",
     addressName: row.address_name || "",
-    addressGroup: row.address_group || "",
     subAddress,
   };
 }
 
 function mapAddress(row) {
-  const groupName = row.group_name != null ? row.group_name : row.group;
   return {
     id: String(row.id),
     name: row.name,
-    groupId: row.group_id != null ? String(row.group_id) : null,
-    group: groupName,
-    groupName,
   };
 }
 
@@ -107,13 +101,21 @@ function mapCatalog(row) {
 }
 
 function mapItem(row) {
+  const defaultUnitPriceUsd = row.default_unit_price_usd != null
+    ? Number(row.default_unit_price_usd)
+    : Number(row.default_unit_price);
+  const defaultUnitPriceKhr = row.default_unit_price_khr != null
+    ? Number(row.default_unit_price_khr)
+    : Number(row.default_unit_price) * 4100;
   return {
     id: String(row.id),
     catalogId: String(row.catalog_id),
     catalogName: row.catalog_name != null ? row.catalog_name : null,
     name: row.name,
     sku: row.sku || "",
-    defaultUnitPrice: Number(row.default_unit_price),
+    defaultUnitPrice: defaultUnitPriceUsd,
+    defaultUnitPriceUsd,
+    defaultUnitPriceKhr,
   };
 }
 

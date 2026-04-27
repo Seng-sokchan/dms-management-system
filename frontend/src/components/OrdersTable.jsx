@@ -1,5 +1,6 @@
 ﻿import { useTranslation } from "react-i18next";
 import { useState } from "react";
+import { useConfirm } from "./ConfirmProvider";
 
 const ORDER_STATUS_FALLBACK = [
   "NEW_ORDER",
@@ -12,6 +13,7 @@ const ORDER_STATUS_FALLBACK = [
 
 export function OrdersTable({ orders, statuses, onUpdateStatus, onConfirmDelivery, readOnly = false, renderActions }) {
   const { t } = useTranslation();
+  const { confirm } = useConfirm();
   const [deliveryInputs, setDeliveryInputs] = useState({});
   const statusRows = Array.isArray(statuses) && statuses.length
     ? statuses
@@ -48,6 +50,27 @@ export function OrdersTable({ orders, statuses, onUpdateStatus, onConfirmDeliver
         [key]: value,
       },
     }));
+  }
+
+  async function handleSaveDelivery(order) {
+    const values = getValues(order);
+    if (
+      !(await confirm({
+        title: t("confirm.deliverySaveTitle"),
+        message: t("confirm.deliverySaveMessage"),
+        tone: "primary",
+      }))
+    ) {
+      return;
+    }
+    onConfirmDelivery(
+      order.id,
+      values.deliveredQty,
+      values.lossQty,
+      values.remainingQty,
+      values.deliveryProofType || "OTP",
+      values.deliveryProofValue || "",
+    );
   }
 
   const rowMeta =
@@ -214,16 +237,7 @@ export function OrdersTable({ orders, statuses, onUpdateStatus, onConfirmDeliver
                       <button
                         type="button"
                         className="btn-sm"
-                        onClick={() =>
-                          onConfirmDelivery(
-                            order.id,
-                            values.deliveredQty,
-                            values.lossQty,
-                            values.remainingQty,
-                            values.deliveryProofType || "OTP",
-                            values.deliveryProofValue || "",
-                          )
-                        }
+                        onClick={() => void handleSaveDelivery(order)}
                       >
                         {t("orders.saveDelivery")}
                       </button>

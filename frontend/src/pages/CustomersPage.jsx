@@ -1,6 +1,7 @@
 ﻿import { useTranslation } from "react-i18next";
 import { useMemo, useState } from "react";
 import { CustomerForm } from "../components/CustomerForm";
+import { useConfirm } from "../components/ConfirmProvider";
 
 const EMPTY_EDIT = { id: "", name: "", phone: "", address: "", userId: "", subAddress: "" };
 
@@ -15,6 +16,7 @@ export function CustomersPage({
   onDeleteCustomer,
 }) {
   const { t } = useTranslation();
+  const { confirm } = useConfirm();
   const [editingCustomer, setEditingCustomer] = useState(EMPTY_EDIT);
   const isEditing = useMemo(() => Boolean(editingCustomer.id), [editingCustomer.id]);
 
@@ -47,8 +49,15 @@ export function CustomersPage({
   }
 
   async function handleDelete(customerId) {
-    const ok = window.confirm(t("customers.confirmDelete"));
-    if (!ok) return;
+    if (
+      !(await confirm({
+        title: t("confirm.deleteTitle"),
+        message: t("customers.confirmDelete"),
+        tone: "danger",
+      }))
+    ) {
+      return;
+    }
     if (editingCustomer.id === customerId) {
       setEditingCustomer(EMPTY_EDIT);
     }
@@ -85,15 +94,15 @@ export function CustomersPage({
                     {t("customers.user")}: {customer.userName} ({customer.userUsername})
                   </span>
                 ) : null}
-                {customer.addressGroup || customer.addressName ? (
-                  <span className="entity-list-note">{customer.addressGroup} - {customer.addressName}</span>
+                {customer.addressName ? (
+                  <span className="entity-list-note">{customer.addressName}</span>
                 ) : null}
                 {customer.subAddress ? <span className="entity-list-meta">{customer.subAddress}</span> : null}
                 <div className="row-actions">
                   <button type="button" className="btn-ghost btn-edit" onClick={() => startEdit(customer)}>
                     {t("customers.edit")}
                   </button>
-                  <button type="button" className="btn-ghost btn-delete" onClick={() => handleDelete(customer.id)}>
+                  <button type="button" className="btn-ghost btn-delete" onClick={() => void handleDelete(customer.id)}>
                     {t("customers.delete")}
                   </button>
                 </div>
@@ -125,7 +134,7 @@ export function CustomersPage({
               onChange={(event) => setEditingCustomer({ ...editingCustomer, phone: event.target.value })}
             />
             <label className="form-label" htmlFor="customer-edit-group-address">
-              {t("customers.groupAddress")}
+              {t("customers.address")}
             </label>
             <select
               id="customer-edit-group-address"
@@ -136,7 +145,7 @@ export function CustomersPage({
               <option value="">{t("customers.selectAddress")}</option>
               {addresses.map((address) => (
                 <option key={address.id} value={address.id}>
-                  {address.group} - {address.name}
+                  {address.name}
                 </option>
               ))}
             </select>

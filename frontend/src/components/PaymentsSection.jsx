@@ -9,6 +9,7 @@ export function PaymentsSection({
   onSubmitPayment,
 }) {
   const { t } = useTranslation();
+
   return (
     <section className="pay-grid">
       <form className="panel form" onSubmit={onSubmitPayment}>

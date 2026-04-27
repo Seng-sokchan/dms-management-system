@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useMemo, useState } from "react";
 import { ProducerForm } from "../components/ProducerForm";
+import { useConfirm } from "../components/ConfirmProvider";
 
 const EMPTY_EDIT = { id: "", name: "", phone: "", capacityNote: "" };
 
@@ -13,6 +14,7 @@ export function ProducersPage({
   onDeleteProducer,
 }) {
   const { t } = useTranslation();
+  const { confirm } = useConfirm();
   const [editingProducer, setEditingProducer] = useState(EMPTY_EDIT);
   const isEditing = useMemo(() => Boolean(editingProducer.id), [editingProducer.id]);
 
@@ -41,8 +43,15 @@ export function ProducersPage({
   }
 
   async function handleDelete(producerId) {
-    const ok = window.confirm(t("producers.confirmDelete"));
-    if (!ok) return;
+    if (
+      !(await confirm({
+        title: t("confirm.deleteTitle"),
+        message: t("producers.confirmDelete"),
+        tone: "danger",
+      }))
+    ) {
+      return;
+    }
     if (editingProducer.id === producerId) {
       setEditingProducer(EMPTY_EDIT);
     }
@@ -77,7 +86,7 @@ export function ProducersPage({
                   <button type="button" className="btn-ghost btn-edit" onClick={() => startEdit(p)}>
                     {t("producers.edit")}
                   </button>
-                  <button type="button" className="btn-ghost btn-delete" onClick={() => handleDelete(p.id)}>
+                  <button type="button" className="btn-ghost btn-delete" onClick={() => void handleDelete(p.id)}>
                     {t("producers.delete")}
                   </button>
                 </div>

@@ -16,6 +16,8 @@ import { CustomersPage } from "./pages/CustomersPage";
 import { UsersPage } from "./pages/UsersPage";
 import { UserActivityLogsPage } from "./pages/UserActivityLogsPage";
 import { ConfirmOrdersPage } from "./pages/ConfirmOrdersPage";
+import { OwnerPreparingPage } from "./pages/OwnerPreparingPage";
+import { CustomerOrdersPage } from "./pages/CustomerOrdersPage";
 import "./App.css";
 
 function App() {
@@ -36,7 +38,9 @@ function App() {
     items,
     payments,
     paymentMethods,
-    message,
+    orderGroups,
+    flash,
+    dismissFlash,
     newOrder,
     newProducer,
     newCustomer,
@@ -76,6 +80,8 @@ function App() {
     submitTruckDelete,
     submitDeliveryConfirmation,
     submitOrderStatus,
+    submitOrderGroupAssignment,
+    submitOrderDelete,
     submitPayment,
     users,
     activityLogs,
@@ -95,7 +101,13 @@ function App() {
         <Route
           path="*"
           element={
-            <LoginForm auth={auth} setAuth={setAuth} onSubmit={login} message={message} />
+            <LoginForm
+              auth={auth}
+              setAuth={setAuth}
+              onSubmit={login}
+              message={flash?.text ?? ""}
+              messageVariant={flash?.variant}
+            />
           }
         />
       </Routes>
@@ -103,7 +115,7 @@ function App() {
   }
 
   const withLayout = (page) => (
-    <AdminLayout user={user} onLogout={logout} message={message}>
+    <AdminLayout user={user} onLogout={logout} flash={flash} onFlashDismiss={dismissFlash}>
       {page}
     </AdminLayout>
   );
@@ -287,6 +299,35 @@ function App() {
         )}
       />
       <Route
+        path="/customer-orders"
+        element={withLayout(
+          (user?.role === "Owner" || user?.role === "Admin") && canAccessPath(user, "/customer-orders") ? (
+            <CustomerOrdersPage
+              orders={orders}
+              onDeleteOrder={submitOrderDelete}
+              onConfirmOrder={(orderId) => submitOrderStatus(orderId, "OWNER_PREPARING")}
+            />
+          ) : (
+            <Navigate to="/overview" replace />
+          ),
+        )}
+      />
+      <Route
+        path="/owner-preparing"
+        element={withLayout(
+          (user?.role === "Owner" || user?.role === "Admin") && canAccessPath(user, "/owner-preparing") ? (
+            <OwnerPreparingPage
+              orders={orders}
+              orderGroups={orderGroups}
+              onAssignOrderGroup={submitOrderGroupAssignment}
+              onConfirmToLogistics={(orderId) => submitOrderStatus(orderId, "SENT_TO_LOGISTICS_SUPPLIER")}
+            />
+          ) : (
+            <Navigate to="/overview" replace />
+          ),
+        )}
+      />
+      <Route
         path="/confirm-orders"
         element={withLayout(
           canAccessPath(user, "/confirm-orders") ? (
@@ -306,6 +347,7 @@ function App() {
         element={withLayout(
           canAccessPath(user, "/payments") ? (
             <PaymentsPage
+              token={token}
               user={user}
               orders={orders}
               payments={payments}

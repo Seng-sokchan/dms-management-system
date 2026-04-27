@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 
 export function ItemForm({ catalogs = [], newItem, setNewItem, onCreateItem }) {
   const { t } = useTranslation();
+
   return (
     <form className="panel form" onSubmit={onCreateItem}>
       <h3>{t("items.formTitle")}</h3>
@@ -45,17 +46,30 @@ export function ItemForm({ catalogs = [], newItem, setNewItem, onCreateItem }) {
         onChange={(event) => setNewItem({ ...newItem, sku: event.target.value })}
         placeholder={t("items.skuPh")}
       />
-      <label className="form-label" htmlFor="item-default-price">
-        {t("items.labelDefaultPrice")}
+      <label className="form-label" htmlFor="item-default-price-usd">
+        {t("items.labelDefaultPriceUsd")}
       </label>
       <input
-        id="item-default-price"
+        id="item-default-price-usd"
         type="number"
-        value={newItem.defaultUnitPrice}
-        onChange={(event) => setNewItem({ ...newItem, defaultUnitPrice: event.target.value })}
+        value={newItem.defaultUnitPriceUsd}
+        onChange={(event) => setNewItem({ ...newItem, defaultUnitPriceUsd: event.target.value })}
         min="0"
         step="0.01"
         placeholder={t("items.defaultPricePh")}
+        required
+      />
+      <label className="form-label" htmlFor="item-default-price-khr">
+        {t("items.labelDefaultPriceKhr")}
+      </label>
+      <input
+        id="item-default-price-khr"
+        type="number"
+        value={newItem.defaultUnitPriceKhr}
+        onChange={(event) => setNewItem({ ...newItem, defaultUnitPriceKhr: event.target.value })}
+        min="0"
+        step="1"
+        placeholder={t("items.defaultPriceKhrPh")}
         required
       />
       <button type="submit" className="btn-primary">

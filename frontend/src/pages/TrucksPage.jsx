@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useConfirm } from "../components/ConfirmProvider";
 
 const EMPTY_EDIT = { id: "", code: "", plateNo: "", deliveryAgentId: "", capacityNote: "" };
 
@@ -13,8 +14,13 @@ export function TrucksPage({
   onDeleteTruck,
 }) {
   const { t } = useTranslation();
+  const { confirm } = useConfirm();
   const [editingTruck, setEditingTruck] = useState(EMPTY_EDIT);
   const isEditing = useMemo(() => Boolean(editingTruck.id), [editingTruck.id]);
+
+  async function handleCreateTruck(event) {
+    await onCreateTruck(event);
+  }
 
   function startEdit(truck) {
     setEditingTruck({
@@ -43,8 +49,15 @@ export function TrucksPage({
   }
 
   async function handleDelete(truckId) {
-    const ok = window.confirm(t("trucks.confirmDelete"));
-    if (!ok) return;
+    if (
+      !(await confirm({
+        title: t("confirm.deleteTitle"),
+        message: t("trucks.confirmDelete"),
+        tone: "danger",
+      }))
+    ) {
+      return;
+    }
     if (editingTruck.id === truckId) {
       setEditingTruck(EMPTY_EDIT);
     }
@@ -58,7 +71,7 @@ export function TrucksPage({
         <p className="section-lead">{t("trucks.lead")}</p>
       </div>
       <div className="form-single">
-        <form className="panel form" onSubmit={onCreateTruck}>
+        <form className="panel form" onSubmit={handleCreateTruck}>
           <h3>{t("trucks.formTitle")}</h3>
           <label className="form-label" htmlFor="truck-code">{t("trucks.code")}</label>
           <input id="truck-code" value={newTruck.code} onChange={(e) => setNewTruck({ ...newTruck, code: e.target.value })} required minLength={2} />
@@ -97,7 +110,7 @@ export function TrucksPage({
                 <span className="entity-list-meta">{truck.capacityNote || t("orders.dash")}</span>
                 <div className="row-actions">
                   <button type="button" className="btn-ghost btn-edit" onClick={() => startEdit(truck)}>{t("trucks.edit")}</button>
-                  <button type="button" className="btn-ghost btn-delete" onClick={() => handleDelete(truck.id)}>{t("trucks.delete")}</button>
+                  <button type="button" className="btn-ghost btn-delete" onClick={() => void handleDelete(truck.id)}>{t("trucks.delete")}</button>
                 </div>
               </li>
             ))}

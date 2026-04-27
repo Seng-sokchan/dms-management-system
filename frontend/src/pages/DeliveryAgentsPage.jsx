@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useMemo, useState } from "react";
 import { DeliveryAgentForm } from "../components/DeliveryAgentForm";
+import { useConfirm } from "../components/ConfirmProvider";
 
 const EMPTY_EDIT = { id: "", name: "", phone: "", vehicleType: "" };
 
@@ -13,6 +14,7 @@ export function DeliveryAgentsPage({
   onDeleteDelivery,
 }) {
   const { t } = useTranslation();
+  const { confirm } = useConfirm();
   const [editingDelivery, setEditingDelivery] = useState(EMPTY_EDIT);
   const isEditing = useMemo(() => Boolean(editingDelivery.id), [editingDelivery.id]);
 
@@ -41,8 +43,15 @@ export function DeliveryAgentsPage({
   }
 
   async function handleDelete(deliveryId) {
-    const ok = window.confirm(t("deliveryAgents.confirmDelete"));
-    if (!ok) return;
+    if (
+      !(await confirm({
+        title: t("confirm.deleteTitle"),
+        message: t("deliveryAgents.confirmDelete"),
+        tone: "danger",
+      }))
+    ) {
+      return;
+    }
     if (editingDelivery.id === deliveryId) {
       setEditingDelivery(EMPTY_EDIT);
     }
@@ -78,7 +87,7 @@ export function DeliveryAgentsPage({
                   <button type="button" className="btn-ghost btn-edit" onClick={() => startEdit(d)}>
                     {t("deliveryAgents.edit")}
                   </button>
-                  <button type="button" className="btn-ghost btn-delete" onClick={() => handleDelete(d.id)}>
+                  <button type="button" className="btn-ghost btn-delete" onClick={() => void handleDelete(d.id)}>
                     {t("deliveryAgents.delete")}
                   </button>
                 </div>

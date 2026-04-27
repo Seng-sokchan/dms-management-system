@@ -26,6 +26,7 @@ const {
 // activityLogs
 const { listUserActivityLogs, createUserActivityLog } = require("./activityLogs");
 const { listAddresses } = require("./addresses");
+const { listOrderGroups, getOrderGroupById } = require("./orderGroups");
 
 // catalogs
 const {
@@ -91,6 +92,7 @@ const {
   updateOrderAssignment,
   updateOrderStatus,
   confirmOrderDelivery,
+  deleteOrder,
 } = require("./orders");
 
 // payments
@@ -111,6 +113,7 @@ module.exports = {
   listCatalogs,
   listItems,
   listAddresses,
+  listOrderGroups,
   listOrderStatuses,
   listOrders,
   listPayments,
@@ -132,6 +135,7 @@ module.exports = {
   getCatalogById,
   getItemById,
   getOrderById,
+  getOrderGroupById,
 
   // create
   createUser,
@@ -156,6 +160,7 @@ module.exports = {
   updateOrderAssignment,
   updateOrderStatus,
   confirmOrderDelivery,
+  deleteOrder,
   applyPaymentToOrder,
 
   // delete

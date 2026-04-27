@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import { useConfirm } from "./ConfirmProvider";
 import { MENU_ITEMS } from "../constants/menus";
 
 const PAGE_PATH_MAP = {
@@ -13,6 +14,8 @@ const PAGE_PATH_MAP = {
   "/producers": "producers",
   "/delivery-agents": "deliveryAgents",
   "/orders": "orders",
+  "/customer-orders": "customerOrders",
+  "/owner-preparing": "ownerPreparing",
   "/confirm-orders": "confirmOrders",
   "/payments": "payments",
   "/users": "users",
@@ -28,8 +31,9 @@ function roleLabel(t, role) {
   return t(`roles.${role}`, { defaultValue: role });
 }
 
-export function AdminLayout({ user, onLogout, message, children = null }) {
+export function AdminLayout({ user, onLogout, flash, onFlashDismiss, children = null }) {
   const { t } = useTranslation();
+  const { confirm } = useConfirm();
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
 
@@ -38,6 +42,9 @@ export function AdminLayout({ user, onLogout, message, children = null }) {
     return { title: key ? t(`page.${key}`) : t("app.dashboard") };
   }, [location.pathname, t]);
   const visibleNav = useMemo(() => {
+    if (user?.role === "Admin") {
+      return MENU_ITEMS;
+    }
     const allowed = user?.allowedMenus;
     if (!Array.isArray(allowed)) {
       return MENU_ITEMS;
@@ -46,7 +53,28 @@ export function AdminLayout({ user, onLogout, message, children = null }) {
       return [];
     }
     return MENU_ITEMS.filter((item) => allowed.includes(item.key));
-  }, [user?.allowedMenus]);
+  }, [user?.role, user?.allowedMenus]);
+
+  useEffect(() => {
+    if (!flash?.text || flash.variant !== "success") return;
+    const id = setTimeout(() => {
+      onFlashDismiss?.();
+    }, 5000);
+    return () => clearTimeout(id);
+  }, [flash, onFlashDismiss]);
+
+  async function handleLogout() {
+    if (
+      !(await confirm({
+        title: t("confirm.signOutTitle"),
+        message: t("confirm.signOutMessage"),
+        tone: "danger",
+      }))
+    ) {
+      return;
+    }
+    onLogout();
+  }
 
   return (
     <div className="admin-app">
@@ -119,15 +147,25 @@ export function AdminLayout({ user, onLogout, message, children = null }) {
                 <span className="admin-user-role">{roleLabel(t, user?.role)}</span>
               </div>
             </div>
-            <button type="button" className="btn-ghost" onClick={onLogout}>
+            <button type="button" className="btn-ghost" onClick={() => void handleLogout()}>
               {t("auth.signOut")}
             </button>
           </div>
         </header>
         <div className="admin-content">
-          {message ? (
-            <div className="admin-flash" role="status">
-              {message}
+          {flash?.text ? (
+            <div
+              className={`admin-flash admin-flash--${flash.variant}`}
+              role="status"
+            >
+              {flash.variant === "success" ? (
+                <span className="admin-flash__icon" aria-hidden>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 6L9 17l-5-5" />
+                  </svg>
+                </span>
+              ) : null}
+              <span className="admin-flash__text">{flash.text}</span>
             </div>
           ) : null}
           {children || <Outlet />}

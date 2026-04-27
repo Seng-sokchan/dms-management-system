@@ -37,7 +37,7 @@ async function run() {
   await dbConn.query("DELETE FROM items");
   await dbConn.query("DELETE FROM catalogs");
   await dbConn.query("DELETE FROM addresses");
-  await dbConn.query("DELETE FROM address_groups");
+  await dbConn.query("DELETE FROM order_groups");
   await dbConn.query("DELETE FROM customers");
   await dbConn.query("DELETE FROM trucks");
   await dbConn.query("DELETE FROM producers");
@@ -58,9 +58,9 @@ async function run() {
   await dbConn.query(
     `INSERT INTO role_menus (role_id, menu_key) VALUES
      (1, 'overview'), (1, 'newOrder'), (1, 'catalogs'), (1, 'items'), (1, 'customers'),
-     (1, 'producers'), (1, 'deliveryAgents'), (1, 'trucks'), (1, 'orders'), (1, 'payments'), (1, 'users'), (1, 'activityLogs'),
+     (1, 'producers'), (1, 'deliveryAgents'), (1, 'trucks'), (1, 'orders'), (1, 'ownerPreparing'), (1, 'payments'), (1, 'users'), (1, 'activityLogs'),
      (2, 'overview'), (2, 'newOrder'), (2, 'catalogs'), (2, 'items'), (2, 'customers'),
-     (2, 'producers'), (2, 'deliveryAgents'), (2, 'trucks'), (2, 'orders'), (2, 'payments'),
+     (2, 'producers'), (2, 'deliveryAgents'), (2, 'trucks'), (2, 'orders'), (2, 'ownerPreparing'), (2, 'payments'),
      (3, 'overview'), (3, 'deliveryAgents'), (3, 'trucks'), (3, 'confirmOrders'),
      (4, 'overview'), (4, 'confirmOrders'), (4, 'orders'),
      (5, 'overview'), (5, 'orders')`,
@@ -102,14 +102,14 @@ async function run() {
   );
 
   await dbConn.query(
-    "INSERT INTO address_groups (id, name, updated_at) VALUES " +
+    "INSERT INTO order_groups (id, name, updated_at) VALUES " +
       "(1, 'Phnom Penh', NOW()), " +
       "(2, 'Battambang', NOW()), " +
       "(3, 'Siem Reap', NOW())",
   );
 
   await dbConn.query(
-    "INSERT INTO addresses (id, name, group_id, updated_at) VALUES " +
+    "INSERT INTO addresses (id, name, order_group_id, updated_at) VALUES " +
       "(1, 'Central Market', 1, NOW()), " +
       "(2, 'Street 271', 1, NOW()), " +
       "(3, 'City Center', 2, NOW()), " +
@@ -131,26 +131,26 @@ async function run() {
   );
 
   await dbConn.query(
-    "INSERT INTO items (id, catalog_id, name, sku, default_unit_price, is_active, updated_at) VALUES " +
-      "(1, 1, 'Standard shipping crate', 'RC-CR-01', 12.50, 1, NOW()), " +
-      "(2, 1, 'Thermal label roll (2k)', 'LB-TL-2K', 3.20, 1, NOW()), " +
-      "(3, 1, 'Counter display box', 'DB-DSP-S', 5.00, 1, NOW()), " +
-      "(4, 2, 'Bulk bag 25kg', 'BK-B25', 8.00, 1, NOW()), " +
-      "(5, 2, 'Pallet corner set (4pc)', 'PL-CR-4', 18.00, 1, NOW())",
+    "INSERT INTO items (id, catalog_id, name, sku, default_unit_price_usd, default_unit_price_khr, is_active, updated_at) VALUES " +
+      "(1, 1, 'Standard shipping crate', 'RC-CR-01', 12.50, 51250.00, 1, NOW()), " +
+      "(2, 1, 'Thermal label roll (2k)', 'LB-TL-2K', 3.20, 13120.00, 1, NOW()), " +
+      "(3, 1, 'Counter display box', 'DB-DSP-S', 5.00, 20500.00, 1, NOW()), " +
+      "(4, 2, 'Bulk bag 25kg', 'BK-B25', 8.00, 32800.00, 1, NOW()), " +
+      "(5, 2, 'Pallet corner set (4pc)', 'PL-CR-4', 18.00, 73800.00, 1, NOW())",
   );
 
   await dbConn.query(
     `INSERT INTO orders
-    (id, customer_id, address, item_id, ordered_qty, unit_price, producer_id, truck_id, delivery_agent_id,
+    (id, customer_id, address, order_group_id, item_id, ordered_qty, unit_price, producer_id, truck_id, delivery_agent_id,
      delivered_qty, loss_qty, remaining_qty, discrepancy, amount_total, amount_paid, payment_status, status, delivery_time, updated_at)
     VALUES
-    (1, 1, 1, 1, 10, 12.50, 1, 1, 1,
+    (1, 1, 1, 1, 1, 10, 12.50, 1, 1, 1,
       0, 0, 0, 0, 125.00, 0.00, 1, 1, NULL, NOW()),
-    (2, 2, 2, 4, 100, 8.00, 2, 2, 2,
+    (2, 2, 2, 1, 4, 100, 8.00, 2, 2, 2,
       0, 0, 0, 0, 800.00, 200.00, 1, 2, NULL, NOW()),
-    (3, 3, 3, 2, 50, 3.20, 1, 1, 1,
+    (3, 3, 3, 2, 2, 50, 3.20, 1, 1, 1,
       50, 0, 0, 0, 160.00, 160.00, 2, 6, NOW(), NOW()),
-    (4, 4, 4, 5, 4, 18.00, 2, 2, 1,
+    (4, 4, 4, 3, 5, 4, 18.00, 2, 2, 1,
       4, 0, 0, 0, 72.00, 72.00, 2, 6, NOW(), NOW())`,
   );
 

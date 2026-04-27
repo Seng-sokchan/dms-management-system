@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 function getGroupAddress(order) {
-  return order.orderAddressGroup || order.customerAddressGroup || "";
+  return order.orderGroupName || "";
 }
 
 function getTruckLabel(order) {

@@ -11,7 +11,7 @@ DROP TABLE IF EXISTS status;
 DROP TABLE IF EXISTS items;
 DROP TABLE IF EXISTS catalogs;
 DROP TABLE IF EXISTS addresses;
-DROP TABLE IF EXISTS address_groups;
+DROP TABLE IF EXISTS order_groups;
 DROP TABLE IF EXISTS customers;
 DROP TABLE IF EXISTS trucks;
 DROP TABLE IF EXISTS delivery_agents;
@@ -112,25 +112,25 @@ CREATE TABLE trucks (
     ON UPDATE RESTRICT ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-CREATE TABLE address_groups (
+CREATE TABLE order_groups (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   name VARCHAR(255) NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NULL,
   PRIMARY KEY (id),
-  UNIQUE KEY uq_address_groups_name (name)
+  UNIQUE KEY uq_order_groups_name (name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE addresses (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   name VARCHAR(255) NOT NULL,
-  group_id INT UNSIGNED NOT NULL,
+  order_group_id INT UNSIGNED NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NULL,
   PRIMARY KEY (id),
   KEY idx_addresses_name (name),
-  KEY idx_addresses_group_id (group_id),
-  CONSTRAINT fk_addresses_group FOREIGN KEY (group_id) REFERENCES address_groups (id)
+  KEY idx_addresses_order_group_id (order_group_id),
+  CONSTRAINT fk_addresses_order_group FOREIGN KEY (order_group_id) REFERENCES order_groups (id)
     ON UPDATE RESTRICT ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
@@ -170,7 +170,8 @@ CREATE TABLE items (
   catalog_id INT UNSIGNED NOT NULL,
   name VARCHAR(120) NOT NULL,
   sku VARCHAR(40) DEFAULT '',
-  default_unit_price DECIMAL(14,2) NOT NULL,
+  default_unit_price_usd DECIMAL(14,2) NOT NULL,
+  default_unit_price_khr DECIMAL(14,2) NOT NULL,
   is_active TINYINT(1) NOT NULL DEFAULT 1,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NULL,
@@ -224,6 +225,7 @@ CREATE TABLE orders (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   customer_id INT UNSIGNED NOT NULL,
   address INT UNSIGNED NOT NULL,
+  order_group_id INT UNSIGNED DEFAULT NULL,
   item_id INT UNSIGNED NOT NULL,
   ordered_qty INT UNSIGNED NOT NULL,
   unit_price DECIMAL(14,2) NOT NULL,
@@ -252,6 +254,7 @@ CREATE TABLE orders (
   KEY idx_orders_delivery_agent_id (delivery_agent_id),
   KEY idx_orders_customer_id (customer_id),
   KEY idx_orders_address (address),
+  KEY idx_orders_order_group_id (order_group_id),
   KEY idx_orders_item_id (item_id),
   CONSTRAINT fk_orders_producer FOREIGN KEY (producer_id) REFERENCES producers (id)
     ON UPDATE RESTRICT ON DELETE SET NULL,
@@ -263,6 +266,8 @@ CREATE TABLE orders (
     ON UPDATE RESTRICT ON DELETE RESTRICT,
   CONSTRAINT fk_orders_address FOREIGN KEY (address) REFERENCES addresses (id)
     ON UPDATE RESTRICT ON DELETE RESTRICT,
+  CONSTRAINT fk_orders_order_group FOREIGN KEY (order_group_id) REFERENCES order_groups (id)
+    ON UPDATE RESTRICT ON DELETE SET NULL,
   CONSTRAINT fk_orders_item FOREIGN KEY (item_id) REFERENCES items (id)
     ON UPDATE RESTRICT ON DELETE RESTRICT,
   CONSTRAINT fk_orders_payment_status FOREIGN KEY (payment_status) REFERENCES payment_statuses (id)
@@ -289,7 +294,7 @@ CREATE TABLE payments (
 
 CREATE TABLE order_status_history (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  order_id INT UNSIGNED NOT NULL,
+  order_id INT UNSIGNED DEFAULT NULL,
   from_status TINYINT UNSIGNED DEFAULT NULL,
   to_status TINYINT UNSIGNED NOT NULL,
   changed_by_user_id INT UNSIGNED DEFAULT NULL,
@@ -301,7 +306,7 @@ CREATE TABLE order_status_history (
   KEY idx_order_status_history_to_status (to_status),
   KEY idx_order_status_history_user (changed_by_user_id),
   CONSTRAINT fk_order_status_history_order FOREIGN KEY (order_id) REFERENCES orders (id)
-    ON UPDATE RESTRICT ON DELETE CASCADE,
+    ON UPDATE RESTRICT ON DELETE SET NULL,
   CONSTRAINT fk_order_status_history_from_status FOREIGN KEY (from_status) REFERENCES status (id)
     ON UPDATE RESTRICT ON DELETE RESTRICT,
   CONSTRAINT fk_order_status_history_to_status FOREIGN KEY (to_status) REFERENCES status (id)
@@ -399,19 +404,17 @@ WHERE t.is_active = 1
 ORDER BY t.created_at DESC;
 
 CREATE PROCEDURE sp_get_customer_by_id(IN p_id INT UNSIGNED)
-SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, ag.name AS address_group, c.user_id, u.name AS user_name, u.username AS user_username, c.sub_address
+SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, c.user_id, u.name AS user_name, u.username AS user_username, c.sub_address
 FROM customers c
 INNER JOIN addresses a ON a.id = c.address
-INNER JOIN address_groups ag ON ag.id = a.group_id
 LEFT JOIN users u ON u.id = c.user_id
 WHERE c.id = p_id AND c.is_active = 1
 LIMIT 1;
 
 CREATE PROCEDURE sp_list_customers()
-SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, ag.name AS address_group, c.user_id, u.name AS user_name, u.username AS user_username, c.sub_address
+SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, c.user_id, u.name AS user_name, u.username AS user_username, c.sub_address
 FROM customers c
 INNER JOIN addresses a ON a.id = c.address
-INNER JOIN address_groups ag ON ag.id = a.group_id
 LEFT JOIN users u ON u.id = c.user_id
 WHERE c.is_active = 1
 ORDER BY c.name ASC;
@@ -429,14 +432,14 @@ WHERE is_active = 1
 ORDER BY name ASC;
 
 CREATE PROCEDURE sp_get_item_by_id(IN p_id INT UNSIGNED)
-SELECT i.id, i.catalog_id, i.name, i.sku, i.default_unit_price, c.name AS catalog_name
+SELECT i.id, i.catalog_id, i.name, i.sku, i.default_unit_price_usd, i.default_unit_price_khr, c.name AS catalog_name
 FROM items i
 INNER JOIN catalogs c ON c.id = i.catalog_id
 WHERE i.id = p_id AND i.is_active = 1 AND c.is_active = 1
 LIMIT 1;
 
 CREATE PROCEDURE sp_list_items()
-SELECT i.id, i.catalog_id, i.name, i.sku, i.default_unit_price, c.name AS catalog_name
+SELECT i.id, i.catalog_id, i.name, i.sku, i.default_unit_price_usd, i.default_unit_price_khr, c.name AS catalog_name
 FROM items i
 INNER JOIN catalogs c ON c.id = i.catalog_id
 WHERE i.is_active = 1 AND c.is_active = 1
@@ -482,7 +485,7 @@ ORDER BY p.created_at DESC;
 
 CREATE PROCEDURE sp_get_order_by_id(IN p_id INT UNSIGNED)
 SELECT
-  o.id, c.name AS customer_name, o.address, oa.name AS order_address_name, oag.name AS order_address_group, c.address AS customer_address_id, ca.name AS customer_address_name, cag.name AS customer_address_group, c.sub_address AS customer_sub_address, o.customer_id, o.item_id, o.ordered_qty, o.unit_price,
+  o.id, c.name AS customer_name, o.address, oa.name AS order_address_name, c.address AS customer_address_id, ca.name AS customer_address_name, c.sub_address AS customer_sub_address, o.customer_id, o.order_group_id, og.name AS order_group_name, o.item_id, o.ordered_qty, o.unit_price,
   o.producer_id, o.truck_id, o.delivery_agent_id, o.delivery_time, o.delivered_qty, o.loss_qty, o.remaining_qty,
   o.discrepancy, o.amount_total, o.amount_paid, ps.name AS payment_status, o.delivery_proof_type, o.delivery_proof_value, s.name AS status, o.created_at, o.updated_at,
   c.phone AS customer_phone,
@@ -496,20 +499,19 @@ FROM orders o
 INNER JOIN customers c ON c.id = o.customer_id
 INNER JOIN addresses oa ON oa.id = o.address
 INNER JOIN addresses ca ON ca.id = c.address
-INNER JOIN address_groups oag ON oag.id = oa.group_id
-INNER JOIN address_groups cag ON cag.id = ca.group_id
 INNER JOIN items it ON it.id = o.item_id
 INNER JOIN status s ON s.id = o.status
 INNER JOIN payment_statuses ps ON ps.id = o.payment_status
 LEFT JOIN producers p ON p.id = o.producer_id
 LEFT JOIN trucks t ON t.id = o.truck_id
 LEFT JOIN delivery_agents d ON d.id = o.delivery_agent_id
+LEFT JOIN order_groups og ON og.id = o.order_group_id
 WHERE o.id = p_id
 LIMIT 1;
 
 CREATE PROCEDURE sp_list_orders()
 SELECT
-  o.id, c.name AS customer_name, o.address, oa.name AS order_address_name, oag.name AS order_address_group, c.address AS customer_address_id, ca.name AS customer_address_name, cag.name AS customer_address_group, c.sub_address AS customer_sub_address, o.customer_id, o.item_id, o.ordered_qty, o.unit_price,
+  o.id, c.name AS customer_name, o.address, oa.name AS order_address_name, c.address AS customer_address_id, ca.name AS customer_address_name, c.sub_address AS customer_sub_address, o.customer_id, o.order_group_id, og.name AS order_group_name, o.item_id, o.ordered_qty, o.unit_price,
   o.producer_id, o.truck_id, o.delivery_agent_id, o.delivery_time, o.delivered_qty, o.loss_qty, o.remaining_qty,
   o.discrepancy, o.amount_total, o.amount_paid, ps.name AS payment_status, o.delivery_proof_type, o.delivery_proof_value, s.name AS status, o.created_at, o.updated_at,
   c.phone AS customer_phone,
@@ -523,14 +525,13 @@ FROM orders o
 INNER JOIN customers c ON c.id = o.customer_id
 INNER JOIN addresses oa ON oa.id = o.address
 INNER JOIN addresses ca ON ca.id = c.address
-INNER JOIN address_groups oag ON oag.id = oa.group_id
-INNER JOIN address_groups cag ON cag.id = ca.group_id
 INNER JOIN items it ON it.id = o.item_id
 INNER JOIN status s ON s.id = o.status
 INNER JOIN payment_statuses ps ON ps.id = o.payment_status
 LEFT JOIN producers p ON p.id = o.producer_id
 LEFT JOIN trucks t ON t.id = o.truck_id
 LEFT JOIN delivery_agents d ON d.id = o.delivery_agent_id
+LEFT JOIN order_groups og ON og.id = o.order_group_id
 ORDER BY o.created_at DESC;
 
 DROP PROCEDURE IF EXISTS sp_dashboard_totals;
@@ -576,9 +577,9 @@ DEALLOCATE PREPARE stmt_role_menus;
 
 INSERT INTO role_menus (role_id, menu_key) VALUES
 (1, 'overview'), (1, 'newOrder'), (1, 'catalogs'), (1, 'items'), (1, 'customers'),
-(1, 'producers'), (1, 'deliveryAgents'), (1, 'trucks'), (1, 'orders'), (1, 'payments'), (1, 'users'), (1, 'activityLogs'),
+(1, 'producers'), (1, 'deliveryAgents'), (1, 'trucks'), (1, 'orders'), (1, 'ownerPreparing'), (1, 'payments'), (1, 'users'), (1, 'activityLogs'),
 (2, 'overview'), (2, 'newOrder'), (2, 'catalogs'), (2, 'items'), (2, 'customers'),
-(2, 'producers'), (2, 'deliveryAgents'), (2, 'trucks'), (2, 'orders'), (2, 'payments'),
+(2, 'producers'), (2, 'deliveryAgents'), (2, 'trucks'), (2, 'orders'), (2, 'ownerPreparing'), (2, 'payments'),
 (3, 'overview'), (3, 'deliveryAgents'), (3, 'trucks'), (3, 'confirmOrders'),
 (4, 'overview'), (4, 'confirmOrders'), (4, 'orders'),
 (5, 'overview'), (5, 'orders')
@@ -601,60 +602,45 @@ PREPARE stmt_drop_producer_confirm_status FROM @sql_drop_producer_confirm_status
 EXECUTE stmt_drop_producer_confirm_status;
 DEALLOCATE PREPARE stmt_drop_producer_confirm_status;
 
--- 3) Ensure addresses table exists (legacy compatibility)
-SET @has_addresses := (
+-- 3) Ensure order_groups and addresses(order_group_id) exist (legacy compatibility)
+SET @has_order_groups := (
   SELECT COUNT(*)
   FROM information_schema.tables
   WHERE table_schema = DATABASE()
-    AND table_name = 'addresses'
+    AND table_name = 'order_groups'
 );
-SET @sql_create_addresses := IF(
-  @has_addresses = 0,
-  'CREATE TABLE addresses (
-    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-    name VARCHAR(255) NOT NULL,
-    group_id INT UNSIGNED NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME NULL,
-    PRIMARY KEY (id),
-    KEY idx_addresses_name (name),
-    KEY idx_addresses_group_id (group_id)
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8',
-  'SELECT 1'
-);
-PREPARE stmt_create_addresses FROM @sql_create_addresses;
-EXECUTE stmt_create_addresses;
-DEALLOCATE PREPARE stmt_create_addresses;
-
-SET @has_address_groups := (
-  SELECT COUNT(*)
-  FROM information_schema.tables
-  WHERE table_schema = DATABASE()
-    AND table_name = 'address_groups'
-);
-SET @sql_create_address_groups := IF(
-  @has_address_groups = 0,
-  'CREATE TABLE address_groups (
+SET @sql_create_order_groups := IF(
+  @has_order_groups = 0,
+  'CREATE TABLE order_groups (
     id INT UNSIGNED NOT NULL AUTO_INCREMENT,
     name VARCHAR(255) NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NULL,
     PRIMARY KEY (id),
-    UNIQUE KEY uq_address_groups_name (name)
+    UNIQUE KEY uq_order_groups_name (name)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8',
   'SELECT 1'
 );
-PREPARE stmt_create_address_groups FROM @sql_create_address_groups;
-EXECUTE stmt_create_address_groups;
-DEALLOCATE PREPARE stmt_create_address_groups;
+PREPARE stmt_create_order_groups FROM @sql_create_order_groups;
+EXECUTE stmt_create_order_groups;
+DEALLOCATE PREPARE stmt_create_order_groups;
 
-SET @has_addresses_group_col := (
+SET @has_addresses_order_group_id_col := (
   SELECT COUNT(*)
   FROM information_schema.columns
   WHERE table_schema = DATABASE()
     AND table_name = 'addresses'
-    AND column_name = 'group'
+    AND column_name = 'order_group_id'
 );
+SET @sql_add_addresses_order_group_id_col := IF(
+  @has_addresses_order_group_id_col = 0,
+  'ALTER TABLE addresses ADD COLUMN order_group_id INT UNSIGNED NULL',
+  'SELECT 1'
+);
+PREPARE stmt_add_addresses_order_group_id_col FROM @sql_add_addresses_order_group_id_col;
+EXECUTE stmt_add_addresses_order_group_id_col;
+DEALLOCATE PREPARE stmt_add_addresses_order_group_id_col;
+
 SET @has_addresses_group_id_col := (
   SELECT COUNT(*)
   FROM information_schema.columns
@@ -662,39 +648,14 @@ SET @has_addresses_group_id_col := (
     AND table_name = 'addresses'
     AND column_name = 'group_id'
 );
-SET @sql_add_addresses_group_id_col := IF(
-  @has_addresses_group_id_col = 0,
-  'ALTER TABLE addresses ADD COLUMN group_id INT UNSIGNED NULL',
+SET @sql_backfill_order_group_id := IF(
+  @has_addresses_group_id_col > 0,
+  'UPDATE addresses SET order_group_id = group_id WHERE order_group_id IS NULL',
   'SELECT 1'
 );
-PREPARE stmt_add_addresses_group_id_col FROM @sql_add_addresses_group_id_col;
-EXECUTE stmt_add_addresses_group_id_col;
-DEALLOCATE PREPARE stmt_add_addresses_group_id_col;
-
-SET @sql_backfill_address_groups_from_legacy := IF(
-  @has_addresses_group_col > 0,
-  'INSERT INTO address_groups (name, updated_at)
-   SELECT DISTINCT `group`, NOW()
-   FROM addresses
-   WHERE `group` IS NOT NULL AND `group` <> ''''
-   ON DUPLICATE KEY UPDATE updated_at = VALUES(updated_at)',
-  'SELECT 1'
-);
-PREPARE stmt_backfill_address_groups_from_legacy FROM @sql_backfill_address_groups_from_legacy;
-EXECUTE stmt_backfill_address_groups_from_legacy;
-DEALLOCATE PREPARE stmt_backfill_address_groups_from_legacy;
-
-SET @sql_backfill_addresses_group_id := IF(
-  @has_addresses_group_col > 0,
-  'UPDATE addresses a
-   INNER JOIN address_groups ag ON ag.name = a.`group`
-   SET a.group_id = ag.id
-   WHERE a.group_id IS NULL',
-  'SELECT 1'
-);
-PREPARE stmt_backfill_addresses_group_id FROM @sql_backfill_addresses_group_id;
-EXECUTE stmt_backfill_addresses_group_id;
-DEALLOCATE PREPARE stmt_backfill_addresses_group_id;
+PREPARE stmt_backfill_order_group_id FROM @sql_backfill_order_group_id;
+EXECUTE stmt_backfill_order_group_id;
+DEALLOCATE PREPARE stmt_backfill_order_group_id;
 
 -- 4) Keep customers.address as INT relation to addresses
 SET @has_customers_address_int := (
@@ -705,13 +666,6 @@ SET @has_customers_address_int := (
     AND column_name = 'address'
     AND data_type IN ('int', 'bigint', 'smallint', 'mediumint', 'tinyint')
 );
-SET @has_customers_group_address := (
-  SELECT COUNT(*)
-  FROM information_schema.columns
-  WHERE table_schema = DATABASE()
-    AND table_name = 'customers'
-    AND column_name = 'group_address'
-);
 SET @sql_add_customers_address_int := IF(
   @has_customers_address_int = 0,
   'ALTER TABLE customers ADD COLUMN address INT UNSIGNED NULL',
@@ -720,46 +674,6 @@ SET @sql_add_customers_address_int := IF(
 PREPARE stmt_add_customers_address_int FROM @sql_add_customers_address_int;
 EXECUTE stmt_add_customers_address_int;
 DEALLOCATE PREPARE stmt_add_customers_address_int;
-
-SET @sql_backfill_customers_address_rel := IF(
-  @has_customers_group_address > 0,
-  'INSERT INTO address_groups (name, updated_at)
-   SELECT DISTINCT c.group_address, NOW()
-   FROM customers c
-   LEFT JOIN address_groups ag ON ag.name = c.group_address
-   WHERE c.group_address IS NOT NULL AND c.group_address <> '''' AND ag.id IS NULL',
-  'SELECT 1'
-);
-PREPARE stmt_backfill_customers_address_rel FROM @sql_backfill_customers_address_rel;
-EXECUTE stmt_backfill_customers_address_rel;
-DEALLOCATE PREPARE stmt_backfill_customers_address_rel;
-
-SET @sql_link_customers_address_rel := IF(
-  @has_customers_group_address > 0,
-  'INSERT INTO addresses (name, group_id, updated_at)
-   SELECT DISTINCT c.group_address, ag.id, NOW()
-   FROM customers c
-   INNER JOIN address_groups ag ON ag.name = c.group_address
-   LEFT JOIN addresses a ON a.name = c.group_address AND a.group_id = ag.id
-   WHERE c.group_address IS NOT NULL AND c.group_address <> '''' AND a.id IS NULL',
-  'SELECT 1'
-);
-PREPARE stmt_link_customers_address_rel FROM @sql_link_customers_address_rel;
-EXECUTE stmt_link_customers_address_rel;
-DEALLOCATE PREPARE stmt_link_customers_address_rel;
-
-SET @sql_assign_customers_address_rel := IF(
-  @has_customers_group_address > 0,
-  'UPDATE customers c
-   INNER JOIN address_groups ag ON ag.name = c.group_address
-   INNER JOIN addresses a ON a.name = c.group_address AND a.group_id = ag.id
-   SET c.address = a.id
-   WHERE c.address IS NULL',
-  'SELECT 1'
-);
-PREPARE stmt_assign_customers_address_rel FROM @sql_assign_customers_address_rel;
-EXECUTE stmt_assign_customers_address_rel;
-DEALLOCATE PREPARE stmt_assign_customers_address_rel;
 
 -- 5) Ensure orders.address exists and follows customers relation
 SET @has_orders_address := (
@@ -783,7 +697,24 @@ INNER JOIN customers c ON c.id = o.customer_id
 SET o.address = c.address
 WHERE o.address IS NULL;
 
--- 6) Ensure customers.user_id exists for linking customer users
+-- 6) Ensure orders.order_group_id exists
+SET @has_orders_order_group_id := (
+  SELECT COUNT(*)
+  FROM information_schema.columns
+  WHERE table_schema = DATABASE()
+    AND table_name = 'orders'
+    AND column_name = 'order_group_id'
+);
+SET @sql_add_orders_order_group_id := IF(
+  @has_orders_order_group_id = 0,
+  'ALTER TABLE orders ADD COLUMN order_group_id INT UNSIGNED NULL',
+  'SELECT 1'
+);
+PREPARE stmt_add_orders_order_group_id FROM @sql_add_orders_order_group_id;
+EXECUTE stmt_add_orders_order_group_id;
+DEALLOCATE PREPARE stmt_add_orders_order_group_id;
+
+-- 7) Ensure customers.user_id exists for linking customer users
 SET @has_customers_user_id := (
   SELECT COUNT(*)
   FROM information_schema.columns
@@ -799,5 +730,82 @@ SET @sql_add_customers_user_id := IF(
 PREPARE stmt_add_customers_user_id FROM @sql_add_customers_user_id;
 EXECUTE stmt_add_customers_user_id;
 DEALLOCATE PREPARE stmt_add_customers_user_id;
+
+-- 8) Ensure dual-currency item prices exist for USD and KHR
+SET @has_items_price_usd := (
+  SELECT COUNT(*)
+  FROM information_schema.columns
+  WHERE table_schema = DATABASE()
+    AND table_name = 'items'
+    AND column_name = 'default_unit_price_usd'
+);
+SET @has_items_price_khr := (
+  SELECT COUNT(*)
+  FROM information_schema.columns
+  WHERE table_schema = DATABASE()
+    AND table_name = 'items'
+    AND column_name = 'default_unit_price_khr'
+);
+SET @has_items_legacy_price := (
+  SELECT COUNT(*)
+  FROM information_schema.columns
+  WHERE table_schema = DATABASE()
+    AND table_name = 'items'
+    AND column_name = 'default_unit_price'
+);
+
+SET @sql_add_items_price_usd := IF(
+  @has_items_price_usd = 0,
+  'ALTER TABLE items ADD COLUMN default_unit_price_usd DECIMAL(14,2) NULL',
+  'SELECT 1'
+);
+PREPARE stmt_add_items_price_usd FROM @sql_add_items_price_usd;
+EXECUTE stmt_add_items_price_usd;
+DEALLOCATE PREPARE stmt_add_items_price_usd;
+
+SET @sql_add_items_price_khr := IF(
+  @has_items_price_khr = 0,
+  'ALTER TABLE items ADD COLUMN default_unit_price_khr DECIMAL(14,2) NULL',
+  'SELECT 1'
+);
+PREPARE stmt_add_items_price_khr FROM @sql_add_items_price_khr;
+EXECUTE stmt_add_items_price_khr;
+DEALLOCATE PREPARE stmt_add_items_price_khr;
+
+SET @sql_backfill_items_price_usd := IF(
+  @has_items_legacy_price > 0,
+  'UPDATE items SET default_unit_price_usd = default_unit_price WHERE default_unit_price_usd IS NULL',
+  'SELECT 1'
+);
+PREPARE stmt_backfill_items_price_usd FROM @sql_backfill_items_price_usd;
+EXECUTE stmt_backfill_items_price_usd;
+DEALLOCATE PREPARE stmt_backfill_items_price_usd;
+
+SET @sql_backfill_items_price_khr := IF(
+  @has_items_legacy_price > 0,
+  'UPDATE items SET default_unit_price_khr = ROUND(default_unit_price * 4100, 2) WHERE default_unit_price_khr IS NULL',
+  'SELECT 1'
+);
+PREPARE stmt_backfill_items_price_khr FROM @sql_backfill_items_price_khr;
+EXECUTE stmt_backfill_items_price_khr;
+DEALLOCATE PREPARE stmt_backfill_items_price_khr;
+
+SET @sql_set_items_price_usd_not_null := IF(
+  @has_items_price_usd = 0,
+  'ALTER TABLE items MODIFY COLUMN default_unit_price_usd DECIMAL(14,2) NOT NULL',
+  'SELECT 1'
+);
+PREPARE stmt_set_items_price_usd_not_null FROM @sql_set_items_price_usd_not_null;
+EXECUTE stmt_set_items_price_usd_not_null;
+DEALLOCATE PREPARE stmt_set_items_price_usd_not_null;
+
+SET @sql_set_items_price_khr_not_null := IF(
+  @has_items_price_khr = 0,
+  'ALTER TABLE items MODIFY COLUMN default_unit_price_khr DECIMAL(14,2) NOT NULL',
+  'SELECT 1'
+);
+PREPARE stmt_set_items_price_khr_not_null FROM @sql_set_items_price_khr_not_null;
+EXECUTE stmt_set_items_price_khr_not_null;
+DEALLOCATE PREPARE stmt_set_items_price_khr_not_null;
 
 SET FOREIGN_KEY_CHECKS = 1;

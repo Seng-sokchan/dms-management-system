@@ -4,7 +4,14 @@ const { checkDbConnection } = require("./db/pool");
 
 const app = createApp();
 
+function validateRequiredEnv() {
+  if (!process.env.JWT_SECRET) {
+    throw new Error("Missing required environment variable: JWT_SECRET");
+  }
+}
+
 async function start() {
+  validateRequiredEnv();
   await checkDbConnection();
   app.listen(Number(process.env.PORT || 4000), () => {
     // eslint-disable-next-line no-console

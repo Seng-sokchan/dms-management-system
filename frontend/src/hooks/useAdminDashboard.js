@@ -7,6 +7,7 @@ import {
   deleteTruck,
   deleteCatalog,
   createOrder,
+  deleteOrder as deleteOrderRequest,
   createPayment,
   createUser,
   createItem,
@@ -35,20 +36,46 @@ import {
 } from "../services/adminApi";
 import { getStoredToken, setStoredToken } from "../services/authStorage";
 import i18n from "../i18n/config";
+import { useConfirm } from "../components/ConfirmProvider";
 
 function getErrorMessage(error, errorKey) {
   return error?.response?.data?.message || i18n.t(errorKey);
 }
 
 export function useAdminDashboard() {
+  const { alert } = useConfirm();
   const [auth, setAuth] = useState({ username: "admin", password: "admin123" });
   const [token, setTokenState] = useState(getStoredToken);
-  const [message, setMessage] = useState("");
+  const [flash, setFlash] = useState(null);
 
   const setToken = useCallback((next) => {
     setTokenState(next);
     setStoredToken(typeof next === "string" ? next : "");
   }, []);
+
+  const dismissFlash = useCallback(() => {
+    setFlash(null);
+  }, []);
+
+  const showSuccess = useCallback((text) => {
+    setFlash({ text, variant: "success" });
+  }, []);
+
+  const showError = useCallback((text) => {
+    setFlash({ text, variant: "error" });
+  }, []);
+
+  const showSuccessPopup = useCallback(
+    async (text) => {
+      showSuccess(text);
+      await alert({
+        title: i18n.t("confirm.successTitle"),
+        message: text,
+        tone: "primary",
+      });
+    },
+    [alert, showSuccess],
+  );
 
   const [user, setUser] = useState(null);
   const [summary, setSummary] = useState(null);
@@ -67,6 +94,7 @@ export function useAdminDashboard() {
   const [items, setItems] = useState([]);
   const [payments, setPayments] = useState([]);
   const [paymentMethods, setPaymentMethods] = useState([]);
+  const [orderGroups, setOrderGroups] = useState([]);
 
   const [newOrder, setNewOrder] = useState({
     customerId: "",
@@ -84,7 +112,13 @@ export function useAdminDashboard() {
     subAddress: "",
   });
   const [newCatalog, setNewCatalog] = useState({ name: "", note: "" });
-  const [newItem, setNewItem] = useState({ catalogId: "", name: "", sku: "", defaultUnitPrice: 1 });
+  const [newItem, setNewItem] = useState({
+    catalogId: "",
+    name: "",
+    sku: "",
+    defaultUnitPriceUsd: 1,
+    defaultUnitPriceKhr: 4100,
+  });
   const [newDelivery, setNewDelivery] = useState({ name: "", phone: "", vehicleType: "" });
   const [newTruck, setNewTruck] = useState({ code: "", plateNo: "", deliveryAgentId: "", capacityNote: "" });
   const [newPayment, setNewPayment] = useState({ orderId: "", amount: 1, method: "", note: "" });
@@ -108,6 +142,7 @@ export function useAdminDashboard() {
       setItems(data.items);
       setPayments(data.payments);
       setPaymentMethods(Array.isArray(data.paymentMethods) ? data.paymentMethods : []);
+      setOrderGroups(Array.isArray(data.orderGroups) ? data.orderGroups : []);
       if (data.user?.role === "Admin") {
         const menusData = await fetchRoleMenus(token);
         setRoleMenusByRole(menusData && typeof menusData === "object" ? menusData : null);
@@ -122,7 +157,7 @@ export function useAdminDashboard() {
         setRoleMenusByRole(null);
       }
       if (data.user?.role === "Admin" && data.user?.allowedMenus?.includes("activityLogs")) {
-        const logsData = await fetchActivityLogs(token, 300);
+        const logsData = await fetchActivityLogs(token, 5000);
         setActivityLogs(Array.isArray(logsData) ? logsData : []);
       } else {
         setActivityLogs([]);
@@ -147,12 +182,13 @@ export function useAdminDashboard() {
         setItems([]);
         setPayments([]);
         setPaymentMethods([]);
-        setMessage(i18n.t("errors.sessionExpired"));
+        setOrderGroups([]);
+        showError(i18n.t("errors.sessionExpired"));
         return;
       }
-      setMessage(getErrorMessage(error, "errors.loadData"));
+      showError(getErrorMessage(error, "errors.loadData"));
     }
-  }, [token, setToken]);
+  }, [token, setToken, showError]);
 
   useEffect(() => {
     const id = requestAnimationFrame(() => {
@@ -166,9 +202,9 @@ export function useAdminDashboard() {
     try {
       const data = await loginRequest(auth);
       setToken(data.token);
-      setMessage(i18n.t("success.welcome", { name: data.user.name }));
+      showSuccess(i18n.t("success.welcome", { name: data.user.name }));
     } catch (error) {
-      setMessage(getErrorMessage(error, "errors.login"));
+      showError(getErrorMessage(error, "errors.login"));
     }
   }
 
@@ -191,9 +227,9 @@ export function useAdminDashboard() {
         truckId: "",
       });
       await refresh();
-      setMessage(i18n.t("success.orderCreated"));
+      await showSuccessPopup(i18n.t("success.orderCreated"));
     } catch (error) {
-      setMessage(getErrorMessage(error, "errors.createOrder"));
+      showError(getErrorMessage(error, "errors.createOrder"));
     }
   }
 
@@ -204,9 +240,9 @@ export function useAdminDashboard() {
       setNewCatalog({ name: "", note: "" });
       setNewItem((prev) => ({ ...prev, catalogId: created.id }));
       await refresh();
-      setMessage(i18n.t("success.catalogAdded"));
+      await showSuccessPopup(i18n.t("success.catalogAdded"));
     } catch (error) {
-      setMessage(getErrorMessage(error, "errors.createCatalog"));
+      showError(getErrorMessage(error, "errors.createCatalog"));
     }
   }
 
@@ -214,9 +250,9 @@ export function useAdminDashboard() {
     try {
       await updateCatalog(token, catalogId, payload);
       await refresh();
-      setMessage(i18n.t("success.catalogUpdated"));
+      await showSuccessPopup(i18n.t("success.catalogUpdated"));
     } catch (error) {
-      setMessage(getErrorMessage(error, "errors.updateCatalog"));
+      showError(getErrorMessage(error, "errors.updateCatalog"));
     }
   }
 
@@ -227,9 +263,9 @@ export function useAdminDashboard() {
         setNewItem((prev) => ({ ...prev, catalogId: "" }));
       }
       await refresh();
-      setMessage(i18n.t("success.catalogDeleted"));
+      showSuccess(i18n.t("success.catalogDeleted"));
     } catch (error) {
-      setMessage(getErrorMessage(error, "errors.deleteCatalog"));
+      showError(getErrorMessage(error, "errors.deleteCatalog"));
     }
   }
 
@@ -239,18 +275,20 @@ export function useAdminDashboard() {
       await createItem(token, {
         ...newItem,
         catalogId: newItem.catalogId,
-        defaultUnitPrice: Number(newItem.defaultUnitPrice),
+        defaultUnitPriceUsd: Number(newItem.defaultUnitPriceUsd),
+        defaultUnitPriceKhr: Number(newItem.defaultUnitPriceKhr),
       });
       setNewItem((prev) => ({
         catalogId: prev.catalogId,
         name: "",
         sku: "",
-        defaultUnitPrice: 1,
+        defaultUnitPriceUsd: 1,
+        defaultUnitPriceKhr: 4100,
       }));
       await refresh();
-      setMessage(i18n.t("success.itemAdded"));
+      await showSuccessPopup(i18n.t("success.itemAdded"));
     } catch (error) {
-      setMessage(getErrorMessage(error, "errors.createItem"));
+      showError(getErrorMessage(error, "errors.createItem"));
     }
   }
 
@@ -258,9 +296,9 @@ export function useAdminDashboard() {
     try {
       await updateItem(token, itemId, payload);
       await refresh();
-      setMessage(i18n.t("success.itemUpdated"));
+      await showSuccessPopup(i18n.t("success.itemUpdated"));
     } catch (error) {
-      setMessage(getErrorMessage(error, "errors.updateItem"));
+      showError(getErrorMessage(error, "errors.updateItem"));
     }
   }
 
@@ -271,9 +309,9 @@ export function useAdminDashboard() {
         setNewOrder((prev) => ({ ...prev, itemId: "" }));
       }
       await refresh();
-      setMessage(i18n.t("success.itemDeleted"));
+      showSuccess(i18n.t("success.itemDeleted"));
     } catch (error) {
-      setMessage(getErrorMessage(error, "errors.deleteItem"));
+      showError(getErrorMessage(error, "errors.deleteItem"));
     }
   }
 
@@ -283,9 +321,9 @@ export function useAdminDashboard() {
       await createCustomer(token, newCustomer);
       setNewCustomer({ name: "", phone: "", address: "", userId: "", subAddress: "" });
       await refresh();
-      setMessage(i18n.t("success.customerAdded"));
+      await showSuccessPopup(i18n.t("success.customerAdded"));
     } catch (error) {
-      setMessage(getErrorMessage(error, "errors.createCustomer"));
+      showError(getErrorMessage(error, "errors.createCustomer"));
     }
   }
 
@@ -293,9 +331,9 @@ export function useAdminDashboard() {
     try {
       await updateCustomer(token, customerId, payload);
       await refresh();
-      setMessage(i18n.t("success.customerUpdated"));
+      await showSuccessPopup(i18n.t("success.customerUpdated"));
     } catch (error) {
-      setMessage(getErrorMessage(error, "errors.updateCustomer"));
+      showError(getErrorMessage(error, "errors.updateCustomer"));
     }
   }
 
@@ -306,9 +344,9 @@ export function useAdminDashboard() {
         setNewOrder((prev) => ({ ...prev, customerId: "" }));
       }
       await refresh();
-      setMessage(i18n.t("success.customerDeleted"));
+      showSuccess(i18n.t("success.customerDeleted"));
     } catch (error) {
-      setMessage(getErrorMessage(error, "errors.deleteCustomer"));
+      showError(getErrorMessage(error, "errors.deleteCustomer"));
     }
   }
 
@@ -318,9 +356,9 @@ export function useAdminDashboard() {
       await createProducer(token, newProducer);
       setNewProducer({ name: "", phone: "", capacityNote: "" });
       await refresh();
-      setMessage(i18n.t("success.producerAdded"));
+      await showSuccessPopup(i18n.t("success.producerAdded"));
     } catch (error) {
-      setMessage(getErrorMessage(error, "errors.createProducer"));
+      showError(getErrorMessage(error, "errors.createProducer"));
     }
   }
 
@@ -328,9 +366,9 @@ export function useAdminDashboard() {
     try {
       await updateProducer(token, producerId, payload);
       await refresh();
-      setMessage(i18n.t("success.producerUpdated"));
+      await showSuccessPopup(i18n.t("success.producerUpdated"));
     } catch (error) {
-      setMessage(getErrorMessage(error, "errors.updateProducer"));
+      showError(getErrorMessage(error, "errors.updateProducer"));
     }
   }
 
@@ -338,9 +376,9 @@ export function useAdminDashboard() {
     try {
       await deleteProducer(token, producerId);
       await refresh();
-      setMessage(i18n.t("success.producerDeleted"));
+      showSuccess(i18n.t("success.producerDeleted"));
     } catch (error) {
-      setMessage(getErrorMessage(error, "errors.deleteProducer"));
+      showError(getErrorMessage(error, "errors.deleteProducer"));
     }
   }
 
@@ -350,9 +388,9 @@ export function useAdminDashboard() {
       await createDeliveryAgent(token, newDelivery);
       setNewDelivery({ name: "", phone: "", vehicleType: "" });
       await refresh();
-      setMessage(i18n.t("success.deliveryAdded"));
+      await showSuccessPopup(i18n.t("success.deliveryAdded"));
     } catch (error) {
-      setMessage(getErrorMessage(error, "errors.createDelivery"));
+      showError(getErrorMessage(error, "errors.createDelivery"));
     }
   }
 
@@ -360,9 +398,9 @@ export function useAdminDashboard() {
     try {
       await updateDeliveryAgent(token, deliveryAgentId, payload);
       await refresh();
-      setMessage(i18n.t("success.deliveryUpdated"));
+      await showSuccessPopup(i18n.t("success.deliveryUpdated"));
     } catch (error) {
-      setMessage(getErrorMessage(error, "errors.updateDelivery"));
+      showError(getErrorMessage(error, "errors.updateDelivery"));
     }
   }
 
@@ -370,9 +408,9 @@ export function useAdminDashboard() {
     try {
       await deleteDeliveryAgent(token, deliveryAgentId);
       await refresh();
-      setMessage(i18n.t("success.deliveryDeleted"));
+      showSuccess(i18n.t("success.deliveryDeleted"));
     } catch (error) {
-      setMessage(getErrorMessage(error, "errors.deleteDelivery"));
+      showError(getErrorMessage(error, "errors.deleteDelivery"));
     }
   }
 
@@ -382,9 +420,9 @@ export function useAdminDashboard() {
       await createTruck(token, newTruck);
       setNewTruck({ code: "", plateNo: "", deliveryAgentId: "", capacityNote: "" });
       await refresh();
-      setMessage(i18n.t("success.truckAdded"));
+      await showSuccessPopup(i18n.t("success.truckAdded"));
     } catch (error) {
-      setMessage(getErrorMessage(error, "errors.createTruck"));
+      showError(getErrorMessage(error, "errors.createTruck"));
     }
   }
 
@@ -392,9 +430,9 @@ export function useAdminDashboard() {
     try {
       await updateTruck(token, truckId, payload);
       await refresh();
-      setMessage(i18n.t("success.truckUpdated"));
+      await showSuccessPopup(i18n.t("success.truckUpdated"));
     } catch (error) {
-      setMessage(getErrorMessage(error, "errors.updateTruck"));
+      showError(getErrorMessage(error, "errors.updateTruck"));
     }
   }
 
@@ -405,9 +443,9 @@ export function useAdminDashboard() {
         setNewOrder((prev) => ({ ...prev, truckId: "" }));
       }
       await refresh();
-      setMessage(i18n.t("success.truckDeleted"));
+      showSuccess(i18n.t("success.truckDeleted"));
     } catch (error) {
-      setMessage(getErrorMessage(error, "errors.deleteTruck"));
+      showError(getErrorMessage(error, "errors.deleteTruck"));
     }
   }
 
@@ -428,9 +466,9 @@ export function useAdminDashboard() {
         deliveryProofValue,
       });
       await refresh();
-      setMessage(i18n.t("success.deliveryConfirmed"));
+      await showSuccessPopup(i18n.t("success.deliveryConfirmed"));
     } catch (error) {
-      setMessage(getErrorMessage(error, "errors.confirmDelivery"));
+      showError(getErrorMessage(error, "errors.confirmDelivery"));
     }
   }
 
@@ -438,9 +476,29 @@ export function useAdminDashboard() {
     try {
       await updateOrderStatus(token, orderId, { status });
       await refresh();
-      setMessage(i18n.t("success.statusUpdated"));
+      await showSuccessPopup(i18n.t("success.statusUpdated"));
     } catch (error) {
-      setMessage(getErrorMessage(error, "errors.updateStatus"));
+      showError(getErrorMessage(error, "errors.updateStatus"));
+    }
+  }
+
+  async function submitOrderGroupAssignment(orderId, orderGroupId) {
+    try {
+      await updateOrderAssignment(token, orderId, { orderGroupId: orderGroupId || null });
+      await refresh();
+      await showSuccessPopup(i18n.t("success.orderGroupAssigned", { defaultValue: "Order group assigned" }));
+    } catch (error) {
+      showError(getErrorMessage(error, "errors.updateOrderGroup"));
+    }
+  }
+
+  async function submitOrderDelete(orderId) {
+    try {
+      await deleteOrderRequest(token, orderId);
+      await refresh();
+      showSuccess(i18n.t("success.orderDeleted", { defaultValue: "Order deleted" }));
+    } catch (error) {
+      showError(getErrorMessage(error, "errors.deleteOrder"));
     }
   }
 
@@ -454,9 +512,9 @@ export function useAdminDashboard() {
       });
       setNewPayment({ orderId: "", amount: 1, method: "", note: "" });
       await refresh();
-      setMessage(i18n.t("success.paymentRecorded"));
+      await showSuccessPopup(i18n.t("success.paymentRecorded"));
     } catch (error) {
-      setMessage(getErrorMessage(error, "errors.createPayment"));
+      showError(getErrorMessage(error, "errors.createPayment"));
     }
   }
 
@@ -466,10 +524,10 @@ export function useAdminDashboard() {
       await createUser(token, newUser);
       setNewUser({ name: "", username: "", password: "", role: "Owner" });
       await refresh();
-      setMessage(i18n.t("success.userAdded"));
+      await showSuccessPopup(i18n.t("success.userAdded"));
       return true;
     } catch (error) {
-      setMessage(getErrorMessage(error, "errors.createUser"));
+      showError(getErrorMessage(error, "errors.createUser"));
       return false;
     }
   }
@@ -478,9 +536,9 @@ export function useAdminDashboard() {
     try {
       await updateUser(token, userId, payload);
       await refresh();
-      setMessage(i18n.t("success.userUpdated"));
+      await showSuccessPopup(i18n.t("success.userUpdated"));
     } catch (error) {
-      setMessage(getErrorMessage(error, "errors.updateUser"));
+      showError(getErrorMessage(error, "errors.updateUser"));
     }
   }
 
@@ -488,9 +546,9 @@ export function useAdminDashboard() {
     try {
       await deleteUser(token, userId);
       await refresh();
-      setMessage(i18n.t("success.userDeleted"));
+      showSuccess(i18n.t("success.userDeleted"));
     } catch (error) {
-      setMessage(getErrorMessage(error, "errors.deleteUser"));
+      showError(getErrorMessage(error, "errors.deleteUser"));
     }
   }
 
@@ -498,10 +556,10 @@ export function useAdminDashboard() {
     try {
       await updateRoleMenus(token, roleName, menuKeys);
       await refresh();
-      setMessage(i18n.t("users.roleMenusSaved"));
+      await showSuccessPopup(i18n.t("users.roleMenusSaved"));
       return true;
     } catch (error) {
-      setMessage(getErrorMessage(error, "errors.updateRoleMenus"));
+      showError(getErrorMessage(error, "errors.updateRoleMenus"));
       return false;
     }
   }
@@ -509,7 +567,7 @@ export function useAdminDashboard() {
   function logout() {
     setToken("");
     setUser(null);
-    setMessage("");
+    dismissFlash();
   }
 
   return {
@@ -532,7 +590,9 @@ export function useAdminDashboard() {
     items,
     payments,
     paymentMethods,
-    message,
+    orderGroups,
+    flash,
+    dismissFlash,
     newOrder,
     newProducer,
     newCustomer,
@@ -574,6 +634,8 @@ export function useAdminDashboard() {
     submitTruckDelete,
     submitDeliveryConfirmation,
     submitOrderStatus,
+    submitOrderGroupAssignment,
+    submitOrderDelete,
     submitPayment,
     submitUser,
     submitUserUpdate,

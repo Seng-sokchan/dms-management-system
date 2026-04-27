@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ItemForm } from "../components/ItemForm";
+import { useConfirm } from "../components/ConfirmProvider";
 
 function formatUnitPrice(value) {
   const n = Number(value);
@@ -9,7 +10,14 @@ function formatUnitPrice(value) {
   return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-const EMPTY_EDIT = { id: "", catalogId: "", name: "", sku: "", defaultUnitPrice: 1 };
+const EMPTY_EDIT = {
+  id: "",
+  catalogId: "",
+  name: "",
+  sku: "",
+  defaultUnitPriceUsd: 1,
+  defaultUnitPriceKhr: 4100,
+};
 
 export function ItemsPage({
   catalogs = [],
@@ -21,6 +29,7 @@ export function ItemsPage({
   onDeleteItem,
 }) {
   const { t } = useTranslation();
+  const { confirm } = useConfirm();
   const hasCatalogs = catalogs.length > 0;
   const [editingItem, setEditingItem] = useState(EMPTY_EDIT);
   const isEditing = useMemo(() => Boolean(editingItem.id), [editingItem.id]);
@@ -31,7 +40,8 @@ export function ItemsPage({
       catalogId: item.catalogId || "",
       name: item.name || "",
       sku: item.sku || "",
-      defaultUnitPrice: Number(item.defaultUnitPrice) || 0,
+      defaultUnitPriceUsd: Number(item.defaultUnitPriceUsd) || 0,
+      defaultUnitPriceKhr: Number(item.defaultUnitPriceKhr) || 0,
     });
   }
 
@@ -46,14 +56,22 @@ export function ItemsPage({
       catalogId: editingItem.catalogId,
       name: editingItem.name,
       sku: editingItem.sku,
-      defaultUnitPrice: Number(editingItem.defaultUnitPrice),
+      defaultUnitPriceUsd: Number(editingItem.defaultUnitPriceUsd),
+      defaultUnitPriceKhr: Number(editingItem.defaultUnitPriceKhr),
     });
     setEditingItem(EMPTY_EDIT);
   }
 
   async function handleDelete(itemId) {
-    const ok = window.confirm(t("items.confirmDelete"));
-    if (!ok) return;
+    if (
+      !(await confirm({
+        title: t("confirm.deleteTitle"),
+        message: t("items.confirmDelete"),
+        tone: "danger",
+      }))
+    ) {
+      return;
+    }
     if (editingItem.id === itemId) {
       setEditingItem(EMPTY_EDIT);
     }
@@ -101,13 +119,16 @@ export function ItemsPage({
                   </span>
                   <span className="entity-list-meta">
                     {it.sku ? `${t("items.rowSku", { sku: it.sku })} · ` : ""}
-                    {t("items.rowDefaultUnitPrice", { price: formatUnitPrice(it.defaultUnitPrice) })}
+                    {t("items.rowDefaultUnitPrices", {
+                      usd: formatUnitPrice(it.defaultUnitPriceUsd),
+                      khr: formatUnitPrice(it.defaultUnitPriceKhr),
+                    })}
                   </span>
                   <div className="row-actions">
                     <button type="button" className="btn-ghost btn-edit" onClick={() => startEdit(it)}>
                       {t("items.edit")}
                     </button>
-                    <button type="button" className="btn-ghost btn-delete" onClick={() => handleDelete(it.id)}>
+                    <button type="button" className="btn-ghost btn-delete" onClick={() => void handleDelete(it.id)}>
                       {t("items.delete")}
                     </button>
                   </div>
@@ -155,16 +176,28 @@ export function ItemsPage({
               value={editingItem.sku}
               onChange={(event) => setEditingItem({ ...editingItem, sku: event.target.value })}
             />
-            <label className="form-label" htmlFor="item-edit-default-price">
-              {t("items.labelDefaultPrice")}
+            <label className="form-label" htmlFor="item-edit-default-price-usd">
+              {t("items.labelDefaultPriceUsd")}
             </label>
             <input
-              id="item-edit-default-price"
+              id="item-edit-default-price-usd"
               type="number"
               min="0"
               step="0.01"
-              value={editingItem.defaultUnitPrice}
-              onChange={(event) => setEditingItem({ ...editingItem, defaultUnitPrice: event.target.value })}
+              value={editingItem.defaultUnitPriceUsd}
+              onChange={(event) => setEditingItem({ ...editingItem, defaultUnitPriceUsd: event.target.value })}
+              required
+            />
+            <label className="form-label" htmlFor="item-edit-default-price-khr">
+              {t("items.labelDefaultPriceKhr")}
+            </label>
+            <input
+              id="item-edit-default-price-khr"
+              type="number"
+              min="0"
+              step="1"
+              value={editingItem.defaultUnitPriceKhr}
+              onChange={(event) => setEditingItem({ ...editingItem, defaultUnitPriceKhr: event.target.value })}
               required
             />
             <div className="row-actions">

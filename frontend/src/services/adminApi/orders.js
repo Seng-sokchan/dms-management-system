@@ -15,3 +15,11 @@ export async function updateOrderStatus(token, orderId, payload) {
 export async function updateOrderAssignment(token, orderId, payload) {
   return apiClient.post(`/orders/${orderId}`, payload, authConfig(token));
 }
+
+export async function deleteOrder(token, orderId) {
+  return apiClient.delete(`/orders/${orderId}`, authConfig(token));
+}
+
+export async function fetchOrderGroups(token) {
+  return apiClient.get("/order-groups", authConfig(token));
+}

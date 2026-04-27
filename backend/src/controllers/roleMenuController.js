@@ -25,9 +25,6 @@ async function saveRoleMenus(req, res) {
       return res.status(400).json({ message: `Invalid menu key: ${k}` });
     }
   }
-  if (!parsed.data.menuKeys.includes("overview")) {
-    return res.status(400).json({ message: "Overview must remain in the allowed menus" });
-  }
   try {
     const menuKeys = await replaceRoleMenus(roleName, parsed.data.menuKeys);
     return res.json({ role: roleName, menuKeys });

@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 
 export function CatalogForm({ newCatalog, setNewCatalog, onCreateCatalog }) {
   const { t } = useTranslation();
+
   return (
     <form className="panel form" onSubmit={onCreateCatalog}>
       <h3>{t("catalogs.formTitle")}</h3>

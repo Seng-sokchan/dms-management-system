@@ -46,8 +46,12 @@
     "trucksSub": "Fleet master data",
     "orders": "Orders",
     "ordersSub": "Pipeline & delivery",
-    "confirmOrders": "Confirm Orders",
-    "confirmOrdersSub": "Logistics customer confirmation",
+    "customerOrders": "Customer Orders",
+    "customerOrdersSub": "Review new orders",
+    "ownerPreparing": "Owner Preparing",
+    "ownerPreparingSub": "Assign order groups",
+    "confirmOrders": "Logistics Supplier",
+    "confirmOrdersSub": "Supplier order confirmation",
     "payments": "Payments",
     "paymentsSub": "Record & history",
     "activityLogs": "User Activity Log",
@@ -64,14 +68,17 @@
     "deliveryAgents": "Delivery agents",
     "trucks": "Trucks",
     "orders": "Orders",
-    "confirmOrders": "Confirm Orders",
+    "customerOrders": "Customer Orders",
+    "ownerPreparing": "Owner Preparing",
+    "confirmOrders": "Logistics Supplier",
     "payments": "Payments"
     ,
     "activityLogs": "User Activity Log"
   },
   "activityLog": {
     "title": "User Activity Log",
-    "lead": "Track user actions across the system."
+    "lead": "Track user actions across the system.",
+    "totalRequestEndpointToday": "Total Request Endpoint Today"
   },
   "overview": {
     "title": "Overview",
@@ -173,10 +180,12 @@
     "catalogPlaceholder": "— Select a catalog for this item —",
     "labelName": "Product name",
     "labelSku": "SKU / code",
-    "labelDefaultPrice": "Default unit price",
+    "labelDefaultPriceUsd": "Default unit price (USD)",
+    "labelDefaultPriceKhr": "Default unit price (KHR)",
     "namePh": "e.g. Standard crate",
     "skuPh": "e.g. CRATE-01",
     "defaultPricePh": "0.00",
+    "defaultPriceKhrPh": "0",
     "save": "Save to catalog",
     "editTitle": "Edit item",
     "update": "Update item",
@@ -186,7 +195,7 @@
     "confirmDelete": "Delete this item?",
     "listTitle": "Catalog (name, SKU, default price)",
     "rowSku": "SKU {{sku}}",
-    "rowDefaultUnitPrice": "Default unit price {{price}}",
+    "rowDefaultUnitPrices": "Default price USD {{usd}} / KHR {{khr}}",
     "empty": "No catalog items yet—add a product and its default unit price above."
   },
   "deliveryAgents": {
@@ -276,8 +285,15 @@
     "dash": "—"
   },
   "confirmOrders": {
-    "title": "Confirm Orders",
+    "title": "Logistics Supplier",
     "lead": "Logistics confirms customer order delivery and updates delivery status."
+  },
+  "ownerPreparing": {
+    "title": "Owner Preparing",
+    "lead": "Assign order groups for orders with OWNER_PREPARING status.",
+    "orderGroup": "Assigned Order Group",
+    "selectOrderGroup": "Select order group",
+    "action": "Actions"
   },
   "payments": {
     "title": "Payments",
@@ -299,9 +315,14 @@
     "debtAmount": "Debt Amount",
     "action": "Action",
     "payWithAba": "PAY WITH ABA",
+    "viewButton": "View",
+    "detailTitle": "Payment Detail",
     "close": "Close",
     "scanQrInstruction": "Scan this sample ABA QR code to proceed with payment.",
-    "refreshVerifyHint": "Please wait to verify payment."
+    "refreshVerifyHint": "Please wait to verify payment.",
+    "generatingNewQr": "Generating new QR...",
+    "autoRefreshEveryFiveMinutes": "Auto refresh every 5 minutes",
+    "qrExpiresIn": "QR expires in {{time}}"
   },
   "dashboard": {
     "totalOrders": "Total orders",
@@ -342,6 +363,53 @@
     "Delivery": "Delivery",
     "Customer": "Customer"
   },
+  "confirm": {
+    "defaultTitle": "Please confirm",
+    "defaultMessage": "Do you want to continue with this action?",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "ok": "OK",
+    "successTitle": "Success",
+    "loginTitle": "Sign in",
+    "loginMessage": "Continue signing in with the credentials you entered?",
+    "signOutTitle": "Sign out",
+    "signOutMessage": "You will need to sign in again to use the application.",
+    "languageTitle": "Change language",
+    "languageMessage": "Switch the interface to the other language now?",
+    "saveTitle": "Save",
+    "saveMessage": "Apply and save the information you entered?",
+    "updateTitle": "Update",
+    "updateMessage": "Save these changes to the record?",
+    "deleteTitle": "Delete",
+    "editTitle": "Edit",
+    "editMessage": "Open the editor for this record?",
+    "closeTitle": "Close",
+    "closeMessage": "Close this dialog? Unsaved changes in this form may be lost.",
+    "viewGroupTitle": "View orders",
+    "viewGroupMessage": "Open the order list for this group?",
+    "assignGroupTitle": "Assign order group",
+    "assignGroupMessage": "Save this order group assignment?",
+    "supplierReadyTitle": "Supplier ready",
+    "supplierReadyMessage": "Set this order status to supplier ready? This step is visible across the pipeline.",
+    "deliverySaveTitle": "Save delivery",
+    "deliverySaveMessage": "Submit the delivery confirmation with the quantities and proof you entered?",
+    "payAbaTitle": "Pay with ABA",
+    "payAbaMessage": "Open the ABA payment view for this order?",
+    "paymentsCloseTitle": "Close payment",
+    "paymentsCloseMessage": "Close the ABA payment window?",
+    "usersAddTitle": "Add user",
+    "usersAddMessage": "Open the form to create a new user account?",
+    "usersMenusTitle": "Menu access",
+    "usersMenusMessage": "Open the screen to configure which pages each role can access?",
+    "usersSaveTitle": "Create user",
+    "usersSaveMessage": "Create this user account with the details you entered?",
+    "usersUpdateTitle": "Update user",
+    "usersUpdateMessage": "Save changes to this user account?",
+    "usersRoleSaveTitle": "Save menu access",
+    "usersRoleSaveMessage": "Save menu access settings for the selected role?",
+    "createOrderTitle": "Place order",
+    "createOrderMessage": "Create this order with the options you selected?"
+  },
   "errors": {
     "loadData": "Failed to load data",
     "login": "Login failed",
@@ -366,6 +434,8 @@
     "deleteTruck": "Delete truck failed",
     "confirmDelivery": "Delivery confirmation failed",
     "updateStatus": "Status update failed",
+    "updateOrderGroup": "Order group update failed",
+    "deleteOrder": "Delete order failed",
     "createPayment": "Create payment failed",
     "createUser": "Create user failed",
     "updateUser": "Update user failed",
@@ -396,10 +466,23 @@
     "truckDeleted": "Truck deleted",
     "deliveryConfirmed": "Delivery confirmed",
     "statusUpdated": "Status updated",
+    "orderGroupAssigned": "Order group assigned",
+    "orderDeleted": "Order deleted",
     "paymentRecorded": "Payment recorded"
     ,
     "userAdded": "User created",
     "userUpdated": "User updated",
     "userDeleted": "User deactivated"
+  },
+  "customerOrders": {
+    "title": "Customer Orders",
+    "lead": "Manage orders that are still in NEW_ORDER status.",
+    "listTitle": "NEW_ORDER list",
+    "empty": "No NEW_ORDER found.",
+    "confirmBtn": "Confirm",
+    "deleteBtn": "Delete",
+    "confirmDelete": "Delete this NEW_ORDER record?",
+    "confirmActionTitle": "Confirm order",
+    "confirmActionMessage": "Move this order from NEW_ORDER to OWNER_PREPARING?"
   }
 }

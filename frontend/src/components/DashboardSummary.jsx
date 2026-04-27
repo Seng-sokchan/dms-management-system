@@ -3,6 +3,12 @@ import { ORDER_STATUS, PAYMENT_STATUS } from "../services/adminApi";
 
 export function DashboardSummary({ summary, statuses }) {
   const { t } = useTranslation();
+  const formatMoney = (value) =>
+    Number(value || 0).toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  const formatKhr = (value) => Number(value || 0).toLocaleString();
 
   if (!summary) {
     return (
@@ -31,17 +37,20 @@ export function DashboardSummary({ summary, statuses }) {
       </article>
       <article className="stat-card">
         <p className="stat-label">{t("dashboard.revenue")}</p>
-        <p className="stat-value">${totals.totalRevenue}</p>
+        <p className="stat-value">${formatMoney(totals.totalRevenue)}</p>
+        <p className="stat-subvalue">KHR {formatKhr(totals.totalRevenueKhr)}</p>
         <p className="stat-hint">{t("dashboard.revenueHint")}</p>
       </article>
       <article className="stat-card">
         <p className="stat-label">{t("dashboard.collected")}</p>
-        <p className="stat-value stat-value--ok">${totals.totalCollected}</p>
+        <p className="stat-value stat-value--ok">${formatMoney(totals.totalCollected)}</p>
+        <p className="stat-subvalue">KHR {formatKhr(totals.totalCollectedKhr)}</p>
         <p className="stat-hint">{t("dashboard.collectedHint")}</p>
       </article>
       <article className="stat-card">
         <p className="stat-label">{t("dashboard.outstanding")}</p>
-        <p className="stat-value stat-value--warn">${totals.outstandingBalance}</p>
+        <p className="stat-value stat-value--warn">${formatMoney(totals.outstandingBalance)}</p>
+        <p className="stat-subvalue">KHR {formatKhr(totals.outstandingBalanceKhr)}</p>
         <p className="stat-hint">{t("dashboard.outstandingHint")}</p>
       </article>
 

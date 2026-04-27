@@ -1,9 +1,24 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { OrdersTable } from "../components/OrdersTable";
+import { useConfirm } from "../components/ConfirmProvider";
 
 export function ConfirmOrdersPage({ orders, statuses, onUpdateStatus, onConfirmDelivery }) {
   const { t } = useTranslation();
+  const { confirm } = useConfirm();
+
+  async function handleSupplierReady(orderId) {
+    if (
+      !(await confirm({
+        title: t("confirm.supplierReadyTitle"),
+        message: t("confirm.supplierReadyMessage"),
+        tone: "primary",
+      }))
+    ) {
+      return;
+    }
+    onUpdateStatus(orderId, "SUPPLIER_ORDER_READY");
+  }
 
   const logisticsOrders = useMemo(
     () => (orders || []).filter((row) => row.status === "SENT_TO_LOGISTICS_SUPPLIER"),
@@ -31,7 +46,7 @@ export function ConfirmOrdersPage({ orders, statuses, onUpdateStatus, onConfirmD
             <button
               type="button"
               className="btn-sm"
-              onClick={() => onUpdateStatus(order.id, "SUPPLIER_ORDER_READY")}
+              onClick={() => void handleSupplierReady(order.id)}
             >
               SUPPLIER READY
             </button>

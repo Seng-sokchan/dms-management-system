@@ -8,9 +8,12 @@ const {
   listOrders: listOrdersDb,
   createOrder: createOrderDb,
   getOrderById,
+  getOrderGroupById,
+  listOrderGroups: listOrderGroupsDb,
   updateOrderAssignment,
   updateOrderStatus: updateOrderStatusDb,
   confirmOrderDelivery,
+  deleteOrder: deleteOrderDb,
   getDashboardSummary,
   listOrderStatuses,
 } = require("../db/dataStore");
@@ -32,6 +35,11 @@ async function listOrders(req, res) {
     return res.json(filterOrdersForLogistics(orders));
   }
   return res.json(orders);
+}
+
+async function listOrderGroups(_req, res) {
+  const groups = await listOrderGroupsDb();
+  return res.json(groups);
 }
 
 async function createOrder(req, res) {
@@ -57,7 +65,7 @@ async function createOrder(req, res) {
   if (!catalogItem) {
     return res.status(400).json({ message: "Item not found" });
   }
-  const resolvedUnitPrice = unitPrice != null ? unitPrice : catalogItem.defaultUnitPrice;
+  const resolvedUnitPrice = unitPrice != null ? unitPrice : catalogItem.defaultUnitPriceUsd;
   if (truckId) {
     const truck = await getTruckById(truckId);
     if (!truck) {
@@ -85,6 +93,7 @@ async function assignOrder(req, res) {
   const schema = z.object({
     producerId: z.string().nullable().optional(),
     truckId: z.string().nullable().optional(),
+    orderGroupId: z.string().nullable().optional(),
     deliveryTime: z.string().datetime().optional(),
   });
   const parsed = schema.safeParse(req.body);
@@ -95,6 +104,12 @@ async function assignOrder(req, res) {
     const truck = await getTruckById(parsed.data.truckId);
     if (!truck) {
       return res.status(400).json({ message: "Truck not found" });
+    }
+  }
+  if (parsed.data.orderGroupId) {
+    const orderGroup = await getOrderGroupById(parsed.data.orderGroupId);
+    if (!orderGroup) {
+      return res.status(400).json({ message: "Order group not found" });
     }
   }
   const updatedOrder = await updateOrderAssignment(req.params.id, parsed.data);
@@ -115,11 +130,6 @@ async function updateOrderStatus(req, res) {
   const order = await getOrderById(req.params.id);
   if (!order) {
     return res.status(404).json({ message: "Order not found" });
-  }
-  if ((req.user?.role === "Logistics" || req.user?.role === "Delivery") && order.status !== "SENT_TO_LOGISTICS_SUPPLIER") {
-    return res.status(400).json({
-      message: "Logistics/Delivery can update status only when order is SENT_TO_LOGISTICS_SUPPLIER",
-    });
   }
   const statusNames = await getStatusNames();
   const schema = z.object({ status: z.string().min(1) });
@@ -182,6 +192,23 @@ async function dashboardSummary(_req, res) {
   res.json(summary);
 }
 
+async function deleteOrder(req, res) {
+  const order = await getOrderById(req.params.id);
+  if (!order) {
+    return res.status(404).json({ message: "Order not found" });
+  }
+  if (order.status !== "NEW_ORDER") {
+    return res.status(400).json({
+      message: "Only NEW_ORDER can be deleted",
+    });
+  }
+  const result = await deleteOrderDb(req.params.id);
+  if (!result || result.affectedRows === 0) {
+    return res.status(404).json({ message: "Order not found" });
+  }
+  return res.json({ ok: true, id: req.params.id });
+}
+
 async function mobileListOrders(req, res) {
   const orders = await listOrdersDb();
   const scoped = req.user?.role === "Logistics" || req.user?.role === "Delivery" ? filterOrdersForLogistics(orders) : orders;
@@ -199,11 +226,6 @@ async function mobileUpdateStatus(req, res) {
   if (!order) {
     return res.status(404).json({ message: "Order not found" });
   }
-  if ((req.user?.role === "Logistics" || req.user?.role === "Delivery") && order.status !== "SENT_TO_LOGISTICS_SUPPLIER") {
-    return res.status(400).json({
-      message: "Logistics/Delivery can update status only when order is SENT_TO_LOGISTICS_SUPPLIER",
-    });
-  }
   const updatedOrder = await updateOrderStatusDb(req.params.id, parsed.data.status, {
     changedByUserId: req.user.sub,
   });
@@ -212,12 +234,14 @@ async function mobileUpdateStatus(req, res) {
 
 module.exports = {
   listStatuses,
+  listOrderGroups,
   listOrders,
   createOrder,
   assignOrder,
   updateOrderStatus,
   confirmDelivery,
   dashboardSummary,
+  deleteOrder,
   mobileListOrders,
   mobileUpdateStatus,
 };

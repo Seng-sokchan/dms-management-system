@@ -1,7 +1,7 @@
 const { getPool } = require("../pool");
 
 async function listUserActivityLogs(limit = 300) {
-  const safeLimit = Math.min(Math.max(Number(limit) || 100, 1), 1000);
+  const safeLimit = Math.min(Math.max(Number(limit) || 100, 1), 100000);
   const [rows] = await getPool().query(
     `SELECT id, user_id, username, role, method, path, status_code, message, created_at
      FROM user_activity_logs

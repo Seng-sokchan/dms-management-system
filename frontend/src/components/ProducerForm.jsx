@@ -2,6 +2,7 @@
 
 export function ProducerForm({ newProducer, setNewProducer, onCreateProducer }) {
   const { t } = useTranslation();
+
   return (
     <form className="panel form" onSubmit={onCreateProducer}>
       <h3>{t("producers.formTitle")}</h3>

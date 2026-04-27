@@ -1,12 +1,14 @@
 const express = require("express");
 const {
   listStatuses,
+  listOrderGroups,
   listOrders,
   createOrder,
   assignOrder,
   updateOrderStatus,
   confirmDelivery,
   dashboardSummary,
+  deleteOrder,
   mobileListOrders,
   mobileUpdateStatus,
 } = require("../controllers/orderController");
@@ -15,12 +17,14 @@ const { requireAuth, requireRoles } = require("../middleware/auth");
 const router = express.Router();
 
 router.get("/statuses", requireAuth, listStatuses);
+router.get("/order-groups", requireAuth, listOrderGroups);
 router.get("/orders", requireAuth, listOrders);
 router.post("/orders", requireAuth, requireRoles("Admin", "Owner"), createOrder);
 // More specific paths before POST /orders/:id
 router.post("/orders/:id/delivery-confirmation", requireAuth, requireRoles("Admin", "Logistics", "Delivery"), confirmDelivery);
 router.post("/orders/:id/status", requireAuth, requireRoles("Admin", "Owner", "Logistics", "Delivery"), updateOrderStatus);
 router.post("/orders/:id", requireAuth, requireRoles("Admin", "Owner"), assignOrder);
+router.delete("/orders/:id", requireAuth, requireRoles("Admin", "Owner"), deleteOrder);
 
 router.get("/dashboard/summary", requireAuth, dashboardSummary);
 

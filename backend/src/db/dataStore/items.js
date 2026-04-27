@@ -19,8 +19,8 @@ async function createItem(payload) {
   const sku = (payload.sku && String(payload.sku).trim()) || "";
   const catalogId = Number(payload.catalogId);
   const [result] = await getPool().query(
-    "INSERT INTO items (catalog_id, name, sku, default_unit_price, updated_at) VALUES (?, ?, ?, ?, ?)",
-    [catalogId, name, sku, Number(payload.defaultUnitPrice), nowIso()],
+    "INSERT INTO items (catalog_id, name, sku, default_unit_price_usd, default_unit_price_khr, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+    [catalogId, name, sku, Number(payload.defaultUnitPriceUsd), Number(payload.defaultUnitPriceKhr), nowIso()],
   );
   return getItemById(result.insertId);
 }
@@ -29,10 +29,11 @@ async function updateItem(id, payload) {
   const name = String(payload.name || "").trim();
   const sku = (payload.sku && String(payload.sku).trim()) || "";
   const catalogId = String(payload.catalogId || "").trim();
-  const defaultUnitPrice = Number(payload.defaultUnitPrice);
+  const defaultUnitPriceUsd = Number(payload.defaultUnitPriceUsd);
+  const defaultUnitPriceKhr = Number(payload.defaultUnitPriceKhr);
   const [result] = await getPool().query(
-    "UPDATE items SET catalog_id = ?, name = ?, sku = ?, default_unit_price = ?, updated_at = ? WHERE id = ? AND is_active = 1",
-    [catalogId, name, sku, defaultUnitPrice, nowIso(), id],
+    "UPDATE items SET catalog_id = ?, name = ?, sku = ?, default_unit_price_usd = ?, default_unit_price_khr = ?, updated_at = ? WHERE id = ? AND is_active = 1",
+    [catalogId, name, sku, defaultUnitPriceUsd, defaultUnitPriceKhr, nowIso(), id],
   );
   if (!result.affectedRows) return null;
   return getItemById(id);

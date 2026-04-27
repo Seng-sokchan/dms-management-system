@@ -2,6 +2,7 @@
 
 export function DeliveryAgentForm({ newDelivery, setNewDelivery, onCreateDelivery }) {
   const { t } = useTranslation();
+
   return (
     <form className="panel form" onSubmit={onCreateDelivery}>
       <h3>{t("deliveryAgents.formTitle")}</h3>

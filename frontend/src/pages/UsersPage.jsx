@@ -2,6 +2,7 @@
 import { useTranslation } from "react-i18next";
 import { ROLES } from "../services/adminApi";
 import { ALL_MENU_KEYS, MENU_ITEMS } from "../constants/menus";
+import { useConfirm } from "../components/ConfirmProvider";
 
 const EMPTY_EDIT = { id: "", name: "", username: "", password: "", role: "Owner", isActive: true };
 
@@ -19,6 +20,7 @@ export function UsersPage({
   onSaveRoleMenus,
 }) {
   const { t } = useTranslation();
+  const { confirm } = useConfirm();
   const [editingUser, setEditingUser] = useState(EMPTY_EDIT);
   const isEditing = useMemo(() => Boolean(editingUser.id), [editingUser.id]);
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -33,18 +35,20 @@ export function UsersPage({
       Array.isArray(keys) && keys.length
         ? keys
         : ALL_MENU_KEYS;
-    const next = new Set(base);
-    next.add("overview");
-    setMenuDraft(next);
+    setMenuDraft(new Set(base));
   }, [roleMenusByRole, menuRole]);
 
-  function openCreateModal() {
+  function closeCreateModal() {
+    setCreateModalOpen(false);
+  }
+
+  function requestOpenCreateModal() {
     setNewUser(EMPTY_NEW);
     setCreateModalOpen(true);
   }
 
-  function closeCreateModal() {
-    setCreateModalOpen(false);
+  function requestCloseCreateModal() {
+    closeCreateModal();
   }
 
   async function submitCreate(event) {
@@ -56,9 +60,6 @@ export function UsersPage({
   }
 
   function toggleMenuKey(key) {
-    if (key === "overview") {
-      return;
-    }
     setMenuDraft((prev) => {
       const next = new Set(prev);
       if (next.has(key)) {
@@ -71,11 +72,18 @@ export function UsersPage({
     });
   }
 
+  function openMenuAccessModal() {
+    setMenuModalOpen(true);
+  }
+
+  function requestCloseMenuModal() {
+    setMenuModalOpen(false);
+  }
+
   async function saveRoleMenus(event) {
     event.preventDefault();
     if (!onSaveRoleMenus) return;
     const keys = Array.from(menuDraft);
-    if (!keys.includes("overview")) keys.push("overview");
     const ok = await onSaveRoleMenus(menuRole, keys.sort());
     if (ok) {
       setMenuModalOpen(false);
@@ -93,7 +101,7 @@ export function UsersPage({
     });
   }
 
-  function cancelEdit() {
+  function requestCancelEdit() {
     setEditingUser(EMPTY_EDIT);
   }
 
@@ -113,8 +121,15 @@ export function UsersPage({
   }
 
   async function handleDelete(userId) {
-    const ok = window.confirm(t("users.confirmDelete"));
-    if (!ok) return;
+    if (
+      !(await confirm({
+        title: t("confirm.deleteTitle"),
+        message: t("users.confirmDelete"),
+        tone: "danger",
+      }))
+    ) {
+      return;
+    }
     if (editingUser.id === userId) {
       setEditingUser(EMPTY_EDIT);
     }
@@ -129,11 +144,11 @@ export function UsersPage({
           <p className="section-lead">{t("users.lead")}</p>
         </div>
         <div className="section-heading-actions">
-          <button type="button" className="btn-primary" onClick={openCreateModal}>
+          <button type="button" className="btn-primary" onClick={requestOpenCreateModal}>
             {t("users.addUser")}
           </button>
           {roleMenusByRole ? (
-            <button type="button" className="btn-ghost" onClick={() => setMenuModalOpen(true)}>
+            <button type="button" className="btn-ghost" onClick={openMenuAccessModal}>
               {t("users.configureMenus")}
             </button>
           ) : null}
@@ -159,7 +174,7 @@ export function UsersPage({
                   <button
                     type="button"
                     className="btn-ghost btn-delete"
-                    onClick={() => handleDelete(user.id)}
+                    onClick={() => void handleDelete(user.id)}
                     disabled={currentUser?.id === user.id || !user.isActive}
                   >
                     {t("users.delete")}
@@ -175,7 +190,7 @@ export function UsersPage({
         <div
           className="modal-overlay"
           role="presentation"
-          onClick={closeCreateModal}
+          onClick={requestCloseCreateModal}
         >
           <form
             className="panel form modal-card"
@@ -204,7 +219,7 @@ export function UsersPage({
 
             <div className="row-actions">
               <button type="submit" className="btn-primary">{t("users.save")}</button>
-              <button type="button" className="btn-ghost btn-cancel" onClick={closeCreateModal}>{t("users.cancel")}</button>
+              <button type="button" className="btn-ghost btn-cancel" onClick={requestCloseCreateModal}>{t("users.cancel")}</button>
             </div>
           </form>
         </div>
@@ -214,7 +229,7 @@ export function UsersPage({
         <div
           className="modal-overlay"
           role="presentation"
-          onClick={() => setMenuModalOpen(false)}
+          onClick={requestCloseMenuModal}
         >
           <form
             className="panel form menu-access-form modal-card modal-card--menu-access"
@@ -254,14 +269,12 @@ export function UsersPage({
               <div className="menu-access-grid" role="group" aria-label={t("users.roleMenusSectionLabel")}>
                 {MENU_ITEMS.map((item) => {
                   const on = menuDraft.has(item.key);
-                  const locked = item.key === "overview";
                   return (
                     <label
                       key={item.key}
                       className={
                         "menu-access-item" +
-                        (on ? " menu-access-item--on" : "") +
-                        (locked ? " menu-access-item--locked" : "")
+                        (on ? " menu-access-item--on" : "")
                       }
                     >
                       <span className="menu-access-item__check">
@@ -269,7 +282,6 @@ export function UsersPage({
                           type="checkbox"
                           className="menu-access-item__input"
                           checked={on}
-                          disabled={locked}
                           onChange={() => toggleMenuKey(item.key)}
                         />
                         <span className="menu-access-item__box" aria-hidden />
@@ -277,9 +289,6 @@ export function UsersPage({
                       <span className="menu-access-item__content">
                         <span className="menu-access-item__row">
                           <span className="menu-access-item__title">{t(item.labelKey)}</span>
-                          {locked ? (
-                            <span className="menu-access-item__badge">{t("users.roleMenusRequiredBadge")}</span>
-                          ) : null}
                         </span>
                         <span className="menu-access-item__sub">{t(item.subKey)}</span>
                       </span>
@@ -290,7 +299,7 @@ export function UsersPage({
             </div>
 
             <div className="menu-access-modal__footer">
-              <button type="button" className="btn-ghost btn-cancel" onClick={() => setMenuModalOpen(false)}>
+              <button type="button" className="btn-ghost btn-cancel" onClick={requestCloseMenuModal}>
                 {t("users.cancel")}
               </button>
               <button type="submit" className="btn-primary">
@@ -305,7 +314,7 @@ export function UsersPage({
         <div
           className="modal-overlay"
           role="presentation"
-          onClick={cancelEdit}
+          onClick={requestCancelEdit}
         >
           <form
             className="panel form modal-card"
@@ -334,7 +343,7 @@ export function UsersPage({
 
             <div className="row-actions">
               <button type="submit" className="btn-primary">{t("users.update")}</button>
-              <button type="button" className="btn-ghost btn-cancel" onClick={cancelEdit}>{t("users.cancel")}</button>
+              <button type="button" className="btn-ghost btn-cancel" onClick={requestCancelEdit}>{t("users.cancel")}</button>
             </div>
           </form>
         </div>

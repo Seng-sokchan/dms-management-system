@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { CatalogForm } from "../components/CatalogForm";
+import { useConfirm } from "../components/ConfirmProvider";
 
 const EMPTY_EDIT = { id: "", name: "", note: "" };
 
@@ -14,6 +15,7 @@ export function CatalogsPage({
   catalogs = [],
 }) {
   const { t } = useTranslation();
+  const { confirm } = useConfirm();
   const [editingCatalog, setEditingCatalog] = useState(EMPTY_EDIT);
   const isEditing = useMemo(() => Boolean(editingCatalog.id), [editingCatalog.id]);
 
@@ -33,8 +35,15 @@ export function CatalogsPage({
   }
 
   async function handleDelete(catalogId) {
-    const ok = window.confirm(t("catalogs.confirmDelete"));
-    if (!ok) return;
+    if (
+      !(await confirm({
+        title: t("confirm.deleteTitle"),
+        message: t("catalogs.confirmDelete"),
+        tone: "danger",
+      }))
+    ) {
+      return;
+    }
     if (editingCatalog.id === catalogId) {
       setEditingCatalog(EMPTY_EDIT);
     }
@@ -70,7 +79,7 @@ export function CatalogsPage({
                   <button type="button" className="btn-ghost btn-edit" onClick={() => startEdit(c)}>
                     {t("catalogs.edit")}
                   </button>
-                  <button type="button" className="btn-ghost btn-delete" onClick={() => handleDelete(c.id)}>
+                  <button type="button" className="btn-ghost btn-delete" onClick={() => void handleDelete(c.id)}>
                     {t("catalogs.delete")}
                   </button>
                 </div>

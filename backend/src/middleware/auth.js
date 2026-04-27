@@ -2,10 +2,17 @@ const jwt = require("jsonwebtoken");
 require("dotenv").config();
 const { listMenuKeysForRoleName } = require("../db/dataStore");
 
+function getJwtSecret() {
+  if (!process.env.JWT_SECRET) {
+    throw new Error("JWT_SECRET is required");
+  }
+  return process.env.JWT_SECRET;
+}
+
 function createToken(user) {
   return jwt.sign(
     { sub: user.id, name: user.name, role: user.role, username: user.username },
-    process.env.JWT_SECRET || "dev_secret_change_me",
+    getJwtSecret(),
     { expiresIn: "12h" },
   );
 }
@@ -19,7 +26,7 @@ function requireAuth(req, res, next) {
   }
 
   try {
-    req.user = jwt.verify(token, process.env.JWT_SECRET || "dev_secret_change_me");
+    req.user = jwt.verify(token, getJwtSecret());
     return next();
   } catch (_error) {
     return res.status(401).json({ message: "Invalid token" });

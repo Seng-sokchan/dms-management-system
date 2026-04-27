@@ -8,6 +8,7 @@ export function CustomerForm({
   onCreateCustomer,
 }) {
   const { t } = useTranslation();
+
   return (
     <form className="panel form" onSubmit={onCreateCustomer}>
       <h3>{t("customers.formTitle")}</h3>
@@ -43,7 +44,7 @@ export function CustomerForm({
         <option value="">{t("customers.selectAddress")}</option>
         {addresses.map((address) => (
           <option key={address.id} value={address.id}>
-            {address.group} - {address.name}
+            {address.name}
           </option>
         ))}
       </select>

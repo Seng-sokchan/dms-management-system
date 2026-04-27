@@ -43,11 +43,12 @@ async function createOrder(payload) {
   }
   const [result] = await getPool().query(
     `INSERT INTO orders
-    (customer_id, address, item_id, ordered_qty, unit_price, producer_id, truck_id, delivery_agent_id, delivery_time, delivered_qty, loss_qty, remaining_qty, discrepancy, amount_total, amount_paid, payment_status, status, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    (customer_id, address, order_group_id, item_id, ordered_qty, unit_price, producer_id, truck_id, delivery_agent_id, delivery_time, delivered_qty, loss_qty, remaining_qty, discrepancy, amount_total, amount_paid, payment_status, status, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       customerId,
       addressId,
+      null,
       itemId,
       order.orderedQty,
       order.unitPrice,
@@ -94,6 +95,7 @@ async function updateOrderAssignment(id, payload) {
      SET producer_id = COALESCE(?, producer_id),
          truck_id = COALESCE(?, truck_id),
          delivery_agent_id = COALESCE(?, delivery_agent_id),
+         order_group_id = COALESCE(?, order_group_id),
          delivery_time = COALESCE(?, delivery_time),
          status = COALESCE(?, status),
          updated_at = ?
@@ -102,6 +104,7 @@ async function updateOrderAssignment(id, payload) {
       payload.producerId ?? null,
       payload.truckId ?? null,
       resolvedDeliveryAgentId,
+      payload.orderGroupId ?? null,
       payload.deliveryTime ?? null,
       statusId ?? null,
       nowIso(),
@@ -143,6 +146,13 @@ async function confirmOrderDelivery(id, deliveredQty, lossQty, remainingQty, del
   return getOrderById(id);
 }
 
+async function deleteOrder(id) {
+  const order = await getOrderById(id);
+  if (!order) return { affectedRows: 0, order: null };
+  const [result] = await getPool().query("DELETE FROM orders WHERE id = ?", [id]);
+  return { affectedRows: Number(result.affectedRows || 0), order };
+}
+
 module.exports = {
   listOrders,
   getOrderById,
@@ -150,4 +160,5 @@ module.exports = {
   updateOrderAssignment,
   updateOrderStatus,
   confirmOrderDelivery,
+  deleteOrder,
 };

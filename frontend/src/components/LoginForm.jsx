@@ -1,8 +1,9 @@
 ﻿import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 
-export function LoginForm({ auth, setAuth, onSubmit, message }) {
+export function LoginForm({ auth, setAuth, onSubmit, message, messageVariant = "success" }) {
   const { t } = useTranslation();
+
   return (
     <main className="auth-container">
       <LanguageSwitcher className="auth-lang" />
@@ -40,7 +41,9 @@ export function LoginForm({ auth, setAuth, onSubmit, message }) {
             {t("auth.signIn")}
           </button>
         </form>
-        {message && <p className="message">{message}</p>}
+        {message ? (
+          <p className={`message${messageVariant === "error" ? " message--error" : ""}`}>{message}</p>
+        ) : null}
       </section>
     </main>
   );

@@ -21,6 +21,7 @@ export async function fetchDashboardData(token) {
     paymentMethodsRes,
     catalogsRes,
     itemsRes,
+    orderGroupsRes,
   ] =
     await Promise.all([
       apiClient.get("/dashboard/summary", config),
@@ -36,6 +37,7 @@ export async function fetchDashboardData(token) {
       apiClient.get("/payment-methods", config),
       apiClient.get("/catalogs", config),
       apiClient.get("/items", config),
+      apiClient.get("/order-groups", config),
     ]);
 
   return {
@@ -53,5 +55,6 @@ export async function fetchDashboardData(token) {
     paymentMethods: paymentMethodsRes.data,
     catalogs: catalogsRes.data,
     items: itemsRes.data,
+    orderGroups: orderGroupsRes.data,
   };
 }
