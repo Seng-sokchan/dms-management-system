@@ -1,0 +1,344 @@
+﻿import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { ROLES } from "../services/adminApi";
+import { ALL_MENU_KEYS, MENU_ITEMS } from "../constants/menus";
+
+const EMPTY_EDIT = { id: "", name: "", username: "", password: "", role: "Owner", isActive: true };
+
+const EMPTY_NEW = { name: "", username: "", password: "", role: "Owner" };
+
+export function UsersPage({
+  users = [],
+  currentUser,
+  newUser,
+  setNewUser,
+  onCreateUser,
+  onUpdateUser,
+  onDeleteUser,
+  roleMenusByRole = null,
+  onSaveRoleMenus,
+}) {
+  const { t } = useTranslation();
+  const [editingUser, setEditingUser] = useState(EMPTY_EDIT);
+  const isEditing = useMemo(() => Boolean(editingUser.id), [editingUser.id]);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [menuModalOpen, setMenuModalOpen] = useState(false);
+  const [menuRole, setMenuRole] = useState("Owner");
+  const [menuDraft, setMenuDraft] = useState(() => new Set(ALL_MENU_KEYS));
+
+  useEffect(() => {
+    if (!roleMenusByRole) return;
+    const keys = roleMenusByRole[menuRole];
+    const base =
+      Array.isArray(keys) && keys.length
+        ? keys
+        : ALL_MENU_KEYS;
+    const next = new Set(base);
+    next.add("overview");
+    setMenuDraft(next);
+  }, [roleMenusByRole, menuRole]);
+
+  function openCreateModal() {
+    setNewUser(EMPTY_NEW);
+    setCreateModalOpen(true);
+  }
+
+  function closeCreateModal() {
+    setCreateModalOpen(false);
+  }
+
+  async function submitCreate(event) {
+    event.preventDefault();
+    const ok = await onCreateUser(event);
+    if (ok) {
+      closeCreateModal();
+    }
+  }
+
+  function toggleMenuKey(key) {
+    if (key === "overview") {
+      return;
+    }
+    setMenuDraft((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        if (next.size <= 1) return prev;
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  }
+
+  async function saveRoleMenus(event) {
+    event.preventDefault();
+    if (!onSaveRoleMenus) return;
+    const keys = Array.from(menuDraft);
+    if (!keys.includes("overview")) keys.push("overview");
+    const ok = await onSaveRoleMenus(menuRole, keys.sort());
+    if (ok) {
+      setMenuModalOpen(false);
+    }
+  }
+
+  function startEdit(user) {
+    setEditingUser({
+      id: user.id,
+      name: user.name || "",
+      username: user.username || "",
+      password: "",
+      role: user.role || "Owner",
+      isActive: user.isActive !== false,
+    });
+  }
+
+  function cancelEdit() {
+    setEditingUser(EMPTY_EDIT);
+  }
+
+  async function submitEdit(event) {
+    event.preventDefault();
+    if (!editingUser.id) return;
+    const payload = {
+      name: editingUser.name,
+      username: editingUser.username,
+      role: editingUser.role,
+    };
+    if (editingUser.password) {
+      payload.password = editingUser.password;
+    }
+    await onUpdateUser(editingUser.id, payload);
+    setEditingUser(EMPTY_EDIT);
+  }
+
+  async function handleDelete(userId) {
+    const ok = window.confirm(t("users.confirmDelete"));
+    if (!ok) return;
+    if (editingUser.id === userId) {
+      setEditingUser(EMPTY_EDIT);
+    }
+    await onDeleteUser(userId);
+  }
+
+  return (
+    <section className="admin-page">
+      <div className="section-heading section-heading--with-actions">
+        <div className="section-heading-text">
+          <h2>{t("users.title")}</h2>
+          <p className="section-lead">{t("users.lead")}</p>
+        </div>
+        <div className="section-heading-actions">
+          <button type="button" className="btn-primary" onClick={openCreateModal}>
+            {t("users.addUser")}
+          </button>
+          {roleMenusByRole ? (
+            <button type="button" className="btn-ghost" onClick={() => setMenuModalOpen(true)}>
+              {t("users.configureMenus")}
+            </button>
+          ) : null}
+        </div>
+      </div>
+
+      <section className="panel entity-list">
+        <h3>{t("users.listTitle")}</h3>
+        {users.length === 0 ? (
+          <p className="entity-list-empty">{t("users.empty")}</p>
+        ) : (
+          <ul className="entity-list-ul">
+            {users.map((user) => (
+              <li key={user.id} className="entity-list-item">
+                <span className="entity-list-name">{user.name}</span>
+                <span className="entity-list-meta">@{user.username}</span>
+                <span className="entity-list-meta">{t(`roles.${user.role}`, { defaultValue: user.role })}</span>
+                <span className="entity-list-meta">{user.isActive ? t("users.active") : t("users.inactive")}</span>
+                <div className="row-actions">
+                  <button type="button" className="btn-ghost btn-edit" onClick={() => startEdit(user)}>
+                    {t("users.edit")}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-ghost btn-delete"
+                    onClick={() => handleDelete(user.id)}
+                    disabled={currentUser?.id === user.id || !user.isActive}
+                  >
+                    {t("users.delete")}
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {createModalOpen ? (
+        <div
+          className="modal-overlay"
+          role="presentation"
+          onClick={closeCreateModal}
+        >
+          <form
+            className="panel form modal-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="user-create-title"
+            onClick={(e) => e.stopPropagation()}
+            onSubmit={submitCreate}
+          >
+            <h3 id="user-create-title">{t("users.formTitle")}</h3>
+            <label className="form-label" htmlFor="user-name">{t("users.name")}</label>
+            <input id="user-name" value={newUser.name} onChange={(event) => setNewUser({ ...newUser, name: event.target.value })} required minLength={2} autoFocus />
+
+            <label className="form-label" htmlFor="user-username">{t("users.username")}</label>
+            <input id="user-username" value={newUser.username} onChange={(event) => setNewUser({ ...newUser, username: event.target.value })} required minLength={3} />
+
+            <label className="form-label" htmlFor="user-password">{t("users.password")}</label>
+            <input id="user-password" type="password" value={newUser.password} onChange={(event) => setNewUser({ ...newUser, password: event.target.value })} required minLength={6} />
+
+            <label className="form-label" htmlFor="user-role">{t("users.role")}</label>
+            <select id="user-role" value={newUser.role} onChange={(event) => setNewUser({ ...newUser, role: event.target.value })} required>
+              {ROLES.map((role) => (
+                <option key={role} value={role}>{t(`roles.${role}`, { defaultValue: role })}</option>
+              ))}
+            </select>
+
+            <div className="row-actions">
+              <button type="submit" className="btn-primary">{t("users.save")}</button>
+              <button type="button" className="btn-ghost btn-cancel" onClick={closeCreateModal}>{t("users.cancel")}</button>
+            </div>
+          </form>
+        </div>
+      ) : null}
+
+      {menuModalOpen && roleMenusByRole ? (
+        <div
+          className="modal-overlay"
+          role="presentation"
+          onClick={() => setMenuModalOpen(false)}
+        >
+          <form
+            className="panel form menu-access-form modal-card modal-card--menu-access"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="user-menus-title"
+            onClick={(e) => e.stopPropagation()}
+            onSubmit={saveRoleMenus}
+          >
+            <div className="menu-access-modal__header">
+              <h3 id="user-menus-title" className="menu-access-modal__title">
+                {t("users.roleMenusTitle")}
+              </h3>
+              <p className="menu-access-modal__lead">{t("users.roleMenusLead")}</p>
+            </div>
+
+            <div className="menu-access-modal__role">
+              <label className="menu-access-modal__role-label" htmlFor="menu-role">
+                {t("users.roleMenusSelectRole")}
+              </label>
+              <select
+                id="menu-role"
+                className="menu-access-modal__select"
+                value={menuRole}
+                onChange={(event) => setMenuRole(event.target.value)}
+              >
+                {ROLES.map((role) => (
+                  <option key={role} value={role}>
+                    {t(`roles.${role}`, { defaultValue: role })}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="menu-access-modal__body">
+              <p className="menu-access-modal__section-label">{t("users.roleMenusSectionLabel")}</p>
+              <div className="menu-access-grid" role="group" aria-label={t("users.roleMenusSectionLabel")}>
+                {MENU_ITEMS.map((item) => {
+                  const on = menuDraft.has(item.key);
+                  const locked = item.key === "overview";
+                  return (
+                    <label
+                      key={item.key}
+                      className={
+                        "menu-access-item" +
+                        (on ? " menu-access-item--on" : "") +
+                        (locked ? " menu-access-item--locked" : "")
+                      }
+                    >
+                      <span className="menu-access-item__check">
+                        <input
+                          type="checkbox"
+                          className="menu-access-item__input"
+                          checked={on}
+                          disabled={locked}
+                          onChange={() => toggleMenuKey(item.key)}
+                        />
+                        <span className="menu-access-item__box" aria-hidden />
+                      </span>
+                      <span className="menu-access-item__content">
+                        <span className="menu-access-item__row">
+                          <span className="menu-access-item__title">{t(item.labelKey)}</span>
+                          {locked ? (
+                            <span className="menu-access-item__badge">{t("users.roleMenusRequiredBadge")}</span>
+                          ) : null}
+                        </span>
+                        <span className="menu-access-item__sub">{t(item.subKey)}</span>
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="menu-access-modal__footer">
+              <button type="button" className="btn-ghost btn-cancel" onClick={() => setMenuModalOpen(false)}>
+                {t("users.cancel")}
+              </button>
+              <button type="submit" className="btn-primary">
+                {t("users.roleMenusSave")}
+              </button>
+            </div>
+          </form>
+        </div>
+      ) : null}
+
+      {isEditing ? (
+        <div
+          className="modal-overlay"
+          role="presentation"
+          onClick={cancelEdit}
+        >
+          <form
+            className="panel form modal-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="user-edit-title"
+            onClick={(e) => e.stopPropagation()}
+            onSubmit={submitEdit}
+          >
+            <h3 id="user-edit-title">{t("users.editTitle")}</h3>
+            <label className="form-label" htmlFor="user-edit-name">{t("users.name")}</label>
+            <input id="user-edit-name" value={editingUser.name} onChange={(event) => setEditingUser({ ...editingUser, name: event.target.value })} required minLength={2} />
+
+            <label className="form-label" htmlFor="user-edit-username">{t("users.username")}</label>
+            <input id="user-edit-username" value={editingUser.username} onChange={(event) => setEditingUser({ ...editingUser, username: event.target.value })} required minLength={3} />
+
+            <label className="form-label" htmlFor="user-edit-password">{t("users.passwordOptional")}</label>
+            <input id="user-edit-password" type="password" value={editingUser.password} onChange={(event) => setEditingUser({ ...editingUser, password: event.target.value })} minLength={6} />
+
+            <label className="form-label" htmlFor="user-edit-role">{t("users.role")}</label>
+            <select id="user-edit-role" value={editingUser.role} onChange={(event) => setEditingUser({ ...editingUser, role: event.target.value })} required>
+              {ROLES.map((role) => (
+                <option key={role} value={role}>{t(`roles.${role}`, { defaultValue: role })}</option>
+              ))}
+            </select>
+
+            <div className="row-actions">
+              <button type="submit" className="btn-primary">{t("users.update")}</button>
+              <button type="button" className="btn-ghost btn-cancel" onClick={cancelEdit}>{t("users.cancel")}</button>
+            </div>
+          </form>
+        </div>
+      ) : null}
+    </section>
+  );
+}
