@@ -1,8 +1,19 @@
 const bakongKhqr = require("bakong-khqr");
+const crypto = require("crypto");
 
 function normalizeCurrency(input) {
   const value = String(input || process.env.BAKONG_CURRENCY || "USD").trim().toUpperCase();
   return value === "KHR" ? "KHR" : "USD";
+}
+
+function ensureMd5FromQr(qr, providedMd5) {
+  if (providedMd5 && String(providedMd5).trim()) {
+    return String(providedMd5).trim();
+  }
+  if (!qr || typeof qr !== "string") {
+    return "";
+  }
+  return crypto.createHash("md5").update(qr).digest("hex");
 }
 
 function getMerchantConfig() {
@@ -47,7 +58,7 @@ function createKhqr({ amount, billNumber, currency }) {
       static: false,
       expiration: Math.max(1, Math.ceil(cfg.expirationMinutes / 1440)),
     });
-    const md5 = typeof khqr.generateMD5 === "function" ? khqr.generateMD5(qr) : null;
+    const md5 = ensureMd5FromQr(qr, typeof khqr.generateMD5 === "function" ? khqr.generateMD5(qr) : null);
     return { qr, md5, currency: normalizedCurrency };
   }
 
@@ -99,14 +110,44 @@ function createKhqr({ amount, billNumber, currency }) {
     throw new Error(generated?.status?.message || "KHQR generation failed");
   }
   const qr = generated?.data?.qr || generated?.qr || generated;
-  const md5 = generated?.data?.md5 || generated?.md5 || null;
+  const md5 = ensureMd5FromQr(qr, generated?.data?.md5 || generated?.md5 || null);
   if (!qr || typeof qr !== "string") {
     throw new Error("KHQR generation returned empty QR payload");
   }
   return { qr, md5, currency: normalizedCurrency };
 }
 
+async function checkTransactionByMd5List(md5List, token) {
+  const baseUrl = String(process.env.BAKONG_API_BASE_URL || "https://sit-api-bakong.nbc.gov.kh").trim().replace(/\/+$/, "");
+  const path = String(process.env.BAKONG_CHECK_MD5_LIST_PATH || "/v1/check_transaction_by_md5_list").trim();
+  const accessToken = String(token || "").trim();
+
+  if (!accessToken) {
+    throw new Error("Missing Bakong access token");
+  }
+
+  const response = await fetch(`${baseUrl}${path}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(md5List),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    const message = data?.responseMessage || data?.message || "Bakong check md5 list failed";
+    const error = new Error(message);
+    error.statusCode = response.status;
+    error.payload = data;
+    throw error;
+  }
+  return data;
+}
+
 module.exports = {
   createKhqr,
+  checkTransactionByMd5List,
 };
 

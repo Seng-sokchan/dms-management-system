@@ -33,7 +33,7 @@ function createApp() {
       callback(new Error("CORS origin not allowed"));
     },
     methods: ["GET", "POST", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization"],
+    allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization", "X-Bakong-Token"],
   }));
   app.use(helmet());
   app.use(express.json());

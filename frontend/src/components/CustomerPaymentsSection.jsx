@@ -70,6 +70,7 @@ export function CustomerPaymentsSection({ orders, onPayWithAba }) {
                     <th>{t("payments.totalAmount")}</th>
                     <th>{t("payments.paidAmount")}</th>
                     <th>{t("payments.remainingAmount")}</th>
+                    <th>{t("payments.action", { defaultValue: "Action" })}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -80,6 +81,16 @@ export function CustomerPaymentsSection({ orders, onPayWithAba }) {
                       <td>${Number(row.amountTotal || 0).toFixed(2)}</td>
                       <td>${Number(row.amountPaid || 0).toFixed(2)}</td>
                       <td>${Math.max(0, Number(row.amountTotal || 0) - Number(row.amountPaid || 0)).toFixed(2)}</td>
+                      <td>
+                        <button
+                          type="button"
+                          className="btn-primary"
+                          onClick={() => onPayWithAba(row)}
+                          disabled={Math.max(0, Number(row.amountTotal || 0) - Number(row.amountPaid || 0)) <= 0}
+                        >
+                          {t("payments.payWithAba")}
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

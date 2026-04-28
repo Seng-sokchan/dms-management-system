@@ -19,6 +19,8 @@ DROP TABLE IF EXISTS producers;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS role_menus;
 DROP TABLE IF EXISTS roles;
+DROP TABLE IF EXISTS bakong_tokens;
+DROP TABLE IF EXISTS bakong_transactions;
 
 CREATE TABLE roles (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -290,6 +292,48 @@ CREATE TABLE payments (
     ON UPDATE RESTRICT ON DELETE CASCADE,
   CONSTRAINT fk_payments_method FOREIGN KEY (method) REFERENCES payment_methods (id)
     ON UPDATE RESTRICT ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE bakong_tokens (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  access_token TEXT NOT NULL,
+  expires_at DATETIME NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NULL,
+  PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE bakong_transactions (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  order_id INT UNSIGNED NOT NULL,
+  payment_id INT UNSIGNED DEFAULT NULL,
+  md5 VARCHAR(64) NOT NULL,
+  status VARCHAR(30) NOT NULL,
+  message VARCHAR(255) DEFAULT '',
+  tx_hash VARCHAR(255) DEFAULT NULL,
+  from_account_id VARCHAR(120) DEFAULT NULL,
+  to_account_id VARCHAR(120) DEFAULT NULL,
+  currency VARCHAR(10) DEFAULT NULL,
+  amount DECIMAL(14,2) DEFAULT NULL,
+  description_text VARCHAR(255) DEFAULT NULL,
+  created_date_ms BIGINT DEFAULT NULL,
+  acknowledged_date_ms BIGINT DEFAULT NULL,
+  tracking_status VARCHAR(120) DEFAULT NULL,
+  receiver_bank VARCHAR(120) DEFAULT NULL,
+  receiver_bank_account VARCHAR(120) DEFAULT NULL,
+  instruction_ref VARCHAR(120) DEFAULT NULL,
+  external_ref VARCHAR(120) DEFAULT NULL,
+  raw_payload TEXT NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_bakong_transactions_md5 (md5),
+  KEY idx_bakong_transactions_order_id (order_id),
+  KEY idx_bakong_transactions_payment_id (payment_id),
+  CONSTRAINT fk_bakong_transactions_order FOREIGN KEY (order_id) REFERENCES orders (id)
+    ON UPDATE RESTRICT ON DELETE CASCADE,
+  CONSTRAINT fk_bakong_transactions_payment FOREIGN KEY (payment_id) REFERENCES payments (id)
+    ON UPDATE RESTRICT ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE order_status_history (
@@ -807,5 +851,75 @@ SET @sql_set_items_price_khr_not_null := IF(
 PREPARE stmt_set_items_price_khr_not_null FROM @sql_set_items_price_khr_not_null;
 EXECUTE stmt_set_items_price_khr_not_null;
 DEALLOCATE PREPARE stmt_set_items_price_khr_not_null;
+
+-- 9) Ensure bakong_tokens table exists (token stored in DB, not env/cache)
+SET @has_bakong_tokens := (
+  SELECT COUNT(*)
+  FROM information_schema.tables
+  WHERE table_schema = DATABASE()
+    AND table_name = 'bakong_tokens'
+);
+SET @sql_create_bakong_tokens := IF(
+  @has_bakong_tokens = 0,
+  'CREATE TABLE bakong_tokens (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    access_token TEXT NOT NULL,
+    expires_at DATETIME NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NULL,
+    PRIMARY KEY (id)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8',
+  'SELECT 1'
+);
+PREPARE stmt_create_bakong_tokens FROM @sql_create_bakong_tokens;
+EXECUTE stmt_create_bakong_tokens;
+DEALLOCATE PREPARE stmt_create_bakong_tokens;
+
+-- 10) Ensure bakong_transactions table exists
+SET @has_bakong_transactions := (
+  SELECT COUNT(*)
+  FROM information_schema.tables
+  WHERE table_schema = DATABASE()
+    AND table_name = 'bakong_transactions'
+);
+SET @sql_create_bakong_transactions := IF(
+  @has_bakong_transactions = 0,
+  'CREATE TABLE bakong_transactions (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    order_id INT UNSIGNED NOT NULL,
+    payment_id INT UNSIGNED DEFAULT NULL,
+    md5 VARCHAR(64) NOT NULL,
+    status VARCHAR(30) NOT NULL,
+    message VARCHAR(255) DEFAULT '''',
+    tx_hash VARCHAR(255) DEFAULT NULL,
+    from_account_id VARCHAR(120) DEFAULT NULL,
+    to_account_id VARCHAR(120) DEFAULT NULL,
+    currency VARCHAR(10) DEFAULT NULL,
+    amount DECIMAL(14,2) DEFAULT NULL,
+    description_text VARCHAR(255) DEFAULT NULL,
+    created_date_ms BIGINT DEFAULT NULL,
+    acknowledged_date_ms BIGINT DEFAULT NULL,
+    tracking_status VARCHAR(120) DEFAULT NULL,
+    receiver_bank VARCHAR(120) DEFAULT NULL,
+    receiver_bank_account VARCHAR(120) DEFAULT NULL,
+    instruction_ref VARCHAR(120) DEFAULT NULL,
+    external_ref VARCHAR(120) DEFAULT NULL,
+    raw_payload TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_bakong_transactions_md5 (md5),
+    KEY idx_bakong_transactions_order_id (order_id),
+    KEY idx_bakong_transactions_payment_id (payment_id),
+    CONSTRAINT fk_bakong_transactions_order FOREIGN KEY (order_id) REFERENCES orders (id)
+      ON UPDATE RESTRICT ON DELETE CASCADE,
+    CONSTRAINT fk_bakong_transactions_payment FOREIGN KEY (payment_id) REFERENCES payments (id)
+      ON UPDATE RESTRICT ON DELETE SET NULL
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8',
+  'SELECT 1'
+);
+PREPARE stmt_create_bakong_transactions FROM @sql_create_bakong_transactions;
+EXECUTE stmt_create_bakong_transactions;
+DEALLOCATE PREPARE stmt_create_bakong_transactions;
 
 SET FOREIGN_KEY_CHECKS = 1;

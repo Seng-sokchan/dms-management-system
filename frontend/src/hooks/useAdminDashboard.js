@@ -34,7 +34,10 @@ import {
   fetchRoleMenus,
   updateRoleMenus,
 } from "../services/adminApi";
-import { getStoredToken, setStoredToken } from "../services/authStorage";
+import {
+  getStoredToken,
+  setStoredToken,
+} from "../services/authStorage";
 import i18n from "../i18n/config";
 import { useConfirm } from "../components/ConfirmProvider";
 

@@ -32,6 +32,8 @@ async function run() {
   await dbConn.query("DELETE FROM order_status_history");
   await dbConn.query("DELETE FROM user_activity_logs");
   await dbConn.query("DELETE FROM payments");
+  await dbConn.query("DELETE FROM bakong_tokens");
+  await dbConn.query("DELETE FROM bakong_transactions");
   await dbConn.query("DELETE FROM orders");
   await dbConn.query("DELETE FROM payment_methods");
   await dbConn.query("DELETE FROM items");

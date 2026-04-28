@@ -238,6 +238,7 @@
     "lead": "Manage application accounts and role access.",
     "formTitle": "Create user",
     "addUser": "Add user",
+    "renewToken": "Renew token",
     "configureMenus": "Menu access",
     "editTitle": "Edit user",
     "name": "Full name",
@@ -261,7 +262,8 @@
     "roleMenusSave": "Save changes",
     "roleMenusSaved": "Menu access updated",
     "roleMenusSectionLabel": "Visible areas",
-    "roleMenusRequiredBadge": "Required"
+    "roleMenusRequiredBadge": "Required",
+    "renewTokenSuccess": "Bakong token has been renewed"
   },
   "orders": {
     "title": "Orders",
@@ -313,6 +315,7 @@
     "paidAmount": "Paid",
     "remainingAmount": "Remaining",
     "debtAmount": "Debt Amount",
+    "md5": "MD5",
     "action": "Action",
     "payWithAba": "PAY WITH ABA",
     "viewButton": "View",
@@ -322,7 +325,26 @@
     "refreshVerifyHint": "Please wait to verify payment.",
     "generatingNewQr": "Generating new QR...",
     "autoRefreshEveryFiveMinutes": "Auto refresh every 5 minutes",
-    "qrExpiresIn": "QR expires in {{time}}"
+    "qrExpiresIn": "QR expires in {{time}}",
+    "bakongTokenExpired": "Bakong token expired. Please update token in database.",
+    "bakongTokenButton": "Bakong token",
+    "bakongTokenModalTitle": "Update Bakong API token",
+    "bakongTokenModalLead": "Paste the JWT from Bakong. It is stored in the database and used for payment checks (latest row wins).",
+    "bakongTokenLabel": "Access token (JWT)",
+    "bakongTokenPlaceholder": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "bakongTokenSave": "Save token",
+    "bakongTokenSaved": "Bakong token saved successfully.",
+    "bakongTokenStatus": "Current token expires: {{expires}}",
+    "bakongTokenExpiresUnknown": "unknown (no exp in JWT)",
+    "bakongTokenMissing": "No Bakong token in database. Add one before checking QR payments.",
+    "bakongAmount": "Amount",
+    "externalRef": "Reference",
+    "fromAccount": "From",
+    "toAccount": "To",
+    "paymentReceived": "Payment received",
+    "transactionSuccess": "Transaction successful",
+    "technicalDetails": "Technical details",
+    "done": "Done"
   },
   "dashboard": {
     "totalOrders": "Total orders",
@@ -440,6 +462,8 @@
     "createUser": "Create user failed",
     "updateUser": "Update user failed",
     "deleteUser": "Deactivate user failed",
+    "saveBakongToken": "Could not save Bakong token",
+    "confirmBakongPayment": "Could not record payment in the app. The transaction still succeeded on Bakong.",
     "updateRoleMenus": "Could not save menu access for that role",
     "sessionExpired": "Session expired. Please sign in again."
   },

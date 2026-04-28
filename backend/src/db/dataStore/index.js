@@ -102,6 +102,12 @@ const {
   createPayment,
   applyPaymentToOrder,
 } = require("./payments");
+const { getLatestBakongToken, insertBakongToken } = require("./bakongTokens");
+const {
+  getBakongTransactionByMd5,
+  createBakongTransaction,
+  updateBakongTransactionPaymentIdByMd5,
+} = require("./bakongTransactions");
 
 module.exports = {
   // select (list/report)
@@ -162,6 +168,11 @@ module.exports = {
   confirmOrderDelivery,
   deleteOrder,
   applyPaymentToOrder,
+  getLatestBakongToken,
+  insertBakongToken,
+  getBakongTransactionByMd5,
+  createBakongTransaction,
+  updateBakongTransactionPaymentIdByMd5,
 
   // delete
   deactivateUser,

@@ -1247,7 +1247,8 @@ button {
 }
 
 input,
-select {
+select,
+textarea {
   width: 100%;
   border: 1px solid var(--border);
   padding: 0.58rem 0.75rem;
@@ -1260,8 +1261,14 @@ input::placeholder {
   color: #94a3b8;
 }
 
+textarea {
+  min-height: 5rem;
+  resize: vertical;
+}
+
 input:focus,
-select:focus {
+select:focus,
+textarea:focus {
   outline: none;
   border-color: var(--primary);
   background: #fff;
@@ -1751,6 +1758,234 @@ button.btn-sm:active {
 .money-inline {
   color: var(--text-muted);
   font-size: 0.8rem;
+}
+
+/* Payment success (Bakong / ABA) */
+.payment-success-overlay {
+  background: rgba(15, 23, 42, 0.52);
+  backdrop-filter: blur(4px);
+}
+
+.payment-success-modal {
+  width: min(440px, 100%);
+  max-width: 100%;
+  padding: 0;
+  border: 1px solid #c6f6d5;
+  border-radius: 18px;
+  overflow: hidden;
+  background: var(--surface);
+  box-shadow: 0 28px 72px rgba(6, 78, 59, 0.18), 0 0 0 1px rgba(16, 185, 129, 0.08);
+}
+
+.payment-success-hero {
+  text-align: center;
+  padding: 1.75rem 1.5rem 1.35rem;
+  background: linear-gradient(165deg, #ecfdf5 0%, #d1fae5 38%, #f0fdf4 100%);
+  border-bottom: 1px solid rgba(16, 185, 129, 0.18);
+}
+
+.payment-success-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  margin: 0 auto 0.9rem;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--success);
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.25);
+}
+
+.payment-success-icon svg {
+  width: 1.75rem;
+  height: 1.75rem;
+  display: block;
+}
+
+.payment-success-heading {
+  margin: 0 0 0.4rem;
+  font-size: 1.2rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #064e3b;
+  line-height: 1.25;
+}
+
+.payment-success-subtitle {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: #0f766e;
+  max-width: 32rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.payment-success-body {
+  padding: 1.25rem 1.35rem 0.5rem;
+}
+
+.payment-success-amount-block {
+  text-align: center;
+  margin-bottom: 1.1rem;
+  padding: 1rem 0.75rem 1.05rem;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid var(--border);
+}
+
+.payment-success-amount-label {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  margin-bottom: 0.45rem;
+}
+
+.payment-success-amount {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.35rem;
+  line-height: 1;
+}
+
+.payment-success-currency {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #64748b;
+  letter-spacing: 0.04em;
+}
+
+.payment-success-amount-value {
+  font-size: 2.15rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+}
+
+.payment-success-list {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: #fafbfc;
+  overflow: hidden;
+}
+
+.payment-success-list__row {
+  display: grid;
+  grid-template-columns: minmax(4.5rem, 32%) 1fr;
+  gap: 0.5rem 0.75rem;
+  align-items: start;
+  padding: 0.7rem 0.85rem;
+  border-bottom: 1px solid #e8ecf1;
+  font-size: 0.84rem;
+}
+
+.payment-success-list__row:last-child {
+  border-bottom: 0;
+}
+
+.payment-success-list__row--code {
+  grid-template-columns: minmax(4.5rem, 32%) 1fr;
+}
+
+.payment-success-list__label {
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.78rem;
+  padding-top: 0.12rem;
+}
+
+.payment-success-list__value {
+  color: var(--text);
+  font-weight: 600;
+  text-align: right;
+  word-break: break-word;
+  line-height: 1.35;
+}
+
+.payment-success-list__code {
+  display: block;
+  text-align: right;
+  font-family: ui-monospace, "Cascadia Code", "Segoe UI Mono", Consolas, monospace;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: #334155;
+  background: #fff;
+  padding: 0.28rem 0.45rem;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  word-break: break-all;
+  line-height: 1.35;
+}
+
+.payment-success-details {
+  margin: 0 0 0.25rem;
+  border-radius: 10px;
+  border: 1px dashed #cbd5e1;
+  background: #fff;
+}
+
+.payment-success-details__summary {
+  list-style: none;
+  padding: 0.65rem 0.8rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.payment-success-details__summary:hover {
+  color: var(--text);
+  background: #f8fafc;
+}
+
+.payment-success-details__summary::-webkit-details-marker {
+  display: none;
+}
+
+.payment-success-details[open] .payment-success-details__summary {
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+
+.payment-success-raw {
+  margin: 0;
+  max-height: 10rem;
+  overflow: auto;
+  padding: 0.7rem 0.85rem;
+  font-size: 0.68rem;
+  line-height: 1.45;
+  background: #0f172a;
+  color: #cbd5e1;
+  font-family: ui-monospace, "Cascadia Code", "Segoe UI Mono", Consolas, monospace;
+  border: 0;
+}
+
+.payment-success-footer {
+  padding: 0.9rem 1.35rem 1.2rem;
+  display: flex;
+  justify-content: center;
+  border-top: 1px solid var(--border);
+  background: linear-gradient(180deg, #fafbfc, #fff);
+}
+
+.payment-success-done {
+  min-width: 7.5rem;
+  font-weight: 700;
+  padding: 0.55rem 1.35rem;
+  border-radius: 10px;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.28);
 }
 
 /* Legacy */

@@ -237,6 +237,7 @@
     "lead": "គ្រប់គ្រងគណនីប្រព័ន្ធ និងសិទ្ធិរបស់តួនាទីនីមួយៗ។",
     "formTitle": "បង្កើតអ្នកប្រើ",
     "addUser": "បន្ថែមអ្នកប្រើ",
+    "renewToken": "បន្តសុពលភាព Token",
     "configureMenus": "ការចូលប្រើម៉ឺនុយ",
     "editTitle": "កែប្រែអ្នកប្រើ",
     "name": "ឈ្មោះពេញ",
@@ -260,7 +261,8 @@
     "roleMenusSave": "រក្សាការផ្លាស់ប្ដូរ",
     "roleMenusSaved": "បានធ្វើបច្ចុប្បន្នភាពការចូលប្រើម៉ឺនុយ",
     "roleMenusSectionLabel": "តំបន់ដែលមើលឃើញ",
-    "roleMenusRequiredBadge": "ចាំបាច់"
+    "roleMenusRequiredBadge": "ចាំបាច់",
+    "renewTokenSuccess": "បានបន្តសុពលភាព Bakong token រួចរាល់"
   },
   "orders": {
     "title": "ការកម្មង់",
@@ -312,6 +314,7 @@
     "paidAmount": "បានបង់",
     "remainingAmount": "នៅសល់",
     "debtAmount": "ចំនួនបំណុល",
+    "md5": "MD5",
     "action": "សកម្មភាព",
     "payWithAba": "បង់តាម ABA",
     "viewButton": "មើល",
@@ -321,7 +324,26 @@
     "refreshVerifyHint": "សូមរង់ចាំផ្ទៀងផ្ទាត់ការទូទាត់សាច់ប្រាក់។",
     "generatingNewQr": "កំពុងបង្កើត QR ថ្មី...",
     "autoRefreshEveryFiveMinutes": "QR ថ្មីនិងបង្កើតដោយស្វ័យប្រវត្តិរៀងរាល់ ៥ នាទីម្តង។",
-    "qrExpiresIn": "QR ផុតកំណត់ក្នុង {{time}}"
+    "qrExpiresIn": "QR ផុតកំណត់ក្នុង {{time}}",
+    "bakongTokenExpired": "Bakong token ផុតកំណត់។ សូមធ្វើបច្ចុប្បន្នភាព token ក្នុង database។",
+    "bakongTokenButton": "Bakong token",
+    "bakongTokenModalTitle": "ធ្វើបច្ចុប្បន្នភាព Bakong API token",
+    "bakongTokenModalLead": "បិទភ្ជាប់ JWT ពី Bakong។ វានឹងរក្សាទុកក្នុង database និងប្រើសម្រាប់ពិនិត្យការទូទាត់ (ជួរចុងក្រោយជានិច្ច)។",
+    "bakongTokenLabel": "Access token (JWT)",
+    "bakongTokenPlaceholder": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "bakongTokenSave": "រក្សាទុក token",
+    "bakongTokenSaved": "បានរក្សាទុក Bakong token ដោយជោគជ័យ។",
+    "bakongTokenStatus": "Token បច្ចុប្បន្នផុតកំណត់៖ {{expires}}",
+    "bakongTokenExpiresUnknown": "មិនដឹង (គ្មាន exp ក្នុង JWT)",
+    "bakongTokenMissing": "មិនមាន Bakong token ក្នុង database។ សូមបន្ថែមមុនពិនិត្យ QR។",
+    "bakongAmount": "ចំនួនទឹកប្រាក់",
+    "externalRef": "លេខយោង",
+    "fromAccount": "ពី",
+    "toAccount": "ទៅ",
+    "paymentReceived": "បានទទួលការទូទាត់",
+    "transactionSuccess": "ប្រតិបត្តិការជោគជ័យ",
+    "technicalDetails": "ព័ត៌មានបច្ចេកទេស",
+    "done": "រួចរាល់"
   },
   "dashboard": {
     "totalOrders": "ការកម្មង់សរុប",
@@ -439,6 +461,8 @@
     "createUser": "បង្កើតអ្នកប្រើបរាជ័យ",
     "updateUser": "កែប្រែអ្នកប្រើបរាជ័យ",
     "deleteUser": "បិទគណនីអ្នកប្រើបរាជ័យ",
+    "saveBakongToken": "មិនអាចរក្សាទុក Bakong token",
+    "confirmBakongPayment": "មិនអាចកត់ត្រាការទូទាត់ក្នុងកម្មវិធី។ ការទូទាត់នៅតែជោគជ័យនៅលើ Bakong។",
     "updateRoleMenus": "មិនអាចរក្សាការចូលប្រើម៉ឺនុយសម្រាប់តួនាទីនោះ",
     "sessionExpired": "សម័យផុតកំណត់។ សូមចូលម្តងទៀត។"
   },

@@ -256,6 +256,7 @@ function App() {
         element={withLayout(
           user?.role === "Admin" && canAccessPath(user, "/users") ? (
             <UsersPage
+              token={token}
               users={users}
               currentUser={user}
               newUser={newUser}
