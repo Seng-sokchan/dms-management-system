@@ -41,7 +41,11 @@ export function PaymentsPage({
   const [bakongTokenExpiredAlerted, setBakongTokenExpiredAlerted] = useState(false);
   const handledSuccessMd5Ref = useRef(null);
   const isCustomerRole = user?.role === "Customer";
-  const customerOrders = isCustomerRole ? orders : [];
+  const customerOrders = isCustomerRole
+    ? (orders || []).filter(
+      (order) => Math.max(0, Number(order?.amountTotal || 0) - Number(order?.amountPaid || 0)) > 0,
+    )
+    : [];
 
   function getRemainingAmount(order) {
     const remaining = Math.max(0, Number(order?.amountTotal || 0) - Number(order?.amountPaid || 0));
@@ -122,13 +126,19 @@ export function PaymentsPage({
           return;
         }
         handledSuccessMd5Ref.current = successMd5;
+        const selectedOrderIds = Array.isArray(abaOrder?.orderIds)
+          ? abaOrder.orderIds.map((id) => String(id))
+          : [];
         const orderId = abaOrder?.id;
-        if (orderId && orderId !== "all") {
+        const confirmPayload = { transaction: foundSuccess };
+        if (selectedOrderIds.length > 0) {
+          confirmPayload.orderIds = selectedOrderIds;
+        } else if (orderId && orderId !== "all") {
+          confirmPayload.orderId = String(orderId);
+        }
+        if (confirmPayload.orderId || confirmPayload.orderIds) {
           try {
-            await confirmPaymentKhqrTransaction(token, {
-              orderId: String(orderId),
-              transaction: foundSuccess,
-            });
+            await confirmPaymentKhqrTransaction(token, confirmPayload);
             if (typeof onRefreshData === "function") {
               await onRefreshData();
             }
@@ -175,7 +185,14 @@ export function PaymentsPage({
     const amountFromList = order?.mode === "all"
       ? Number(order.amount || 0)
       : getRemainingAmount(order);
-    setAbaOrder(order);
+    if (order?.mode === "all") {
+      const orderIds = customerOrders
+        .filter((row) => getRemainingAmount(row) > 0)
+        .map((row) => String(row.id));
+      setAbaOrder({ ...order, orderIds });
+    } else {
+      setAbaOrder(order);
+    }
     setSelectedPayAmount(amountFromList);
     await requestKhqr(order, { amountOverride: amountFromList });
   }

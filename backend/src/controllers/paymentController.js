@@ -210,7 +210,8 @@ async function checkPaymentKhqrByMd5List(req, res) {
 
 async function confirmPaymentKhqrTransaction(req, res) {
   const schema = z.object({
-    orderId: z.string().min(1),
+    orderId: z.string().min(1).optional(),
+    orderIds: z.array(z.string().min(1)).min(1).optional(),
     transaction: z.object({
       md5: z.string().min(1),
       status: z.string().min(1),
@@ -236,6 +237,9 @@ async function confirmPaymentKhqrTransaction(req, res) {
   if (!parsed.success) {
     return res.status(400).json({ message: "Invalid KHQR confirm payload" });
   }
+  if (!parsed.data.orderId && !parsed.data.orderIds?.length) {
+    return res.status(400).json({ message: "orderId or orderIds is required" });
+  }
 
   const tx = parsed.data.transaction;
   const txStatus = String(tx.status || "").toUpperCase();
@@ -243,13 +247,24 @@ async function confirmPaymentKhqrTransaction(req, res) {
     return res.status(400).json({ message: "Transaction status is not successful" });
   }
 
-  const order = await getOrderById(parsed.data.orderId);
-  if (!order) {
-    return res.status(404).json({ message: "Order not found" });
+  const requestedOrderIds = parsed.data.orderIds?.length
+    ? parsed.data.orderIds.map((id) => String(id))
+    : [String(parsed.data.orderId)];
+  const uniqueOrderIds = Array.from(new Set(requestedOrderIds));
+
+  const orders = [];
+  for (const orderId of uniqueOrderIds) {
+    const order = await getOrderById(orderId);
+    if (!order) {
+      return res.status(404).json({ message: `Order not found: ${orderId}` });
+    }
+    orders.push(order);
   }
+
   if (req.user?.role === "Customer") {
     const customer = await getCustomerByUserId(req.user.sub);
-    if (!customer || String(order.customerId) !== String(customer.id)) {
+    const notOwned = !customer || orders.some((order) => String(order.customerId) !== String(customer.id));
+    if (notOwned) {
       return res.status(403).json({ message: "You can only confirm payment for your own order" });
     }
   }
@@ -259,7 +274,7 @@ async function confirmPaymentKhqrTransaction(req, res) {
     return res.json({
       alreadyConfirmed: true,
       transaction: existingTx,
-      order,
+      orders,
     });
   }
 
@@ -273,13 +288,20 @@ async function confirmPaymentKhqrTransaction(req, res) {
     return res.status(400).json({ message: "Transaction amount must be greater than zero" });
   }
 
-  const outstanding = Math.max(0, Number(order.amountTotal || 0) - Number(order.amountPaid || 0));
-  const appliedAmount = Math.min(amount, outstanding);
+  const orderOutstanding = orders.map((order) => ({
+    order,
+    outstanding: Math.max(0, Number(order.amountTotal || 0) - Number(order.amountPaid || 0)),
+  }));
+  const totalOutstanding = orderOutstanding.reduce((sum, item) => sum + item.outstanding, 0);
+  if (totalOutstanding <= 0) {
+    return res.status(400).json({ message: "No outstanding balance for selected orders" });
+  }
+  const targetAmount = Math.min(amount, totalOutstanding);
 
   let savedTx;
   try {
     savedTx = await createBakongTransaction({
-      orderId: parsed.data.orderId,
+      orderId: String(orders[0].id),
       paymentId: null,
       md5: tx.md5,
       status: txStatus,
@@ -297,31 +319,41 @@ async function confirmPaymentKhqrTransaction(req, res) {
       receiverBankAccount: d.receiverBankAccount || null,
       instructionRef: d.instructionRef || null,
       externalRef: d.externalRef || null,
-      rawPayload: tx,
+      rawPayload: { ...tx, orderIds: uniqueOrderIds },
     });
   } catch (err) {
     if (err?.code === "ER_DUP_ENTRY" || err?.errno === 1062) {
       const row = await getBakongTransactionByMd5(tx.md5);
       if (row) {
-        return res.json({ alreadyConfirmed: true, transaction: row, order });
+        return res.json({ alreadyConfirmed: true, transaction: row, orders });
       }
     }
     throw err;
   }
 
-  let payment = null;
-  let updatedOrder = order;
-  if (outstanding > 0 && amount > 0) {
-    payment = await createPaymentDb({
-      orderId: parsed.data.orderId,
-      amount: appliedAmount,
+  let remainingToApply = targetAmount;
+  const paymentNote = `Bakong ${tx.md5}${d?.externalRef ? ` (${d.externalRef})` : ""}`;
+  const payments = [];
+  const updatedOrders = [];
+
+  for (const item of orderOutstanding) {
+    if (remainingToApply <= 0) break;
+    if (item.outstanding <= 0) continue;
+    const applyAmount = Math.min(item.outstanding, remainingToApply);
+    const payment = await createPaymentDb({
+      orderId: String(item.order.id),
+      amount: applyAmount,
       method: 2,
-      note: `Bakong ${tx.md5}${d?.externalRef ? ` (${d.externalRef})` : ""}`,
+      note: paymentNote,
     });
-    updatedOrder = await applyPaymentToOrder(parsed.data.orderId, appliedAmount);
-    if (payment?.id) {
-      await updateBakongTransactionPaymentIdByMd5(tx.md5, payment.id);
-    }
+    const updatedOrder = await applyPaymentToOrder(String(item.order.id), applyAmount);
+    payments.push(payment);
+    updatedOrders.push(updatedOrder);
+    remainingToApply -= applyAmount;
+  }
+
+  if (payments[0]?.id) {
+    await updateBakongTransactionPaymentIdByMd5(tx.md5, payments[0].id);
   }
 
   savedTx = (await getBakongTransactionByMd5(tx.md5)) || savedTx;
@@ -329,8 +361,9 @@ async function confirmPaymentKhqrTransaction(req, res) {
   return res.status(201).json({
     alreadyConfirmed: false,
     transaction: savedTx,
-    payment,
-    order: updatedOrder,
+    payments,
+    orders: updatedOrders,
+    appliedAmount: Number((targetAmount - Math.max(0, remainingToApply)).toFixed(2)),
   });
 }
 
