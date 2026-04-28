@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import {
   confirmDelivery as confirmDeliveryRequest,
   createDeliveryAgent,
@@ -19,8 +20,6 @@ import {
   deleteProducer,
   createProducer,
   fetchDashboardData,
-  fetchUsers,
-  fetchActivityLogs,
   login as loginRequest,
   updateCatalog,
   updateCustomer,
@@ -31,7 +30,6 @@ import {
   updateOrderStatus,
   updateProducer,
   updateUser,
-  fetchRoleMenus,
   updateRoleMenus,
 } from "../services/adminApi";
 import {
@@ -46,6 +44,7 @@ function getErrorMessage(error, errorKey) {
 }
 
 export function useAdminDashboard() {
+  const location = useLocation();
   const { alert } = useConfirm();
   const [auth, setAuth] = useState({ username: "admin", password: "admin123" });
   const [token, setTokenState] = useState(getStoredToken);
@@ -130,41 +129,25 @@ export function useAdminDashboard() {
   const refresh = useCallback(async () => {
     if (!token) return;
     try {
-      const data = await fetchDashboardData(token);
+      const data = await fetchDashboardData(token, location.pathname);
       setUser(data.user);
       setSummary(data.summary);
       setStatuses(Array.isArray(data.statuses) ? data.statuses : []);
       setOrders(data.orders);
-      setCustomers(data.customers);
+      setCustomers(Array.isArray(data.customers) ? data.customers : []);
       setCustomerUsers(Array.isArray(data.customerUsers) ? data.customerUsers : []);
       setAddresses(Array.isArray(data.addresses) ? data.addresses : []);
-      setProducers(data.producers);
-      setDeliveryAgents(data.deliveryAgents);
-      setTrucks(data.trucks || []);
-      setCatalogs(data.catalogs);
-      setItems(data.items);
-      setPayments(data.payments);
+      setProducers(Array.isArray(data.producers) ? data.producers : []);
+      setDeliveryAgents(Array.isArray(data.deliveryAgents) ? data.deliveryAgents : []);
+      setTrucks(Array.isArray(data.trucks) ? data.trucks : []);
+      setCatalogs(Array.isArray(data.catalogs) ? data.catalogs : []);
+      setItems(Array.isArray(data.items) ? data.items : []);
+      setPayments(Array.isArray(data.payments) ? data.payments : []);
       setPaymentMethods(Array.isArray(data.paymentMethods) ? data.paymentMethods : []);
       setOrderGroups(Array.isArray(data.orderGroups) ? data.orderGroups : []);
-      if (data.user?.role === "Admin") {
-        const menusData = await fetchRoleMenus(token);
-        setRoleMenusByRole(menusData && typeof menusData === "object" ? menusData : null);
-        if (data.user?.allowedMenus?.includes("users")) {
-          const usersData = await fetchUsers(token);
-          setUsers(usersData);
-        } else {
-          setUsers([]);
-        }
-      } else {
-        setUsers([]);
-        setRoleMenusByRole(null);
-      }
-      if (data.user?.role === "Admin" && data.user?.allowedMenus?.includes("activityLogs")) {
-        const logsData = await fetchActivityLogs(token, 5000);
-        setActivityLogs(Array.isArray(logsData) ? logsData : []);
-      } else {
-        setActivityLogs([]);
-      }
+      setUsers(Array.isArray(data.users) ? data.users : []);
+      setRoleMenusByRole(data.roleMenusByRole && typeof data.roleMenusByRole === "object" ? data.roleMenusByRole : null);
+      setActivityLogs(Array.isArray(data.activityLogs) ? data.activityLogs : []);
     } catch (error) {
       if (error?.response?.status === 401) {
         setToken("");
@@ -191,7 +174,7 @@ export function useAdminDashboard() {
       }
       showError(getErrorMessage(error, "errors.loadData"));
     }
-  }, [token, setToken, showError]);
+  }, [token, location.pathname, setToken, showError]);
 
   useEffect(() => {
     const id = requestAnimationFrame(() => {
