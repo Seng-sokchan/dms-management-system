@@ -1,13 +1,10 @@
 const { getPool } = require("../pool");
 const { mapAddress } = require("./mappers");
+const { unwrapProcedureRows } = require("./unwrap");
 
 async function listAddresses() {
-  const [rows] = await getPool().query(
-    `SELECT a.id, a.name
-     FROM addresses a
-     ORDER BY a.name ASC`,
-  );
-  return rows.map(mapAddress);
+  const [rows] = await getPool().query("CALL sp_list_addresses()");
+  return unwrapProcedureRows(rows).map(mapAddress);
 }
 
 module.exports = {

@@ -1,7 +1,7 @@
 const { getPool } = require("../pool");
 const { nowIso } = require("../../utils");
 const { mapDelivery } = require("./mappers");
-const { unwrapProcedureRows } = require("./unwrap");
+const { unwrapProcedureRows, getProcedureMeta } = require("./unwrap");
 
 async function listDeliveryAgents() {
   const [rows] = await getPool().query("CALL sp_list_delivery_agents()");
@@ -15,31 +15,29 @@ async function getDeliveryAgentById(id) {
 }
 
 async function createDeliveryAgent(payload) {
-  const [result] = await getPool().query(
-    "INSERT INTO delivery_agents (name, phone, vehicle_type, updated_at) VALUES (?, ?, ?, ?)",
-    [payload.name, payload.phone, payload.vehicleType, nowIso()],
-  );
-  return getDeliveryAgentById(result.insertId);
+  const [rowsRaw] = await getPool().query("CALL sp_create_delivery_agent(?, ?, ?, ?)", [
+    payload.name, payload.phone, payload.vehicleType, nowIso(),
+  ]);
+  const meta = getProcedureMeta(rowsRaw);
+  return getDeliveryAgentById(meta.insertId);
 }
 
 async function updateDeliveryAgent(id, payload) {
   const name = String(payload.name || "").trim();
   const phone = String(payload.phone || "").trim();
   const vehicleType = String(payload.vehicleType || "").trim();
-  const [result] = await getPool().query(
-    "UPDATE delivery_agents SET name = ?, phone = ?, vehicle_type = ?, updated_at = ? WHERE id = ? AND is_active = 1",
-    [name, phone, vehicleType, nowIso(), id],
-  );
-  if (!result.affectedRows) return null;
+  const [rowsRaw] = await getPool().query("CALL sp_update_delivery_agent(?, ?, ?, ?, ?)", [
+    id, name, phone, vehicleType, nowIso(),
+  ]);
+  const meta = getProcedureMeta(rowsRaw);
+  if (!Number(meta.affectedRows || 0)) return null;
   return getDeliveryAgentById(id);
 }
 
 async function deleteDeliveryAgent(id) {
-  const [result] = await getPool().query(
-    "UPDATE delivery_agents SET is_active = 0, updated_at = ? WHERE id = ? AND is_active = 1",
-    [nowIso(), id],
-  );
-  return result.affectedRows > 0;
+  const [rowsRaw] = await getPool().query("CALL sp_delete_delivery_agent(?, ?)", [id, nowIso()]);
+  const meta = getProcedureMeta(rowsRaw);
+  return Number(meta.affectedRows || 0) > 0;
 }
 
 module.exports = {

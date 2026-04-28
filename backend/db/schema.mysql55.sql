@@ -364,6 +364,9 @@ DROP PROCEDURE IF EXISTS sp_get_order_by_id;
 DROP PROCEDURE IF EXISTS sp_list_users;
 DROP PROCEDURE IF EXISTS sp_get_user_by_username;
 DROP PROCEDURE IF EXISTS sp_get_user_by_id;
+DROP PROCEDURE IF EXISTS sp_create_user;
+DROP PROCEDURE IF EXISTS sp_update_user;
+DROP PROCEDURE IF EXISTS sp_deactivate_user;
 DROP PROCEDURE IF EXISTS sp_get_role_id_by_name;
 DROP PROCEDURE IF EXISTS sp_list_producers;
 DROP PROCEDURE IF EXISTS sp_get_producer_by_id;
@@ -382,6 +385,52 @@ DROP PROCEDURE IF EXISTS sp_list_payments;
 DROP PROCEDURE IF EXISTS sp_get_payment_by_id;
 DROP PROCEDURE IF EXISTS sp_get_status_id_by_name;
 DROP PROCEDURE IF EXISTS sp_get_payment_status_id_by_name;
+DROP PROCEDURE IF EXISTS sp_list_addresses;
+DROP PROCEDURE IF EXISTS sp_list_payment_methods;
+DROP PROCEDURE IF EXISTS sp_create_payment;
+DROP PROCEDURE IF EXISTS sp_apply_payment_to_order;
+DROP PROCEDURE IF EXISTS sp_list_role_menu_keys_by_role_name;
+DROP PROCEDURE IF EXISTS sp_list_roles;
+DROP PROCEDURE IF EXISTS sp_list_role_menus;
+DROP PROCEDURE IF EXISTS sp_delete_role_menus_by_role_id;
+DROP PROCEDURE IF EXISTS sp_add_role_menu;
+DROP PROCEDURE IF EXISTS sp_create_order;
+DROP PROCEDURE IF EXISTS sp_update_order_assignment;
+DROP PROCEDURE IF EXISTS sp_update_order_status;
+DROP PROCEDURE IF EXISTS sp_insert_order_status_history;
+DROP PROCEDURE IF EXISTS sp_confirm_order_delivery;
+DROP PROCEDURE IF EXISTS sp_delete_order;
+DROP PROCEDURE IF EXISTS sp_create_catalog;
+DROP PROCEDURE IF EXISTS sp_update_catalog;
+DROP PROCEDURE IF EXISTS sp_delete_catalog;
+DROP PROCEDURE IF EXISTS sp_create_customer;
+DROP PROCEDURE IF EXISTS sp_update_customer;
+DROP PROCEDURE IF EXISTS sp_delete_customer;
+DROP PROCEDURE IF EXISTS sp_create_delivery_agent;
+DROP PROCEDURE IF EXISTS sp_update_delivery_agent;
+DROP PROCEDURE IF EXISTS sp_delete_delivery_agent;
+DROP PROCEDURE IF EXISTS sp_create_item;
+DROP PROCEDURE IF EXISTS sp_update_item;
+DROP PROCEDURE IF EXISTS sp_delete_item;
+DROP PROCEDURE IF EXISTS sp_list_order_groups;
+DROP PROCEDURE IF EXISTS sp_get_order_group_by_id;
+DROP PROCEDURE IF EXISTS sp_list_dashboard_status_summary;
+DROP PROCEDURE IF EXISTS sp_list_dashboard_payment_summary;
+DROP PROCEDURE IF EXISTS sp_dashboard_currency_totals;
+DROP PROCEDURE IF EXISTS sp_list_user_activity_logs;
+DROP PROCEDURE IF EXISTS sp_create_user_activity_log;
+DROP PROCEDURE IF EXISTS sp_create_producer;
+DROP PROCEDURE IF EXISTS sp_update_producer;
+DROP PROCEDURE IF EXISTS sp_delete_producer;
+DROP PROCEDURE IF EXISTS sp_create_truck;
+DROP PROCEDURE IF EXISTS sp_update_truck;
+DROP PROCEDURE IF EXISTS sp_delete_truck;
+DROP PROCEDURE IF EXISTS sp_get_latest_bakong_token;
+DROP PROCEDURE IF EXISTS sp_insert_bakong_token;
+DROP PROCEDURE IF EXISTS sp_get_bakong_transaction_by_md5;
+DROP PROCEDURE IF EXISTS sp_create_bakong_transaction;
+DROP PROCEDURE IF EXISTS sp_get_bakong_transaction_by_id;
+DROP PROCEDURE IF EXISTS sp_update_bakong_transaction_payment_id_by_md5;
 
 CREATE PROCEDURE sp_get_user_by_username(IN p_username VARCHAR(60))
 SELECT u.id, u.name, u.username, u.password_hash, r.name AS role
@@ -408,6 +457,46 @@ SELECT u.id, u.name, u.username, r.name AS role, u.is_active
 FROM users u
 INNER JOIN roles r ON r.id = u.role_id
 ORDER BY u.created_at DESC;
+
+CREATE PROCEDURE sp_create_user(
+  IN p_name VARCHAR(255),
+  IN p_username VARCHAR(60),
+  IN p_password_hash VARCHAR(255),
+  IN p_role_id INT UNSIGNED,
+  IN p_updated_at DATETIME
+)
+BEGIN
+  INSERT INTO users (name, username, password_hash, role_id, is_active, updated_at)
+  VALUES (p_name, p_username, p_password_hash, p_role_id, 1, p_updated_at);
+  SELECT LAST_INSERT_ID() AS insertId;
+END;
+
+CREATE PROCEDURE sp_update_user(
+  IN p_id INT UNSIGNED,
+  IN p_name VARCHAR(255),
+  IN p_username VARCHAR(60),
+  IN p_role_id INT UNSIGNED,
+  IN p_password_hash VARCHAR(255),
+  IN p_updated_at DATETIME
+)
+BEGIN
+  UPDATE users
+  SET name = COALESCE(p_name, name),
+      username = COALESCE(p_username, username),
+      role_id = COALESCE(p_role_id, role_id),
+      password_hash = COALESCE(p_password_hash, password_hash),
+      updated_at = p_updated_at
+  WHERE id = p_id;
+  SELECT ROW_COUNT() AS affectedRows;
+END;
+
+CREATE PROCEDURE sp_deactivate_user(IN p_id INT UNSIGNED, IN p_updated_at DATETIME)
+BEGIN
+  UPDATE users
+  SET is_active = 0, updated_at = p_updated_at
+  WHERE id = p_id AND is_active = 1;
+  SELECT ROW_COUNT() AS affectedRows;
+END;
 
 CREATE PROCEDURE sp_get_producer_by_id(IN p_id INT UNSIGNED)
 SELECT id, name, phone, capacity_note
@@ -494,6 +583,11 @@ SELECT id, name
 FROM status
 ORDER BY id ASC;
 
+CREATE PROCEDURE sp_list_addresses()
+SELECT a.id, a.name
+FROM addresses a
+ORDER BY a.name ASC;
+
 CREATE PROCEDURE sp_get_status_id_by_name(IN p_name VARCHAR(30))
 SELECT id
 FROM status
@@ -526,6 +620,37 @@ LEFT JOIN customers c ON c.id = o.customer_id
 LEFT JOIN addresses oa ON oa.id = o.address
 LEFT JOIN items it ON o.item_id = it.id
 ORDER BY p.created_at DESC;
+
+CREATE PROCEDURE sp_list_payment_methods()
+SELECT id, name
+FROM payment_methods
+ORDER BY id ASC;
+
+CREATE PROCEDURE sp_create_payment(
+  IN p_order_id INT UNSIGNED,
+  IN p_amount DECIMAL(12,2),
+  IN p_method TINYINT UNSIGNED,
+  IN p_note VARCHAR(255)
+)
+BEGIN
+  INSERT INTO payments (order_id, amount, method, note)
+  VALUES (p_order_id, p_amount, p_method, p_note);
+  SELECT LAST_INSERT_ID() AS insertId;
+END;
+
+CREATE PROCEDURE sp_apply_payment_to_order(
+  IN p_order_id INT UNSIGNED,
+  IN p_amount_paid DECIMAL(12,2),
+  IN p_payment_status TINYINT UNSIGNED,
+  IN p_status TINYINT UNSIGNED,
+  IN p_updated_at DATETIME
+)
+UPDATE orders
+SET amount_paid = p_amount_paid,
+    payment_status = p_payment_status,
+    status = p_status,
+    updated_at = p_updated_at
+WHERE id = p_order_id;
 
 CREATE PROCEDURE sp_get_order_by_id(IN p_id INT UNSIGNED)
 SELECT
@@ -577,6 +702,368 @@ LEFT JOIN trucks t ON t.id = o.truck_id
 LEFT JOIN delivery_agents d ON d.id = o.delivery_agent_id
 LEFT JOIN order_groups og ON og.id = o.order_group_id
 ORDER BY o.created_at DESC;
+
+CREATE PROCEDURE sp_create_order(
+  IN p_customer_id INT UNSIGNED,
+  IN p_address INT UNSIGNED,
+  IN p_item_id INT UNSIGNED,
+  IN p_ordered_qty DECIMAL(12,2),
+  IN p_unit_price DECIMAL(12,2),
+  IN p_producer_id INT UNSIGNED,
+  IN p_truck_id INT UNSIGNED,
+  IN p_delivery_agent_id INT UNSIGNED,
+  IN p_delivered_qty DECIMAL(12,2),
+  IN p_loss_qty DECIMAL(12,2),
+  IN p_remaining_qty DECIMAL(12,2),
+  IN p_discrepancy DECIMAL(12,2),
+  IN p_amount_total DECIMAL(12,2),
+  IN p_amount_paid DECIMAL(12,2),
+  IN p_payment_status TINYINT UNSIGNED,
+  IN p_status TINYINT UNSIGNED,
+  IN p_updated_at DATETIME
+)
+BEGIN
+  INSERT INTO orders (
+    customer_id, address, order_group_id, item_id, ordered_qty, unit_price, producer_id, truck_id, delivery_agent_id, delivery_time,
+    delivered_qty, loss_qty, remaining_qty, discrepancy, amount_total, amount_paid, payment_status, status, updated_at
+  )
+  VALUES (
+    p_customer_id, p_address, NULL, p_item_id, p_ordered_qty, p_unit_price, p_producer_id, p_truck_id, p_delivery_agent_id, NULL,
+    p_delivered_qty, p_loss_qty, p_remaining_qty, p_discrepancy, p_amount_total, p_amount_paid, p_payment_status, p_status, p_updated_at
+  );
+  SELECT LAST_INSERT_ID() AS insertId;
+END;
+
+CREATE PROCEDURE sp_update_order_assignment(
+  IN p_id INT UNSIGNED,
+  IN p_producer_id INT UNSIGNED,
+  IN p_truck_id INT UNSIGNED,
+  IN p_delivery_agent_id INT UNSIGNED,
+  IN p_order_group_id INT UNSIGNED,
+  IN p_delivery_time DATETIME,
+  IN p_status TINYINT UNSIGNED,
+  IN p_updated_at DATETIME
+)
+UPDATE orders
+SET producer_id = COALESCE(p_producer_id, producer_id),
+    truck_id = COALESCE(p_truck_id, truck_id),
+    delivery_agent_id = COALESCE(p_delivery_agent_id, delivery_agent_id),
+    order_group_id = COALESCE(p_order_group_id, order_group_id),
+    delivery_time = COALESCE(p_delivery_time, delivery_time),
+    status = COALESCE(p_status, status),
+    updated_at = p_updated_at
+WHERE id = p_id;
+
+CREATE PROCEDURE sp_update_order_status(
+  IN p_id INT UNSIGNED,
+  IN p_status TINYINT UNSIGNED,
+  IN p_updated_at DATETIME
+)
+UPDATE orders
+SET status = p_status, updated_at = p_updated_at
+WHERE id = p_id;
+
+CREATE PROCEDURE sp_insert_order_status_history(
+  IN p_order_id INT UNSIGNED,
+  IN p_from_status TINYINT UNSIGNED,
+  IN p_to_status TINYINT UNSIGNED,
+  IN p_changed_by_user_id INT UNSIGNED,
+  IN p_note VARCHAR(255)
+)
+INSERT INTO order_status_history (order_id, from_status, to_status, changed_by_user_id, note)
+VALUES (p_order_id, p_from_status, p_to_status, p_changed_by_user_id, p_note);
+
+CREATE PROCEDURE sp_confirm_order_delivery(
+  IN p_id INT UNSIGNED,
+  IN p_delivered_qty DECIMAL(12,2),
+  IN p_loss_qty DECIMAL(12,2),
+  IN p_remaining_qty DECIMAL(12,2),
+  IN p_discrepancy DECIMAL(12,2),
+  IN p_status TINYINT UNSIGNED,
+  IN p_delivery_proof_type VARCHAR(30),
+  IN p_delivery_proof_value VARCHAR(255),
+  IN p_updated_at DATETIME
+)
+UPDATE orders
+SET delivered_qty = p_delivered_qty,
+    loss_qty = p_loss_qty,
+    remaining_qty = p_remaining_qty,
+    discrepancy = p_discrepancy,
+    status = p_status,
+    delivery_proof_type = p_delivery_proof_type,
+    delivery_proof_value = p_delivery_proof_value,
+    updated_at = p_updated_at
+WHERE id = p_id;
+
+CREATE PROCEDURE sp_delete_order(IN p_id INT UNSIGNED)
+BEGIN
+  DELETE FROM orders WHERE id = p_id;
+  SELECT ROW_COUNT() AS affectedRows;
+END;
+
+CREATE PROCEDURE sp_list_role_menu_keys_by_role_name(IN p_role_name VARCHAR(60))
+SELECT rm.menu_key
+FROM role_menus rm
+INNER JOIN roles r ON r.id = rm.role_id
+WHERE r.name = p_role_name
+ORDER BY rm.menu_key ASC;
+
+CREATE PROCEDURE sp_list_roles()
+SELECT id, name FROM roles ORDER BY id ASC;
+
+CREATE PROCEDURE sp_list_role_menus()
+SELECT r.name AS role_name, rm.menu_key
+FROM role_menus rm
+INNER JOIN roles r ON r.id = rm.role_id
+ORDER BY r.id ASC, rm.menu_key ASC;
+
+CREATE PROCEDURE sp_delete_role_menus_by_role_id(IN p_role_id INT UNSIGNED)
+DELETE FROM role_menus WHERE role_id = p_role_id;
+
+CREATE PROCEDURE sp_add_role_menu(IN p_role_id INT UNSIGNED, IN p_menu_key VARCHAR(40))
+INSERT INTO role_menus (role_id, menu_key) VALUES (p_role_id, p_menu_key);
+
+CREATE PROCEDURE sp_create_catalog(IN p_name VARCHAR(255), IN p_note VARCHAR(255), IN p_updated_at DATETIME)
+BEGIN
+  INSERT INTO catalogs (name, note, updated_at) VALUES (p_name, p_note, p_updated_at);
+  SELECT LAST_INSERT_ID() AS insertId;
+END;
+
+CREATE PROCEDURE sp_update_catalog(IN p_id INT UNSIGNED, IN p_name VARCHAR(255), IN p_note VARCHAR(255), IN p_updated_at DATETIME)
+BEGIN
+  UPDATE catalogs SET name = p_name, note = p_note, updated_at = p_updated_at WHERE id = p_id AND is_active = 1;
+  SELECT ROW_COUNT() AS affectedRows;
+END;
+
+CREATE PROCEDURE sp_delete_catalog(IN p_id INT UNSIGNED, IN p_updated_at DATETIME)
+BEGIN
+  UPDATE catalogs SET is_active = 0, updated_at = p_updated_at WHERE id = p_id AND is_active = 1;
+  SELECT ROW_COUNT() AS affectedRows;
+END;
+
+CREATE PROCEDURE sp_create_customer(
+  IN p_name VARCHAR(255),
+  IN p_phone VARCHAR(30),
+  IN p_address INT UNSIGNED,
+  IN p_user_id INT UNSIGNED,
+  IN p_sub_address VARCHAR(255),
+  IN p_updated_at DATETIME
+)
+BEGIN
+  INSERT INTO customers (name, phone, address, user_id, sub_address, updated_at)
+  VALUES (p_name, p_phone, p_address, p_user_id, p_sub_address, p_updated_at);
+  SELECT LAST_INSERT_ID() AS insertId;
+END;
+
+CREATE PROCEDURE sp_update_customer(
+  IN p_id INT UNSIGNED,
+  IN p_name VARCHAR(255),
+  IN p_phone VARCHAR(30),
+  IN p_address INT UNSIGNED,
+  IN p_user_id INT UNSIGNED,
+  IN p_sub_address VARCHAR(255),
+  IN p_updated_at DATETIME
+)
+BEGIN
+  UPDATE customers
+  SET name = p_name, phone = p_phone, address = p_address, user_id = p_user_id, sub_address = p_sub_address, updated_at = p_updated_at
+  WHERE id = p_id AND is_active = 1;
+  SELECT ROW_COUNT() AS affectedRows;
+END;
+
+CREATE PROCEDURE sp_delete_customer(IN p_id INT UNSIGNED, IN p_updated_at DATETIME)
+BEGIN
+  UPDATE customers SET is_active = 0, updated_at = p_updated_at WHERE id = p_id AND is_active = 1;
+  SELECT ROW_COUNT() AS affectedRows;
+END;
+
+CREATE PROCEDURE sp_create_delivery_agent(
+  IN p_name VARCHAR(255), IN p_phone VARCHAR(30), IN p_vehicle_type VARCHAR(60), IN p_updated_at DATETIME
+)
+BEGIN
+  INSERT INTO delivery_agents (name, phone, vehicle_type, updated_at)
+  VALUES (p_name, p_phone, p_vehicle_type, p_updated_at);
+  SELECT LAST_INSERT_ID() AS insertId;
+END;
+
+CREATE PROCEDURE sp_update_delivery_agent(
+  IN p_id INT UNSIGNED, IN p_name VARCHAR(255), IN p_phone VARCHAR(30), IN p_vehicle_type VARCHAR(60), IN p_updated_at DATETIME
+)
+BEGIN
+  UPDATE delivery_agents
+  SET name = p_name, phone = p_phone, vehicle_type = p_vehicle_type, updated_at = p_updated_at
+  WHERE id = p_id AND is_active = 1;
+  SELECT ROW_COUNT() AS affectedRows;
+END;
+
+CREATE PROCEDURE sp_delete_delivery_agent(IN p_id INT UNSIGNED, IN p_updated_at DATETIME)
+BEGIN
+  UPDATE delivery_agents SET is_active = 0, updated_at = p_updated_at WHERE id = p_id AND is_active = 1;
+  SELECT ROW_COUNT() AS affectedRows;
+END;
+
+CREATE PROCEDURE sp_create_item(
+  IN p_catalog_id INT UNSIGNED, IN p_name VARCHAR(255), IN p_sku VARCHAR(80), IN p_usd DECIMAL(12,2), IN p_khr DECIMAL(18,2), IN p_updated_at DATETIME
+)
+BEGIN
+  INSERT INTO items (catalog_id, name, sku, default_unit_price_usd, default_unit_price_khr, updated_at)
+  VALUES (p_catalog_id, p_name, p_sku, p_usd, p_khr, p_updated_at);
+  SELECT LAST_INSERT_ID() AS insertId;
+END;
+
+CREATE PROCEDURE sp_update_item(
+  IN p_id INT UNSIGNED, IN p_catalog_id INT UNSIGNED, IN p_name VARCHAR(255), IN p_sku VARCHAR(80), IN p_usd DECIMAL(12,2), IN p_khr DECIMAL(18,2), IN p_updated_at DATETIME
+)
+BEGIN
+  UPDATE items
+  SET catalog_id = p_catalog_id, name = p_name, sku = p_sku, default_unit_price_usd = p_usd, default_unit_price_khr = p_khr, updated_at = p_updated_at
+  WHERE id = p_id AND is_active = 1;
+  SELECT ROW_COUNT() AS affectedRows;
+END;
+
+CREATE PROCEDURE sp_delete_item(IN p_id INT UNSIGNED, IN p_updated_at DATETIME)
+BEGIN
+  UPDATE items SET is_active = 0, updated_at = p_updated_at WHERE id = p_id AND is_active = 1;
+  SELECT ROW_COUNT() AS affectedRows;
+END;
+
+CREATE PROCEDURE sp_list_order_groups()
+SELECT id, name FROM order_groups ORDER BY name ASC;
+
+CREATE PROCEDURE sp_get_order_group_by_id(IN p_id INT UNSIGNED)
+SELECT id, name FROM order_groups WHERE id = p_id LIMIT 1;
+
+CREATE PROCEDURE sp_list_dashboard_status_summary()
+SELECT s.name AS status, COUNT(*) AS total
+FROM orders o
+INNER JOIN status s ON s.id = o.status
+GROUP BY s.name;
+
+CREATE PROCEDURE sp_list_dashboard_payment_summary()
+SELECT ps.name AS payment_status, COUNT(*) AS total
+FROM orders o
+INNER JOIN payment_statuses ps ON ps.id = o.payment_status
+GROUP BY ps.name;
+
+CREATE PROCEDURE sp_dashboard_currency_totals()
+SELECT
+  COALESCE(SUM(o.ordered_qty * i.default_unit_price_khr), 0) AS total_revenue_khr,
+  COALESCE(
+    SUM(
+      CASE
+        WHEN o.amount_total > 0 THEN (o.amount_paid / o.amount_total) * (o.ordered_qty * i.default_unit_price_khr)
+        ELSE 0
+      END
+    ),
+    0
+  ) AS total_collected_khr
+FROM orders o
+INNER JOIN items i ON i.id = o.item_id;
+
+CREATE PROCEDURE sp_list_user_activity_logs(IN p_limit INT)
+SELECT id, user_id, username, role, method, path, status_code, message, created_at
+FROM user_activity_logs
+ORDER BY id DESC
+LIMIT p_limit;
+
+CREATE PROCEDURE sp_create_user_activity_log(
+  IN p_user_id INT UNSIGNED, IN p_username VARCHAR(60), IN p_role VARCHAR(60),
+  IN p_method VARCHAR(10), IN p_path VARCHAR(255), IN p_status_code SMALLINT, IN p_message VARCHAR(255)
+)
+INSERT INTO user_activity_logs (user_id, username, role, method, path, status_code, message)
+VALUES (p_user_id, p_username, p_role, p_method, p_path, p_status_code, p_message);
+
+CREATE PROCEDURE sp_create_producer(IN p_name VARCHAR(255), IN p_phone VARCHAR(30), IN p_capacity_note VARCHAR(255), IN p_updated_at DATETIME)
+BEGIN
+  INSERT INTO producers (name, phone, capacity_note, updated_at) VALUES (p_name, p_phone, p_capacity_note, p_updated_at);
+  SELECT LAST_INSERT_ID() AS insertId;
+END;
+
+CREATE PROCEDURE sp_update_producer(IN p_id INT UNSIGNED, IN p_name VARCHAR(255), IN p_phone VARCHAR(30), IN p_capacity_note VARCHAR(255), IN p_updated_at DATETIME)
+BEGIN
+  UPDATE producers SET name = p_name, phone = p_phone, capacity_note = p_capacity_note, updated_at = p_updated_at WHERE id = p_id AND is_active = 1;
+  SELECT ROW_COUNT() AS affectedRows;
+END;
+
+CREATE PROCEDURE sp_delete_producer(IN p_id INT UNSIGNED, IN p_updated_at DATETIME)
+BEGIN
+  UPDATE producers SET is_active = 0, updated_at = p_updated_at WHERE id = p_id AND is_active = 1;
+  SELECT ROW_COUNT() AS affectedRows;
+END;
+
+CREATE PROCEDURE sp_create_truck(
+  IN p_code VARCHAR(80), IN p_plate_no VARCHAR(30), IN p_delivery_agent_id INT UNSIGNED, IN p_capacity_note VARCHAR(255), IN p_updated_at DATETIME
+)
+BEGIN
+  INSERT INTO trucks (code, plate_no, delivery_agent_id, capacity_note, updated_at)
+  VALUES (p_code, p_plate_no, p_delivery_agent_id, p_capacity_note, p_updated_at);
+  SELECT LAST_INSERT_ID() AS insertId;
+END;
+
+CREATE PROCEDURE sp_update_truck(
+  IN p_id INT UNSIGNED, IN p_code VARCHAR(80), IN p_plate_no VARCHAR(30), IN p_delivery_agent_id INT UNSIGNED, IN p_capacity_note VARCHAR(255), IN p_updated_at DATETIME
+)
+BEGIN
+  UPDATE trucks
+  SET code = p_code, plate_no = p_plate_no, delivery_agent_id = p_delivery_agent_id, capacity_note = p_capacity_note, updated_at = p_updated_at
+  WHERE id = p_id AND is_active = 1;
+  SELECT ROW_COUNT() AS affectedRows;
+END;
+
+CREATE PROCEDURE sp_delete_truck(IN p_id INT UNSIGNED, IN p_updated_at DATETIME)
+BEGIN
+  UPDATE trucks SET is_active = 0, updated_at = p_updated_at WHERE id = p_id AND is_active = 1;
+  SELECT ROW_COUNT() AS affectedRows;
+END;
+
+CREATE PROCEDURE sp_get_latest_bakong_token()
+SELECT id, access_token, expires_at, created_at, updated_at
+FROM bakong_tokens
+ORDER BY updated_at DESC, id DESC
+LIMIT 1;
+
+CREATE PROCEDURE sp_insert_bakong_token(IN p_access_token TEXT, IN p_expires_at DATETIME)
+INSERT INTO bakong_tokens (access_token, expires_at, updated_at)
+VALUES (p_access_token, p_expires_at, NOW());
+
+CREATE PROCEDURE sp_get_bakong_transaction_by_md5(IN p_md5 VARCHAR(64))
+SELECT id, order_id, payment_id, md5, status, message, amount, external_ref, raw_payload
+FROM bakong_transactions
+WHERE md5 = p_md5
+LIMIT 1;
+
+CREATE PROCEDURE sp_create_bakong_transaction(
+  IN p_order_id INT UNSIGNED, IN p_payment_id INT UNSIGNED, IN p_md5 VARCHAR(64), IN p_status VARCHAR(30), IN p_message VARCHAR(255),
+  IN p_tx_hash VARCHAR(120), IN p_from_account_id VARCHAR(100), IN p_to_account_id VARCHAR(100), IN p_currency VARCHAR(10),
+  IN p_amount DECIMAL(12,2), IN p_description_text VARCHAR(255), IN p_created_date_ms BIGINT, IN p_acknowledged_date_ms BIGINT,
+  IN p_tracking_status VARCHAR(40), IN p_receiver_bank VARCHAR(120), IN p_receiver_bank_account VARCHAR(120),
+  IN p_instruction_ref VARCHAR(120), IN p_external_ref VARCHAR(120), IN p_raw_payload LONGTEXT, IN p_updated_at DATETIME
+)
+BEGIN
+  INSERT INTO bakong_transactions (
+    order_id, payment_id, md5, status, message, tx_hash, from_account_id, to_account_id,
+    currency, amount, description_text, created_date_ms, acknowledged_date_ms, tracking_status,
+    receiver_bank, receiver_bank_account, instruction_ref, external_ref, raw_payload, updated_at
+  ) VALUES (
+    p_order_id, p_payment_id, p_md5, p_status, p_message, p_tx_hash, p_from_account_id, p_to_account_id,
+    p_currency, p_amount, p_description_text, p_created_date_ms, p_acknowledged_date_ms, p_tracking_status,
+    p_receiver_bank, p_receiver_bank_account, p_instruction_ref, p_external_ref, p_raw_payload, p_updated_at
+  );
+  SELECT LAST_INSERT_ID() AS insertId;
+END;
+
+CREATE PROCEDURE sp_get_bakong_transaction_by_id(IN p_id INT UNSIGNED)
+SELECT id, order_id, payment_id, md5, status, message, amount, external_ref, raw_payload
+FROM bakong_transactions
+WHERE id = p_id
+LIMIT 1;
+
+CREATE PROCEDURE sp_update_bakong_transaction_payment_id_by_md5(
+  IN p_payment_id INT UNSIGNED, IN p_updated_at DATETIME, IN p_md5 VARCHAR(64)
+)
+UPDATE bakong_transactions
+SET payment_id = p_payment_id, updated_at = p_updated_at
+WHERE md5 = p_md5;
 
 DROP PROCEDURE IF EXISTS sp_dashboard_totals;
 CREATE PROCEDURE sp_dashboard_totals()

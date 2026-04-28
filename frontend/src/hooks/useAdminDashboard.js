@@ -644,6 +644,7 @@ export function useAdminDashboard() {
     submitUserUpdate,
     submitUserDelete,
     submitRoleMenus,
+    refresh,
     logout,
   };
 }

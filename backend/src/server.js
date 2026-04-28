@@ -1,8 +1,6 @@
-const { createApp } = require("./app");
+const app = require("./app");
 require("dotenv").config();
 const { checkDbConnection } = require("./db/pool");
-
-const app = createApp();
 
 function validateRequiredEnv() {
   if (!process.env.JWT_SECRET) {

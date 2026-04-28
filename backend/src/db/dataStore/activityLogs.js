@@ -2,13 +2,8 @@ const { getPool } = require("../pool");
 
 async function listUserActivityLogs(limit = 300) {
   const safeLimit = Math.min(Math.max(Number(limit) || 100, 1), 100000);
-  const [rows] = await getPool().query(
-    `SELECT id, user_id, username, role, method, path, status_code, message, created_at
-     FROM user_activity_logs
-     ORDER BY id DESC
-     LIMIT ?`,
-    [safeLimit],
-  );
+  const [rowsRaw] = await getPool().query("CALL sp_list_user_activity_logs(?)", [safeLimit]);
+  const rows = Array.isArray(rowsRaw?.[0]) ? rowsRaw[0] : rowsRaw;
   return rows.map((row) => ({
     id: String(row.id),
     userId: row.user_id != null ? String(row.user_id) : null,
@@ -23,20 +18,15 @@ async function listUserActivityLogs(limit = 300) {
 }
 
 async function createUserActivityLog(payload) {
-  await getPool().query(
-    `INSERT INTO user_activity_logs
-     (user_id, username, role, method, path, status_code, message)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [
-      payload.userId ? Number(payload.userId) : null,
-      payload.username || null,
-      payload.role || null,
-      payload.method,
-      payload.path,
-      Number(payload.statusCode),
-      payload.message || "",
-    ],
-  );
+  await getPool().query("CALL sp_create_user_activity_log(?, ?, ?, ?, ?, ?, ?)", [
+    payload.userId ? Number(payload.userId) : null,
+    payload.username || null,
+    payload.role || null,
+    payload.method,
+    payload.path,
+    Number(payload.statusCode),
+    payload.message || "",
+  ]);
 }
 
 module.exports = {

@@ -1,7 +1,7 @@
 const { getPool } = require("../pool");
 const { nowIso } = require("../../utils");
 const { mapCustomer } = require("./mappers");
-const { unwrapProcedureRows } = require("./unwrap");
+const { unwrapProcedureRows, getProcedureMeta } = require("./unwrap");
 
 async function listCustomers() {
   const [rows] = await getPool().query("CALL sp_list_customers()");
@@ -27,11 +27,11 @@ async function createCustomer(payload) {
   const address = Number(payload.address);
   const userId = payload.userId ? Number(payload.userId) : null;
   const subAddress = (payload.subAddress && String(payload.subAddress).trim()) || "";
-  const [result] = await getPool().query(
-    "INSERT INTO customers (name, phone, address, user_id, sub_address, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
-    [name, phone, address, userId, subAddress, nowIso()],
-  );
-  return getCustomerById(result.insertId);
+  const [rowsRaw] = await getPool().query("CALL sp_create_customer(?, ?, ?, ?, ?, ?)", [
+    name, phone, address, userId, subAddress, nowIso(),
+  ]);
+  const meta = getProcedureMeta(rowsRaw);
+  return getCustomerById(meta.insertId);
 }
 
 async function updateCustomer(id, payload) {
@@ -40,20 +40,18 @@ async function updateCustomer(id, payload) {
   const address = Number(payload.address);
   const userId = payload.userId ? Number(payload.userId) : null;
   const subAddress = (payload.subAddress && String(payload.subAddress).trim()) || "";
-  const [result] = await getPool().query(
-    "UPDATE customers SET name = ?, phone = ?, address = ?, user_id = ?, sub_address = ?, updated_at = ? WHERE id = ? AND is_active = 1",
-    [name, phone, address, userId, subAddress, nowIso(), id],
-  );
-  if (!result.affectedRows) return null;
+  const [rowsRaw] = await getPool().query("CALL sp_update_customer(?, ?, ?, ?, ?, ?, ?)", [
+    id, name, phone, address, userId, subAddress, nowIso(),
+  ]);
+  const meta = getProcedureMeta(rowsRaw);
+  if (!Number(meta.affectedRows || 0)) return null;
   return getCustomerById(id);
 }
 
 async function deleteCustomer(id) {
-  const [result] = await getPool().query(
-    "UPDATE customers SET is_active = 0, updated_at = ? WHERE id = ? AND is_active = 1",
-    [nowIso(), id],
-  );
-  return result.affectedRows > 0;
+  const [rowsRaw] = await getPool().query("CALL sp_delete_customer(?, ?)", [id, nowIso()]);
+  const meta = getProcedureMeta(rowsRaw);
+  return Number(meta.affectedRows || 0) > 0;
 }
 
 module.exports = {

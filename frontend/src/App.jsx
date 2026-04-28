@@ -92,6 +92,7 @@ function App() {
     submitUserUpdate,
     submitUserDelete,
     submitRoleMenus,
+    refresh,
     logout,
   } = useAdminDashboard();
 
@@ -356,6 +357,7 @@ function App() {
               newPayment={newPayment}
               setNewPayment={setNewPayment}
               onSubmitPayment={submitPayment}
+              onRefreshData={refresh}
             />
           ) : (
             <Navigate to="/overview" replace />

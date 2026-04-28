@@ -9,14 +9,8 @@ async function getRoleIdByName(name) {
 }
 
 async function listMenuKeysForRoleName(roleName) {
-  const [rows] = await getPool().query(
-    `SELECT rm.menu_key
-     FROM role_menus rm
-     INNER JOIN roles r ON r.id = rm.role_id
-     WHERE r.name = ?
-     ORDER BY rm.menu_key ASC`,
-    [roleName],
-  );
+  const [rowsRaw] = await getPool().query("CALL sp_list_role_menu_keys_by_role_name(?)", [roleName]);
+  const rows = unwrapProcedureRows(rowsRaw);
   if (rows.length) {
     return rows.map((row) => row.menu_key);
   }
@@ -24,13 +18,10 @@ async function listMenuKeysForRoleName(roleName) {
 }
 
 async function listRoleMenusMap() {
-  const [roles] = await getPool().query("SELECT id, name FROM roles ORDER BY id ASC");
-  const [rows] = await getPool().query(
-    `SELECT r.name AS role_name, rm.menu_key
-     FROM role_menus rm
-     INNER JOIN roles r ON r.id = rm.role_id
-     ORDER BY r.id ASC, rm.menu_key ASC`,
-  );
+  const [rolesRaw] = await getPool().query("CALL sp_list_roles()");
+  const roles = unwrapProcedureRows(rolesRaw);
+  const [rowsRaw] = await getPool().query("CALL sp_list_role_menus()");
+  const rows = unwrapProcedureRows(rowsRaw);
   const byRole = {};
   for (const r of roles) {
     byRole[r.name] = [];
@@ -56,9 +47,9 @@ async function replaceRoleMenus(roleName, menuKeys) {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
-    await conn.query("DELETE FROM role_menus WHERE role_id = ?", [roleId]);
+    await conn.query("CALL sp_delete_role_menus_by_role_id(?)", [roleId]);
     for (const key of menuKeys) {
-      await conn.query("INSERT INTO role_menus (role_id, menu_key) VALUES (?, ?)", [roleId, key]);
+      await conn.query("CALL sp_add_role_menu(?, ?)", [roleId, key]);
     }
     await conn.commit();
   } catch (error) {

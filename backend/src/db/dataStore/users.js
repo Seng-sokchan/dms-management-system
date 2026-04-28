@@ -1,7 +1,7 @@
 const { getPool } = require("../pool");
 const { nowIso } = require("../../utils");
 const { mapUser } = require("./mappers");
-const { unwrapProcedureRows } = require("./unwrap");
+const { unwrapProcedureRows, getProcedureMeta } = require("./unwrap");
 const { getRoleIdByName } = require("./roleMenus");
 
 async function listUsers() {
@@ -33,53 +33,50 @@ async function createUser(payload) {
   if (!roleId) {
     throw new Error("Role not found");
   }
-  const [result] = await getPool().query(
-    "INSERT INTO users (name, username, password_hash, role_id, is_active, updated_at) VALUES (?, ?, ?, ?, 1, ?)",
-    [payload.name, payload.username, payload.passwordHash, roleId, nowIso()],
-  );
-  return getUserById(result.insertId);
+  const [rowsRaw] = await getPool().query("CALL sp_create_user(?, ?, ?, ?, ?)", [
+    payload.name, payload.username, payload.passwordHash, roleId, nowIso(),
+  ]);
+  const meta = getProcedureMeta(rowsRaw);
+  return getUserById(meta.insertId);
 }
 
 async function updateUser(id, payload) {
-  const updates = [];
-  const params = [];
+  let nextRoleId = null;
+  let hasUpdates = false;
   if (payload.name !== undefined) {
-    updates.push("name = ?");
-    params.push(payload.name);
+    hasUpdates = true;
   }
   if (payload.username !== undefined) {
-    updates.push("username = ?");
-    params.push(payload.username);
+    hasUpdates = true;
   }
   if (payload.role !== undefined) {
-    const roleId = await getRoleIdByName(payload.role);
-    if (!roleId) {
+    nextRoleId = await getRoleIdByName(payload.role);
+    if (!nextRoleId) {
       throw new Error("Role not found");
     }
-    updates.push("role_id = ?");
-    params.push(roleId);
+    hasUpdates = true;
   }
   if (payload.passwordHash !== undefined) {
-    updates.push("password_hash = ?");
-    params.push(payload.passwordHash);
+    hasUpdates = true;
   }
-  if (!updates.length) return getUserById(id);
-  updates.push("updated_at = ?");
-  params.push(nowIso(), id);
-  const [result] = await getPool().query(
-    `UPDATE users SET ${updates.join(", ")} WHERE id = ?`,
-    params,
-  );
-  if (!result.affectedRows) return null;
+  if (!hasUpdates) return getUserById(id);
+  const [rowsRaw] = await getPool().query("CALL sp_update_user(?, ?, ?, ?, ?, ?)", [
+    id,
+    payload.name !== undefined ? payload.name : null,
+    payload.username !== undefined ? payload.username : null,
+    payload.role !== undefined ? nextRoleId : null,
+    payload.passwordHash !== undefined ? payload.passwordHash : null,
+    nowIso(),
+  ]);
+  const meta = getProcedureMeta(rowsRaw);
+  if (!Number(meta.affectedRows || 0)) return null;
   return getUserById(id);
 }
 
 async function deactivateUser(id) {
-  const [result] = await getPool().query(
-    "UPDATE users SET is_active = 0, updated_at = ? WHERE id = ? AND is_active = 1",
-    [nowIso(), id],
-  );
-  return result.affectedRows > 0;
+  const [rowsRaw] = await getPool().query("CALL sp_deactivate_user(?, ?)", [id, nowIso()]);
+  const meta = getProcedureMeta(rowsRaw);
+  return Number(meta.affectedRows || 0) > 0;
 }
 
 module.exports = {

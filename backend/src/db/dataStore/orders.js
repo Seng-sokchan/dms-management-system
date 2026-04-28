@@ -1,7 +1,7 @@
 const { getPool } = require("../pool");
 const { nowIso } = require("../../utils");
 const { mapOrder } = require("./mappers");
-const { unwrapProcedureRows } = require("./unwrap");
+const { unwrapProcedureRows, getProcedureMeta } = require("./unwrap");
 const { getStatusIdByName, getPaymentStatusIdByName } = require("./lookups");
 const { getTruckById } = require("./trucks");
 
@@ -41,33 +41,27 @@ async function createOrder(payload) {
   if (!statusId) {
     throw new Error("Status not found");
   }
-  const [result] = await getPool().query(
-    `INSERT INTO orders
-    (customer_id, address, order_group_id, item_id, ordered_qty, unit_price, producer_id, truck_id, delivery_agent_id, delivery_time, delivered_qty, loss_qty, remaining_qty, discrepancy, amount_total, amount_paid, payment_status, status, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      customerId,
-      addressId,
-      null,
-      itemId,
-      order.orderedQty,
-      order.unitPrice,
-      producerId,
-      truckId,
-      deliveryAgentId,
-      null,
-      order.deliveredQty,
-      order.lossQty,
-      order.remainingQty,
-      order.discrepancy,
-      order.amountTotal,
-      order.amountPaid,
-      await getPaymentStatusIdByName("UNPAID"),
-      statusId,
-      order.updatedAt,
-    ],
-  );
-  return getOrderById(result.insertId);
+  const [rowsRaw] = await getPool().query("CALL sp_create_order(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [
+    customerId,
+    addressId,
+    itemId,
+    order.orderedQty,
+    order.unitPrice,
+    producerId,
+    truckId,
+    deliveryAgentId,
+    order.deliveredQty,
+    order.lossQty,
+    order.remainingQty,
+    order.discrepancy,
+    order.amountTotal,
+    order.amountPaid,
+    await getPaymentStatusIdByName("UNPAID"),
+    statusId,
+    order.updatedAt,
+  ]);
+  const meta = getProcedureMeta(rowsRaw);
+  return getOrderById(meta.insertId);
 }
 
 async function updateOrderAssignment(id, payload) {
@@ -90,27 +84,16 @@ async function updateOrderAssignment(id, payload) {
     ? Number(truck.deliveryAgentId)
     : (payload.deliveryAgentId ?? null);
   const statusId = await getStatusIdByName(nextStatus);
-  await getPool().query(
-    `UPDATE orders
-     SET producer_id = COALESCE(?, producer_id),
-         truck_id = COALESCE(?, truck_id),
-         delivery_agent_id = COALESCE(?, delivery_agent_id),
-         order_group_id = COALESCE(?, order_group_id),
-         delivery_time = COALESCE(?, delivery_time),
-         status = COALESCE(?, status),
-         updated_at = ?
-     WHERE id = ?`,
-    [
-      payload.producerId ?? null,
-      payload.truckId ?? null,
-      resolvedDeliveryAgentId,
-      payload.orderGroupId ?? null,
-      payload.deliveryTime ?? null,
-      statusId ?? null,
-      nowIso(),
-      id,
-    ],
-  );
+  await getPool().query("CALL sp_update_order_assignment(?, ?, ?, ?, ?, ?, ?, ?)", [
+    id,
+    payload.producerId ?? null,
+    payload.truckId ?? null,
+    resolvedDeliveryAgentId,
+    payload.orderGroupId ?? null,
+    payload.deliveryTime ?? null,
+    statusId ?? null,
+    nowIso(),
+  ]);
   return getOrderById(id);
 }
 
@@ -122,11 +105,10 @@ async function updateOrderStatus(id, status, { changedByUserId = null, note = ""
   if (!toStatusId) {
     throw new Error("Status not found");
   }
-  await getPool().query("UPDATE orders SET status = ?, updated_at = ? WHERE id = ?", [toStatusId, nowIso(), id]);
-  await getPool().query(
-    "INSERT INTO order_status_history (order_id, from_status, to_status, changed_by_user_id, note) VALUES (?, ?, ?, ?, ?)",
-    [id, fromStatusId, toStatusId, changedByUserId, note || ""],
-  );
+  await getPool().query("CALL sp_update_order_status(?, ?, ?)", [id, toStatusId, nowIso()]);
+  await getPool().query("CALL sp_insert_order_status_history(?, ?, ?, ?, ?)", [
+    id, fromStatusId, toStatusId, changedByUserId, note || "",
+  ]);
   return getOrderById(id);
 }
 
@@ -139,18 +121,18 @@ async function confirmOrderDelivery(id, deliveredQty, lossQty, remainingQty, del
   if (!nextStatusId) {
     throw new Error("Status not found");
   }
-  await getPool().query(
-    "UPDATE orders SET delivered_qty = ?, loss_qty = ?, remaining_qty = ?, discrepancy = ?, status = ?, delivery_proof_type = ?, delivery_proof_value = ?, updated_at = ? WHERE id = ?",
-    [deliveredQty, lossQty, remainingQty, discrepancy, nextStatusId, deliveryProofType, deliveryProofValue, nowIso(), id],
-  );
+  await getPool().query("CALL sp_confirm_order_delivery(?, ?, ?, ?, ?, ?, ?, ?, ?)", [
+    id, deliveredQty, lossQty, remainingQty, discrepancy, nextStatusId, deliveryProofType, deliveryProofValue, nowIso(),
+  ]);
   return getOrderById(id);
 }
 
 async function deleteOrder(id) {
   const order = await getOrderById(id);
   if (!order) return { affectedRows: 0, order: null };
-  const [result] = await getPool().query("DELETE FROM orders WHERE id = ?", [id]);
-  return { affectedRows: Number(result.affectedRows || 0), order };
+  const [rowsRaw] = await getPool().query("CALL sp_delete_order(?)", [id]);
+  const meta = getProcedureMeta(rowsRaw);
+  return { affectedRows: Number(meta.affectedRows || 0), order };
 }
 
 module.exports = {

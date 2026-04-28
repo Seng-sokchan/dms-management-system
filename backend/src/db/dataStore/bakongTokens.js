@@ -1,12 +1,9 @@
 const { getPool } = require("../pool");
+const { unwrapProcedureRows } = require("./unwrap");
 
 async function getLatestBakongToken() {
-  const [rows] = await getPool().query(
-    `SELECT id, access_token, expires_at, created_at, updated_at
-     FROM bakong_tokens
-     ORDER BY updated_at DESC, id DESC
-     LIMIT 1`,
-  );
+  const [rowsRaw] = await getPool().query("CALL sp_get_latest_bakong_token()");
+  const rows = unwrapProcedureRows(rowsRaw);
   if (!rows[0]) return null;
   return {
     id: Number(rows[0].id),
@@ -22,10 +19,7 @@ async function insertBakongToken({ accessToken, expiresAt }) {
   if (!token) {
     throw new Error("accessToken is required");
   }
-  await getPool().query(
-    `INSERT INTO bakong_tokens (access_token, expires_at, updated_at) VALUES (?, ?, NOW())`,
-    [token, expiresAt || null],
-  );
+  await getPool().query("CALL sp_insert_bakong_token(?, ?)", [token, expiresAt || null]);
   return getLatestBakongToken();
 }
 

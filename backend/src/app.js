@@ -9,45 +9,21 @@ const { errorHandler } = require("./middleware/errorHandler");
 const { activityLogger } = require("./middleware/activityLogger");
 const { apiRateLimit } = require("./middleware/rateLimit");
 
-function getAllowedOrigins() {
-  return (process.env.ALLOWED_ORIGINS || "http://localhost:5173")
-    .split(",")
-    .map((origin) => origin.trim())
-    .filter(Boolean);
-}
+const app = express();
 
-function createApp() {
-  const app = express();
-  const allowedOrigins = getAllowedOrigins();
+app.use(helmet());
+app.use(cors({ origin: process.env.ALLOWED_ORIGINS?.split(",") }));
+app.use(express.json());
+app.use(morgan("dev"));
+app.use(responsePolicy);
+app.use(activityLogger);
 
-  app.use(cors({
-    origin(origin, callback) {
-      if (!origin) {
-        callback(null, true);
-        return;
-      }
-      if (allowedOrigins.includes(origin)) {
-        callback(null, true);
-        return;
-      }
-      callback(new Error("CORS origin not allowed"));
-    },
-    methods: ["GET", "POST", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization", "X-Bakong-Token"],
-  }));
-  app.use(helmet());
-  app.use(express.json());
-  app.use(morgan("dev"));
-  app.use(responsePolicy);
-  app.use(activityLogger);
+// Keep legacy '/api' routes and expose versioned '/api/v1' routes.
+app.use("/api", apiRateLimit, apiRoutes);
+app.use("/api/v1", apiRateLimit, apiRoutes);
+app.use(notFound);
 
-  app.use("/api", apiRateLimit, apiRoutes);
-  app.use(notFound);
-  app.use(errorHandler);
+// Global error handler (must be last)
+app.use(errorHandler);
 
-  return app;
-}
-
-module.exports = {
-  createApp,
-};
+module.exports = app;

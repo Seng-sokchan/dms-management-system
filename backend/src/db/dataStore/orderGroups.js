@@ -1,9 +1,9 @@
 const { getPool } = require("../pool");
+const { unwrapProcedureRows } = require("./unwrap");
 
 async function listOrderGroups() {
-  const [rows] = await getPool().query(
-    "SELECT id, name FROM order_groups ORDER BY name ASC",
-  );
+  const [rowsRaw] = await getPool().query("CALL sp_list_order_groups()");
+  const rows = unwrapProcedureRows(rowsRaw);
   return rows.map((row) => ({
     id: String(row.id),
     name: row.name,
@@ -11,10 +11,8 @@ async function listOrderGroups() {
 }
 
 async function getOrderGroupById(id) {
-  const [rows] = await getPool().query(
-    "SELECT id, name FROM order_groups WHERE id = ? LIMIT 1",
-    [id],
-  );
+  const [rowsRaw] = await getPool().query("CALL sp_get_order_group_by_id(?)", [id]);
+  const rows = unwrapProcedureRows(rowsRaw);
   if (!rows[0]) return null;
   return {
     id: String(rows[0].id),

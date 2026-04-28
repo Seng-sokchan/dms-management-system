@@ -22,6 +22,7 @@ export function PaymentsPage({
   newPayment,
   setNewPayment,
   onSubmitPayment,
+  onRefreshData,
 }) {
   const { t } = useTranslation();
   const { alert } = useConfirm();
@@ -122,14 +123,18 @@ export function PaymentsPage({
         }
         handledSuccessMd5Ref.current = successMd5;
         const orderId = abaOrder?.id;
-        setSuccessTransaction(foundSuccess);
-        setAbaOrder(null);
         if (orderId && orderId !== "all") {
-          void confirmPaymentKhqrTransaction(token, {
-            orderId: String(orderId),
-            transaction: foundSuccess,
-          }).catch((confirmError) => {
-            void alert({
+          try {
+            await confirmPaymentKhqrTransaction(token, {
+              orderId: String(orderId),
+              transaction: foundSuccess,
+            });
+            if (typeof onRefreshData === "function") {
+              await onRefreshData();
+            }
+          } catch (confirmError) {
+            handledSuccessMd5Ref.current = null;
+            await alert({
               title: t("confirm.warningTitle", { defaultValue: "Warning" }),
               message:
                 confirmError?.response?.data?.message ||
@@ -139,8 +144,11 @@ export function PaymentsPage({
                 }),
               tone: "warning",
             });
-          });
+            return;
+          }
         }
+        setSuccessTransaction(foundSuccess);
+        setAbaOrder(null);
       }
     } catch (error) {
       const errorCode = error?.response?.data?.errorCode;
@@ -299,14 +307,6 @@ export function PaymentsPage({
                     <p className="aba-refresh-hint khqr-refresh-note">
                       {t("payments.debtAmount")}: ${selectedPayAmount.toFixed(2)}
                     </p>
-                    {khqrMd5 ? (
-                      <p className="aba-refresh-hint khqr-refresh-note">
-                        {t("payments.md5", { defaultValue: "MD5" })}: {khqrMd5}
-                      </p>
-                    ) : null}
-                    {khqrCheckResult ? (
-                      <pre className="khqr-check-result">{JSON.stringify(khqrCheckResult, null, 2)}</pre>
-                    ) : null}
                   </div>
                 ) : null}
               </div>

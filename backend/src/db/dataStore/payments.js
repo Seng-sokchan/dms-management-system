@@ -1,7 +1,7 @@
 const { getPool } = require("../pool");
 const { nowIso } = require("../../utils");
 const { mapPayment } = require("./mappers");
-const { unwrapProcedureRows } = require("./unwrap");
+const { unwrapProcedureRows, getProcedureMeta } = require("./unwrap");
 const { getOrderById } = require("./orders");
 const { getStatusIdByName, getPaymentStatusIdByName } = require("./lookups");
 
@@ -11,11 +11,8 @@ async function listPayments() {
 }
 
 async function listPaymentMethods() {
-  const [rows] = await getPool().query(
-    `SELECT id, name
-     FROM payment_methods
-     ORDER BY id ASC`,
-  );
+  const [rowsRaw] = await getPool().query("CALL sp_list_payment_methods()");
+  const rows = unwrapProcedureRows(rowsRaw);
   return rows.map((row) => ({
     id: String(row.id),
     name: row.name,
@@ -23,11 +20,11 @@ async function listPaymentMethods() {
 }
 
 async function createPayment(payload) {
-  const [result] = await getPool().query(
-    "INSERT INTO payments (order_id, amount, method, note) VALUES (?, ?, ?, ?)",
-    [Number(payload.orderId), payload.amount, Number(payload.method), payload.note || ""],
-  );
-  const [rows] = await getPool().query("CALL sp_get_payment_by_id(?)", [result.insertId]);
+  const [createRowsRaw] = await getPool().query("CALL sp_create_payment(?, ?, ?, ?)", [
+    Number(payload.orderId), payload.amount, Number(payload.method), payload.note || "",
+  ]);
+  const meta = getProcedureMeta(createRowsRaw);
+  const [rows] = await getPool().query("CALL sp_get_payment_by_id(?)", [meta.insertId]);
   const resultRows = unwrapProcedureRows(rows);
   return resultRows[0] ? mapPayment(resultRows[0]) : null;
 }
@@ -44,10 +41,9 @@ async function applyPaymentToOrder(orderId, amount) {
   if (!paymentStatusId) {
     throw new Error("Payment status not found");
   }
-  await getPool().query(
-    "UPDATE orders SET amount_paid = ?, payment_status = ?, status = ?, updated_at = ? WHERE id = ?",
-    [amountPaid, paymentStatusId, await getStatusIdByName(order.status), nowIso(), orderId],
-  );
+  await getPool().query("CALL sp_apply_payment_to_order(?, ?, ?, ?, ?)", [
+    orderId, amountPaid, paymentStatusId, await getStatusIdByName(order.status), nowIso(),
+  ]);
   return getOrderById(orderId);
 }
 

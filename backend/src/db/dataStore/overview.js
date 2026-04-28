@@ -5,35 +5,14 @@ const { unwrapProcedureRows } = require("./unwrap");
 
 async function getDashboardSummary() {
   const statusDefinitions = await listOrderStatuses();
-  const [statusRows] = await getPool().query(
-    `SELECT s.name AS status, COUNT(*) AS total
-     FROM orders o
-     INNER JOIN status s ON s.id = o.status
-     GROUP BY s.name`,
-  );
-  const [paymentRows] = await getPool().query(
-    `SELECT ps.name AS payment_status, COUNT(*) AS total
-     FROM orders o
-     INNER JOIN payment_statuses ps ON ps.id = o.payment_status
-     GROUP BY ps.name`,
-  );
+  const [statusRowsRaw] = await getPool().query("CALL sp_list_dashboard_status_summary()");
+  const statusRows = unwrapProcedureRows(statusRowsRaw);
+  const [paymentRowsRaw] = await getPool().query("CALL sp_list_dashboard_payment_summary()");
+  const paymentRows = unwrapProcedureRows(paymentRowsRaw);
   const [totalsRowsRaw] = await getPool().query("CALL sp_dashboard_totals()");
   const totalsRows = unwrapProcedureRows(totalsRowsRaw);
-  const [currencyTotalsRows] = await getPool().query(
-    `SELECT
-       COALESCE(SUM(o.ordered_qty * i.default_unit_price_khr), 0) AS total_revenue_khr,
-       COALESCE(
-         SUM(
-           CASE
-             WHEN o.amount_total > 0 THEN (o.amount_paid / o.amount_total) * (o.ordered_qty * i.default_unit_price_khr)
-             ELSE 0
-           END
-         ),
-         0
-       ) AS total_collected_khr
-     FROM orders o
-     INNER JOIN items i ON i.id = o.item_id`,
-  );
+  const [currencyTotalsRaw] = await getPool().query("CALL sp_dashboard_currency_totals()");
+  const currencyTotalsRows = unwrapProcedureRows(currencyTotalsRaw);
 
   const statusSummary = statusDefinitions.reduce((acc, row) => ({ ...acc, [row.name]: 0 }), {});
   statusRows.forEach((row) => { statusSummary[row.status] = Number(row.total); });
