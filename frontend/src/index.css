@@ -1,9 +1,4 @@
-#root {
-  min-height: 100vh;
-}
-
-h1,
-h2,
-h3 {
-  margin-top: 0;
+/* Global baseline — detailed styles live in App.css */
+*, *::before, *::after {
+  box-sizing: border-box;
 }

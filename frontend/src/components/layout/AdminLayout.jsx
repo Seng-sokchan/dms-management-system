@@ -5,22 +5,135 @@ import { LanguageSwitcher } from "../ui/LanguageSwitcher";
 import { useConfirm } from "../ui/ConfirmProvider";
 import { MENU_ITEMS } from "../../constants/menus";
 
+/* ── Page title map ── */
 const PAGE_PATH_MAP = {
-  "/overview": "overview",
-  "/create-order": "newOrder",
-  "/catalogs": "catalogs",
-  "/items": "items",
-  "/customers": "customers",
-  "/producers": "producers",
+  "/overview":        "overview",
+  "/create-order":    "newOrder",
+  "/catalogs":        "catalogs",
+  "/items":           "items",
+  "/customers":       "customers",
+  "/producers":       "producers",
   "/delivery-agents": "deliveryAgents",
-  "/orders": "orders",
+  "/trucks":          "trucks",
+  "/orders":          "orders",
   "/customer-orders": "customerOrders",
   "/owner-preparing": "ownerPreparing",
-  "/confirm-orders": "confirmOrders",
-  "/payments": "payments",
-  "/users": "users",
-  "/activity-logs": "activityLogs",
+  "/confirm-orders":  "confirmOrders",
+  "/payments":        "payments",
+  "/users":           "users",
+  "/activity-logs":   "activityLogs",
 };
+
+/* ── SVG icons keyed by menu key ── */
+const NAV_ICONS = {
+  overview: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="7" height="7" rx="1.5" />
+      <rect x="14" y="3" width="7" height="7" rx="1.5" />
+      <rect x="3" y="14" width="7" height="7" rx="1.5" />
+      <rect x="14" y="14" width="7" height="7" rx="1.5" />
+    </svg>
+  ),
+  newOrder: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <line x1="12" y1="8" x2="12" y2="16" />
+      <line x1="8"  y1="12" x2="16" y2="12" />
+    </svg>
+  ),
+  catalogs: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 6h16M4 10h16M4 14h10M4 18h7" />
+    </svg>
+  ),
+  items: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" />
+      <polyline points="3.29 7 12 12 20.71 7" />
+      <line x1="12" y1="22" x2="12" y2="12" />
+    </svg>
+  ),
+  customers: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
+    </svg>
+  ),
+  producers: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 21h18M3 7v1a3 3 0 006 0V7m0 1a3 3 0 006 0V7m0 1a3 3 0 006 0V7H3l2-4h14l2 4" />
+      <path d="M9 21V12h6v9" />
+    </svg>
+  ),
+  deliveryAgents: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5" />
+    </svg>
+  ),
+  trucks: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="1" y="3" width="15" height="13" rx="1.5" />
+      <path d="M16 8h4l3 5v3h-7V8z" />
+      <circle cx="5.5"  cy="18.5" r="2.5" />
+      <circle cx="18.5" cy="18.5" r="2.5" />
+    </svg>
+  ),
+  orders: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" />
+      <rect x="9" y="3" width="6" height="4" rx="1" />
+      <line x1="9"  y1="12" x2="15" y2="12" />
+      <line x1="9"  y1="16" x2="13" y2="16" />
+    </svg>
+  ),
+  customerOrders: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
+      <line x1="3" y1="6" x2="21" y2="6" />
+      <path d="M16 10a4 4 0 01-8 0" />
+    </svg>
+  ),
+  ownerPreparing: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 8h14M5 8a2 2 0 01-2-2V5a2 2 0 012-2h14a2 2 0 012 2v1a2 2 0 01-2 2M5 8v11a2 2 0 002 2h10a2 2 0 002-2V8" />
+      <line x1="10" y1="12" x2="14" y2="12" />
+    </svg>
+  ),
+  confirmOrders: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
+      <polyline points="22 4 12 14.01 9 11.01" />
+    </svg>
+  ),
+  payments: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="1" y="4" width="22" height="16" rx="2" />
+      <line x1="1" y1="10" x2="23" y2="10" />
+    </svg>
+  ),
+  users: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 20c0-4 3.582-7 8-7s8 3 8 7" />
+    </svg>
+  ),
+  activityLogs: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+    </svg>
+  ),
+};
+
+/* ── Logo mark ── */
+function LogoIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+      <path d="M10 2L18 6.5V13.5L10 18L2 13.5V6.5L10 2Z" stroke="white" strokeWidth="1.5" strokeLinejoin="round" />
+      <path d="M10 2V18M2 6.5L18 13.5M18 6.5L2 13.5" stroke="white" strokeWidth="1.5" strokeOpacity="0.45" />
+    </svg>
+  );
+}
 
 function navItemClassName({ isActive }) {
   return isActive ? "admin-nav-item is-active" : "admin-nav-item";
@@ -30,6 +143,31 @@ function roleLabel(t, role) {
   if (!role) return "";
   return t(`roles.${role}`, { defaultValue: role });
 }
+
+/* ── Sidebar groups ── */
+const NAV_GROUPS = [
+  { labelKey: null, keys: ["overview"] },
+  {
+    labelKey: "nav.sectionOrders",
+    defaultLabel: "Orders",
+    keys: ["newOrder", "catalogs", "items", "customers", "producers", "orders", "customerOrders"],
+  },
+  {
+    labelKey: "nav.sectionFulfillment",
+    defaultLabel: "Fulfillment",
+    keys: ["deliveryAgents", "trucks", "ownerPreparing", "confirmOrders"],
+  },
+  {
+    labelKey: "nav.sectionFinance",
+    defaultLabel: "Finance",
+    keys: ["payments"],
+  },
+  {
+    labelKey: "nav.sectionAdmin",
+    defaultLabel: "Admin",
+    keys: ["users", "activityLogs"],
+  },
+];
 
 export function AdminLayout({ user, onLogout, flash, onFlashDismiss, children = null }) {
   const { t } = useTranslation();
@@ -41,25 +179,28 @@ export function AdminLayout({ user, onLogout, flash, onFlashDismiss, children = 
     const key = PAGE_PATH_MAP[location.pathname];
     return { title: key ? t(`page.${key}`) : t("app.dashboard") };
   }, [location.pathname, t]);
+
   const visibleNav = useMemo(() => {
-    if (user?.role === "Admin") {
-      return MENU_ITEMS;
-    }
+    if (user?.role === "Admin") return MENU_ITEMS;
     const allowed = user?.allowedMenus;
-    if (!Array.isArray(allowed)) {
-      return MENU_ITEMS;
-    }
-    if (allowed.length === 0) {
-      return [];
-    }
+    if (!Array.isArray(allowed)) return MENU_ITEMS;
+    if (allowed.length === 0) return [];
     return MENU_ITEMS.filter((item) => allowed.includes(item.key));
   }, [user?.role, user?.allowedMenus]);
 
+  const visibleKeySet = useMemo(
+    () => new Set(visibleNav.map((i) => i.key)),
+    [visibleNav],
+  );
+
+  const itemByKey = useMemo(
+    () => Object.fromEntries(MENU_ITEMS.map((i) => [i.key, i])),
+    [],
+  );
+
   useEffect(() => {
     if (!flash?.text || flash.variant !== "success") return;
-    const id = setTimeout(() => {
-      onFlashDismiss?.();
-    }, 5000);
+    const id = setTimeout(() => onFlashDismiss?.(), 5000);
     return () => clearTimeout(id);
   }, [flash, onFlashDismiss]);
 
@@ -78,41 +219,72 @@ export function AdminLayout({ user, onLogout, flash, onFlashDismiss, children = 
 
   return (
     <div className="admin-app">
+      {/* Backdrop */}
       <div
         className={`admin-sidebar-backdrop ${menuOpen ? "is-open" : ""}`}
         onClick={() => setMenuOpen(false)}
         aria-hidden
       />
+
+      {/* ── Sidebar ── */}
       <aside
         className={`admin-sidebar ${menuOpen ? "is-open" : ""}`}
         aria-label={t("a11y.mainNav")}
       >
         <div className="admin-sidebar-brand">
-          <div className="admin-logo" aria-hidden>
-            <span className="admin-logo-mark" />
+          <div className="admin-logo">
+            <div className="admin-logo-mark">
+              <LogoIcon />
+            </div>
             {t("app.name")}
           </div>
           <p className="admin-sidebar-tagline">{t("app.tagline")}</p>
         </div>
+
         <nav className="admin-nav">
-          {visibleNav.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={navItemClassName}
-              end
-              onClick={() => setMenuOpen(false)}
-            >
-              <span className="admin-nav-label">{t(item.labelKey)}</span>
-              <span className="admin-nav-sub">{t(item.subKey)}</span>
-            </NavLink>
-          ))}
+          {NAV_GROUPS.map((group, gi) => {
+            const groupItems = group.keys
+              .map((k) => itemByKey[k])
+              .filter((item) => item && visibleKeySet.has(item.key));
+
+            if (groupItems.length === 0) return null;
+
+            return (
+              <div key={gi}>
+                {gi > 0 && <div className="admin-nav-divider" />}
+                {group.labelKey && (
+                  <p className="admin-nav-section-label">
+                    {t(group.labelKey, { defaultValue: group.defaultLabel })}
+                  </p>
+                )}
+                {groupItems.map((item) => (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    className={navItemClassName}
+                    end
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    <span className="admin-nav-icon" aria-hidden>
+                      {NAV_ICONS[item.key] ?? NAV_ICONS.orders}
+                    </span>
+                    <span className="admin-nav-text">
+                      <span className="admin-nav-label">{t(item.labelKey)}</span>
+                      <span className="admin-nav-sub">{t(item.subKey)}</span>
+                    </span>
+                  </NavLink>
+                ))}
+              </div>
+            );
+          })}
         </nav>
+
         <div className="admin-sidebar-footer">
           <p className="admin-sidebar-footnote">{t("app.footer")}</p>
         </div>
       </aside>
 
+      {/* ── Main ── */}
       <div className="admin-main">
         <header className="admin-topbar">
           <div className="admin-topbar-left">
@@ -125,21 +297,15 @@ export function AdminLayout({ user, onLogout, flash, onFlashDismiss, children = 
             >
               <span className="admin-menu-icon" />
             </button>
-            <div>
-              <h1 className="admin-page-title">{pageHead.title}</h1>
-            </div>
+            <h1 className="admin-page-title">{pageHead.title}</h1>
           </div>
+
           <div className="admin-topbar-right">
             <LanguageSwitcher className="lang-switcher--topbar" />
             <div className="admin-user" title={`${user?.name} · ${user?.role}`}>
               <div className="admin-user-avatar" aria-hidden>
                 {user?.name
-                  ? user.name
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")
-                      .slice(0, 2)
-                      .toUpperCase()
+                  ? user.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
                   : "?"}
               </div>
               <div className="admin-user-meta">
@@ -152,6 +318,7 @@ export function AdminLayout({ user, onLogout, flash, onFlashDismiss, children = 
             </button>
           </div>
         </header>
+
         <div className="admin-content">
           {flash?.text ? (
             <div
@@ -164,7 +331,15 @@ export function AdminLayout({ user, onLogout, flash, onFlashDismiss, children = 
                     <path d="M20 6L9 17l-5-5" />
                   </svg>
                 </span>
-              ) : null}
+              ) : (
+                <span className="admin-flash__icon" aria-hidden>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8"  x2="12"    y2="12"    />
+                    <line x1="12" y1="16" x2="12.01" y2="16.01" />
+                  </svg>
+                </span>
+              )}
               <span className="admin-flash__text">{flash.text}</span>
             </div>
           ) : null}
