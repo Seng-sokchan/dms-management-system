@@ -53,7 +53,7 @@ const DEFAULT_MENUS_BY_ROLE = {
   ],
   Logistics: ["overview", "deliveryAgents", "trucks", "confirmOrders"],
   Delivery: ["overview", "confirmOrders", "orders"],
-  Customer: ["overview", "orders"],
+  Customer: ["overview", "orders", "payments"],
 };
 
 module.exports = {
