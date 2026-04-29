@@ -1,4 +1,4 @@
-const { listUserActivityLogs } = require("../db/dataStore");
+const { listUserActivityLogs } = require("../repositories");
 
 async function listActivityLogs(req, res) {
   const limit = Number(req.query.limit || 5000);

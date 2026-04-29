@@ -1,4 +1,4 @@
-const { createUserActivityLog } = require("../db/dataStore");
+const { createUserActivityLog } = require("../repositories");
 const { logError } = require("../utils/logger");
 
 function activityLogger(req, res, next) {

@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { OrdersTable } from "../components/OrdersTable";
-import { useConfirm } from "../components/ConfirmProvider";
+import { OrdersTable } from "../features/order/OrdersTable";
+import { useConfirm } from "../components/ui/ConfirmProvider";
 
 export function ConfirmOrdersPage({ orders, statuses, onUpdateStatus, onConfirmDelivery }) {
   const { t } = useTranslation();

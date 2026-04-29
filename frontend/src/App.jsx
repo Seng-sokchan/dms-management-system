@@ -1,7 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { canAccessPath } from "./constants/menus";
-import { AdminLayout } from "./components/AdminLayout";
-import { LoginForm } from "./components/LoginForm";
+import { AdminLayout } from "./components/layout/AdminLayout";
+import { LoginForm } from "./features/auth/LoginForm";
 import { useAdminDashboard } from "./hooks/useAdminDashboard";
 import { CreateOrderPage } from "./pages/CreateOrderPage";
 import { DeliveryAgentsPage } from "./pages/DeliveryAgentsPage";

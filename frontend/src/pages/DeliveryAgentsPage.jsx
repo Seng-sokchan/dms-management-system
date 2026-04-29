@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useMemo, useState } from "react";
-import { DeliveryAgentForm } from "../components/DeliveryAgentForm";
-import { useConfirm } from "../components/ConfirmProvider";
+import { DeliveryAgentForm } from "../features/delivery/DeliveryAgentForm";
+import { useConfirm } from "../components/ui/ConfirmProvider";
 
 const EMPTY_EDIT = { id: "", name: "", phone: "", vehicleType: "" };
 

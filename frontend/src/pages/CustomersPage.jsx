@@ -1,7 +1,7 @@
 ﻿import { useTranslation } from "react-i18next";
 import { useMemo, useState } from "react";
-import { CustomerForm } from "../components/CustomerForm";
-import { useConfirm } from "../components/ConfirmProvider";
+import { CustomerForm } from "../features/customer/CustomerForm";
+import { useConfirm } from "../components/ui/ConfirmProvider";
 
 const EMPTY_EDIT = { id: "", name: "", phone: "", address: "", userId: "", subAddress: "" };
 

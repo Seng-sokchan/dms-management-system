@@ -1,8 +1,8 @@
 import { useTranslation } from "react-i18next";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ItemForm } from "../components/ItemForm";
-import { useConfirm } from "../components/ConfirmProvider";
+import { ItemForm } from "../features/item/ItemForm";
+import { useConfirm } from "../components/ui/ConfirmProvider";
 
 function formatUnitPrice(value) {
   const n = Number(value);

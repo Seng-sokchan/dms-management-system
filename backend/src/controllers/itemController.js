@@ -1,11 +1,11 @@
-﻿const { z } = require("zod");
+const { z } = require("zod");
 const {
   getCatalogById,
   listItems: listItemsDb,
   createItem: createItemDb,
   updateItem: updateItemDb,
   deleteItem: deleteItemDb,
-} = require("../db/dataStore");
+} = require("../repositories");
 
 async function listItems(_req, res) {
   const items = await listItemsDb();

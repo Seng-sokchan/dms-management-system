@@ -4,7 +4,7 @@ const {
   listTrucks: listTrucksDb,
   updateTruck: updateTruckDb,
   deleteTruck: deleteTruckDb,
-} = require("../db/dataStore");
+} = require("../repositories");
 
 async function listTrucks(_req, res) {
   const trucks = await listTrucksDb();

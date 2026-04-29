@@ -1,4 +1,4 @@
-﻿const { z } = require("zod");
+const { z } = require("zod");
 const {
   listCustomers: listCustomersDb,
   createCustomer: createCustomerDb,
@@ -6,7 +6,7 @@ const {
   deleteCustomer: deleteCustomerDb,
   listUsers: listUsersDb,
   getUserById,
-} = require("../db/dataStore");
+} = require("../repositories");
 
 async function listCustomers(_req, res) {
   const customers = await listCustomersDb();

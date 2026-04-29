@@ -1,7 +1,7 @@
 const { z } = require("zod");
 const { ROLES } = require("../constants");
 const { MENU_KEY_SET } = require("../constants/roleMenus");
-const { listRoleMenusMap, replaceRoleMenus } = require("../db/dataStore");
+const { listRoleMenusMap, replaceRoleMenus } = require("../repositories");
 
 async function getRoleMenus(_req, res) {
   const data = await listRoleMenusMap();

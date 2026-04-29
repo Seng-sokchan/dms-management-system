@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import QRCode from "qrcode";
-import { PaymentsSection } from "../components/PaymentsSection";
-import { CustomerPaymentsSection } from "../components/CustomerPaymentsSection";
+import { PaymentsSection } from "../features/payment/PaymentsSection";
+import { CustomerPaymentsSection } from "../features/customer/CustomerPaymentsSection";
 import {
   generatePaymentKhqr,
   checkPaymentKhqrByMd5List,
   confirmPaymentKhqrTransaction,
 } from "../services/adminApi/payments";
-import { useConfirm } from "../components/ConfirmProvider";
+import { useConfirm } from "../components/ui/ConfirmProvider";
 
 const KHQR_EXPIRATION_MS = 5 * 60 * 1000;
 const KHQR_CHECK_INTERVAL_MS = 5000;

@@ -1,10 +1,10 @@
-﻿const { z } = require("zod");
+const { z } = require("zod");
 const {
   createProducer: createProducerDb,
   listProducers: listProducersDb,
   updateProducer: updateProducerDb,
   deleteProducer: deleteProducerDb,
-} = require("../db/dataStore");
+} = require("../repositories");
 
 async function listProducers(_req, res) {
   const producers = await listProducersDb();

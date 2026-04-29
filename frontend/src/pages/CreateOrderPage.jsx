@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { CreateOrderForm } from "../components/CreateOrderForm";
+import { CreateOrderForm } from "../features/order/CreateOrderForm";
 
 export function CreateOrderPage({
   user,

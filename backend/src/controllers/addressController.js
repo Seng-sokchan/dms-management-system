@@ -1,4 +1,4 @@
-const { listAddresses: listAddressesDb } = require("../db/dataStore");
+const { listAddresses: listAddressesDb } = require("../repositories");
 
 async function listAddresses(_req, res) {
   const rows = await listAddressesDb();

@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useMemo, useState } from "react";
-import { ProducerForm } from "../components/ProducerForm";
-import { useConfirm } from "../components/ConfirmProvider";
+import { ProducerForm } from "../features/producer/ProducerForm";
+import { useConfirm } from "../components/ui/ConfirmProvider";
 
 const EMPTY_EDIT = { id: "", name: "", phone: "", capacityNote: "" };
 

@@ -1,4 +1,4 @@
-﻿const bcrypt = require("bcryptjs");
+const bcrypt = require("bcryptjs");
 const { z } = require("zod");
 const { ROLES } = require("../constants");
 const {
@@ -7,7 +7,7 @@ const {
   updateUser: updateUserDb,
   deactivateUser: deactivateUserDb,
   getUserById,
-} = require("../db/dataStore");
+} = require("../repositories");
 
 async function listUsers(_req, res) {
   const users = await listUsersDb();

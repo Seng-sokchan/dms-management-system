@@ -1,8 +1,8 @@
 import { useTranslation } from "react-i18next";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { CatalogForm } from "../components/CatalogForm";
-import { useConfirm } from "../components/ConfirmProvider";
+import { CatalogForm } from "../features/catalog/CatalogForm";
+import { useConfirm } from "../components/ui/ConfirmProvider";
 
 const EMPTY_EDIT = { id: "", name: "", note: "" };
 

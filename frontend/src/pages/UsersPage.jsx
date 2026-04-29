@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { ROLES } from "../services/adminApi";
 import { fetchBakongTokenStatus, saveBakongToken } from "../services/adminApi/payments";
 import { ALL_MENU_KEYS, MENU_ITEMS } from "../constants/menus";
-import { useConfirm } from "../components/ConfirmProvider";
+import { useConfirm } from "../components/ui/ConfirmProvider";
 
 const EMPTY_EDIT = { id: "", name: "", username: "", password: "", role: "Owner", isActive: true };
 

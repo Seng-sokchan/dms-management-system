@@ -1,7 +1,7 @@
 const bcrypt = require("bcryptjs");
 const { z } = require("zod");
 const { createToken } = require("../middleware/auth");
-const { getUserByUsername, listMenuKeysForRoleName } = require("../db/dataStore");
+const { getUserByUsername, listMenuKeysForRoleName } = require("../repositories");
 
 async function login(req, res) {
   const schema = z.object({

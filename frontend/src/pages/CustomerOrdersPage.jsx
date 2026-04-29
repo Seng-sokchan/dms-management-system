@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { useConfirm } from "../components/ConfirmProvider";
+import { useConfirm } from "../components/ui/ConfirmProvider";
 
 export function CustomerOrdersPage({ orders = [], onDeleteOrder, onConfirmOrder }) {
   const { t } = useTranslation();

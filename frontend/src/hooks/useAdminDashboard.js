@@ -37,7 +37,7 @@ import {
   setStoredToken,
 } from "../services/authStorage";
 import i18n from "../i18n/config";
-import { useConfirm } from "../components/ConfirmProvider";
+import { useConfirm } from "../components/ui/ConfirmProvider";
 
 function getErrorMessage(error, errorKey) {
   return error?.response?.data?.message || i18n.t(errorKey);

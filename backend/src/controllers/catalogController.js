@@ -1,10 +1,10 @@
-﻿const { z } = require("zod");
+const { z } = require("zod");
 const {
   listCatalogs: listCatalogsDb,
   createCatalog: createCatalogDb,
   updateCatalog: updateCatalogDb,
   deleteCatalog: deleteCatalogDb,
-} = require("../db/dataStore");
+} = require("../repositories");
 
 async function listCatalogs(_req, res) {
   const catalogs = await listCatalogsDb();

@@ -13,7 +13,7 @@ const {
   getBakongTransactionByMd5,
   createBakongTransaction,
   updateBakongTransactionPaymentIdByMd5,
-} = require("../db/dataStore");
+} = require("../repositories");
 const { createKhqr, checkTransactionByMd5List } = require("../services/khqrService");
 
 function decodeJwtExpMs(token) {

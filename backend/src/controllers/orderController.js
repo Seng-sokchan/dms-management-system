@@ -16,7 +16,7 @@ const {
   deleteOrder: deleteOrderDb,
   getDashboardSummary,
   listOrderStatuses,
-} = require("../db/dataStore");
+} = require("../repositories");
 
 function filterOrdersForLogistics(orders = []) {
   return orders.filter((row) => row.status === "SENT_TO_LOGISTICS_SUPPLIER");

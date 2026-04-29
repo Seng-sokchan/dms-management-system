@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { DashboardSummary } from "../components/DashboardSummary";
+import { DashboardSummary } from "../features/overview/DashboardSummary";
 
 export function OverviewPage({ summary, statuses }) {
   const { t } = useTranslation();

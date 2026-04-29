@@ -1,6 +1,6 @@
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
-const { listMenuKeysForRoleName } = require("../db/dataStore");
+const { listMenuKeysForRoleName } = require("../repositories");
 
 function getJwtSecret() {
   if (!process.env.JWT_SECRET) {
