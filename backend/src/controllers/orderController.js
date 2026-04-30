@@ -1,221 +1,84 @@
-const { z } = require("zod");
-const {
-  getCustomerById,
-  getCustomerByUserId,
-  getItemById,
-  getTruckById,
-  listOrders: listOrdersDb,
-  createOrder: createOrderDb,
-  getOrderById,
-  getOrderGroupById,
-  listOrderGroups: listOrderGroupsDb,
-  updateOrderAssignment,
-  updateOrderStatus: updateOrderStatusDb,
-  confirmOrderDelivery,
-  deleteOrder: deleteOrderDb,
-  getDashboardSummary,
-  listOrderStatuses,
-} = require("../repositories");
+/**
+ * Order HTTP controllers.
+ *
+ * Each handler is a thin wrapper around `orderService`:
+ *   1. Pull validated data from req (already parsed by `validate()`).
+ *   2. Pull caller identity from req.user.
+ *   3. Call the service.
+ *   4. Format the response with `success` / `created` / `noContent`.
+ *
+ * No Zod, no try/catch, no business logic, no repository imports.
+ */
+const orderService = require("../services/orderService");
+const { success, created } = require("../utils/response");
+const { asyncHandler } = require("../errors");
 
-async function listOrders(req, res) {
-  const orders = await listOrdersDb();
-  if (req.user?.role === "Customer") {
-    const customer = await getCustomerByUserId(req.user.sub);
-    if (!customer) {
-      return res.json([]);
-    }
-    return res.json(orders.filter((row) => String(row.customerId) === String(customer.id)));
-  }
-  return res.json(orders);
-}
+// Listing -------------------------------------------------------------------
 
-async function listOrderGroups(_req, res) {
-  const groups = await listOrderGroupsDb();
-  return res.json(groups);
-}
+const listOrders = asyncHandler(async (req, res) => {
+  const orders = await orderService.list({ user: req.user });
+  return success(res, orders);
+});
 
-async function createOrder(req, res) {
-  const schema = z.object({
-    customerId: z.string().min(1),
-    itemId: z.string().min(1),
-    orderedQty: z.number().int().positive(),
-    unitPrice: z.number().nonnegative().optional(),
-    producerId: z.string().optional().nullable(),
-    truckId: z.string().optional().nullable(),
+const listOrderGroups = asyncHandler(async (_req, res) => {
+  const groups = await orderService.listGroups();
+  return success(res, groups);
+});
+
+const listStatuses = asyncHandler(async (_req, res) => {
+  const statuses = await orderService.listStatuses();
+  return success(res, statuses);
+});
+
+const dashboardSummary = asyncHandler(async (_req, res) => {
+  const summary = await orderService.getDashboardSummary();
+  return success(res, summary);
+});
+
+// Mutations -----------------------------------------------------------------
+
+const createOrder = asyncHandler(async (req, res) => {
+  const order = await orderService.create(req.body);
+  return created(res, order);
+});
+
+const assignOrder = asyncHandler(async (req, res) => {
+  const order = await orderService.assign(req.params.id, req.body);
+  return success(res, order);
+});
+
+const updateOrderStatus = asyncHandler(async (req, res) => {
+  const order = await orderService.updateStatus(req.params.id, req.body.status, {
+    user: req.user,
   });
-  const parsed = schema.safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({ message: "Invalid order payload" });
-  }
+  return success(res, order);
+});
 
-  const { customerId, itemId, orderedQty, unitPrice, producerId, truckId } = parsed.data;
-  const customer = await getCustomerById(customerId);
-  if (!customer) {
-    return res.status(400).json({ message: "Customer not found" });
-  }
-  const catalogItem = await getItemById(itemId);
-  if (!catalogItem) {
-    return res.status(400).json({ message: "Item not found" });
-  }
-  const resolvedUnitPrice = unitPrice != null ? unitPrice : catalogItem.defaultUnitPriceUsd;
-  if (truckId) {
-    const truck = await getTruckById(truckId);
-    if (!truck) {
-      return res.status(400).json({ message: "Truck not found" });
-    }
-  }
+const confirmDelivery = asyncHandler(async (req, res) => {
+  const order = await orderService.confirmDelivery(req.params.id, req.body);
+  return success(res, order);
+});
 
-  const order = await createOrderDb({
-    customerId,
-    addressId: customer.address,
-    itemId,
-    orderedQty,
-    unitPrice: resolvedUnitPrice,
-    producerId: producerId || null,
-    truckId: truckId || null,
-  });
-  return res.status(201).json(order);
-}
+const deleteOrder = asyncHandler(async (req, res) => {
+  const result = await orderService.remove(req.params.id);
+  return success(res, result);
+});
 
-async function assignOrder(req, res) {
-  const order = await getOrderById(req.params.id);
-  if (!order) {
-    return res.status(404).json({ message: "Order not found" });
-  }
-  const schema = z.object({
-    producerId: z.string().nullable().optional(),
-    truckId: z.string().nullable().optional(),
-    orderGroupId: z.string().nullable().optional(),
-    deliveryTime: z.string().datetime().optional(),
-  });
-  const parsed = schema.safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({ message: "Invalid assignment payload" });
-  }
-  if (parsed.data.truckId) {
-    const truck = await getTruckById(parsed.data.truckId);
-    if (!truck) {
-      return res.status(400).json({ message: "Truck not found" });
-    }
-  }
-  if (parsed.data.orderGroupId) {
-    const orderGroup = await getOrderGroupById(parsed.data.orderGroupId);
-    if (!orderGroup) {
-      return res.status(400).json({ message: "Order group not found" });
-    }
-  }
-  const updatedOrder = await updateOrderAssignment(req.params.id, parsed.data);
-  return res.json(updatedOrder);
-}
+// Mobile --------------------------------------------------------------------
 
-async function getStatusNames() {
-  const rows = await listOrderStatuses();
-  return rows.map((row) => row.name);
-}
+const mobileListOrders = asyncHandler(async (_req, res) => {
+  const orders = await orderService.listForMobile();
+  return success(res, orders, { meta: { count: orders.length } });
+});
 
-async function listStatuses(_req, res) {
-  const statuses = await listOrderStatuses();
-  return res.json(statuses);
-}
-
-async function updateOrderStatus(req, res) {
-  const order = await getOrderById(req.params.id);
-  if (!order) {
-    return res.status(404).json({ message: "Order not found" });
-  }
-  const statusNames = await getStatusNames();
-  const schema = z.object({ status: z.string().min(1) });
-  const parsed = schema.safeParse(req.body);
-  if (!parsed.success || !statusNames.includes(parsed.data.status)) {
-    return res.status(400).json({ message: "Invalid status payload" });
-  }
-
-  const updatedOrder = await updateOrderStatusDb(req.params.id, parsed.data.status, {
-    changedByUserId: req.user.sub,
-  });
-  return res.json(updatedOrder);
-}
-
-async function confirmDelivery(req, res) {
-  const order = await getOrderById(req.params.id);
-  if (!order) {
-    return res.status(404).json({ message: "Order not found" });
-  }
-  const schema = z.object({
-    deliveredQty: z.number().int().nonnegative(),
-    lossQty: z.number().int().nonnegative().default(0),
-    remainingQty: z.number().int().nonnegative().default(0),
-    deliveryProofType: z.enum(["PHOTO", "SIGNATURE", "OTP"]),
-    deliveryProofValue: z.string().min(1),
-  });
-  const parsed = schema.safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({ message: "Invalid confirmation payload" });
-  }
-
-  const total = parsed.data.deliveredQty + parsed.data.lossQty + parsed.data.remainingQty;
-  if (total > order.orderedQty) {
-    return res.status(400).json({
-      message: "Invalid quantities: delivered + loss + remaining cannot exceed ordered quantity",
-      orderedQty: order.orderedQty,
-    });
-  }
-
-  const updatedOrder = await confirmOrderDelivery(
+const mobileUpdateStatus = asyncHandler(async (req, res) => {
+  const order = await orderService.updateStatusForMobile(
     req.params.id,
-    parsed.data.deliveredQty,
-    parsed.data.lossQty,
-    parsed.data.remainingQty,
-    parsed.data.deliveryProofType,
-    parsed.data.deliveryProofValue,
+    req.body.status,
+    { user: req.user },
   );
-  return res.json(updatedOrder);
-}
-
-async function dashboardSummary(_req, res) {
-  const summary = await getDashboardSummary();
-  res.json(summary);
-}
-
-async function deleteOrder(req, res) {
-  const order = await getOrderById(req.params.id);
-  if (!order) {
-    return res.status(404).json({ message: "Order not found" });
-  }
-  if (order.status !== "NEW_ORDER") {
-    return res.status(400).json({
-      message: "Only NEW_ORDER can be deleted",
-    });
-  }
-  const result = await deleteOrderDb(req.params.id);
-  if (!result || result.affectedRows === 0) {
-    return res.status(404).json({ message: "Order not found" });
-  }
-  return res.json({ ok: true, id: req.params.id });
-}
-
-async function mobileListOrders(req, res) {
-  const orders = await listOrdersDb();
-  const scoped = orders;
-  res.json({ data: scoped, count: scoped.length });
-}
-
-async function mobileUpdateStatus(req, res) {
-  const statusNames = await getStatusNames();
-  const schema = z.object({ status: z.string().min(1) });
-  const parsed = schema.safeParse(req.body);
-  if (!parsed.success || !statusNames.includes(parsed.data.status)) {
-    return res.status(400).json({ message: "Invalid mobile status payload" });
-  }
-  const order = await getOrderById(req.params.id);
-  if (!order) {
-    return res.status(404).json({ message: "Order not found" });
-  }
-  const updatedOrder = await updateOrderStatusDb(req.params.id, parsed.data.status, {
-    changedByUserId: req.user.sub,
-  });
-  return res.json({ data: updatedOrder });
-}
+  return success(res, order);
+});
 
 module.exports = {
   listStatuses,

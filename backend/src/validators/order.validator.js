@@ -1,21 +1,34 @@
 /**
  * Zod schemas for order endpoints.
- * Extend these as you migrate inline validation out of orderController.
+ *
+ * RULE: every schema used by an order route lives here. Controllers must
+ * never call `safeParse` directly. The `validate()` middleware in
+ * `validators/validate.js` consumes these and attaches the parsed value to
+ * `req.body` / `req.params` / `req.query`.
  */
 const { z } = require("zod");
 const { ORDER_STATUS, PAYMENT_STATUS } = require("../constants/general");
 
-const orderItemSchema = z.object({
-  itemId: z.string().min(1),
-  quantity: z.number().int().positive(),
-  unitPrice: z.number().nonnegative(),
-});
+// Reusable primitives -------------------------------------------------------
+
+const idString = z.string().min(1);
+
+// Body schemas --------------------------------------------------------------
 
 const createOrderSchema = z.object({
-  customerId: z.string().min(1),
-  addressId: z.string().min(1),
-  items: z.array(orderItemSchema).min(1, "At least one item is required"),
-  notes: z.string().max(500).optional(),
+  customerId: idString,
+  itemId: idString,
+  orderedQty: z.number().int().positive(),
+  unitPrice: z.number().nonnegative().optional(),
+  producerId: idString.nullable().optional(),
+  truckId: idString.nullable().optional(),
+});
+
+const assignOrderSchema = z.object({
+  producerId: idString.nullable().optional(),
+  truckId: idString.nullable().optional(),
+  orderGroupId: idString.nullable().optional(),
+  deliveryTime: z.string().datetime().optional(),
 });
 
 const updateOrderStatusSchema = z.object({
@@ -26,21 +39,33 @@ const updatePaymentStatusSchema = z.object({
   paymentStatus: z.enum(PAYMENT_STATUS),
 });
 
+const confirmDeliverySchema = z.object({
+  deliveredQty: z.number().int().nonnegative(),
+  lossQty: z.number().int().nonnegative().default(0),
+  remainingQty: z.number().int().nonnegative().default(0),
+  deliveryProofType: z.enum(["PHOTO", "SIGNATURE", "OTP"]),
+  deliveryProofValue: z.string().min(1),
+});
+
+// Param + query schemas -----------------------------------------------------
+
+const orderIdParamsSchema = z.object({
+  id: idString,
+});
+
 const listOrdersQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   pageSize: z.coerce.number().int().positive().max(100).default(20),
   status: z.enum(ORDER_STATUS).optional(),
-  customerId: z.string().optional(),
-});
-
-const orderIdParamsSchema = z.object({
-  id: z.string().min(1),
+  customerId: idString.optional(),
 });
 
 module.exports = {
   createOrderSchema,
+  assignOrderSchema,
   updateOrderStatusSchema,
   updatePaymentStatusSchema,
-  listOrdersQuerySchema,
+  confirmDeliverySchema,
   orderIdParamsSchema,
+  listOrdersQuerySchema,
 };
