@@ -46,12 +46,6 @@
     "trucksSub": "ទិន្នន័យគោលរថយន្ត",
     "orders": "ការកម្មង់",
     "ordersSub": "ខ្សែផលិតកម្ម & ដឹកជញ្ជូន",
-    "customerOrders": "ការកម្មង់អតិថិជន",
-    "customerOrdersSub": "ពិនិត្យ NEW_ORDER",
-    "ownerPreparing": "រៀបចំដោយម្ចាស់",
-    "ownerPreparingSub": "កំណត់ក្រុមការកម្មង់",
-    "confirmOrders": "អ្នកផ្គត់ផ្គង់ឡូជីស្ទិក",
-    "confirmOrdersSub": "បញ្ជាក់ការកម្មង់ពីអ្នកផ្គត់ផ្គង់",
     "payments": "ការទូទាត់",
     "paymentsSub": "កត់ត្រា & ប្រវត្តិ",
     "activityLogs": "កំណត់ហេតុសកម្មភាពអ្នកប្រើ",
@@ -68,9 +62,6 @@
     "deliveryAgents": "ភ្នាក់ងារដឹកជញ្ជូន",
     "trucks": "ឡានដឹកទំនិញ",
     "orders": "ការកម្មង់",
-    "customerOrders": "ការកម្មង់អតិថិជន",
-    "ownerPreparing": "រៀបចំដោយម្ចាស់",
-    "confirmOrders": "អ្នកផ្គត់ផ្គង់ឡូជីស្ទិក",
     "payments": "ការទូទាត់",
     "activityLogs": "កំណត់ហេតុសកម្មភាពអ្នកប្រើ"
   },
@@ -285,17 +276,6 @@
     "saveDelivery": "រក្សាទុក",
     "dash": "—"
   },
-  "confirmOrders": {
-    "title": "អ្នកផ្គត់ផ្គង់ឡូជីស្ទិក",
-    "lead": "អ្នកដឹកជញ្ជូនបញ្ជាក់ការទទួលពីអតិថិជន និងធ្វើបច្ចុប្បន្នភាពស្ថានភាពដឹកជញ្ជូន។"
-  },
-  "ownerPreparing": {
-    "title": "រៀបចំដោយម្ចាស់",
-    "lead": "កំណត់ក្រុមការកម្មង់សម្រាប់ស្ថានភាព OWNER_PREPARING។",
-    "orderGroup": "ក្រុមការកម្មង់ដែលបានកំណត់",
-    "selectOrderGroup": "ជ្រើសក្រុមការកម្មង់",
-    "action": "សកម្មភាព"
-  },
   "payments": {
     "title": "ការទូទាត់",
     "lead": "កត់ត្រាការងាប់ទឹកប្រាក់ និងមើលប្រវត្តិ។",
@@ -495,16 +475,5 @@
     "userAdded": "បានបង្កើតអ្នកប្រើ",
     "userUpdated": "បានកែប្រែអ្នកប្រើ",
     "userDeleted": "បានបិទគណនីអ្នកប្រើ"
-  },
-  "customerOrders": {
-    "title": "ការកម្មង់អតិថិជន",
-    "lead": "គ្រប់គ្រងការកម្មង់ដែលនៅស្ថានភាព NEW_ORDER ។",
-    "listTitle": "បញ្ជី NEW_ORDER",
-    "empty": "មិនមាន NEW_ORDER ទេ។",
-    "confirmBtn": "បញ្ជាក់",
-    "deleteBtn": "លុប",
-    "confirmDelete": "លុបកំណត់ត្រា NEW_ORDER នេះឬ?",
-    "confirmActionTitle": "បញ្ជាក់ការកម្មង់",
-    "confirmActionMessage": "ផ្លាស់ប្តូរស្ថានភាពពី NEW_ORDER ទៅ OWNER_PREPARING ឬ?"
   }
 }

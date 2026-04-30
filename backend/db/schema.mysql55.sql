@@ -170,6 +170,7 @@ CREATE TABLE catalogs (
 CREATE TABLE items (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   catalog_id INT UNSIGNED NOT NULL,
+  customer_id INT UNSIGNED DEFAULT NULL,
   name VARCHAR(120) NOT NULL,
   sku VARCHAR(40) DEFAULT '',
   default_unit_price_usd DECIMAL(14,2) NOT NULL,
@@ -181,7 +182,10 @@ CREATE TABLE items (
   KEY idx_items_name (name),
   KEY idx_items_sku (sku),
   KEY idx_items_catalog (catalog_id),
+  KEY idx_items_customer (customer_id),
   CONSTRAINT fk_items_catalog FOREIGN KEY (catalog_id) REFERENCES catalogs (id)
+    ON UPDATE RESTRICT ON DELETE RESTRICT,
+  CONSTRAINT fk_items_customer FOREIGN KEY (customer_id) REFERENCES customers (id)
     ON UPDATE RESTRICT ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
@@ -565,17 +569,20 @@ WHERE is_active = 1
 ORDER BY name ASC;
 
 CREATE PROCEDURE sp_get_item_by_id(IN p_id INT UNSIGNED)
-SELECT i.id, i.catalog_id, i.name, i.sku, i.default_unit_price_usd, i.default_unit_price_khr, c.name AS catalog_name
+SELECT i.id, i.catalog_id, i.customer_id, i.name, i.sku, i.default_unit_price_usd, i.default_unit_price_khr, c.name AS catalog_name, cu.name AS customer_name
 FROM items i
 INNER JOIN catalogs c ON c.id = i.catalog_id
+LEFT JOIN customers cu ON cu.id = i.customer_id
 WHERE i.id = p_id AND i.is_active = 1 AND c.is_active = 1
 LIMIT 1;
 
-CREATE PROCEDURE sp_list_items()
-SELECT i.id, i.catalog_id, i.name, i.sku, i.default_unit_price_usd, i.default_unit_price_khr, c.name AS catalog_name
+CREATE PROCEDURE sp_list_items(IN p_customer_id INT UNSIGNED)
+SELECT i.id, i.catalog_id, i.customer_id, i.name, i.sku, i.default_unit_price_usd, i.default_unit_price_khr, c.name AS catalog_name, cu.name AS customer_name
 FROM items i
 INNER JOIN catalogs c ON c.id = i.catalog_id
+LEFT JOIN customers cu ON cu.id = i.customer_id
 WHERE i.is_active = 1 AND c.is_active = 1
+  AND (p_customer_id IS NULL OR i.customer_id = p_customer_id)
 ORDER BY c.name ASC, i.name ASC;
 
 CREATE PROCEDURE sp_list_statuses()
@@ -903,20 +910,20 @@ BEGIN
 END;
 
 CREATE PROCEDURE sp_create_item(
-  IN p_catalog_id INT UNSIGNED, IN p_name VARCHAR(255), IN p_sku VARCHAR(80), IN p_usd DECIMAL(12,2), IN p_khr DECIMAL(18,2), IN p_updated_at DATETIME
+  IN p_catalog_id INT UNSIGNED, IN p_customer_id INT UNSIGNED, IN p_name VARCHAR(255), IN p_sku VARCHAR(80), IN p_usd DECIMAL(12,2), IN p_khr DECIMAL(18,2), IN p_updated_at DATETIME
 )
 BEGIN
-  INSERT INTO items (catalog_id, name, sku, default_unit_price_usd, default_unit_price_khr, updated_at)
-  VALUES (p_catalog_id, p_name, p_sku, p_usd, p_khr, p_updated_at);
+  INSERT INTO items (catalog_id, customer_id, name, sku, default_unit_price_usd, default_unit_price_khr, updated_at)
+  VALUES (p_catalog_id, p_customer_id, p_name, p_sku, p_usd, p_khr, p_updated_at);
   SELECT LAST_INSERT_ID() AS insertId;
 END;
 
 CREATE PROCEDURE sp_update_item(
-  IN p_id INT UNSIGNED, IN p_catalog_id INT UNSIGNED, IN p_name VARCHAR(255), IN p_sku VARCHAR(80), IN p_usd DECIMAL(12,2), IN p_khr DECIMAL(18,2), IN p_updated_at DATETIME
+  IN p_id INT UNSIGNED, IN p_catalog_id INT UNSIGNED, IN p_customer_id INT UNSIGNED, IN p_name VARCHAR(255), IN p_sku VARCHAR(80), IN p_usd DECIMAL(12,2), IN p_khr DECIMAL(18,2), IN p_updated_at DATETIME
 )
 BEGIN
   UPDATE items
-  SET catalog_id = p_catalog_id, name = p_name, sku = p_sku, default_unit_price_usd = p_usd, default_unit_price_khr = p_khr, updated_at = p_updated_at
+  SET catalog_id = p_catalog_id, customer_id = p_customer_id, name = p_name, sku = p_sku, default_unit_price_usd = p_usd, default_unit_price_khr = p_khr, updated_at = p_updated_at
   WHERE id = p_id AND is_active = 1;
   SELECT ROW_COUNT() AS affectedRows;
 END;
@@ -1108,12 +1115,12 @@ DEALLOCATE PREPARE stmt_role_menus;
 
 INSERT INTO role_menus (role_id, menu_key) VALUES
 (1, 'overview'), (1, 'newOrder'), (1, 'catalogs'), (1, 'items'), (1, 'customers'),
-(1, 'producers'), (1, 'deliveryAgents'), (1, 'trucks'), (1, 'orders'), (1, 'ownerPreparing'), (1, 'payments'), (1, 'users'), (1, 'activityLogs'),
+(1, 'producers'), (1, 'deliveryAgents'), (1, 'trucks'), (1, 'orders'), (1, 'payments'), (1, 'users'), (1, 'activityLogs'),
 (2, 'overview'), (2, 'newOrder'), (2, 'catalogs'), (2, 'items'), (2, 'customers'),
-(2, 'producers'), (2, 'deliveryAgents'), (2, 'trucks'), (2, 'orders'), (2, 'ownerPreparing'), (2, 'payments'),
-(3, 'overview'), (3, 'deliveryAgents'), (3, 'trucks'), (3, 'confirmOrders'),
-(4, 'overview'), (4, 'confirmOrders'), (4, 'orders'),
-(5, 'overview'), (5, 'orders')
+(2, 'producers'), (2, 'deliveryAgents'), (2, 'trucks'), (2, 'orders'), (2, 'payments'),
+(3, 'overview'), (3, 'deliveryAgents'), (3, 'trucks'), (3, 'orders'),
+(4, 'overview'), (4, 'orders'),
+(5, 'overview'), (5, 'orders'), (5, 'payments')
 ON DUPLICATE KEY UPDATE menu_key = VALUES(menu_key);
 
 -- 2) Remove obsolete orders.producer_confirm_status if it still exists
@@ -1338,6 +1345,23 @@ SET @sql_set_items_price_khr_not_null := IF(
 PREPARE stmt_set_items_price_khr_not_null FROM @sql_set_items_price_khr_not_null;
 EXECUTE stmt_set_items_price_khr_not_null;
 DEALLOCATE PREPARE stmt_set_items_price_khr_not_null;
+
+-- 9) Ensure items.customer_id exists for customer item assignment
+SET @has_items_customer_id := (
+  SELECT COUNT(*)
+  FROM information_schema.columns
+  WHERE table_schema = DATABASE()
+    AND table_name = 'items'
+    AND column_name = 'customer_id'
+);
+SET @sql_add_items_customer_id := IF(
+  @has_items_customer_id = 0,
+  'ALTER TABLE items ADD COLUMN customer_id INT UNSIGNED NULL',
+  'SELECT 1'
+);
+PREPARE stmt_add_items_customer_id FROM @sql_add_items_customer_id;
+EXECUTE stmt_add_items_customer_id;
+DEALLOCATE PREPARE stmt_add_items_customer_id;
 
 -- 9) Ensure bakong_tokens table exists (token stored in DB, not env/cache)
 SET @has_bakong_tokens := (

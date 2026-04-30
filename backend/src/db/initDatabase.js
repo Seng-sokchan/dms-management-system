@@ -60,12 +60,12 @@ async function run() {
   await dbConn.query(
     `INSERT INTO role_menus (role_id, menu_key) VALUES
      (1, 'overview'), (1, 'newOrder'), (1, 'catalogs'), (1, 'items'), (1, 'customers'),
-     (1, 'producers'), (1, 'deliveryAgents'), (1, 'trucks'), (1, 'orders'), (1, 'ownerPreparing'), (1, 'payments'), (1, 'users'), (1, 'activityLogs'),
+     (1, 'producers'), (1, 'deliveryAgents'), (1, 'trucks'), (1, 'orders'), (1, 'payments'), (1, 'users'), (1, 'activityLogs'),
      (2, 'overview'), (2, 'newOrder'), (2, 'catalogs'), (2, 'items'), (2, 'customers'),
-     (2, 'producers'), (2, 'deliveryAgents'), (2, 'trucks'), (2, 'orders'), (2, 'ownerPreparing'), (2, 'payments'),
-     (3, 'overview'), (3, 'deliveryAgents'), (3, 'trucks'), (3, 'confirmOrders'),
-     (4, 'overview'), (4, 'confirmOrders'), (4, 'orders'),
-     (5, 'overview'), (5, 'orders')`,
+     (2, 'producers'), (2, 'deliveryAgents'), (2, 'trucks'), (2, 'orders'), (2, 'payments'),
+     (3, 'overview'), (3, 'deliveryAgents'), (3, 'trucks'), (3, 'orders'),
+     (4, 'overview'), (4, 'orders'),
+     (5, 'overview'), (5, 'orders'), (5, 'payments')`,
   );
 
   const adminHash = bcrypt.hashSync("admin123", 10);

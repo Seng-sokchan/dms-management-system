@@ -1,0 +1,46 @@
+{
+  "common": {
+    "loading": "កំពុងផ្ទុក...",
+    "user": "អ្នកប្រើ",
+    "member": "សមាជិក",
+    "language": "ភាសា",
+    "english": "អង់គ្លេស",
+    "khmer": "ខ្មែរ"
+  },
+  "header": {
+    "notifications": "ការជូនដំណឹង",
+    "logout": "ចាកចេញ"
+  },
+  "nav": {
+    "customerOrders": "ការបញ្ជាទិញអតិថិជន",
+    "confirmOrder": "បញ្ជាក់ការបញ្ជាទិញ",
+    "payments": "ការទូទាត់",
+    "profile": "ប្រវត្តិរូប",
+    "ownerPreparing": "ម្ចាស់កំពុងរៀបចំ",
+    "logisticsSupplier": "ឡូជីស្ទិចទៅអ្នកផ្គត់ផ្គង់",
+    "delivery": "ដឹកជញ្ជូន"
+  },
+  "login": {
+    "subtitle": "ប្រព័ន្ធគ្រប់គ្រងការចែកចាយ",
+    "username": "ឈ្មោះអ្នកប្រើ",
+    "password": "ពាក្យសម្ងាត់",
+    "usernamePlaceholder": "បញ្ចូលឈ្មោះអ្នកប្រើ",
+    "passwordPlaceholder": "បញ្ចូលពាក្យសម្ងាត់",
+    "signIn": "ចូលប្រើ",
+    "invalidCredentials": "ព័ត៌មានចូលមិនត្រឹមត្រូវ"
+  },
+  "profile": {
+    "account": "គណនី",
+    "username": "ឈ្មោះអ្នកប្រើ",
+    "role": "តួនាទី",
+    "settings": "ការកំណត់",
+    "notifications": "ការជូនដំណឹង",
+    "manageAlerts": "គ្រប់គ្រងការជូនដំណឹង",
+    "helpSupport": "ជំនួយ និងគាំទ្រ",
+    "getAssistance": "ទទួលជំនួយ",
+    "about": "អំពីកម្មវិធី",
+    "version": "កំណែ 1.0.0",
+    "switch": "ប្តូរ",
+    "signOut": "ចាកចេញ"
+  }
+}

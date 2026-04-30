@@ -111,6 +111,8 @@ function mapItem(row) {
     id: String(row.id),
     catalogId: String(row.catalog_id),
     catalogName: row.catalog_name != null ? row.catalog_name : null,
+    customerId: row.customer_id != null ? String(row.customer_id) : null,
+    customerName: row.customer_name != null ? row.customer_name : null,
     name: row.name,
     sku: row.sku || "",
     defaultUnitPrice: defaultUnitPriceUsd,

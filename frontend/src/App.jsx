@@ -15,9 +15,6 @@ import { ProducersPage } from "./pages/ProducersPage";
 import { CustomersPage } from "./pages/CustomersPage";
 import { UsersPage } from "./pages/UsersPage";
 import { UserActivityLogsPage } from "./pages/UserActivityLogsPage";
-import { ConfirmOrdersPage } from "./pages/ConfirmOrdersPage";
-import { OwnerPreparingPage } from "./pages/OwnerPreparingPage";
-import { CustomerOrdersPage } from "./pages/CustomerOrdersPage";
 import "./App.css";
 
 function App() {
@@ -38,7 +35,6 @@ function App() {
     items,
     payments,
     paymentMethods,
-    orderGroups,
     flash,
     dismissFlash,
     newOrder,
@@ -80,8 +76,6 @@ function App() {
     submitTruckDelete,
     submitDeliveryConfirmation,
     submitOrderStatus,
-    submitOrderGroupAssignment,
-    submitOrderDelete,
     submitPayment,
     users,
     activityLogs,
@@ -169,6 +163,7 @@ function App() {
           canAccessPath(user, "/items") ? (
             <ItemsPage
               catalogs={catalogs}
+              customers={customers}
               items={items}
               newItem={newItem}
               setNewItem={setNewItem}
@@ -286,54 +281,8 @@ function App() {
       <Route
         path="/orders"
         element={withLayout(
-          user?.role === "Logistics" || user?.role === "Delivery" ? (
-            <Navigate to="/confirm-orders" replace />
-          ) : canAccessPath(user, "/orders") ? (
+          canAccessPath(user, "/orders") ? (
             <OrdersPage
-              orders={orders}
-              statuses={statuses}
-              onUpdateStatus={submitOrderStatus}
-              onConfirmDelivery={submitDeliveryConfirmation}
-            />
-          ) : (
-            <Navigate to="/overview" replace />
-          ),
-        )}
-      />
-      <Route
-        path="/customer-orders"
-        element={withLayout(
-          (user?.role === "Owner" || user?.role === "Admin") && canAccessPath(user, "/customer-orders") ? (
-            <CustomerOrdersPage
-              orders={orders}
-              onDeleteOrder={submitOrderDelete}
-              onConfirmOrder={(orderId) => submitOrderStatus(orderId, "OWNER_PREPARING")}
-            />
-          ) : (
-            <Navigate to="/overview" replace />
-          ),
-        )}
-      />
-      <Route
-        path="/owner-preparing"
-        element={withLayout(
-          (user?.role === "Owner" || user?.role === "Admin") && canAccessPath(user, "/owner-preparing") ? (
-            <OwnerPreparingPage
-              orders={orders}
-              orderGroups={orderGroups}
-              onAssignOrderGroup={submitOrderGroupAssignment}
-              onConfirmToLogistics={(orderId) => submitOrderStatus(orderId, "SENT_TO_LOGISTICS_SUPPLIER")}
-            />
-          ) : (
-            <Navigate to="/overview" replace />
-          ),
-        )}
-      />
-      <Route
-        path="/confirm-orders"
-        element={withLayout(
-          canAccessPath(user, "/confirm-orders") ? (
-            <ConfirmOrdersPage
               orders={orders}
               statuses={statuses}
               onUpdateStatus={submitOrderStatus}

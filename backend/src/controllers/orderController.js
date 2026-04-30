@@ -1,5 +1,4 @@
 const { z } = require("zod");
-const { getNextAllowedStatuses } = require("../services/orderService");
 const {
   getCustomerById,
   getCustomerByUserId,
@@ -18,10 +17,6 @@ const {
   listOrderStatuses,
 } = require("../repositories");
 
-function filterOrdersForLogistics(orders = []) {
-  return orders.filter((row) => row.status === "SENT_TO_LOGISTICS_SUPPLIER");
-}
-
 async function listOrders(req, res) {
   const orders = await listOrdersDb();
   if (req.user?.role === "Customer") {
@@ -30,9 +25,6 @@ async function listOrders(req, res) {
       return res.json([]);
     }
     return res.json(orders.filter((row) => String(row.customerId) === String(customer.id)));
-  }
-  if (req.user?.role === "Logistics" || req.user?.role === "Delivery") {
-    return res.json(filterOrdersForLogistics(orders));
   }
   return res.json(orders);
 }
@@ -138,13 +130,6 @@ async function updateOrderStatus(req, res) {
     return res.status(400).json({ message: "Invalid status payload" });
   }
 
-  const allowed = getNextAllowedStatuses(order.status, statusNames);
-  if (!allowed.includes(parsed.data.status)) {
-    return res.status(400).json({
-      message: `Invalid transition from ${order.status} to ${parsed.data.status}`,
-      allowedNext: allowed,
-    });
-  }
   const updatedOrder = await updateOrderStatusDb(req.params.id, parsed.data.status, {
     changedByUserId: req.user.sub,
   });
@@ -211,7 +196,7 @@ async function deleteOrder(req, res) {
 
 async function mobileListOrders(req, res) {
   const orders = await listOrdersDb();
-  const scoped = req.user?.role === "Logistics" || req.user?.role === "Delivery" ? filterOrdersForLogistics(orders) : orders;
+  const scoped = orders;
   res.json({ data: scoped, count: scoped.length });
 }
 

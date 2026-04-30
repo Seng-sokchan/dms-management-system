@@ -1,20 +1,23 @@
 const { z } = require("zod");
 const {
   getCatalogById,
+  getCustomerById,
   listItems: listItemsDb,
   createItem: createItemDb,
   updateItem: updateItemDb,
   deleteItem: deleteItemDb,
 } = require("../repositories");
 
-async function listItems(_req, res) {
-  const items = await listItemsDb();
+async function listItems(req, res) {
+  const customerId = req.query?.customerId;
+  const items = await listItemsDb({ customerId });
   res.json(items);
 }
 
 function itemSchema() {
   return z.object({
     catalogId: z.string().min(1),
+    customerId: z.string().min(1).optional().nullable(),
     name: z.string().min(2),
     sku: z.string().max(40).optional().default(""),
     defaultUnitPriceUsd: z.number().nonnegative(),
@@ -31,6 +34,12 @@ async function createItem(req, res) {
   if (!catalog) {
     return res.status(400).json({ message: "Catalog not found" });
   }
+  if (parsed.data.customerId) {
+    const customer = await getCustomerById(parsed.data.customerId);
+    if (!customer) {
+      return res.status(400).json({ message: "Customer not found" });
+    }
+  }
   const item = await createItemDb(parsed.data);
   return res.status(201).json(item);
 }
@@ -43,6 +52,12 @@ async function updateItem(req, res) {
   const catalog = await getCatalogById(parsed.data.catalogId);
   if (!catalog) {
     return res.status(400).json({ message: "Catalog not found" });
+  }
+  if (parsed.data.customerId) {
+    const customer = await getCustomerById(parsed.data.customerId);
+    if (!customer) {
+      return res.status(400).json({ message: "Customer not found" });
+    }
   }
   const item = await updateItemDb(req.params.id, parsed.data);
   if (!item) {

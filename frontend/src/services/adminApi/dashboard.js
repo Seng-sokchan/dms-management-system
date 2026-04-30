@@ -7,7 +7,7 @@ const ROUTE_DATA_MAP = {
   "/overview": ["summary", "statuses"],
   "/create-order": ["customers", "customerUsers", "addresses", "producers", "trucks", "items"],
   "/catalogs": ["catalogs"],
-  "/items": ["catalogs", "items"],
+  "/items": ["catalogs", "items", "customers"],
   "/customers": ["customers", "customerUsers", "addresses"],
   "/producers": ["producers"],
   "/delivery-agents": ["deliveryAgents"],
@@ -15,9 +15,6 @@ const ROUTE_DATA_MAP = {
   "/users": ["users", "roleMenus"],
   "/activity-logs": ["activityLogs"],
   "/orders": ["orders", "statuses"],
-  "/customer-orders": ["orders"],
-  "/owner-preparing": ["orders", "orderGroups"],
-  "/confirm-orders": ["orders", "statuses"],
   "/payments": ["orders", "payments", "paymentMethods"],
 };
 

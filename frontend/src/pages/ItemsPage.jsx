@@ -13,6 +13,7 @@ function formatUnitPrice(value) {
 const EMPTY_EDIT = {
   id: "",
   catalogId: "",
+  customerId: "",
   name: "",
   sku: "",
   defaultUnitPriceUsd: 1,
@@ -21,6 +22,7 @@ const EMPTY_EDIT = {
 
 export function ItemsPage({
   catalogs = [],
+  customers = [],
   items = [],
   newItem,
   setNewItem,
@@ -38,6 +40,7 @@ export function ItemsPage({
     setEditingItem({
       id: item.id,
       catalogId: item.catalogId || "",
+      customerId: item.customerId || "",
       name: item.name || "",
       sku: item.sku || "",
       defaultUnitPriceUsd: Number(item.defaultUnitPriceUsd) || 0,
@@ -54,6 +57,7 @@ export function ItemsPage({
     if (!editingItem.id) return;
     await onUpdateItem(editingItem.id, {
       catalogId: editingItem.catalogId,
+      customerId: editingItem.customerId || null,
       name: editingItem.name,
       sku: editingItem.sku,
       defaultUnitPriceUsd: Number(editingItem.defaultUnitPriceUsd),
@@ -98,6 +102,7 @@ export function ItemsPage({
         <div className="form-single">
           <ItemForm
             catalogs={catalogs}
+            customers={customers}
             newItem={newItem}
             setNewItem={setNewItem}
             onCreateItem={onCreateItem}
@@ -118,6 +123,7 @@ export function ItemsPage({
                     {it.catalogName ? `${it.catalogName} — ${it.name}` : it.name}
                   </span>
                   <span className="entity-list-meta">
+                    {it.customerName ? `${t("items.rowCustomer", { defaultValue: "Customer {{name}}", name: it.customerName })} · ` : ""}
                     {it.sku ? `${t("items.rowSku", { sku: it.sku })} · ` : ""}
                     {t("items.rowDefaultUnitPrices", {
                       usd: formatUnitPrice(it.defaultUnitPriceUsd),
@@ -155,6 +161,22 @@ export function ItemsPage({
               {catalogs.map((catalog) => (
                 <option key={catalog.id} value={catalog.id}>
                   {catalog.name}
+                </option>
+              ))}
+            </select>
+            <label className="form-label" htmlFor="item-edit-customer">
+              {t("items.labelCustomer", { defaultValue: "Assigned customer" })}
+            </label>
+            <select
+              id="item-edit-customer"
+              value={editingItem.customerId || ""}
+              onChange={(event) => setEditingItem({ ...editingItem, customerId: event.target.value })}
+              required
+            >
+              <option value="">{t("items.customerPlaceholder", { defaultValue: "— Select a customer —" })}</option>
+              {customers.map((customer) => (
+                <option key={customer.id} value={customer.id}>
+                  {customer.name}
                 </option>
               ))}
             </select>

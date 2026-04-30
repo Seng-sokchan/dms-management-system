@@ -116,6 +116,7 @@ export function useAdminDashboard() {
   const [newCatalog, setNewCatalog] = useState({ name: "", note: "" });
   const [newItem, setNewItem] = useState({
     catalogId: "",
+    customerId: "",
     name: "",
     sku: "",
     defaultUnitPriceUsd: 1,
@@ -261,11 +262,13 @@ export function useAdminDashboard() {
       await createItem(token, {
         ...newItem,
         catalogId: newItem.catalogId,
+        customerId: newItem.customerId || undefined,
         defaultUnitPriceUsd: Number(newItem.defaultUnitPriceUsd),
         defaultUnitPriceKhr: Number(newItem.defaultUnitPriceKhr),
       });
       setNewItem((prev) => ({
         catalogId: prev.catalogId,
+        customerId: prev.customerId,
         name: "",
         sku: "",
         defaultUnitPriceUsd: 1,

@@ -1,0 +1,46 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "user": "User",
+    "member": "Member",
+    "language": "Language",
+    "english": "English",
+    "khmer": "Khmer"
+  },
+  "header": {
+    "notifications": "Notifications",
+    "logout": "Sign out"
+  },
+  "nav": {
+    "customerOrders": "Customer Orders",
+    "confirmOrder": "Confirm Order",
+    "payments": "Payments",
+    "profile": "Profile",
+    "ownerPreparing": "Owner Preparing",
+    "logisticsSupplier": "Logistics Supplier",
+    "delivery": "Delivery"
+  },
+  "login": {
+    "subtitle": "Distribution Management System",
+    "username": "Username",
+    "password": "Password",
+    "usernamePlaceholder": "Enter your username",
+    "passwordPlaceholder": "Enter your password",
+    "signIn": "Sign In",
+    "invalidCredentials": "Invalid credentials"
+  },
+  "profile": {
+    "account": "Account",
+    "username": "Username",
+    "role": "Role",
+    "settings": "Settings",
+    "notifications": "Notifications",
+    "manageAlerts": "Manage alerts",
+    "helpSupport": "Help & Support",
+    "getAssistance": "Get assistance",
+    "about": "About",
+    "version": "Version 1.0.0",
+    "switch": "Switch",
+    "signOut": "Sign Out"
+  }
+}

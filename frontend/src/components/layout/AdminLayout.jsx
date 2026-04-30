@@ -16,9 +16,6 @@ const PAGE_PATH_MAP = {
   "/delivery-agents": "deliveryAgents",
   "/trucks":          "trucks",
   "/orders":          "orders",
-  "/customer-orders": "customerOrders",
-  "/owner-preparing": "ownerPreparing",
-  "/confirm-orders":  "confirmOrders",
   "/payments":        "payments",
   "/users":           "users",
   "/activity-logs":   "activityLogs",
@@ -87,25 +84,6 @@ const NAV_ICONS = {
       <line x1="9"  y1="16" x2="13" y2="16" />
     </svg>
   ),
-  customerOrders: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
-      <line x1="3" y1="6" x2="21" y2="6" />
-      <path d="M16 10a4 4 0 01-8 0" />
-    </svg>
-  ),
-  ownerPreparing: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M5 8h14M5 8a2 2 0 01-2-2V5a2 2 0 012-2h14a2 2 0 012 2v1a2 2 0 01-2 2M5 8v11a2 2 0 002 2h10a2 2 0 002-2V8" />
-      <line x1="10" y1="12" x2="14" y2="12" />
-    </svg>
-  ),
-  confirmOrders: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
-      <polyline points="22 4 12 14.01 9 11.01" />
-    </svg>
-  ),
   payments: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <rect x="1" y="4" width="22" height="16" rx="2" />
@@ -150,12 +128,12 @@ const NAV_GROUPS = [
   {
     labelKey: "nav.sectionOrders",
     defaultLabel: "Orders",
-    keys: ["newOrder", "catalogs", "items", "customers", "producers", "orders", "customerOrders"],
+    keys: ["newOrder", "catalogs", "items", "customers", "producers", "orders"],
   },
   {
     labelKey: "nav.sectionFulfillment",
     defaultLabel: "Fulfillment",
-    keys: ["deliveryAgents", "trucks", "ownerPreparing", "confirmOrders"],
+    keys: ["deliveryAgents", "trucks"],
   },
   {
     labelKey: "nav.sectionFinance",

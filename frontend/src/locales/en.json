@@ -46,12 +46,6 @@
     "trucksSub": "Fleet master data",
     "orders": "Orders",
     "ordersSub": "Pipeline & delivery",
-    "customerOrders": "Customer Orders",
-    "customerOrdersSub": "Review new orders",
-    "ownerPreparing": "Owner Preparing",
-    "ownerPreparingSub": "Assign order groups",
-    "confirmOrders": "Logistics Supplier",
-    "confirmOrdersSub": "Supplier order confirmation",
     "payments": "Payments",
     "paymentsSub": "Record & history",
     "activityLogs": "User Activity Log",
@@ -68,11 +62,7 @@
     "deliveryAgents": "Delivery agents",
     "trucks": "Trucks",
     "orders": "Orders",
-    "customerOrders": "Customer Orders",
-    "ownerPreparing": "Owner Preparing",
-    "confirmOrders": "Logistics Supplier",
-    "payments": "Payments"
-    ,
+    "payments": "Payments",
     "activityLogs": "User Activity Log"
   },
   "activityLog": {
@@ -286,17 +276,6 @@
     "saveDelivery": "Save",
     "dash": "—"
   },
-  "confirmOrders": {
-    "title": "Logistics Supplier",
-    "lead": "Logistics confirms customer order delivery and updates delivery status."
-  },
-  "ownerPreparing": {
-    "title": "Owner Preparing",
-    "lead": "Assign order groups for orders with OWNER_PREPARING status.",
-    "orderGroup": "Assigned Order Group",
-    "selectOrderGroup": "Select order group",
-    "action": "Actions"
-  },
   "payments": {
     "title": "Payments",
     "lead": "Record collections and review history.",
@@ -497,16 +476,5 @@
     "userAdded": "User created",
     "userUpdated": "User updated",
     "userDeleted": "User deactivated"
-  },
-  "customerOrders": {
-    "title": "Customer Orders",
-    "lead": "Manage orders that are still in NEW_ORDER status.",
-    "listTitle": "NEW_ORDER list",
-    "empty": "No NEW_ORDER found.",
-    "confirmBtn": "Confirm",
-    "deleteBtn": "Delete",
-    "confirmDelete": "Delete this NEW_ORDER record?",
-    "confirmActionTitle": "Confirm order",
-    "confirmActionMessage": "Move this order from NEW_ORDER to OWNER_PREPARING?"
   }
 }
