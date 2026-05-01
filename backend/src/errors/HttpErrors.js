@@ -20,32 +20,32 @@ class UnauthorizedError extends AppError {
 }
 
 class ForbiddenError extends AppError {
-  constructor(message = "Forbidden") {
-    super(message, 403, "FORBIDDEN");
+  constructor(message = "Unauthorized") {
+    super(message, 401, "UNAUTHORIZED");
   }
 }
 
 class NotFoundError extends AppError {
   constructor(message = "Resource not found") {
-    super(message, 404, "NOT_FOUND");
+    super(message, 400, "BAD_REQUEST");
   }
 }
 
 class ConflictError extends AppError {
   constructor(message = "Conflict", details) {
-    super(message, 409, "CONFLICT", details);
+    super(message, 400, "BAD_REQUEST", details);
   }
 }
 
 class ValidationError extends AppError {
   constructor(message = "Validation failed", details) {
-    super(message, 422, "VALIDATION_ERROR", details);
+    super(message, 400, "BAD_REQUEST", details);
   }
 }
 
 class TooManyRequestsError extends AppError {
   constructor(message = "Too many requests") {
-    super(message, 429, "RATE_LIMITED");
+    super(message, 400, "BAD_REQUEST");
   }
 }
 

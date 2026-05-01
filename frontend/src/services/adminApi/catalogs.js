@@ -1,8 +1,8 @@
-import { apiClient, authConfig } from "../apiClient";
+import { apiClient, authConfig, unwrapApiData } from "../apiClient";
 
 export async function createCatalog(token, payload) {
   const response = await apiClient.post("/catalogs", payload, authConfig(token));
-  return response.data;
+  return unwrapApiData(response.data);
 }
 
 export async function updateCatalog(token, catalogId, payload) {

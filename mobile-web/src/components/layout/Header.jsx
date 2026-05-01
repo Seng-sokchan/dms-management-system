@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { Bell, LogOut } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 
 export default function Header() {
   const { user, logout } = useAuth();
@@ -35,15 +35,6 @@ export default function Header() {
 
         {/* Actions */}
         <div className="flex items-center gap-1">
-          <button
-            onClick={() => navigate('/notifications')}
-            className="p-2 rounded-xl hover:bg-surface-tertiary transition-colors relative"
-            aria-label={t('header.notifications')}
-            title={t('header.notifications')}
-          >
-            <Bell className="w-5 h-5 text-text-secondary" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-danger-500 rounded-full ring-2 ring-surface" />
-          </button>
           <button
             onClick={logout}
             className="p-2 rounded-xl hover:bg-surface-tertiary transition-colors"

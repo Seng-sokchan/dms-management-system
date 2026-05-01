@@ -28,6 +28,7 @@ import {
   updateItem,
   updateOrderAssignment,
   updateOrderStatus,
+  moveOrderStatus as moveOrderStatusRequest,
   updateProducer,
   updateUser,
   updateRoleMenus,
@@ -38,9 +39,10 @@ import {
 } from "../services/authStorage";
 import i18n from "../i18n/config";
 import { useConfirm } from "../components/ui/ConfirmProvider";
+import { getApiErrorMessage as getApiErrorMessageFromResponse } from "../services/apiClient";
 
 function getErrorMessage(error, errorKey) {
-  return error?.response?.data?.message || i18n.t(errorKey);
+  return getApiErrorMessageFromResponse(error, i18n.t(errorKey));
 }
 
 export function useAdminDashboard() {
@@ -471,6 +473,16 @@ export function useAdminDashboard() {
     }
   }
 
+  async function submitOrderMovement(orderId, status) {
+    try {
+      await moveOrderStatusRequest(token, orderId, { status });
+      await refresh();
+      await showSuccessPopup(i18n.t("success.statusUpdated"));
+    } catch (error) {
+      showError(getErrorMessage(error, "errors.updateStatus"));
+    }
+  }
+
   async function submitOrderGroupAssignment(orderId, orderGroupId) {
     try {
       await updateOrderAssignment(token, orderId, { orderGroupId: orderGroupId || null });
@@ -623,6 +635,7 @@ export function useAdminDashboard() {
     submitTruckDelete,
     submitDeliveryConfirmation,
     submitOrderStatus,
+    submitOrderMovement,
     submitOrderGroupAssignment,
     submitOrderDelete,
     submitPayment,

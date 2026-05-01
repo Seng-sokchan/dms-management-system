@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ScanLine, CheckCircle2 } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
-import { ordersApi } from '../services/api';
+import { ordersApi, unwrapApiData, getApiErrorMessage } from '../services/api';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import StatusBadge from '../components/ui/StatusBadge';
@@ -95,10 +95,10 @@ export default function ConfirmOrderPage() {
     setError('');
     try {
       const res = await ordersApi.mobileUpdateStatus(orderId, { status: 'RECEIVED_BY_CUSTOMER' });
-      const updated = res.data?.data || res.data;
+      const updated = unwrapApiData(res.data);
       setResult(updated || { id: orderId, status: 'RECEIVED_BY_CUSTOMER' });
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to confirm order');
+      setError(getApiErrorMessage(err, 'Failed to confirm order'));
     } finally {
       setBusy(false);
     }

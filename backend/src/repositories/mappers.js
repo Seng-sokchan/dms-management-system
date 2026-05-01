@@ -16,6 +16,7 @@ function mapOrder(row) {
     itemId: row.item_id != null ? String(row.item_id) : null,
     itemSku: row.item_sku != null ? row.item_sku : null,
     itemName: row.item_name,
+    currency: (row.currency || "USD"),
     orderedQty: row.ordered_qty,
     unitPrice: Number(row.unit_price),
     producerId: row.producer_id != null ? String(row.producer_id) : null,

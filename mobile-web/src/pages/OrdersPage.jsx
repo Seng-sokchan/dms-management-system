@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Filter, Clock, ChevronRight } from 'lucide-react';
-import { ordersApi } from '../services/api';
+import { ordersApi, unwrapApiData, getApiErrorMessage } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -47,13 +47,13 @@ export default function OrdersPage({ workflowMode = 'all' }) {
     ])
       .then(([ordersResult, groupsResult]) => {
         if (ordersResult.status === 'fulfilled') {
-          const data = ordersResult.value.data?.data || ordersResult.value.data || [];
+          const data = unwrapApiData(ordersResult.value.data) || [];
           setOrders(Array.isArray(data) ? data : []);
         } else {
           setOrders([]);
         }
         if (groupsResult.status === 'fulfilled') {
-          const groups = groupsResult.value.data?.data || groupsResult.value.data || [];
+          const groups = unwrapApiData(groupsResult.value.data) || [];
           setOrderGroups(Array.isArray(groups) ? groups : []);
         } else {
           setOrderGroups([]);
@@ -84,7 +84,7 @@ export default function OrdersPage({ workflowMode = 'all' }) {
     if (workflowTab === 'owner_preparing') return (order.status_name || order.status) === 'OWNER_PREPARING';
     if (workflowTab === 'logistics_supplier') {
       const status = order.status_name || order.status;
-      return status === 'SENT_TO_LOGISTICS_SUPPLIER' || status === 'SUPPLIER_ORDER_READY';
+      return status === 'SENT_TO_LOGISTICS_SUPPLIER';
     }
     return true;
   });
@@ -110,7 +110,7 @@ export default function OrdersPage({ workflowMode = 'all' }) {
       }
       await fetchOrders();
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to confirm order');
+      alert(getApiErrorMessage(err, 'Failed to confirm order'));
     } finally {
       setSubmittingAction(false);
     }
@@ -122,7 +122,7 @@ export default function OrdersPage({ workflowMode = 'all' }) {
       await ordersApi.delete(orderId);
       await fetchOrders();
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to delete order');
+      alert(getApiErrorMessage(err, 'Failed to delete order'));
     } finally {
       setSubmittingAction(false);
     }
@@ -142,7 +142,7 @@ export default function OrdersPage({ workflowMode = 'all' }) {
       setSelectedOrderGroupId('');
       await fetchOrders();
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to assign order group');
+      alert(getApiErrorMessage(err, 'Failed to assign order group'));
     } finally {
       setSubmittingAction(false);
     }
@@ -162,24 +162,19 @@ export default function OrdersPage({ workflowMode = 'all' }) {
       }
       await fetchOrders();
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to move order to logistics');
+      alert(getApiErrorMessage(err, 'Failed to move order to logistics'));
     } finally {
       setSubmittingAction(false);
     }
   };
 
-  const handleSupplierReady = async (order) => {
-    const currentStatus = order?.status_name || order?.status;
-    const nextStatus = currentStatus === 'SUPPLIER_ORDER_READY'
-      ? 'OUT_FOR_DELIVERY'
-      : 'SUPPLIER_ORDER_READY';
-
+  const handleMarkOutForDelivery = async (order) => {
     setSubmittingAction(true);
     try {
-      await ordersApi.updateStatus(order.id, { status: nextStatus });
+      await ordersApi.updateStatus(order.id, { status: 'OUT_FOR_DELIVERY' });
       await fetchOrders();
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to confirm supplier ready');
+      alert(getApiErrorMessage(err, 'Failed to move order to out for delivery'));
     } finally {
       setSubmittingAction(false);
     }
@@ -327,10 +322,10 @@ export default function OrdersPage({ workflowMode = 'all' }) {
                       </Button>
                     </div>
                   ) : null}
-                  {['SENT_TO_LOGISTICS_SUPPLIER', 'SUPPLIER_ORDER_READY'].includes(order.status_name || order.status) && workflowTab === 'logistics_supplier' ? (
+                  {(order.status_name || order.status) === 'SENT_TO_LOGISTICS_SUPPLIER' && workflowTab === 'logistics_supplier' ? (
                     <div className="mt-3 flex gap-2" onClick={(e) => e.stopPropagation()}>
-                      <Button size="sm" loading={submittingAction} onClick={() => handleSupplierReady(order)}>
-                        Supplier Ready
+                      <Button size="sm" loading={submittingAction} onClick={() => handleMarkOutForDelivery(order)}>
+                        Out for Delivery
                       </Button>
                     </div>
                   ) : null}

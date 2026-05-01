@@ -7,11 +7,12 @@ const {
   updateItem: updateItemDb,
   deleteItem: deleteItemDb,
 } = require("../repositories");
+const { success, created, noContent, fail } = require("../utils/response");
 
 async function listItems(req, res) {
   const customerId = req.query?.customerId;
   const items = await listItemsDb({ customerId });
-  res.json(items);
+  return success(res, items);
 }
 
 function itemSchema() {
@@ -28,50 +29,50 @@ function itemSchema() {
 async function createItem(req, res) {
   const parsed = itemSchema().safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ message: "Invalid item payload" });
+    return fail(res, { status: 400, message: "Invalid item payload" });
   }
   const catalog = await getCatalogById(parsed.data.catalogId);
   if (!catalog) {
-    return res.status(400).json({ message: "Catalog not found" });
+    return fail(res, { status: 400, message: "Catalog not found" });
   }
   if (parsed.data.customerId) {
     const customer = await getCustomerById(parsed.data.customerId);
     if (!customer) {
-      return res.status(400).json({ message: "Customer not found" });
+      return fail(res, { status: 400, message: "Customer not found" });
     }
   }
   const item = await createItemDb(parsed.data);
-  return res.status(201).json(item);
+  return created(res, item);
 }
 
 async function updateItem(req, res) {
   const parsed = itemSchema().safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ message: "Invalid item payload" });
+    return fail(res, { status: 400, message: "Invalid item payload" });
   }
   const catalog = await getCatalogById(parsed.data.catalogId);
   if (!catalog) {
-    return res.status(400).json({ message: "Catalog not found" });
+    return fail(res, { status: 400, message: "Catalog not found" });
   }
   if (parsed.data.customerId) {
     const customer = await getCustomerById(parsed.data.customerId);
     if (!customer) {
-      return res.status(400).json({ message: "Customer not found" });
+      return fail(res, { status: 400, message: "Customer not found" });
     }
   }
   const item = await updateItemDb(req.params.id, parsed.data);
   if (!item) {
-    return res.status(404).json({ message: "Item not found" });
+    return fail(res, { status: 400, message: "Item not found" });
   }
-  return res.json(item);
+  return success(res, item);
 }
 
 async function deleteItem(req, res) {
   const deleted = await deleteItemDb(req.params.id);
   if (!deleted) {
-    return res.status(404).json({ message: "Item not found" });
+    return fail(res, { status: 400, message: "Item not found" });
   }
-  return res.status(204).send();
+  return noContent(res);
 }
 
 module.exports = {

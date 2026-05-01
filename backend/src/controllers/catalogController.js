@@ -5,10 +5,11 @@ const {
   updateCatalog: updateCatalogDb,
   deleteCatalog: deleteCatalogDb,
 } = require("../repositories");
+const { success, created, noContent, fail } = require("../utils/response");
 
 async function listCatalogs(_req, res) {
   const catalogs = await listCatalogsDb();
-  res.json(catalogs);
+  return success(res, catalogs);
 }
 
 async function createCatalog(req, res) {
@@ -18,10 +19,10 @@ async function createCatalog(req, res) {
   });
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ message: "Invalid catalog payload" });
+    return fail(res, { status: 400, message: "Invalid catalog payload" });
   }
   const row = await createCatalogDb(parsed.data);
-  return res.status(201).json(row);
+  return created(res, row);
 }
 
 async function updateCatalog(req, res) {
@@ -31,21 +32,21 @@ async function updateCatalog(req, res) {
   });
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ message: "Invalid catalog payload" });
+    return fail(res, { status: 400, message: "Invalid catalog payload" });
   }
   const row = await updateCatalogDb(req.params.id, parsed.data);
   if (!row) {
-    return res.status(404).json({ message: "Catalog not found" });
+    return fail(res, { status: 400, message: "Catalog not found" });
   }
-  return res.json(row);
+  return success(res, row);
 }
 
 async function deleteCatalog(req, res) {
   const deleted = await deleteCatalogDb(req.params.id);
   if (!deleted) {
-    return res.status(404).json({ message: "Catalog not found" });
+    return fail(res, { status: 400, message: "Catalog not found" });
   }
-  return res.status(204).send();
+  return noContent(res);
 }
 
 module.exports = {

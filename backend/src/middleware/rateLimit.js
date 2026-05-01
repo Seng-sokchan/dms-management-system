@@ -15,7 +15,7 @@ const apiRateLimit = rateLimit({
 
 const authLoginRateLimit = rateLimit({
   windowMs: toPositiveInt(process.env.AUTH_RATE_LIMIT_WINDOW_MS, 15 * 60 * 1000),
-  max: toPositiveInt(process.env.AUTH_RATE_LIMIT_MAX, 10),
+  max: toPositiveInt(process.env.AUTH_RATE_LIMIT_MAX, 100),
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: "Too many login attempts. Please try again later." },

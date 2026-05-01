@@ -4,7 +4,7 @@ import {
   Package, CheckCircle2
 } from 'lucide-react';
 import QRCode from 'qrcode';
-import { deliveryApi, trucksApi, ordersApi } from '../services/api';
+import { deliveryApi, trucksApi, ordersApi, unwrapApiData, getApiErrorMessage } from '../services/api';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import SearchBar from '../components/ui/SearchBar';
@@ -38,13 +38,13 @@ export default function DeliveryPage() {
 
   useEffect(() => {
     Promise.all([
-      deliveryApi.getAll().catch(() => ({ data: { data: [] } })),
-      trucksApi.getAll().catch(() => ({ data: { data: [] } })),
-      ordersApi.getAll({ status: 'OUT_FOR_DELIVERY' }).catch(() => ({ data: { data: [] } })),
+      deliveryApi.getAll().catch(() => ({ data: [] })),
+      trucksApi.getAll().catch(() => ({ data: [] })),
+      ordersApi.getAll({ status: 'OUT_FOR_DELIVERY' }).catch(() => ({ data: [] })),
     ]).then(([agentRes, truckRes, orderRes]) => {
-      const a = agentRes.data?.data || agentRes.data || [];
-      const t = truckRes.data?.data || truckRes.data || [];
-      const o = orderRes.data?.data || orderRes.data || [];
+      const a = unwrapApiData(agentRes.data) || [];
+      const t = unwrapApiData(truckRes.data) || [];
+      const o = unwrapApiData(orderRes.data) || [];
       setAgents(Array.isArray(a) ? a : []);
       setTrucks(Array.isArray(t) ? t : []);
       setActiveOrders(
@@ -66,7 +66,7 @@ export default function DeliveryPage() {
       setShowConfirm(null);
       setConfirmQrImage('');
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to confirm');
+      alert(getApiErrorMessage(err, 'Failed to confirm'));
     } finally {
       setSubmitting(false);
     }
@@ -97,11 +97,11 @@ export default function DeliveryPage() {
     try {
       await deliveryApi.create(agentForm);
       const res = await deliveryApi.getAll();
-      setAgents(res.data?.data || res.data || []);
+      setAgents(unwrapApiData(res.data) || []);
       setShowAgentForm(false);
       setAgentForm({ name: '', phone: '', company: '' });
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed');
+      alert(getApiErrorMessage(err, 'Failed'));
     } finally {
       setSubmitting(false);
     }
@@ -113,11 +113,11 @@ export default function DeliveryPage() {
     try {
       await trucksApi.create(truckForm);
       const res = await trucksApi.getAll();
-      setTrucks(res.data?.data || res.data || []);
+      setTrucks(unwrapApiData(res.data) || []);
       setShowTruckForm(false);
       setTruckForm({ plate_number: '', model: '', delivery_agent_id: '' });
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed');
+      alert(getApiErrorMessage(err, 'Failed'));
     } finally {
       setSubmitting(false);
     }

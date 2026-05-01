@@ -1,4 +1,3 @@
-const { z } = require("zod");
 const {
   listCustomers: listCustomersDb,
   createCustomer: createCustomerDb,
@@ -7,77 +6,57 @@ const {
   listUsers: listUsersDb,
   getUserById,
 } = require("../repositories");
+const { success, created, noContent } = require("../utils/response");
+const {
+  asyncHandler,
+  BadRequestError,
+  NotFoundError,
+} = require("../errors");
 
-async function listCustomers(_req, res) {
+const listCustomers = asyncHandler(async (_req, res) => {
   const customers = await listCustomersDb();
-  res.json(customers);
-}
+  return success(res, customers);
+});
 
-async function listCustomerUsers(_req, res) {
+const listCustomerUsers = asyncHandler(async (_req, res) => {
   const users = await listUsersDb();
   const customerUsers = users.filter((user) => user.role === "Customer" && user.isActive);
-  res.json(customerUsers);
-}
+  return success(res, customerUsers);
+});
 
-async function validateCustomerUserOrRespond(userId, res) {
+async function validateCustomerUser(userId) {
   const user = await getUserById(userId);
   if (!user || !user.isActive) {
-    res.status(400).json({ message: "Customer user not found" });
-    return false;
+    throw new BadRequestError("Customer user not found");
   }
   if (user.role !== "Customer") {
-    res.status(400).json({ message: "Selected user must have Customer role" });
-    return false;
+    throw new BadRequestError("Selected user must have Customer role");
   }
-  return true;
+  return user;
 }
 
-async function createCustomer(req, res) {
-  const schema = z.object({
-    name: z.string().min(2),
-    phone: z.string().optional().default(""),
-    address: z.string().min(1),
-    userId: z.string().min(1),
-    subAddress: z.string().optional().default(""),
-  });
-  const parsed = schema.safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({ message: "Invalid customer payload" });
-  }
-  const isUserValid = await validateCustomerUserOrRespond(parsed.data.userId, res);
-  if (!isUserValid) return;
-  const customer = await createCustomerDb(parsed.data);
-  return res.status(201).json(customer);
-}
+const createCustomer = asyncHandler(async (req, res) => {
+  await validateCustomerUser(req.body.userId);
+  const customer = await createCustomerDb(req.body);
+  return created(res, customer);
+});
 
-async function updateCustomer(req, res) {
-  const schema = z.object({
-    name: z.string().min(2),
-    phone: z.string().optional().default(""),
-    address: z.string().min(1),
-    userId: z.string().min(1),
-    subAddress: z.string().optional().default(""),
-  });
-  const parsed = schema.safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({ message: "Invalid customer payload" });
-  }
-  const isUserValid = await validateCustomerUserOrRespond(parsed.data.userId, res);
-  if (!isUserValid) return;
-  const customer = await updateCustomerDb(req.params.id, parsed.data);
+const updateCustomer = asyncHandler(async (req, res) => {
+  await validateCustomerUser(req.body.userId);
+  const customer = await updateCustomerDb(req.params.id, req.body);
   if (!customer) {
-    return res.status(404).json({ message: "Customer not found" });
+    throw new NotFoundError("Customer not found");
   }
-  return res.json(customer);
-}
+  return success(res, customer);
+});
 
-async function deleteCustomer(req, res) {
+const deleteCustomer = asyncHandler(async (req, res) => {
   const deleted = await deleteCustomerDb(req.params.id);
   if (!deleted) {
-    return res.status(404).json({ message: "Customer not found" });
+    throw new NotFoundError("Customer not found");
   }
-  return res.status(204).send();
-}
+  return noContent(res);
+});
 
 module.exports = {
   listCustomers,

@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import {
   User, Mail, Shield, LogOut,
-  Globe, Bell, HelpCircle, Info
+  Globe, HelpCircle, Info
 } from 'lucide-react';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -57,7 +57,6 @@ export default function ProfilePage() {
     : 'U';
 
   const menuItems = [
-    { icon: Bell, label: t('profile.notifications'), desc: t('profile.manageAlerts') },
     {
       type: 'language',
       icon: Globe,

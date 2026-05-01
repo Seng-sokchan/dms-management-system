@@ -12,6 +12,10 @@ export async function updateOrderStatus(token, orderId, payload) {
   return apiClient.post(`/orders/${orderId}/status`, payload, authConfig(token));
 }
 
+export async function moveOrderStatus(token, orderId, payload) {
+  return apiClient.post(`/orders/${orderId}/move-status`, payload, authConfig(token));
+}
+
 export async function updateOrderAssignment(token, orderId, payload) {
   return apiClient.post(`/orders/${orderId}`, payload, authConfig(token));
 }

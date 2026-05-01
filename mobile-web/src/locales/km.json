@@ -8,7 +8,6 @@
     "khmer": "ខ្មែរ"
   },
   "header": {
-    "notifications": "ការជូនដំណឹង",
     "logout": "ចាកចេញ"
   },
   "nav": {
@@ -34,8 +33,6 @@
     "username": "ឈ្មោះអ្នកប្រើ",
     "role": "តួនាទី",
     "settings": "ការកំណត់",
-    "notifications": "ការជូនដំណឹង",
-    "manageAlerts": "គ្រប់គ្រងការជូនដំណឹង",
     "helpSupport": "ជំនួយ និងគាំទ្រ",
     "getAssistance": "ទទួលជំនួយ",
     "about": "អំពីកម្មវិធី",

@@ -4,7 +4,20 @@ const mysql = require("mysql2/promise");
 const bcrypt = require("bcryptjs");
 require("dotenv").config();
 
+function getSeedPassword(name, fallback) {
+  const value = process.env[name];
+  if (value && String(value).trim()) return String(value).trim();
+  // Local/test environments can safely use fallback seed passwords.
+  // Production is already protected by ALLOW_PRODUCTION_DB_INIT gate below.
+  if (process.env.NODE_ENV !== "production") return fallback;
+  throw new Error(`Missing required seed password env: ${name}`);
+}
+
 async function run() {
+  if (process.env.NODE_ENV === "production" && process.env.ALLOW_PRODUCTION_DB_INIT !== "true") {
+    throw new Error("Refusing to run initDatabase in production without ALLOW_PRODUCTION_DB_INIT=true");
+  }
+
   const rootConn = await mysql.createConnection({
     host: process.env.DB_HOST || "127.0.0.1",
     port: Number(process.env.DB_PORT || 3306),
@@ -68,11 +81,11 @@ async function run() {
      (5, 'overview'), (5, 'orders'), (5, 'payments')`,
   );
 
-  const adminHash = bcrypt.hashSync("admin123", 10);
-  const ownerHash = bcrypt.hashSync("owner123", 10);
-  const logisticsHash = bcrypt.hashSync("logistics123", 10);
-  const deliveryHash = bcrypt.hashSync("delivery123", 10);
-  const customerHash = bcrypt.hashSync("customer123", 10);
+  const adminHash = bcrypt.hashSync(getSeedPassword("SEED_ADMIN_PASSWORD", "admin123"), 10);
+  const ownerHash = bcrypt.hashSync(getSeedPassword("SEED_OWNER_PASSWORD", "owner123"), 10);
+  const logisticsHash = bcrypt.hashSync(getSeedPassword("SEED_LOGISTICS_PASSWORD", "logistics123"), 10);
+  const deliveryHash = bcrypt.hashSync(getSeedPassword("SEED_DELIVERY_PASSWORD", "delivery123"), 10);
+  const customerHash = bcrypt.hashSync(getSeedPassword("SEED_CUSTOMER_PASSWORD", "customer123"), 10);
   await dbConn.query(
     `INSERT INTO users (id, name, username, password_hash, role_id, is_active, updated_at) VALUES
       (1, 'System Admin', 'admin', '${adminHash}', 1, 1, NOW()),
@@ -143,16 +156,16 @@ async function run() {
 
   await dbConn.query(
     `INSERT INTO orders
-    (id, customer_id, address, order_group_id, item_id, ordered_qty, unit_price, producer_id, truck_id, delivery_agent_id,
+    (id, customer_id, address, order_group_id, item_id, currency, ordered_qty, unit_price, producer_id, truck_id, delivery_agent_id,
      delivered_qty, loss_qty, remaining_qty, discrepancy, amount_total, amount_paid, payment_status, status, delivery_time, updated_at)
     VALUES
-    (1, 1, 1, 1, 1, 10, 12.50, 1, 1, 1,
+    (1, 1, 1, 1, 1, 'USD', 10, 12.50, 1, 1, 1,
       0, 0, 0, 0, 125.00, 0.00, 1, 1, NULL, NOW()),
-    (2, 2, 2, 1, 4, 100, 8.00, 2, 2, 2,
+    (2, 2, 2, 1, 4, 'USD', 100, 8.00, 2, 2, 2,
       0, 0, 0, 0, 800.00, 200.00, 1, 2, NULL, NOW()),
-    (3, 3, 3, 2, 2, 50, 3.20, 1, 1, 1,
+    (3, 3, 3, 2, 2, 'USD', 50, 3.20, 1, 1, 1,
       50, 0, 0, 0, 160.00, 160.00, 2, 6, NOW(), NOW()),
-    (4, 4, 4, 3, 5, 4, 18.00, 2, 2, 1,
+    (4, 4, 4, 3, 5, 'USD', 4, 18.00, 2, 2, 1,
       4, 0, 0, 0, 72.00, 72.00, 2, 6, NOW(), NOW())`,
   );
 

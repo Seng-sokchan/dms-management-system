@@ -1,6 +1,6 @@
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
-const { listMenuKeysForRoleName } = require("../repositories");
+const { listMenuKeysForRoleName, getUserById } = require("../repositories");
 
 function getJwtSecret() {
   if (!process.env.JWT_SECRET) {
@@ -17,26 +17,48 @@ function createToken(user) {
   );
 }
 
-function requireAuth(req, res, next) {
+async function requireAuth(req, res, next) {
   const header = req.headers.authorization || "";
   const [, token] = header.split(" ");
 
   if (!token) {
-    return res.status(401).json({ message: "Missing bearer token" });
+    return res.status(401).json({
+      success: false,
+      error: { code: "UNAUTHORIZED", message: "Missing bearer token" },
+    });
   }
 
   try {
-    req.user = jwt.verify(token, getJwtSecret());
+    const decoded = jwt.verify(token, getJwtSecret());
+    const currentUser = await getUserById(decoded.sub);
+    if (!currentUser || !currentUser.isActive) {
+      return res.status(401).json({
+        success: false,
+        error: { code: "UNAUTHORIZED", message: "Invalid token" },
+      });
+    }
+    req.user = {
+      ...decoded,
+      name: currentUser.name,
+      username: currentUser.username,
+      role: currentUser.role,
+    };
     return next();
   } catch (_error) {
-    return res.status(401).json({ message: "Invalid token" });
+    return res.status(401).json({
+      success: false,
+      error: { code: "UNAUTHORIZED", message: "Invalid token" },
+    });
   }
 }
 
 function requireRoles(...roles) {
   return (req, res, next) => {
     if (!req.user || !roles.includes(req.user.role)) {
-      return res.status(403).json({ message: "Forbidden for this role" });
+      return res.status(401).json({
+        success: false,
+        error: { code: "UNAUTHORIZED", message: "Unauthorized for this role" },
+      });
     }
     return next();
   };
@@ -45,12 +67,18 @@ function requireRoles(...roles) {
 function requireMenuKey(menuKey) {
   return async (req, res, next) => {
     if (!req.user) {
-      return res.status(401).json({ message: "Missing bearer token" });
+      return res.status(401).json({
+        success: false,
+        error: { code: "UNAUTHORIZED", message: "Missing bearer token" },
+      });
     }
     try {
       const allowed = await listMenuKeysForRoleName(req.user.role);
       if (!allowed.includes(menuKey)) {
-        return res.status(403).json({ message: "This menu is not enabled for your role" });
+        return res.status(401).json({
+          success: false,
+          error: { code: "UNAUTHORIZED", message: "Unauthorized menu access" },
+        });
       }
       return next();
     } catch (error) {

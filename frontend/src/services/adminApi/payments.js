@@ -1,4 +1,4 @@
-import { apiClient, authConfig } from "../apiClient";
+import { apiClient, authConfig, unwrapApiData } from "../apiClient";
 
 export async function createPayment(token, payload) {
   return apiClient.post("/payments", payload, authConfig(token));
@@ -18,7 +18,7 @@ export async function confirmPaymentKhqrTransaction(token, payload) {
 
 export async function fetchBakongTokenStatus(token) {
   const response = await apiClient.get("/payments/bakong-token", authConfig(token));
-  return response.data;
+  return unwrapApiData(response.data);
 }
 
 export async function saveBakongToken(token, accessToken) {

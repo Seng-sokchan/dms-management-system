@@ -5,13 +5,18 @@ const { unwrapProcedureRows, getProcedureMeta } = require("./unwrap");
 const { getStatusIdByName, getPaymentStatusIdByName } = require("./lookups");
 const { getTruckById } = require("./trucks");
 
+function resolveExecutor(executor) {
+  return executor || getPool();
+}
+
 async function listOrders() {
   const [rows] = await getPool().query("CALL sp_list_orders()");
   return unwrapProcedureRows(rows).map(mapOrder);
 }
 
-async function getOrderById(id) {
-  const [rows] = await getPool().query("CALL sp_get_order_by_id(?)", [id]);
+async function getOrderById(id, executor) {
+  const db = resolveExecutor(executor);
+  const [rows] = await db.query("CALL sp_get_order_by_id(?)", [id]);
   const resultRows = unwrapProcedureRows(rows);
   return resultRows[0] ? mapOrder(resultRows[0]) : null;
 }
@@ -41,12 +46,13 @@ async function createOrder(payload) {
   if (!statusId) {
     throw new Error("Status not found");
   }
-  const [rowsRaw] = await getPool().query("CALL sp_create_order(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [
+  const [rowsRaw] = await getPool().query("CALL sp_create_order(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [
     customerId,
     addressId,
     itemId,
     order.orderedQty,
     order.unitPrice,
+    order.currency || "USD",
     producerId,
     truckId,
     deliveryAgentId,

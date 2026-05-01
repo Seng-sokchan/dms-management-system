@@ -1,4 +1,4 @@
-import { apiClient, authConfig } from "../apiClient";
+import { apiClient, authConfig, unwrapApiData } from "../apiClient";
 
 /**
  * Route-aware dashboard load so each page requests only needed data.
@@ -15,6 +15,7 @@ const ROUTE_DATA_MAP = {
   "/users": ["users", "roleMenus"],
   "/activity-logs": ["activityLogs"],
   "/orders": ["orders", "statuses"],
+  "/order-movement": ["orders", "statuses"],
   "/payments": ["orders", "payments", "paymentMethods"],
 };
 
@@ -25,8 +26,8 @@ function getKeysForRoute(pathname = "/overview") {
 export async function fetchDashboardData(token, pathname = "/overview") {
   const config = authConfig(token);
   const profile = await apiClient.get("/users/me", config);
-  const user = profile.data;
-  const canManageCustomers = profile.data?.role === "Admin" || profile.data?.role === "Owner";
+  const user = unwrapApiData(profile.data);
+  const canManageCustomers = user?.role === "Admin" || user?.role === "Owner";
   const routeKeys = getKeysForRoute(pathname);
   const requested = new Set(routeKeys);
 
@@ -67,72 +68,88 @@ export async function fetchDashboardData(token, pathname = "/overview") {
 
   queue("summary", async () => {
     const res = await apiClient.get("/dashboard/summary", config);
-    data.summary = res.data;
+    data.summary = unwrapApiData(res.data);
   });
   queue("statuses", async () => {
     const res = await apiClient.get("/statuses", config);
-    data.statuses = Array.isArray(res.data) ? res.data : [];
+    const rows = unwrapApiData(res.data);
+    data.statuses = Array.isArray(rows) ? rows : [];
   });
   queue("orders", async () => {
     const res = await apiClient.get("/orders", config);
-    data.orders = Array.isArray(res.data) ? res.data : [];
+    const rows = unwrapApiData(res.data);
+    data.orders = Array.isArray(rows) ? rows : [];
   });
   queue("customers", async () => {
     const res = await apiClient.get("/customers", config);
-    data.customers = Array.isArray(res.data) ? res.data : [];
+    const rows = unwrapApiData(res.data);
+    data.customers = Array.isArray(rows) ? rows : [];
   });
   queue("customerUsers", async () => {
     if (!canManageCustomers) return;
     const res = await apiClient.get("/customer-users", config);
-    data.customerUsers = Array.isArray(res.data) ? res.data : [];
+    const rows = unwrapApiData(res.data);
+    data.customerUsers = Array.isArray(rows) ? rows : [];
   });
   queue("addresses", async () => {
     const res = await apiClient.get("/addresses", config);
-    data.addresses = Array.isArray(res.data) ? res.data : [];
+    const rows = unwrapApiData(res.data);
+    data.addresses = Array.isArray(rows) ? rows : [];
   });
   queue("producers", async () => {
     const res = await apiClient.get("/producers", config);
-    data.producers = Array.isArray(res.data) ? res.data : [];
+    const rows = unwrapApiData(res.data);
+    data.producers = Array.isArray(rows) ? rows : [];
   });
   queue("deliveryAgents", async () => {
     const res = await apiClient.get("/delivery-agents", config);
-    data.deliveryAgents = Array.isArray(res.data) ? res.data : [];
+    const rows = unwrapApiData(res.data);
+    data.deliveryAgents = Array.isArray(rows) ? rows : [];
   });
   queue("trucks", async () => {
     const res = await apiClient.get("/trucks", config);
-    data.trucks = Array.isArray(res.data) ? res.data : [];
+    const rows = unwrapApiData(res.data);
+    data.trucks = Array.isArray(rows) ? rows : [];
   });
   queue("payments", async () => {
     const res = await apiClient.get("/payments", config);
-    data.payments = Array.isArray(res.data) ? res.data : [];
+    const rows = unwrapApiData(res.data);
+    data.payments = Array.isArray(rows) ? rows : [];
   });
   queue("paymentMethods", async () => {
     const res = await apiClient.get("/payment-methods", config);
-    data.paymentMethods = Array.isArray(res.data) ? res.data : [];
+    const rows = unwrapApiData(res.data);
+    data.paymentMethods = Array.isArray(rows) ? rows : [];
   });
   queue("catalogs", async () => {
     const res = await apiClient.get("/catalogs", config);
-    data.catalogs = Array.isArray(res.data) ? res.data : [];
+    const rows = unwrapApiData(res.data);
+    data.catalogs = Array.isArray(rows) ? rows : [];
   });
   queue("items", async () => {
     const res = await apiClient.get("/items", config);
-    data.items = Array.isArray(res.data) ? res.data : [];
+    const rows = unwrapApiData(res.data);
+    data.items = Array.isArray(rows) ? rows : [];
   });
   queue("orderGroups", async () => {
     const res = await apiClient.get("/order-groups", config);
-    data.orderGroups = Array.isArray(res.data) ? res.data : [];
+    const rows = unwrapApiData(res.data);
+    data.orderGroups = Array.isArray(rows) ? rows : [];
   });
   queue("users", async () => {
     const res = await apiClient.get("/users", config);
-    data.users = Array.isArray(res.data) ? res.data : [];
+    const rows = unwrapApiData(res.data);
+    data.users = Array.isArray(rows) ? rows : [];
   });
   queue("roleMenus", async () => {
     const res = await apiClient.get("/role-menus", config);
-    data.roleMenusByRole = res.data && typeof res.data === "object" ? res.data : null;
+    const payload = unwrapApiData(res.data);
+    data.roleMenusByRole = payload && typeof payload === "object" ? payload : null;
   });
   queue("activityLogs", async () => {
     const res = await apiClient.get("/activity-logs?limit=5000", config);
-    data.activityLogs = Array.isArray(res.data) ? res.data : [];
+    const rows = unwrapApiData(res.data);
+    data.activityLogs = Array.isArray(rows) ? rows : [];
   });
 
   await Promise.all(tasks);

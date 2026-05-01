@@ -49,11 +49,11 @@ Typical API:
 
 ---
 
-### Step 4 - Supplier Marks Order Ready
+### Step 4 - Send Out For Delivery
 
-- Action: supplier confirms product order is ready and hands over to truck.
+- Action: logistics confirms handover and starts truck delivery.
 - Status moves to:
-  - `SUPPLIER_ORDER_READY`
+  - `OUT_FOR_DELIVERY`
 
 Typical API:
 - `PATCH /api/orders/:id`
@@ -62,9 +62,7 @@ Typical API:
 
 ### Step 5 - Truck Delivers to Customer
 
-- Action: truck starts delivery to customer.
-- Status moves to:
-  - `OUT_FOR_DELIVERY`
+- Action: truck reaches customer and final delivery confirmation is prepared.
 
 ---
 
@@ -108,9 +106,8 @@ Typical API:
 1. `NEW_ORDER`
 2. `OWNER_PREPARING`
 3. `SENT_TO_LOGISTICS_SUPPLIER`
-4. `SUPPLIER_ORDER_READY`
-5. `OUT_FOR_DELIVERY`
-6. `RECEIVED_BY_CUSTOMER`
+4. `OUT_FOR_DELIVERY`
+5. `RECEIVED_BY_CUSTOMER`
 
 ### Payment status (`payment_statuses` table)
 

@@ -11,6 +11,7 @@ export const MENU_ITEMS = [
   { key: "deliveryAgents", path: "/delivery-agents", labelKey: "nav.delivery", subKey: "nav.deliverySub" },
   { key: "trucks", path: "/trucks", labelKey: "nav.trucks", subKey: "nav.trucksSub" },
   { key: "orders", path: "/orders", labelKey: "nav.orders", subKey: "nav.ordersSub" },
+  { key: "orderMovement", path: "/order-movement", labelKey: "nav.orderMovement", subKey: "nav.orderMovementSub" },
   { key: "payments", path: "/payments", labelKey: "nav.payments", subKey: "nav.paymentsSub" },
   { key: "users", path: "/users", labelKey: "nav.users", subKey: "nav.usersSub" },
   { key: "activityLogs", path: "/activity-logs", labelKey: "nav.activityLogs", subKey: "nav.activityLogsSub" },
@@ -42,6 +43,7 @@ export function canAccessPath(user, pathname) {
   const m = user?.allowedMenus;
   if (m == null) return true;
   if (m.length === 0) return false;
+  if (key === "orderMovement") return m.includes("orderMovement") || m.includes("orders");
   return m.includes(key);
 }
 

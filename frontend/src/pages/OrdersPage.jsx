@@ -117,7 +117,11 @@ export function OrdersPage({ orders }) {
                   {activeGroup.rows.map((row) => (
                     <tr key={row.id}>
                       <td>{row.customerName || t("orders.dash")}</td>
-                      <td>{row.itemName || t("orders.dash")}</td>
+                      <td>
+                        {row.itemName
+                          ? `#${row.id} - ${row.itemName}`
+                          : `#${row.id} - ${t("orders.dash")}`}
+                      </td>
                       <td>{getTruckLabel(row) || t("orders.dash")}</td>
                       <td>{row.orderedQty}</td>
                       <td>{row.status}</td>

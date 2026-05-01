@@ -8,6 +8,22 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+export function unwrapApiData(payload) {
+  if (payload && typeof payload === 'object' && Object.prototype.hasOwnProperty.call(payload, 'data')) {
+    return payload.data;
+  }
+  return payload;
+}
+
+export function getApiErrorMessage(error, fallback = 'Request failed') {
+  return (
+    error?.response?.data?.error?.message ||
+    error?.response?.data?.message ||
+    error?.message ||
+    fallback
+  );
+}
+
 // Inject token on every request
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('dms-mobile-token');

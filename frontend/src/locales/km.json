@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "Fix Asset",
+    "name": "Admin Panel",
     "tagline": "ផ្ទាំងប្រតិបត្តិការ",
     "footer": "v1 — ប្រើក្នុងផ្ទៃក្នុង",
     "breadcrumb": "ផ្ទាំងគ្រប់គ្រង",
@@ -18,7 +18,7 @@
   },
   "auth": {
     "eyebrow": "ការចូលដោយសុវត្ថិភាព",
-    "title": "គ្រប់គ្រង Fix Asset",
+    "title": "Admin Panel",
     "blurb": "ចូលដើម្បីគ្រប់គ្រងការកម្មង់ ការដឹកជញ្ជូន និងការទូទាត់។ ឧទាហរណ៍៖ admin / admin123, owner / owner123, logistics / logistics123, delivery / delivery123, customer1 / customer123",
     "username": "ឈ្មោះអ្នកប្រើ",
     "password": "ពាក្យសម្ងាត់",
@@ -46,6 +46,8 @@
     "trucksSub": "ទិន្នន័យគោលរថយន្ត",
     "orders": "ការកម្មង់",
     "ordersSub": "ខ្សែផលិតកម្ម & ដឹកជញ្ជូន",
+    "orderMovement": "ផ្លាស់ទីការកម្មង់",
+    "orderMovementSub": "ប្តូរស្ថានភាព",
     "payments": "ការទូទាត់",
     "paymentsSub": "កត់ត្រា & ប្រវត្តិ",
     "activityLogs": "កំណត់ហេតុសកម្មភាពអ្នកប្រើ",
@@ -62,6 +64,7 @@
     "deliveryAgents": "ភ្នាក់ងារដឹកជញ្ជូន",
     "trucks": "ឡានដឹកទំនិញ",
     "orders": "ការកម្មង់",
+    "orderMovement": "ផ្លាស់ទីការកម្មង់",
     "payments": "ការទូទាត់",
     "activityLogs": "កំណត់ហេតុសកម្មភាពអ្នកប្រើ"
   },
@@ -276,6 +279,17 @@
     "saveDelivery": "រក្សាទុក",
     "dash": "—"
   },
+  "orderMovement": {
+    "title": "ផ្លាស់ទីការកម្មង់",
+    "lead": "អនុញ្ញាតប្ដូរស្ថានភាពការកម្មង់ទៅមុខ ឬ ថយក្រោយ។",
+    "formTitle": "ប្ដូរស្ថានភាពការកម្មង់",
+    "order": "ការកម្មង់",
+    "selectOrder": "— ជ្រើសរើសការកម្មង់ —",
+    "status": "ស្ថានភាពគោលដៅ",
+    "selectStatus": "— ជ្រើសរើសស្ថានភាព —",
+    "currentStatus": "ស្ថានភាពបច្ចុប្បន្ន: {{status}}",
+    "move": "ប្ដូរស្ថានភាព"
+  },
   "payments": {
     "title": "ការទូទាត់",
     "lead": "កត់ត្រាការងាប់ទឹកប្រាក់ និងមើលប្រវត្តិ។",
@@ -348,7 +362,6 @@
       "NEW_ORDER": "ការកម្មង់ថ្មី",
       "OWNER_PREPARING": "ម្ចាស់រៀបចំ និងកំណត់ឡាន",
       "SENT_TO_LOGISTICS_SUPPLIER": "ផ្ញើទៅអ្នកផ្គត់ផ្គង់ឡូជីស្ទិក",
-      "SUPPLIER_ORDER_READY": "ការកម្មង់រួចរាល់ពីអ្នកផ្គត់ផ្គង់",
       "OUT_FOR_DELIVERY": "កំពុងដឹកជញ្ជូន",
       "RECEIVED_BY_CUSTOMER": "អតិថិជនបានទទួល"
     },
@@ -445,6 +458,11 @@
     "confirmBakongPayment": "មិនអាចកត់ត្រាការទូទាត់ក្នុងកម្មវិធី។ ការទូទាត់នៅតែជោគជ័យនៅលើ Bakong។",
     "updateRoleMenus": "មិនអាចរក្សាការចូលប្រើម៉ឺនុយសម្រាប់តួនាទីនោះ",
     "sessionExpired": "សម័យផុតកំណត់។ សូមចូលម្តងទៀត។"
+  },
+  "accessDenied": {
+    "title": "ការចូលប្រើត្រូវបានកំណត់",
+    "message": "តួនាទីគណនីរបស់អ្នកមិនអាចចូលប្រើ Admin Panel បានទេ។ សូមចូលដោយគណនី Admin ឬ Owner។",
+    "ok": "យល់ព្រម"
   },
   "success": {
     "welcome": "សូមស្វាគមន៍ {{name}}",

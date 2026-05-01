@@ -4,7 +4,7 @@ import {
   ArrowLeft, Clock, User, MapPin, Phone,
   Package, DollarSign, Truck, CheckCircle2
 } from 'lucide-react';
-import { ordersApi } from '../services/api';
+import { ordersApi, unwrapApiData } from '../services/api';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import StatusBadge from '../components/ui/StatusBadge';
@@ -14,7 +14,6 @@ const STATUS_STEPS = [
   { key: 'NEW_ORDER', label: 'New Order', icon: Package },
   { key: 'OWNER_PREPARING', label: 'Preparing', icon: Clock },
   { key: 'SENT_TO_LOGISTICS_SUPPLIER', label: 'To Logistics', icon: Truck },
-  { key: 'SUPPLIER_ORDER_READY', label: 'Ready', icon: CheckCircle2 },
   { key: 'OUT_FOR_DELIVERY', label: 'Delivering', icon: Truck },
   { key: 'RECEIVED_BY_CUSTOMER', label: 'Delivered', icon: CheckCircle2 },
 ];
@@ -32,7 +31,7 @@ export default function OrderDetailPage() {
         // Backend currently does not expose GET /orders/:id for mobile.
         // Use list endpoint and resolve selected record by id.
         const listRes = await ordersApi.getAll();
-        const rows = listRes.data?.data || listRes.data || [];
+        const rows = unwrapApiData(listRes.data) || [];
         const selected = (Array.isArray(rows) ? rows : []).find((row) => String(row.id) === String(id));
         if (!selected) {
           setOrder(null);

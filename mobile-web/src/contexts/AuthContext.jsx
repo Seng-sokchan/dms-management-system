@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { authApi } from '../services/api';
+import { authApi, unwrapApiData } from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -20,7 +20,7 @@ export function AuthProvider({ children }) {
     if (token) {
       authApi.getMe()
         .then(res => {
-          const userData = res.data?.data || res.data;
+          const userData = unwrapApiData(res.data);
           setUser(userData);
           localStorage.setItem('dms-mobile-user', JSON.stringify(userData));
         })
@@ -37,7 +37,7 @@ export function AuthProvider({ children }) {
 
   const login = useCallback(async (username, password) => {
     const res = await authApi.login({ username, password });
-    const { token: newToken, user: userData } = res.data?.data || res.data;
+    const { token: newToken, user: userData } = unwrapApiData(res.data) || {};
     localStorage.setItem('dms-mobile-token', newToken);
     localStorage.setItem('dms-mobile-user', JSON.stringify(userData));
     setUser(userData);

@@ -1,18 +1,14 @@
-/**
- * Zod schemas for customer endpoints.
- */
 const { z } = require("zod");
 
-const phoneRegex = /^[0-9+\-()\s]{6,20}$/;
-
 const createCustomerSchema = z.object({
-  name: z.string().trim().min(1).max(120),
-  phone: z.string().regex(phoneRegex, "Invalid phone number").optional(),
-  email: z.string().email().optional(),
-  addressId: z.string().optional(),
+  name: z.string().min(2),
+  phone: z.string().optional().default(""),
+  address: z.string().min(1),
+  userId: z.string().min(1),
+  subAddress: z.string().optional().default(""),
 });
 
-const updateCustomerSchema = createCustomerSchema.partial();
+const updateCustomerSchema = createCustomerSchema;
 
 const customerIdParamsSchema = z.object({
   id: z.string().min(1),

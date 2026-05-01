@@ -2,6 +2,10 @@ const { getPool } = require("../db/pool");
 const { nowIso } = require("../utils");
 const { unwrapProcedureRows, getProcedureMeta } = require("./unwrap");
 
+function resolveExecutor(executor) {
+  return executor || getPool();
+}
+
 function mapRow(row) {
   if (!row) return null;
   return {
@@ -17,14 +21,15 @@ function mapRow(row) {
   };
 }
 
-async function getBakongTransactionByMd5(md5) {
+async function getBakongTransactionByMd5(md5, executor) {
+  const db = resolveExecutor(executor);
   try {
-    const [rowsRaw] = await getPool().query("CALL sp_get_bakong_transaction_by_md5(?)", [md5]);
+    const [rowsRaw] = await db.query("CALL sp_get_bakong_transaction_by_md5(?)", [md5]);
     const rows = unwrapProcedureRows(rowsRaw);
     return mapRow(rows[0]);
   } catch (error) {
     if (error?.code !== "ER_SP_DOES_NOT_EXIST") throw error;
-    const [rows] = await getPool().query(
+    const [rows] = await db.query(
       `SELECT id, order_id, payment_id, md5, status, message, amount, external_ref, raw_payload
        FROM bakong_transactions
        WHERE md5 = ?
@@ -35,7 +40,8 @@ async function getBakongTransactionByMd5(md5) {
   }
 }
 
-async function createBakongTransaction(payload) {
+async function createBakongTransaction(payload, executor) {
+  const db = resolveExecutor(executor);
   const params = [
     Number(payload.orderId),
     payload.paymentId ? Number(payload.paymentId) : null,
@@ -60,17 +66,17 @@ async function createBakongTransaction(payload) {
   ];
 
   try {
-    const [createRowsRaw] = await getPool().query(
+    const [createRowsRaw] = await db.query(
       "CALL sp_create_bakong_transaction(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       params,
     );
     const meta = getProcedureMeta(createRowsRaw);
-    const [rowsRaw] = await getPool().query("CALL sp_get_bakong_transaction_by_id(?)", [meta.insertId]);
+    const [rowsRaw] = await db.query("CALL sp_get_bakong_transaction_by_id(?)", [meta.insertId]);
     const rows = unwrapProcedureRows(rowsRaw);
     return mapRow(rows[0]);
   } catch (error) {
     if (error?.code !== "ER_SP_DOES_NOT_EXIST") throw error;
-    const [result] = await getPool().query(
+    const [result] = await db.query(
       `INSERT INTO bakong_transactions (
         order_id, payment_id, md5, status, message, tx_hash, from_account_id, to_account_id,
         currency, amount, description_text, created_date_ms, acknowledged_date_ms, tracking_status,
@@ -78,7 +84,7 @@ async function createBakongTransaction(payload) {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       params,
     );
-    const [rows] = await getPool().query(
+    const [rows] = await db.query(
       `SELECT id, order_id, payment_id, md5, status, message, amount, external_ref, raw_payload
        FROM bakong_transactions
        WHERE id = ?`,
@@ -88,14 +94,15 @@ async function createBakongTransaction(payload) {
   }
 }
 
-async function updateBakongTransactionPaymentIdByMd5(md5, paymentId) {
+async function updateBakongTransactionPaymentIdByMd5(md5, paymentId, executor) {
+  const db = resolveExecutor(executor);
   try {
-    await getPool().query("CALL sp_update_bakong_transaction_payment_id_by_md5(?, ?, ?)", [
+    await db.query("CALL sp_update_bakong_transaction_payment_id_by_md5(?, ?, ?)", [
       Number(paymentId), nowIso(), String(md5),
     ]);
   } catch (error) {
     if (error?.code !== "ER_SP_DOES_NOT_EXIST") throw error;
-    await getPool().query(
+    await db.query(
       "UPDATE bakong_transactions SET payment_id = ?, updated_at = ? WHERE md5 = ?",
       [Number(paymentId), nowIso(), String(md5)],
     );

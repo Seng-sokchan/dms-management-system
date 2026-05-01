@@ -5,10 +5,11 @@ const {
   updateProducer: updateProducerDb,
   deleteProducer: deleteProducerDb,
 } = require("../repositories");
+const { success, created, noContent, fail } = require("../utils/response");
 
 async function listProducers(_req, res) {
   const producers = await listProducersDb();
-  res.json(producers);
+  return success(res, producers);
 }
 
 function producerSchema() {
@@ -22,30 +23,30 @@ function producerSchema() {
 async function createProducer(req, res) {
   const parsed = producerSchema().safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ message: "Invalid producer payload" });
+    return fail(res, { status: 400, message: "Invalid producer payload" });
   }
   const producer = await createProducerDb(parsed.data);
-  return res.status(201).json(producer);
+  return created(res, producer);
 }
 
 async function updateProducer(req, res) {
   const parsed = producerSchema().safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ message: "Invalid producer payload" });
+    return fail(res, { status: 400, message: "Invalid producer payload" });
   }
   const producer = await updateProducerDb(req.params.id, parsed.data);
   if (!producer) {
-    return res.status(404).json({ message: "Producer not found" });
+    return fail(res, { status: 400, message: "Producer not found" });
   }
-  return res.json(producer);
+  return success(res, producer);
 }
 
 async function deleteProducer(req, res) {
   const deleted = await deleteProducerDb(req.params.id);
   if (!deleted) {
-    return res.status(404).json({ message: "Producer not found" });
+    return fail(res, { status: 400, message: "Producer not found" });
   }
-  return res.status(204).send();
+  return noContent(res);
 }
 
 module.exports = {

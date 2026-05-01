@@ -200,7 +200,6 @@ INSERT INTO status (id, name) VALUES
   (1, 'NEW_ORDER'),
   (2, 'OWNER_PREPARING'),
   (3, 'SENT_TO_LOGISTICS_SUPPLIER'),
-  (4, 'SUPPLIER_ORDER_READY'),
   (5, 'OUT_FOR_DELIVERY'),
   (6, 'RECEIVED_BY_CUSTOMER');
 
@@ -233,6 +232,7 @@ CREATE TABLE orders (
   address INT UNSIGNED NOT NULL,
   order_group_id INT UNSIGNED DEFAULT NULL,
   item_id INT UNSIGNED NOT NULL,
+  currency VARCHAR(10) NOT NULL DEFAULT 'USD',
   ordered_qty INT UNSIGNED NOT NULL,
   unit_price DECIMAL(14,2) NOT NULL,
   producer_id INT UNSIGNED DEFAULT NULL,
@@ -661,7 +661,7 @@ WHERE id = p_order_id;
 
 CREATE PROCEDURE sp_get_order_by_id(IN p_id INT UNSIGNED)
 SELECT
-  o.id, c.name AS customer_name, o.address, oa.name AS order_address_name, c.address AS customer_address_id, ca.name AS customer_address_name, c.sub_address AS customer_sub_address, o.customer_id, o.order_group_id, og.name AS order_group_name, o.item_id, o.ordered_qty, o.unit_price,
+  o.id, c.name AS customer_name, o.address, oa.name AS order_address_name, c.address AS customer_address_id, ca.name AS customer_address_name, c.sub_address AS customer_sub_address, o.customer_id, o.order_group_id, og.name AS order_group_name, o.item_id, o.currency, o.ordered_qty, o.unit_price,
   o.producer_id, o.truck_id, o.delivery_agent_id, o.delivery_time, o.delivered_qty, o.loss_qty, o.remaining_qty,
   o.discrepancy, o.amount_total, o.amount_paid, ps.name AS payment_status, o.delivery_proof_type, o.delivery_proof_value, s.name AS status, o.created_at, o.updated_at,
   c.phone AS customer_phone,
@@ -687,7 +687,7 @@ LIMIT 1;
 
 CREATE PROCEDURE sp_list_orders()
 SELECT
-  o.id, c.name AS customer_name, o.address, oa.name AS order_address_name, c.address AS customer_address_id, ca.name AS customer_address_name, c.sub_address AS customer_sub_address, o.customer_id, o.order_group_id, og.name AS order_group_name, o.item_id, o.ordered_qty, o.unit_price,
+  o.id, c.name AS customer_name, o.address, oa.name AS order_address_name, c.address AS customer_address_id, ca.name AS customer_address_name, c.sub_address AS customer_sub_address, o.customer_id, o.order_group_id, og.name AS order_group_name, o.item_id, o.currency, o.ordered_qty, o.unit_price,
   o.producer_id, o.truck_id, o.delivery_agent_id, o.delivery_time, o.delivered_qty, o.loss_qty, o.remaining_qty,
   o.discrepancy, o.amount_total, o.amount_paid, ps.name AS payment_status, o.delivery_proof_type, o.delivery_proof_value, s.name AS status, o.created_at, o.updated_at,
   c.phone AS customer_phone,
@@ -716,6 +716,7 @@ CREATE PROCEDURE sp_create_order(
   IN p_item_id INT UNSIGNED,
   IN p_ordered_qty DECIMAL(12,2),
   IN p_unit_price DECIMAL(12,2),
+  IN p_currency VARCHAR(10),
   IN p_producer_id INT UNSIGNED,
   IN p_truck_id INT UNSIGNED,
   IN p_delivery_agent_id INT UNSIGNED,
@@ -731,11 +732,11 @@ CREATE PROCEDURE sp_create_order(
 )
 BEGIN
   INSERT INTO orders (
-    customer_id, address, order_group_id, item_id, ordered_qty, unit_price, producer_id, truck_id, delivery_agent_id, delivery_time,
+    customer_id, address, order_group_id, item_id, currency, ordered_qty, unit_price, producer_id, truck_id, delivery_agent_id, delivery_time,
     delivered_qty, loss_qty, remaining_qty, discrepancy, amount_total, amount_paid, payment_status, status, updated_at
   )
   VALUES (
-    p_customer_id, p_address, NULL, p_item_id, p_ordered_qty, p_unit_price, p_producer_id, p_truck_id, p_delivery_agent_id, NULL,
+    p_customer_id, p_address, NULL, p_item_id, p_currency, p_ordered_qty, p_unit_price, p_producer_id, p_truck_id, p_delivery_agent_id, NULL,
     p_delivered_qty, p_loss_qty, p_remaining_qty, p_discrepancy, p_amount_total, p_amount_paid, p_payment_status, p_status, p_updated_at
   );
   SELECT LAST_INSERT_ID() AS insertId;
@@ -1432,5 +1433,61 @@ SET @sql_create_bakong_transactions := IF(
 PREPARE stmt_create_bakong_transactions FROM @sql_create_bakong_transactions;
 EXECUTE stmt_create_bakong_transactions;
 DEALLOCATE PREPARE stmt_create_bakong_transactions;
+
+-- 11) Ensure orders.currency exists and defaults to USD
+SET @has_orders_currency := (
+  SELECT COUNT(*)
+  FROM information_schema.columns
+  WHERE table_schema = DATABASE()
+    AND table_name = 'orders'
+    AND column_name = 'currency'
+);
+SET @sql_add_orders_currency := IF(
+  @has_orders_currency = 0,
+  'ALTER TABLE orders ADD COLUMN currency VARCHAR(10) NOT NULL DEFAULT ''USD'' AFTER item_id',
+  'SELECT 1'
+);
+PREPARE stmt_add_orders_currency FROM @sql_add_orders_currency;
+EXECUTE stmt_add_orders_currency;
+DEALLOCATE PREPARE stmt_add_orders_currency;
+
+UPDATE orders SET currency = 'USD' WHERE currency IS NULL OR currency = '';
+
+-- 12) Remove SUPPLIER_ORDER_READY and collapse flow to OUT_FOR_DELIVERY
+SET @supplier_ready_id := (
+  SELECT id FROM status WHERE name = 'SUPPLIER_ORDER_READY' LIMIT 1
+);
+SET @out_for_delivery_id := (
+  SELECT id FROM status WHERE name = 'OUT_FOR_DELIVERY' LIMIT 1
+);
+
+SET @sql_migrate_order_status_supplier_ready := IF(
+  @supplier_ready_id IS NOT NULL AND @out_for_delivery_id IS NOT NULL,
+  CONCAT('UPDATE orders SET status = ', @out_for_delivery_id, ' WHERE status = ', @supplier_ready_id),
+  'SELECT 1'
+);
+PREPARE stmt_migrate_order_status_supplier_ready FROM @sql_migrate_order_status_supplier_ready;
+EXECUTE stmt_migrate_order_status_supplier_ready;
+DEALLOCATE PREPARE stmt_migrate_order_status_supplier_ready;
+
+SET @sql_migrate_history_from_supplier_ready := IF(
+  @supplier_ready_id IS NOT NULL AND @out_for_delivery_id IS NOT NULL,
+  CONCAT('UPDATE order_status_history SET from_status = ', @out_for_delivery_id, ' WHERE from_status = ', @supplier_ready_id),
+  'SELECT 1'
+);
+PREPARE stmt_migrate_history_from_supplier_ready FROM @sql_migrate_history_from_supplier_ready;
+EXECUTE stmt_migrate_history_from_supplier_ready;
+DEALLOCATE PREPARE stmt_migrate_history_from_supplier_ready;
+
+SET @sql_migrate_history_to_supplier_ready := IF(
+  @supplier_ready_id IS NOT NULL AND @out_for_delivery_id IS NOT NULL,
+  CONCAT('UPDATE order_status_history SET to_status = ', @out_for_delivery_id, ' WHERE to_status = ', @supplier_ready_id),
+  'SELECT 1'
+);
+PREPARE stmt_migrate_history_to_supplier_ready FROM @sql_migrate_history_to_supplier_ready;
+EXECUTE stmt_migrate_history_to_supplier_ready;
+DEALLOCATE PREPARE stmt_migrate_history_to_supplier_ready;
+
+DELETE FROM status WHERE name = 'SUPPLIER_ORDER_READY';
 
 SET FOREIGN_KEY_CHECKS = 1;

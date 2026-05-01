@@ -16,7 +16,15 @@ const itemRepository = require("../repositories/items");
 const truckRepository = require("../repositories/trucks");
 const lookupRepository = require("../repositories/lookups");
 const overviewRepository = require("../repositories/overview");
-const { BadRequestError, NotFoundError } = require("../errors");
+const { BadRequestError, NotFoundError, ForbiddenError } = require("../errors");
+
+const STATUS_UPDATE_ROLES = new Set(["Admin", "Owner", "Logistics", "Delivery"]);
+const STATUS_OWNER_BY_TARGET = {
+  OWNER_PREPARING: new Set(["Admin", "Owner"]),
+  SENT_TO_LOGISTICS_SUPPLIER: new Set(["Admin", "Owner"]),
+  OUT_FOR_DELIVERY: new Set(["Admin", "Logistics", "Delivery"]),
+  RECEIVED_BY_CUSTOMER: new Set(["Admin", "Delivery"]),
+};
 
 // ---------------------------------------------------------------------------
 // Status helpers (pure)
@@ -89,6 +97,7 @@ async function create(payload) {
   }
 
   const unitPrice = payload.unitPrice ?? item.defaultUnitPriceUsd;
+  const currency = String(payload.currency || "USD").toUpperCase() === "KHR" ? "KHR" : "USD";
 
   return orderRepository.createOrder({
     customerId: payload.customerId,
@@ -96,6 +105,7 @@ async function create(payload) {
     itemId: payload.itemId,
     orderedQty: payload.orderedQty,
     unitPrice,
+    currency,
     producerId: payload.producerId ?? null,
     truckId: payload.truckId ?? null,
   });
@@ -123,13 +133,33 @@ async function assign(orderId, payload) {
 /**
  * Move an order to the given status. Validates the status exists.
  */
-async function updateStatus(orderId, nextStatus, { user }) {
+async function updateStatus(orderId, nextStatus, { user, allowReverse = false } = {}) {
   const order = await orderRepository.getOrderById(orderId);
   if (!order) throw new NotFoundError("Order not found");
+
+  if (!STATUS_UPDATE_ROLES.has(user?.role)) {
+    throw new ForbiddenError("Forbidden for this role");
+  }
 
   const validStatuses = await getStatusNames();
   if (!validStatuses.includes(nextStatus)) {
     throw new BadRequestError("Invalid status");
+  }
+
+  if (!allowReverse) {
+    const allowedNextStatuses = getNextAllowedStatuses(order.status, validStatuses);
+    if (!allowedNextStatuses.includes(nextStatus)) {
+      throw new BadRequestError("Invalid status transition", {
+        currentStatus: order.status,
+        requestedStatus: nextStatus,
+        allowedNextStatuses,
+      });
+    }
+  }
+
+  const allowedRolesForTarget = STATUS_OWNER_BY_TARGET[nextStatus];
+  if (allowedRolesForTarget && !allowedRolesForTarget.has(user?.role)) {
+    throw new ForbiddenError("You cannot move the order to this status");
   }
 
   return orderRepository.updateOrderStatus(orderId, nextStatus, {

@@ -5,10 +5,11 @@ const {
   updateDeliveryAgent: updateDeliveryAgentDb,
   deleteDeliveryAgent: deleteDeliveryAgentDb,
 } = require("../repositories");
+const { success, created, noContent, fail } = require("../utils/response");
 
 async function listDeliveryAgents(_req, res) {
   const deliveryAgents = await listDeliveryAgentsDb();
-  res.json(deliveryAgents);
+  return success(res, deliveryAgents);
 }
 
 function deliverySchema() {
@@ -22,30 +23,30 @@ function deliverySchema() {
 async function createDeliveryAgent(req, res) {
   const parsed = deliverySchema().safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ message: "Invalid delivery payload" });
+    return fail(res, { status: 400, message: "Invalid delivery payload" });
   }
   const deliveryAgent = await createDeliveryAgentDb(parsed.data);
-  return res.status(201).json(deliveryAgent);
+  return created(res, deliveryAgent);
 }
 
 async function updateDeliveryAgent(req, res) {
   const parsed = deliverySchema().safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ message: "Invalid delivery payload" });
+    return fail(res, { status: 400, message: "Invalid delivery payload" });
   }
   const deliveryAgent = await updateDeliveryAgentDb(req.params.id, parsed.data);
   if (!deliveryAgent) {
-    return res.status(404).json({ message: "Delivery agent not found" });
+    return fail(res, { status: 400, message: "Delivery agent not found" });
   }
-  return res.json(deliveryAgent);
+  return success(res, deliveryAgent);
 }
 
 async function deleteDeliveryAgent(req, res) {
   const deleted = await deleteDeliveryAgentDb(req.params.id);
   if (!deleted) {
-    return res.status(404).json({ message: "Delivery agent not found" });
+    return fail(res, { status: 400, message: "Delivery agent not found" });
   }
-  return res.status(204).send();
+  return noContent(res);
 }
 
 module.exports = {

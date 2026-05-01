@@ -16,15 +16,45 @@ const AppError = require("../errors/AppError");
 
 const isProd = process.env.NODE_ENV === "production";
 
+function buildSqlMessage(error) {
+  const sql = error?.sql ? String(error.sql) : null;
+  const params = error?.parameters ?? error?.params ?? null;
+  const sqlMessage = error?.sqlMessage || error?.message || "SQL query failed";
+  if (!sql) return null;
+  return {
+    message: `SQL query failed: ${sqlMessage}`,
+    details: {
+      query: sql,
+      params,
+      dbCode: error?.code || null,
+      dbErrno: error?.errno || null,
+      dbSqlState: error?.sqlState || null,
+    },
+  };
+}
+
 function errorHandler(error, req, res, _next) {
   const isApp = error instanceof AppError;
-  const status = isApp ? error.status : 500;
-  const code = isApp ? error.code : "INTERNAL_ERROR";
-  const message = isApp
-    ? error.message
-    : isProd
-      ? "Internal Server Error"
-      : error?.message || "Internal Server Error";
+  const sqlError = buildSqlMessage(error);
+
+  let status = 500;
+  let code = "INTERNAL_ERROR";
+  let message = "Internal Server Error";
+  let details;
+
+  if (isApp) {
+    status = error.status === 401 ? 401 : 400;
+    code = error.status === 401 ? "UNAUTHORIZED" : "BAD_REQUEST";
+    message = error.message;
+    details = error.details;
+  } else if (sqlError) {
+    status = 400;
+    code = "BAD_REQUEST";
+    message = sqlError.message;
+    details = sqlError.details;
+  } else if (!isProd && error?.message) {
+    message = error.message;
+  }
 
   logError("request_error", {
     method: req.method,
@@ -46,8 +76,8 @@ function errorHandler(error, req, res, _next) {
     success: false,
     error: { code, message },
   };
-  if (isApp && error.details) {
-    body.error.details = error.details;
+  if (details) {
+    body.error.details = details;
   }
 
   return res.status(status).json(body);

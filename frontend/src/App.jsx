@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { canAccessPath } from "./constants/menus";
 import { AdminLayout } from "./components/layout/AdminLayout";
 import { LoginForm } from "./features/auth/LoginForm";
@@ -7,6 +9,7 @@ import { CreateOrderPage } from "./pages/CreateOrderPage";
 import { DeliveryAgentsPage } from "./pages/DeliveryAgentsPage";
 import { TrucksPage } from "./pages/TrucksPage";
 import { OrdersPage } from "./pages/OrdersPage";
+import { OrderMovementPage } from "./pages/OrderMovementPage";
 import { OverviewPage } from "./pages/OverviewPage";
 import { PaymentsPage } from "./pages/PaymentsPage";
 import { CatalogsPage } from "./pages/CatalogsPage";
@@ -18,6 +21,7 @@ import { UserActivityLogsPage } from "./pages/UserActivityLogsPage";
 import "./App.css";
 
 function App() {
+  const { t } = useTranslation();
   const {
     auth,
     token,
@@ -76,6 +80,7 @@ function App() {
     submitTruckDelete,
     submitDeliveryConfirmation,
     submitOrderStatus,
+    submitOrderMovement,
     submitPayment,
     users,
     activityLogs,
@@ -89,6 +94,13 @@ function App() {
     refresh,
     logout,
   } = useAdminDashboard();
+  const isAllowedAdminPanelRole = user?.role === "Admin" || user?.role === "Owner";
+  const [showAccessDenied, setShowAccessDenied] = useState(false);
+
+  useEffect(() => {
+    if (!token || !user || isAllowedAdminPanelRole) return;
+    setShowAccessDenied(true);
+  }, [token, user, isAllowedAdminPanelRole, logout]);
 
   if (!token) {
     return (
@@ -106,6 +118,61 @@ function App() {
           }
         />
       </Routes>
+    );
+  }
+
+  if (user && !isAllowedAdminPanelRole) {
+    return (
+      <div className="auth-shell" style={{ position: "relative" }}>
+        {showAccessDenied ? (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(15, 23, 42, 0.45)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 9999,
+              backdropFilter: "blur(2px)",
+              padding: 16,
+            }}
+          >
+            <section
+              className="panel"
+              style={{
+                width: "100%",
+                maxWidth: 460,
+                borderRadius: 16,
+                boxShadow: "0 24px 48px rgba(15, 23, 42, 0.25)",
+              }}
+            >
+              <div className="panel-header">
+                <h3 style={{ margin: 0 }}>
+                  {t("accessDenied.title", { defaultValue: "Access Restricted" })}
+                </h3>
+              </div>
+              <p style={{ margin: "0 0 16px", color: "var(--text-muted)" }}>
+                {t("accessDenied.message", {
+                  defaultValue: "Your account role cannot access the Admin Panel. Please sign in with an Admin or Owner account.",
+                })}
+              </p>
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={() => {
+                    setShowAccessDenied(false);
+                    logout();
+                  }}
+                >
+                  {t("accessDenied.ok", { defaultValue: "OK" })}
+                </button>
+              </div>
+            </section>
+          </div>
+        ) : null}
+      </div>
     );
   }
 
@@ -287,6 +354,20 @@ function App() {
               statuses={statuses}
               onUpdateStatus={submitOrderStatus}
               onConfirmDelivery={submitDeliveryConfirmation}
+            />
+          ) : (
+            <Navigate to="/overview" replace />
+          ),
+        )}
+      />
+      <Route
+        path="/order-movement"
+        element={withLayout(
+          canAccessPath(user, "/order-movement") ? (
+            <OrderMovementPage
+              orders={orders}
+              statuses={statuses}
+              onMoveStatus={submitOrderMovement}
             />
           ) : (
             <Navigate to="/overview" replace />

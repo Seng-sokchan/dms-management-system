@@ -8,13 +8,20 @@ const {
   deactivateUser: deactivateUserDb,
   getUserById,
 } = require("../repositories");
+const { success, created, noContent } = require("../utils/response");
+const {
+  asyncHandler,
+  BadRequestError,
+  NotFoundError,
+  ConflictError,
+} = require("../errors");
 
-async function listUsers(_req, res) {
+const listUsers = asyncHandler(async (_req, res) => {
   const users = await listUsersDb();
-  res.json(users);
-}
+  return success(res, users);
+});
 
-async function createUser(req, res) {
+const createUser = asyncHandler(async (req, res) => {
   const schema = z.object({
     name: z.string().min(2),
     username: z.string().min(3),
@@ -23,9 +30,9 @@ async function createUser(req, res) {
   });
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ message: "Invalid user payload" });
+    throw new BadRequestError("Invalid user payload");
   }
-  const passwordHash = bcrypt.hashSync(parsed.data.password, 10);
+  const passwordHash = await bcrypt.hash(parsed.data.password, 10);
   try {
     const user = await createUserDb({
       name: parsed.data.name,
@@ -33,19 +40,19 @@ async function createUser(req, res) {
       role: parsed.data.role,
       passwordHash,
     });
-    return res.status(201).json(user);
+    return created(res, user);
   } catch (error) {
     if (error && error.message === "Role not found") {
-      return res.status(400).json({ message: "Role not found" });
+      throw new BadRequestError("Role not found");
     }
     if (error && error.code === "ER_DUP_ENTRY") {
-      return res.status(400).json({ message: "Username already exists" });
+      throw new ConflictError("Username already exists");
     }
     throw error;
   }
-}
+});
 
-async function updateUser(req, res) {
+const updateUser = asyncHandler(async (req, res) => {
   const schema = z.object({
     name: z.string().min(2).optional(),
     username: z.string().min(3).optional(),
@@ -54,52 +61,52 @@ async function updateUser(req, res) {
   });
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ message: "Invalid user payload" });
+    throw new BadRequestError("Invalid user payload");
   }
 
   if (req.user.sub === req.params.id && parsed.data.role && parsed.data.role !== req.user.role) {
-    return res.status(400).json({ message: "You cannot change your own role" });
+    throw new BadRequestError("You cannot change your own role");
   }
 
   const payload = {
     ...parsed.data,
-    passwordHash: parsed.data.password ? bcrypt.hashSync(parsed.data.password, 10) : undefined,
+    passwordHash: parsed.data.password ? await bcrypt.hash(parsed.data.password, 10) : undefined,
   };
   delete payload.password;
 
   try {
     const user = await updateUserDb(req.params.id, payload);
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      throw new NotFoundError("User not found");
     }
-    return res.json(user);
+    return success(res, user);
   } catch (error) {
     if (error && error.message === "Role not found") {
-      return res.status(400).json({ message: "Role not found" });
+      throw new BadRequestError("Role not found");
     }
     if (error && error.code === "ER_DUP_ENTRY") {
-      return res.status(400).json({ message: "Username already exists" });
+      throw new ConflictError("Username already exists");
     }
     throw error;
   }
-}
+});
 
-async function deactivateUser(req, res) {
+const deactivateUser = asyncHandler(async (req, res) => {
   if (req.user.sub === req.params.id) {
-    return res.status(400).json({ message: "You cannot deactivate your own account" });
+    throw new BadRequestError("You cannot deactivate your own account");
   }
 
   const existing = await getUserById(req.params.id);
   if (!existing) {
-    return res.status(404).json({ message: "User not found" });
+    throw new NotFoundError("User not found");
   }
 
   const deleted = await deactivateUserDb(req.params.id);
   if (!deleted) {
-    return res.status(400).json({ message: "User already inactive" });
+    throw new BadRequestError("User already inactive");
   }
-  return res.status(204).send();
-}
+  return noContent(res);
+});
 
 module.exports = {
   listUsers,

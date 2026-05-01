@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { DollarSign, QrCode, Filter, Clock, CreditCard, Banknote, ChevronRight } from 'lucide-react';
 import QRCode from 'qrcode';
-import { ordersApi, paymentsApi } from '../services/api';
+import { ordersApi, paymentsApi, itemsApi, unwrapApiData, getApiErrorMessage } from '../services/api';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import SearchBar from '../components/ui/SearchBar';
@@ -33,6 +33,7 @@ function resolvePaymentStatusFromOrder(order) {
 export default function PaymentsPage() {
   const [payments, setPayments] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
@@ -50,21 +51,28 @@ export default function PaymentsPage() {
   const handledSuccessMd5Ref = useRef(null);
 
   const fetchPayments = () => {
-    return Promise.allSettled([paymentsApi.getAll(), ordersApi.getAll()])
-      .then(([paymentsResult, ordersResult]) => {
+    return Promise.allSettled([paymentsApi.getAll(), ordersApi.getAll(), itemsApi.getAll()])
+      .then(([paymentsResult, ordersResult, itemsResult]) => {
         if (paymentsResult.status === 'fulfilled') {
-          const paymentData = paymentsResult.value.data?.data || paymentsResult.value.data || [];
+          const paymentData = unwrapApiData(paymentsResult.value.data) || [];
           setPayments(Array.isArray(paymentData) ? paymentData : []);
         } else {
           setPayments([]);
         }
 
         if (ordersResult.status === 'fulfilled') {
-          const orderData = ordersResult.value.data?.data || ordersResult.value.data || [];
+          const orderData = unwrapApiData(ordersResult.value.data) || [];
           setOrders(Array.isArray(orderData) ? orderData : []);
         } else {
           // Keep payment list visible even if orders endpoint fails.
           setOrders([]);
+        }
+
+        if (itemsResult.status === 'fulfilled') {
+          const itemData = unwrapApiData(itemsResult.value.data) || [];
+          setItems(Array.isArray(itemData) ? itemData : []);
+        } else {
+          setItems([]);
         }
       })
       .finally(() => setLoading(false));
@@ -74,14 +82,41 @@ export default function PaymentsPage() {
     fetchPayments();
   }, []);
 
+  const inferOrderCurrency = (order, item) => {
+    const explicit = String(order?.currency || order?.orderCurrency || '').toUpperCase();
+    if (explicit === 'KHR' || explicit === 'USD') return explicit;
+    const unitPrice = Number(order?.unitPrice || order?.unit_price || 0);
+    const usdPrice = Number(item?.defaultUnitPriceUsd ?? item?.default_unit_price_usd ?? 0);
+    const khrPrice = Number(item?.defaultUnitPriceKhr ?? item?.default_unit_price_khr ?? 0);
+    if (unitPrice > 0 && usdPrice > 0 && khrPrice > 0) {
+      const usdDiff = Math.abs(unitPrice - usdPrice);
+      const khrDiff = Math.abs(unitPrice - khrPrice);
+      return khrDiff < usdDiff ? 'KHR' : 'USD';
+    }
+    return unitPrice >= 1000 ? 'KHR' : 'USD';
+  };
+
+  const formatAmount = (amount, currency) => {
+    const safeCurrency = currency === 'KHR' ? 'KHR' : 'USD';
+    const value = Number(amount || 0);
+    const digits = safeCurrency === 'USD' ? 2 : 0;
+    return `${safeCurrency} ${value.toLocaleString(undefined, {
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits,
+    })}`;
+  };
+
   const normalizedPayments = useMemo(() => {
     const ordersById = new Map(orders.map((o) => [String(o.id), o]));
+    const itemsById = new Map(items.map((i) => [String(i.id), i]));
 
     const paymentRows = payments.map((payment) => {
       const amount = Number(payment.amount || 0);
       const orderIdNorm = String(payment.orderId || payment.order_id || payment.id || '');
       const linkedOrder = orderIdNorm ? ordersById.get(orderIdNorm) : null;
+      const linkedItem = linkedOrder?.itemId ? itemsById.get(String(linkedOrder.itemId)) : null;
       const fromOrder = resolvePaymentStatusFromOrder(linkedOrder);
+      const currency = inferOrderCurrency(linkedOrder, linkedItem);
       return {
         ...payment,
         orderId: payment.orderId || payment.order_id || payment.id,
@@ -94,6 +129,7 @@ export default function PaymentsPage() {
           ?? 'UNPAID',
         methodName: payment.methodName || payment.payment_method || 'Not set',
         amount,
+        currency,
         createdAt: payment.createdAt || payment.created_at,
       };
     });
@@ -110,6 +146,8 @@ export default function PaymentsPage() {
         const total = Number(order.amountTotal || order.amount_total || 0);
         const paid = Number(order.amountPaid || order.amount_paid || 0);
         const outstanding = Math.max(0, total - paid);
+        const linkedItem = order?.itemId ? itemsById.get(String(order.itemId)) : null;
+        const currency = inferOrderCurrency(order, linkedItem);
         return {
           id: `order-${order.id}`,
           orderId: String(order.id),
@@ -117,13 +155,14 @@ export default function PaymentsPage() {
           paymentStatus: resolvePaymentStatusFromOrder(order) || 'UNPAID',
           methodName: 'Not set',
           amount: outstanding,
+          currency,
           createdAt: order.createdAt || order.created_at,
           isOrderOutstanding: true,
         };
       });
 
     return [...paymentRows, ...unpaidOrderRows];
-  }, [payments, orders]);
+  }, [payments, orders, items]);
 
   const filtered = normalizedPayments.filter(p => {
     const matchSearch = !search ||
@@ -133,14 +172,6 @@ export default function PaymentsPage() {
       p.paymentStatus === activeFilter;
     return matchSearch && matchFilter;
   });
-
-  const totalPaid = normalizedPayments
-    .filter(p => p.paymentStatus === 'PAID')
-    .reduce((sum, p) => sum + Number(p.amount || 0), 0);
-
-  const totalUnpaid = normalizedPayments
-    .filter(p => p.paymentStatus === 'UNPAID')
-    .reduce((sum, p) => sum + Number(p.amount || 0), 0);
 
   const outstandingByOrderId = useMemo(() => {
     const map = new Map();
@@ -176,11 +207,11 @@ export default function PaymentsPage() {
       const amountToPay = amountOverride != null ? Number(amountOverride) : Number(payment.amount || 0);
       const requestPayload = {
         orderId: String(payment.orderId || payment.id),
-        currency: 'USD',
+        currency: String(payment.currency || 'USD').toUpperCase() === 'KHR' ? 'KHR' : 'USD',
       };
       // Let backend compute outstanding amount to avoid KHQR amount mismatch (400).
       const res = await paymentsApi.generateKHQR(requestPayload);
-      const responsePayload = res.data?.data || res.data || {};
+      const responsePayload = unwrapApiData(res.data) || {};
       const md5ForCheck = responsePayload.md5 || responsePayload.khqr || '';
       setPendingPayment(payment);
       setSelectedPayAmount(Number(responsePayload.amount || amountToPay || 0));
@@ -191,7 +222,7 @@ export default function PaymentsPage() {
         setKhqrMd5History([md5ForCheck]);
       }
     } catch (err) {
-      setQrData({ error: err.response?.data?.message || 'Failed to generate QR' });
+      setQrData({ error: getApiErrorMessage(err, 'Failed to generate QR') });
       setKhqrExpiresAt(null);
       setSecondsLeft(0);
     } finally {
@@ -203,7 +234,7 @@ export default function PaymentsPage() {
     if (!Array.isArray(md5List) || md5List.length === 0 || !pendingPayment) return;
     try {
       const response = await paymentsApi.checkKHQR(md5List);
-      const payload = response?.data || {};
+      const payload = unwrapApiData(response?.data) || {};
       const foundSuccess = getSuccessfulTransaction(payload);
       if (!foundSuccess) return;
 
@@ -286,22 +317,6 @@ export default function PaymentsPage() {
           </div>
         </div>
 
-        {/* Summary cards */}
-        <div className="grid grid-cols-2 gap-2.5 mb-3">
-          <div className="bg-success-50 rounded-xl p-3">
-            <p className="text-xs text-success-600 font-medium">Collected</p>
-            <p className="text-lg font-bold text-success-600">
-              ${totalPaid.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-            </p>
-          </div>
-          <div className="bg-danger-50 rounded-xl p-3">
-            <p className="text-xs text-danger-600 font-medium">Outstanding</p>
-            <p className="text-lg font-bold text-danger-600">
-              ${totalUnpaid.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-            </p>
-          </div>
-        </div>
-
         <SearchBar value={search} onChange={setSearch} placeholder="Search payments..." />
 
         {/* Filter chips */}
@@ -357,7 +372,7 @@ export default function PaymentsPage() {
                         {payment.createdAt ? new Date(payment.createdAt).toLocaleDateString() : '—'}
                       </span>
                       <span className="font-semibold text-text-primary text-sm">
-                        ${Number(payment.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        {formatAmount(payment.amount, payment.currency)}
                       </span>
                     </div>
                   </div>
@@ -391,14 +406,14 @@ export default function PaymentsPage() {
             <div className="text-center py-4">
               <p className="text-sm text-text-secondary mb-1">Amount</p>
               <p className="text-3xl font-bold">
-                ${Number(selectedPayment.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                {formatAmount(selectedPayment.amount, selectedPayment.currency)}
               </p>
               <div className="mt-2">
                 <StatusBadge status={displayStatus} />
               </div>
               {Number.isFinite(orderOutstanding) ? (
                 <p className="mt-2 text-xs text-text-secondary">
-                  Outstanding balance: ${Number(orderOutstanding).toFixed(2)}
+                  Outstanding balance: {formatAmount(orderOutstanding, selectedPayment.currency)}
                 </p>
               ) : null}
             </div>
@@ -487,7 +502,7 @@ export default function PaymentsPage() {
 
               {selectedPayAmount > 0 && (
                 <p className="text-2xl font-bold mb-1">
-                  ${Number(selectedPayAmount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  {formatAmount(selectedPayAmount, qrData?.currency || pendingPayment?.currency)}
                 </p>
               )}
               <p className="text-sm text-text-secondary mb-4">Scan with any Bakong-supported banking app</p>

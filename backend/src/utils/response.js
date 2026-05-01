@@ -6,8 +6,9 @@
  *   { success: false, error: { code, message, details? } }
  */
 
-function success(res, data, { status = 200, meta } = {}) {
+function success(res, data, { status = 201, meta, message } = {}) {
   const body = { success: true, data };
+  if (message) body.message = message;
   if (meta) body.meta = meta;
   return res.status(status).json(body);
 }
@@ -17,7 +18,11 @@ function created(res, data, opts = {}) {
 }
 
 function noContent(res) {
-  return res.status(204).end();
+  return res.status(201).json({
+    success: true,
+    message: "Request completed successfully",
+    data: null,
+  });
 }
 
 function fail(res, { status = 400, code = "BAD_REQUEST", message, details } = {}) {

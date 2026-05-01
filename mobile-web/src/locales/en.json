@@ -8,7 +8,6 @@
     "khmer": "Khmer"
   },
   "header": {
-    "notifications": "Notifications",
     "logout": "Sign out"
   },
   "nav": {
@@ -34,8 +33,6 @@
     "username": "Username",
     "role": "Role",
     "settings": "Settings",
-    "notifications": "Notifications",
-    "manageAlerts": "Manage alerts",
     "helpSupport": "Help & Support",
     "getAssistance": "Get assistance",
     "about": "About",

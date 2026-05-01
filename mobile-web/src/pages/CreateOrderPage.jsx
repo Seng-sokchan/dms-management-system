@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
-import { ordersApi, customersApi, itemsApi } from '../services/api';
+import { ordersApi, customersApi, itemsApi, unwrapApiData, getApiErrorMessage } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -40,7 +40,7 @@ export default function CreateOrderPage() {
 
   useEffect(() => {
     customersApi.getAll().then(res => {
-      const data = res.data?.data || res.data || [];
+      const data = unwrapApiData(res.data) || [];
       setCustomers(Array.isArray(data) ? data : []);
     }).catch(() => {});
   }, []);
@@ -61,7 +61,7 @@ export default function CreateOrderPage() {
       return;
     }
     itemsApi.getAll({ customerId: selectedCustomer }).then(res => {
-      const data = res.data?.data || res.data || [];
+      const data = unwrapApiData(res.data) || [];
       const nextItems = Array.isArray(data) ? data : [];
       setItems(nextItems);
       if (!nextItems.some((item) => String(item.id) === String(selectedItemId))) {
@@ -82,12 +82,13 @@ export default function CreateOrderPage() {
       await ordersApi.create({
         customerId: String(selectedCustomer),
         itemId: String(selectedItemId),
+        currency,
         orderedQty: qty > 0 ? qty : 1,
         unitPrice: unitPrice > 0 ? unitPrice : undefined,
       });
       navigate('/customer-orders', { replace: true });
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to create order');
+      alert(getApiErrorMessage(err, 'Failed to create order'));
     } finally {
       setSubmitting(false);
     }

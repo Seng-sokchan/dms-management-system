@@ -73,7 +73,7 @@ Fullstack implementation based on the attached plan:
 - Create customer, producer, and delivery agent.
 - Create a new order using an item from the catalog.
 - Move status step-by-step from `NEW_ORDER` to `RECEIVED_BY_CUSTOMER`.
-- In Confirm Orders, click `SUPPLIER READY` to move `SENT_TO_LOGISTICS_SUPPLIER` -> `SUPPLIER_ORDER_READY`.
+- In Confirm Orders, move `SENT_TO_LOGISTICS_SUPPLIER` -> `OUT_FOR_DELIVERY` directly.
 - Confirm delivered quantity and validate discrepancy result.
 - Record partial payment and verify `UNPAID` remains until full amount.
 - Record remaining payment and verify `PAID` status.

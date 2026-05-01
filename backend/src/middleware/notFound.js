@@ -1,5 +1,11 @@
 function notFound(_req, res) {
-  res.status(404).json({ message: "Not found" });
+  res.status(400).json({
+    success: false,
+    error: {
+      code: "BAD_REQUEST",
+      message: "Route not found",
+    },
+  });
 }
 
 module.exports = {

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import { getApiErrorMessage } from '../services/api';
 import { Lock, User, Package } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
@@ -23,7 +24,7 @@ export default function LoginPage() {
       await login(username, password);
       navigate('/', { replace: true });
     } catch (err) {
-      setError(err.response?.data?.message || t('login.invalidCredentials'));
+      setError(getApiErrorMessage(err, t('login.invalidCredentials')));
     } finally {
       setLoading(false);
     }

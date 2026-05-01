@@ -16,6 +16,7 @@ const PAGE_PATH_MAP = {
   "/delivery-agents": "deliveryAgents",
   "/trucks":          "trucks",
   "/orders":          "orders",
+  "/order-movement":  "orderMovement",
   "/payments":        "payments",
   "/users":           "users",
   "/activity-logs":   "activityLogs",
@@ -84,6 +85,16 @@ const NAV_ICONS = {
       <line x1="9"  y1="16" x2="13" y2="16" />
     </svg>
   ),
+  orderMovement: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 3h4v4" />
+      <path d="M3 7V3h4" />
+      <path d="M21 3l-7 7" />
+      <path d="M3 21l7-7" />
+      <path d="M7 21H3v-4" />
+      <path d="M21 17v4h-4" />
+    </svg>
+  ),
   payments: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <rect x="1" y="4" width="22" height="16" rx="2" />
@@ -128,7 +139,7 @@ const NAV_GROUPS = [
   {
     labelKey: "nav.sectionOrders",
     defaultLabel: "Orders",
-    keys: ["newOrder", "catalogs", "items", "customers", "producers", "orders"],
+    keys: ["newOrder", "catalogs", "items", "customers", "producers", "orders", "orderMovement"],
   },
   {
     labelKey: "nav.sectionFulfillment",
@@ -163,7 +174,12 @@ export function AdminLayout({ user, onLogout, flash, onFlashDismiss, children = 
     const allowed = user?.allowedMenus;
     if (!Array.isArray(allowed)) return MENU_ITEMS;
     if (allowed.length === 0) return [];
-    return MENU_ITEMS.filter((item) => allowed.includes(item.key));
+    return MENU_ITEMS.filter((item) => {
+      if (item.key === "orderMovement") {
+        return allowed.includes("orderMovement") || allowed.includes("orders");
+      }
+      return allowed.includes(item.key);
+    });
   }, [user?.role, user?.allowedMenus]);
 
   const visibleKeySet = useMemo(

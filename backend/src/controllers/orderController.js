@@ -54,6 +54,14 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
   return success(res, order);
 });
 
+const moveOrderStatus = asyncHandler(async (req, res) => {
+  const order = await orderService.updateStatus(req.params.id, req.body.status, {
+    user: req.user,
+    allowReverse: true,
+  });
+  return success(res, order);
+});
+
 const confirmDelivery = asyncHandler(async (req, res) => {
   const order = await orderService.confirmDelivery(req.params.id, req.body);
   return success(res, order);
@@ -87,6 +95,7 @@ module.exports = {
   createOrder,
   assignOrder,
   updateOrderStatus,
+  moveOrderStatus,
   confirmDelivery,
   dashboardSummary,
   deleteOrder,

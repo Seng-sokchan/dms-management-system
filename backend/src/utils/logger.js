@@ -25,7 +25,10 @@ function logError(message, details = {}) {
 
   // eslint-disable-next-line no-console
   console.error(line.trim());
-  fs.appendFileSync(errorLogFile, line, "utf8");
+  fs.promises.appendFile(errorLogFile, line, "utf8").catch(() => {
+    // eslint-disable-next-line no-console
+    console.error("Failed to write error log");
+  });
 }
 
 module.exports = {

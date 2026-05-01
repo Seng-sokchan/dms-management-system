@@ -4,7 +4,6 @@ const STATUS_STYLES = {
   NEW_ORDER: { bg: 'bg-primary-50', text: 'text-primary-600', label: 'New' },
   OWNER_PREPARING: { bg: 'bg-warning-50', text: 'text-warning-600', label: 'Preparing' },
   SENT_TO_LOGISTICS_SUPPLIER: { bg: 'bg-purple-50', text: 'text-purple-600', label: 'To Logistics' },
-  SUPPLIER_ORDER_READY: { bg: 'bg-blue-50', text: 'text-blue-600', label: 'Ready' },
   OUT_FOR_DELIVERY: { bg: 'bg-orange-50', text: 'text-orange-600', label: 'Delivering' },
   RECEIVED_BY_CUSTOMER: { bg: 'bg-success-50', text: 'text-success-600', label: 'Delivered' },
   PAID: { bg: 'bg-success-50', text: 'text-success-600', label: 'Paid' },

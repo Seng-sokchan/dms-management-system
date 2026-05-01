@@ -15,6 +15,7 @@ const {
   createOrder,
   assignOrder,
   updateOrderStatus,
+  moveOrderStatus,
   confirmDelivery,
   dashboardSummary,
   deleteOrder,
@@ -62,6 +63,14 @@ router.post(
 );
 
 router.post(
+  "/orders/:id/move-status",
+  requireAuth,
+  requireRoles("Admin", "Owner", "Logistics", "Delivery"),
+  validate({ params: orderIdParamsSchema, body: updateOrderStatusSchema }),
+  moveOrderStatus,
+);
+
+router.post(
   "/orders/:id",
   requireAuth,
   requireRoles("Admin", "Owner"),
@@ -83,6 +92,7 @@ router.get("/mobile/orders", requireAuth, mobileListOrders);
 router.post(
   "/mobile/orders/:id/status",
   requireAuth,
+  requireRoles("Admin", "Owner", "Logistics", "Delivery"),
   validate({ params: orderIdParamsSchema, body: updateOrderStatusSchema }),
   mobileUpdateStatus,
 );

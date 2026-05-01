@@ -5,10 +5,11 @@ const {
   updateTruck: updateTruckDb,
   deleteTruck: deleteTruckDb,
 } = require("../repositories");
+const { success, created, noContent, fail } = require("../utils/response");
 
 async function listTrucks(_req, res) {
   const trucks = await listTrucksDb();
-  res.json(trucks);
+  return success(res, trucks);
 }
 
 function truckSchema() {
@@ -23,30 +24,30 @@ function truckSchema() {
 async function createTruck(req, res) {
   const parsed = truckSchema().safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ message: "Invalid truck payload" });
+    return fail(res, { status: 400, message: "Invalid truck payload" });
   }
   const truck = await createTruckDb(parsed.data);
-  return res.status(201).json(truck);
+  return created(res, truck);
 }
 
 async function updateTruck(req, res) {
   const parsed = truckSchema().safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ message: "Invalid truck payload" });
+    return fail(res, { status: 400, message: "Invalid truck payload" });
   }
   const truck = await updateTruckDb(req.params.id, parsed.data);
   if (!truck) {
-    return res.status(404).json({ message: "Truck not found" });
+    return fail(res, { status: 400, message: "Truck not found" });
   }
-  return res.json(truck);
+  return success(res, truck);
 }
 
 async function deleteTruck(req, res) {
   const deleted = await deleteTruckDb(req.params.id);
   if (!deleted) {
-    return res.status(404).json({ message: "Truck not found" });
+    return fail(res, { status: 400, message: "Truck not found" });
   }
-  return res.status(204).send();
+  return noContent(res);
 }
 
 module.exports = {
