@@ -98,94 +98,12 @@ async function run() {
       (8, 'Customer User 4', 'customer4', '${customerHash}', 5, 1, NOW())`,
   );
 
-  await dbConn.query(
-    "INSERT INTO producers (id, name, phone, capacity_note, is_active, updated_at) VALUES " +
-      "(1, 'Green Valley Mfg', '010-555-1001', 'Bottling and crates; est. 8k units/day', 1, NOW()), " +
-      "(2, 'Urban Pack Co', '010-555-2002', 'Bags, labels, retail packs', 1, NOW())",
-  );
-
-  await dbConn.query(
-    "INSERT INTO delivery_agents (id, name, phone, vehicle_type, is_active, updated_at) VALUES " +
-      "(1, 'City Express', '010-555-3003', 'Van / city routes', 1, NOW()), " +
-      "(2, 'FleetLine Trucking', '010-555-4004', 'Flatbed / long haul', 1, NOW())",
-  );
-
-  await dbConn.query(
-    "INSERT INTO trucks (id, code, plate_no, delivery_agent_id, capacity_note, is_active, updated_at) VALUES " +
-      "(1, 'TRK-01', 'PP-2A-1234', 1, 'Medium box truck for city routes', 1, NOW()), " +
-      "(2, 'TRK-02', 'PP-2B-5678', 2, 'Large truck for mixed customer loads', 1, NOW())",
-  );
-
-  await dbConn.query(
-    "INSERT INTO order_groups (id, name, updated_at) VALUES " +
-      "(1, 'Phnom Penh', NOW()), " +
-      "(2, 'Battambang', NOW()), " +
-      "(3, 'Siem Reap', NOW())",
-  );
-
-  await dbConn.query(
-    "INSERT INTO addresses (id, name, order_group_id, updated_at) VALUES " +
-      "(1, 'Central Market', 1, NOW()), " +
-      "(2, 'Street 271', 1, NOW()), " +
-      "(3, 'City Center', 2, NOW()), " +
-      "(4, 'Old Market', 3, NOW())",
-  );
-
-  await dbConn.query(
-    "INSERT INTO customers (id, name, phone, address, user_id, sub_address, is_active, updated_at) VALUES " +
-      "(1, 'ACME Trading Co', '012-111-2001', 1, 5, 'No. 12, Central Market', 1, NOW()), " +
-      "(2, 'Bay Distributors', '012-222-3002', 2, 6, 'St. 271, Phnom Penh', 1, NOW()), " +
-      "(3, 'Summit Mart', '012-333-4003', 3, 7, 'Battambang city center', 1, NOW()), " +
-      "(4, 'Loft Organics', '012-444-5004', 4, 8, 'Siem Reap old market area', 1, NOW())",
-  );
-
-  await dbConn.query(
-    "INSERT INTO catalogs (id, name, note, is_active, updated_at) VALUES " +
-      "(1, 'Retail and POS', 'Store-facing SKUs and small packs', 1, NOW()), " +
-      "(2, 'Wholesale bulk', 'Bags, pallets, large consignments', 1, NOW())",
-  );
-
-  await dbConn.query(
-    "INSERT INTO items (id, catalog_id, name, sku, default_unit_price_usd, default_unit_price_khr, is_active, updated_at) VALUES " +
-      "(1, 1, 'Standard shipping crate', 'RC-CR-01', 12.50, 51250.00, 1, NOW()), " +
-      "(2, 1, 'Thermal label roll (2k)', 'LB-TL-2K', 3.20, 13120.00, 1, NOW()), " +
-      "(3, 1, 'Counter display box', 'DB-DSP-S', 5.00, 20500.00, 1, NOW()), " +
-      "(4, 2, 'Bulk bag 25kg', 'BK-B25', 8.00, 32800.00, 1, NOW()), " +
-      "(5, 2, 'Pallet corner set (4pc)', 'PL-CR-4', 18.00, 73800.00, 1, NOW())",
-  );
-
-  await dbConn.query(
-    `INSERT INTO orders
-    (id, customer_id, address, order_group_id, item_id, currency, ordered_qty, unit_price, producer_id, truck_id, delivery_agent_id,
-     delivered_qty, loss_qty, remaining_qty, discrepancy, amount_total, amount_paid, payment_status, status, delivery_time, updated_at)
-    VALUES
-    (1, 1, 1, 1, 1, 'USD', 10, 12.50, 1, 1, 1,
-      0, 0, 0, 0, 125.00, 0.00, 1, 1, NULL, NOW()),
-    (2, 2, 2, 1, 4, 'USD', 100, 8.00, 2, 2, 2,
-      0, 0, 0, 0, 800.00, 200.00, 1, 2, NULL, NOW()),
-    (3, 3, 3, 2, 2, 'USD', 50, 3.20, 1, 1, 1,
-      50, 0, 0, 0, 160.00, 160.00, 2, 6, NOW(), NOW()),
-    (4, 4, 4, 3, 5, 'USD', 4, 18.00, 2, 2, 1,
-      4, 0, 0, 0, 72.00, 72.00, 2, 6, NOW(), NOW())`,
-  );
 
   await dbConn.query(
     "INSERT INTO payment_methods (id, name) VALUES " +
       "(1, 'Cash'), " +
       "(2, 'Bank transfer'), " +
       "(3, 'Card')",
-  );
-
-  await dbConn.query(
-    "INSERT INTO payments (id, order_id, amount, method, note) VALUES " +
-      "(1, 2, 200.00, 2, 'Sample partial payment'), " +
-      "(2, 3, 160.00, 1, 'Sample: delivered line settled'), " +
-      "(3, 4, 72.00, 3, 'Sample: closed order')",
-  );
-
-  await dbConn.query(
-    "INSERT INTO order_status_history (order_id, from_status, to_status, changed_by_user_id, note) VALUES " +
-      "(2, 1, 2, 2, 'Sample: owner prepared and assigned to truck')",
   );
 
   await dbConn.end();
