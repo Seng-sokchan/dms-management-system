@@ -228,29 +228,46 @@ export function UsersPage({
         {users.length === 0 ? (
           <p className="entity-list-empty">{t("users.empty")}</p>
         ) : (
-          <ul className="entity-list-ul">
-            {users.map((user) => (
-              <li key={user.id} className="entity-list-item">
-                <span className="entity-list-name">{user.name}</span>
-                <span className="entity-list-meta">@{user.username}</span>
-                <span className="entity-list-meta">{t(`roles.${user.role}`, { defaultValue: user.role })}</span>
-                <span className="entity-list-meta">{user.isActive ? t("users.active") : t("users.inactive")}</span>
-                <div className="row-actions">
-                  <button type="button" className="btn-ghost btn-edit" onClick={() => startEdit(user)}>
-                    {t("users.edit")}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn-ghost btn-delete"
-                    onClick={() => void handleDelete(user.id)}
-                    disabled={currentUser?.id === user.id || !user.isActive}
-                  >
-                    {t("users.delete")}
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>{t("users.name")}</th>
+                  <th>{t("users.username")}</th>
+                  <th>{t("users.role")}</th>
+                  <th>{t("users.active")}/{t("users.inactive")}</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((user) => (
+                  <tr key={user.id}>
+                    <td>{user.id}</td>
+                    <td>{user.name}</td>
+                    <td>@{user.username}</td>
+                    <td>{t(`roles.${user.role}`, { defaultValue: user.role })}</td>
+                    <td>{user.isActive ? t("users.active") : t("users.inactive")}</td>
+                    <td>
+                      <div className="row-actions">
+                        <button type="button" className="btn-ghost btn-edit" onClick={() => startEdit(user)}>
+                          {t("users.edit")}
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-ghost btn-delete"
+                          onClick={() => void handleDelete(user.id)}
+                          disabled={currentUser?.id === user.id || !user.isActive}
+                        >
+                          {t("users.delete")}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
 

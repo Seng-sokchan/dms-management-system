@@ -81,8 +81,23 @@ function mapCustomer(row) {
     userId: row.user_id != null ? String(row.user_id) : "",
     userName: row.user_name || "",
     userUsername: row.user_username || "",
+    depotId: row.depot_id != null ? String(row.depot_id) : "",
+    depotName: row.depot_name || "",
     addressName: row.address_name || "",
     subAddress,
+  };
+}
+
+function mapDepot(row) {
+  return {
+    id: String(row.id),
+    name: row.name,
+    phone: row.phone || "",
+    address: row.address || "",
+    ownerUserId: row.owner_user_id != null ? String(row.owner_user_id) : "",
+    ownerUserName: row.owner_user_name || "",
+    depotUserId: row.depot_user_id != null ? String(row.depot_user_id) : "",
+    depotUserName: row.depot_user_name || "",
   };
 }
 
@@ -146,15 +161,42 @@ function mapUser(row) {
   };
 }
 
+function mapBorrowMaterial(row) {
+  return {
+    id: String(row.id),
+    name: row.name,
+    unit: row.unit || "",
+    note: row.note || "",
+  };
+}
+
+function mapCustomerBorrowedMaterial(row) {
+  return {
+    id: String(row.id),
+    customerId: row.customer_id != null ? String(row.customer_id) : "",
+    customerName: row.customer_name || "",
+    materialId: row.material_id != null ? String(row.material_id) : "",
+    materialName: row.material_name || "",
+    unit: row.unit || "",
+    qty: Number(row.qty || 0),
+    note: row.note || "",
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
 module.exports = {
   mapOrder,
   mapProducer,
   mapDelivery,
   mapTruck,
   mapCustomer,
+  mapDepot,
   mapCatalog,
   mapItem,
   mapAddress,
   mapPayment,
   mapUser,
+  mapBorrowMaterial,
+  mapCustomerBorrowedMaterial,
 };

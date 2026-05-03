@@ -17,7 +17,6 @@ const {
 
 // users / admin — role & menu access
 const {
-  getRoleIdByName,
   listMenuKeysForRoleName,
   listRoleMenusMap,
   replaceRoleMenus,
@@ -49,12 +48,41 @@ const {
 // customers
 const {
   listCustomers,
+  listCustomersByDepotId,
+  listCustomersByOwnerUserId,
   getCustomerById,
   getCustomerByUserId,
   createCustomer,
   updateCustomer,
   deleteCustomer,
 } = require("./customers");
+const {
+  listDepots,
+  listDepotsByOwnerUserId,
+  getDepotById,
+  getDepotByOwnerUserId,
+  getDepotByDepotUserId,
+  createDepot,
+  updateDepot,
+  deleteDepot,
+} = require("./depots");
+
+// borrowMaterials
+const {
+  listBorrowMaterials,
+  getBorrowMaterialById,
+  createBorrowMaterial,
+  updateBorrowMaterial,
+  deleteBorrowMaterial,
+} = require("./borrowMaterials");
+
+// customerBorrowedMaterials (per-customer current balance)
+const {
+  listCustomerBorrowedMaterialsByCustomer,
+  listAllCustomerBorrowedMaterials,
+  upsertCustomerBorrowedMaterial,
+  deleteCustomerBorrowedMaterial,
+} = require("./customerBorrowedMaterials");
 
 // producers
 const {
@@ -113,6 +141,10 @@ module.exports = {
   // select (list/report)
   listUsers,
   listCustomers,
+  listCustomersByDepotId,
+  listCustomersByOwnerUserId,
+  listDepots,
+  listDepotsByOwnerUserId,
   listProducers,
   listDeliveryAgents,
   listTrucks,
@@ -125,6 +157,9 @@ module.exports = {
   listPayments,
   listPaymentMethods,
   listUserActivityLogs,
+  listBorrowMaterials,
+  listCustomerBorrowedMaterialsByCustomer,
+  listAllCustomerBorrowedMaterials,
   getDashboardSummary,
 
   // get (single/read)
@@ -135,6 +170,9 @@ module.exports = {
   replaceRoleMenus,
   getCustomerById,
   getCustomerByUserId,
+  getDepotById,
+  getDepotByOwnerUserId,
+  getDepotByDepotUserId,
   getProducerById,
   getDeliveryAgentById,
   getTruckById,
@@ -142,10 +180,12 @@ module.exports = {
   getItemById,
   getOrderById,
   getOrderGroupById,
+  getBorrowMaterialById,
 
   // create
   createUser,
   createCustomer,
+  createDepot,
   createProducer,
   createDeliveryAgent,
   createTruck,
@@ -154,10 +194,12 @@ module.exports = {
   createOrder,
   createPayment,
   createUserActivityLog,
+  createBorrowMaterial,
 
   // update
   updateUser,
   updateCustomer,
+  updateDepot,
   updateProducer,
   updateDeliveryAgent,
   updateTruck,
@@ -173,13 +215,18 @@ module.exports = {
   getBakongTransactionByMd5,
   createBakongTransaction,
   updateBakongTransactionPaymentIdByMd5,
+  updateBorrowMaterial,
+  upsertCustomerBorrowedMaterial,
 
   // delete
   deactivateUser,
   deleteCustomer,
+  deleteDepot,
   deleteProducer,
   deleteDeliveryAgent,
   deleteTruck,
   deleteCatalog,
   deleteItem,
+  deleteBorrowMaterial,
+  deleteCustomerBorrowedMaterial,
 };

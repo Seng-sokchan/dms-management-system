@@ -2,8 +2,6 @@
 
 export function CreateOrderForm({
   customers = [],
-  producers = [],
-  trucks = [],
   items = [],
   customerReadonly = false,
   newOrder,
@@ -75,36 +73,6 @@ export function CreateOrderForm({
         placeholder={t("createOrder.orderedQty")}
         required
       />
-      <label className="form-label" htmlFor="order-producer">
-        {t("createOrder.producer")} <span className="form-optional">({t("createOrder.optional")})</span>
-      </label>
-      <select
-        id="order-producer"
-        value={newOrder.producerId || ""}
-        onChange={(event) => setNewOrder({ ...newOrder, producerId: event.target.value })}
-      >
-        <option value="">{t("createOrder.none")}</option>
-        {producers.map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.name}
-          </option>
-        ))}
-      </select>
-      <label className="form-label" htmlFor="order-delivery">
-        {t("createOrder.truck")} <span className="form-optional">({t("createOrder.optional")})</span>
-      </label>
-      <select
-        id="order-truck"
-        value={newOrder.truckId || ""}
-        onChange={(event) => setNewOrder({ ...newOrder, truckId: event.target.value })}
-      >
-        <option value="">{t("createOrder.none")}</option>
-        {trucks.map((truck) => (
-          <option key={truck.id} value={truck.id}>
-            {truck.code} ({truck.plateNo})
-          </option>
-        ))}
-      </select>
       <button type="submit" className="btn-primary" disabled={items.length === 0 || customers.length === 0}>
         {t("createOrder.submit")}
       </button>

@@ -12,7 +12,10 @@ DROP TABLE IF EXISTS items;
 DROP TABLE IF EXISTS catalogs;
 DROP TABLE IF EXISTS addresses;
 DROP TABLE IF EXISTS order_groups;
+DROP TABLE IF EXISTS customer_borrowed_materials;
+DROP TABLE IF EXISTS borrow_materials;
 DROP TABLE IF EXISTS customers;
+DROP TABLE IF EXISTS depots;
 DROP TABLE IF EXISTS trucks;
 DROP TABLE IF EXISTS delivery_agents;
 DROP TABLE IF EXISTS producers;
@@ -53,6 +56,26 @@ CREATE TABLE users (
   KEY idx_users_role_id (role_id),
   CONSTRAINT fk_users_role FOREIGN KEY (role_id) REFERENCES roles (id)
     ON UPDATE RESTRICT ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE depots (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  name VARCHAR(120) NOT NULL,
+  phone VARCHAR(30) DEFAULT '',
+  address VARCHAR(255) DEFAULT '',
+  owner_user_id INT UNSIGNED NOT NULL,
+  depot_user_id INT UNSIGNED DEFAULT NULL,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_depots_depot_user_id (depot_user_id),
+  KEY idx_depots_name (name),
+  KEY idx_depots_owner_user_id (owner_user_id),
+  CONSTRAINT fk_depots_owner_user FOREIGN KEY (owner_user_id) REFERENCES users (id)
+    ON UPDATE RESTRICT ON DELETE RESTRICT,
+  CONSTRAINT fk_depots_depot_user FOREIGN KEY (depot_user_id) REFERENCES users (id)
+    ON UPDATE RESTRICT ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE user_activity_logs (
@@ -142,6 +165,7 @@ CREATE TABLE customers (
   phone VARCHAR(30) DEFAULT '',
   address INT UNSIGNED NOT NULL,
   user_id INT UNSIGNED DEFAULT NULL,
+  depot_id INT UNSIGNED DEFAULT NULL,
   sub_address VARCHAR(255) DEFAULT '',
   is_active TINYINT(1) NOT NULL DEFAULT 1,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -150,10 +174,43 @@ CREATE TABLE customers (
   KEY idx_customers_name (name),
   KEY idx_customers_address (address),
   KEY idx_customers_user_id (user_id),
+  KEY idx_customers_depot_id (depot_id),
   CONSTRAINT fk_customers_address FOREIGN KEY (address) REFERENCES addresses (id)
     ON UPDATE RESTRICT ON DELETE RESTRICT,
   CONSTRAINT fk_customers_user FOREIGN KEY (user_id) REFERENCES users (id)
+    ON UPDATE RESTRICT ON DELETE SET NULL,
+  CONSTRAINT fk_customers_depot FOREIGN KEY (depot_id) REFERENCES depots (id)
     ON UPDATE RESTRICT ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE borrow_materials (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  name VARCHAR(120) NOT NULL,
+  unit VARCHAR(30) DEFAULT '',
+  note VARCHAR(255) DEFAULT '',
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NULL,
+  PRIMARY KEY (id),
+  KEY idx_borrow_materials_name (name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE customer_borrowed_materials (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  customer_id INT UNSIGNED NOT NULL,
+  material_id INT UNSIGNED NOT NULL,
+  qty INT UNSIGNED NOT NULL DEFAULT 0,
+  note VARCHAR(255) DEFAULT '',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_cbm_customer_material (customer_id, material_id),
+  KEY idx_cbm_customer (customer_id),
+  KEY idx_cbm_material (material_id),
+  CONSTRAINT fk_cbm_customer FOREIGN KEY (customer_id) REFERENCES customers (id)
+    ON UPDATE RESTRICT ON DELETE CASCADE,
+  CONSTRAINT fk_cbm_material FOREIGN KEY (material_id) REFERENCES borrow_materials (id)
+    ON UPDATE RESTRICT ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE catalogs (
@@ -378,8 +435,15 @@ DROP PROCEDURE IF EXISTS sp_list_delivery_agents;
 DROP PROCEDURE IF EXISTS sp_get_delivery_agent_by_id;
 DROP PROCEDURE IF EXISTS sp_get_truck_by_id;
 DROP PROCEDURE IF EXISTS sp_list_customers;
+DROP PROCEDURE IF EXISTS sp_list_customers_by_depot_id;
+DROP PROCEDURE IF EXISTS sp_list_customers_by_owner_user_id;
 DROP PROCEDURE IF EXISTS sp_list_trucks;
 DROP PROCEDURE IF EXISTS sp_get_customer_by_id;
+DROP PROCEDURE IF EXISTS sp_list_depots;
+DROP PROCEDURE IF EXISTS sp_get_depot_by_id;
+DROP PROCEDURE IF EXISTS sp_get_depot_by_owner_user_id;
+DROP PROCEDURE IF EXISTS sp_get_depot_by_depot_user_id;
+DROP PROCEDURE IF EXISTS sp_list_depots_by_owner_user_id;
 DROP PROCEDURE IF EXISTS sp_list_catalogs;
 DROP PROCEDURE IF EXISTS sp_get_catalog_by_id;
 DROP PROCEDURE IF EXISTS sp_list_items;
@@ -429,12 +493,24 @@ DROP PROCEDURE IF EXISTS sp_delete_producer;
 DROP PROCEDURE IF EXISTS sp_create_truck;
 DROP PROCEDURE IF EXISTS sp_update_truck;
 DROP PROCEDURE IF EXISTS sp_delete_truck;
+DROP PROCEDURE IF EXISTS sp_create_depot;
+DROP PROCEDURE IF EXISTS sp_update_depot;
+DROP PROCEDURE IF EXISTS sp_delete_depot;
 DROP PROCEDURE IF EXISTS sp_get_latest_bakong_token;
 DROP PROCEDURE IF EXISTS sp_insert_bakong_token;
 DROP PROCEDURE IF EXISTS sp_get_bakong_transaction_by_md5;
 DROP PROCEDURE IF EXISTS sp_create_bakong_transaction;
 DROP PROCEDURE IF EXISTS sp_get_bakong_transaction_by_id;
 DROP PROCEDURE IF EXISTS sp_update_bakong_transaction_payment_id_by_md5;
+DROP PROCEDURE IF EXISTS sp_list_borrow_materials;
+DROP PROCEDURE IF EXISTS sp_get_borrow_material_by_id;
+DROP PROCEDURE IF EXISTS sp_create_borrow_material;
+DROP PROCEDURE IF EXISTS sp_update_borrow_material;
+DROP PROCEDURE IF EXISTS sp_delete_borrow_material;
+DROP PROCEDURE IF EXISTS sp_list_customer_borrowed_materials;
+DROP PROCEDURE IF EXISTS sp_list_all_customer_borrowed_materials;
+DROP PROCEDURE IF EXISTS sp_upsert_customer_borrowed_material;
+DROP PROCEDURE IF EXISTS sp_delete_customer_borrowed_material;
 
 CREATE PROCEDURE sp_get_user_by_username(IN p_username VARCHAR(60))
 SELECT u.id, u.name, u.username, u.password_hash, r.name AS role
@@ -540,20 +616,85 @@ LEFT JOIN delivery_agents d ON d.id = t.delivery_agent_id
 WHERE t.is_active = 1
 ORDER BY t.created_at DESC;
 
+CREATE PROCEDURE sp_get_depot_by_id(IN p_id INT UNSIGNED)
+SELECT d.id, d.name, d.phone, d.address, d.owner_user_id, ou.name AS owner_user_name, d.depot_user_id, du.name AS depot_user_name
+FROM depots d
+INNER JOIN users ou ON ou.id = d.owner_user_id
+LEFT JOIN users du ON du.id = d.depot_user_id
+WHERE d.id = p_id AND d.is_active = 1
+LIMIT 1;
+
+CREATE PROCEDURE sp_get_depot_by_owner_user_id(IN p_owner_user_id INT UNSIGNED)
+SELECT d.id, d.name, d.phone, d.address, d.owner_user_id, ou.name AS owner_user_name, d.depot_user_id, du.name AS depot_user_name
+FROM depots d
+INNER JOIN users ou ON ou.id = d.owner_user_id
+LEFT JOIN users du ON du.id = d.depot_user_id
+WHERE d.owner_user_id = p_owner_user_id AND d.is_active = 1
+ORDER BY d.created_at DESC
+LIMIT 1;
+
+CREATE PROCEDURE sp_list_depots_by_owner_user_id(IN p_owner_user_id INT UNSIGNED)
+SELECT d.id, d.name, d.phone, d.address, d.owner_user_id, ou.name AS owner_user_name, d.depot_user_id, du.name AS depot_user_name
+FROM depots d
+INNER JOIN users ou ON ou.id = d.owner_user_id
+LEFT JOIN users du ON du.id = d.depot_user_id
+WHERE d.owner_user_id = p_owner_user_id AND d.is_active = 1
+ORDER BY d.created_at DESC;
+
+CREATE PROCEDURE sp_get_depot_by_depot_user_id(IN p_depot_user_id INT UNSIGNED)
+SELECT d.id, d.name, d.phone, d.address, d.owner_user_id, ou.name AS owner_user_name, d.depot_user_id, du.name AS depot_user_name
+FROM depots d
+INNER JOIN users ou ON ou.id = d.owner_user_id
+LEFT JOIN users du ON du.id = d.depot_user_id
+WHERE d.depot_user_id = p_depot_user_id AND d.is_active = 1
+LIMIT 1;
+
+CREATE PROCEDURE sp_list_depots()
+SELECT d.id, d.name, d.phone, d.address, d.owner_user_id, ou.name AS owner_user_name, d.depot_user_id, du.name AS depot_user_name
+FROM depots d
+INNER JOIN users ou ON ou.id = d.owner_user_id
+LEFT JOIN users du ON du.id = d.depot_user_id
+WHERE d.is_active = 1
+ORDER BY d.created_at DESC;
+
 CREATE PROCEDURE sp_get_customer_by_id(IN p_id INT UNSIGNED)
-SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, c.user_id, u.name AS user_name, u.username AS user_username, c.sub_address
+SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, c.user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.sub_address
 FROM customers c
 INNER JOIN addresses a ON a.id = c.address
 LEFT JOIN users u ON u.id = c.user_id
+LEFT JOIN depots d ON d.id = c.depot_id AND d.is_active = 1
 WHERE c.id = p_id AND c.is_active = 1
 LIMIT 1;
 
 CREATE PROCEDURE sp_list_customers()
-SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, c.user_id, u.name AS user_name, u.username AS user_username, c.sub_address
+SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, c.user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.sub_address
 FROM customers c
 INNER JOIN addresses a ON a.id = c.address
 LEFT JOIN users u ON u.id = c.user_id
+LEFT JOIN depots d ON d.id = c.depot_id AND d.is_active = 1
 WHERE c.is_active = 1
+ORDER BY c.name ASC;
+
+CREATE PROCEDURE sp_list_customers_by_depot_id(IN p_depot_id INT UNSIGNED)
+SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, c.user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.sub_address
+FROM customers c
+INNER JOIN addresses a ON a.id = c.address
+LEFT JOIN users u ON u.id = c.user_id
+INNER JOIN depots d ON d.id = c.depot_id
+WHERE c.is_active = 1 AND d.is_active = 1 AND c.depot_id = p_depot_id
+ORDER BY c.name ASC;
+
+CREATE PROCEDURE sp_list_customers_by_owner_user_id(IN p_owner_user_id INT UNSIGNED)
+SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, c.user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.sub_address
+FROM customers c
+INNER JOIN addresses a ON a.id = c.address
+LEFT JOIN users u ON u.id = c.user_id
+LEFT JOIN depots d ON d.id = c.depot_id AND d.is_active = 1
+WHERE c.is_active = 1
+  AND (
+    c.depot_id IS NULL
+    OR d.owner_user_id = p_owner_user_id
+  )
 ORDER BY c.name ASC;
 
 CREATE PROCEDURE sp_get_catalog_by_id(IN p_id INT UNSIGNED)
@@ -854,12 +995,13 @@ CREATE PROCEDURE sp_create_customer(
   IN p_phone VARCHAR(30),
   IN p_address INT UNSIGNED,
   IN p_user_id INT UNSIGNED,
+  IN p_depot_id INT UNSIGNED,
   IN p_sub_address VARCHAR(255),
   IN p_updated_at DATETIME
 )
 BEGIN
-  INSERT INTO customers (name, phone, address, user_id, sub_address, updated_at)
-  VALUES (p_name, p_phone, p_address, p_user_id, p_sub_address, p_updated_at);
+  INSERT INTO customers (name, phone, address, user_id, depot_id, sub_address, updated_at)
+  VALUES (p_name, p_phone, p_address, p_user_id, p_depot_id, p_sub_address, p_updated_at);
   SELECT LAST_INSERT_ID() AS insertId;
 END;
 
@@ -869,13 +1011,55 @@ CREATE PROCEDURE sp_update_customer(
   IN p_phone VARCHAR(30),
   IN p_address INT UNSIGNED,
   IN p_user_id INT UNSIGNED,
+  IN p_depot_id INT UNSIGNED,
   IN p_sub_address VARCHAR(255),
   IN p_updated_at DATETIME
 )
 BEGIN
   UPDATE customers
-  SET name = p_name, phone = p_phone, address = p_address, user_id = p_user_id, sub_address = p_sub_address, updated_at = p_updated_at
+  SET name = p_name, phone = p_phone, address = p_address, user_id = p_user_id, depot_id = p_depot_id, sub_address = p_sub_address, updated_at = p_updated_at
   WHERE id = p_id AND is_active = 1;
+  SELECT ROW_COUNT() AS affectedRows;
+END;
+
+CREATE PROCEDURE sp_create_depot(
+  IN p_name VARCHAR(120),
+  IN p_phone VARCHAR(30),
+  IN p_address VARCHAR(255),
+  IN p_owner_user_id INT UNSIGNED,
+  IN p_depot_user_id INT UNSIGNED,
+  IN p_updated_at DATETIME
+)
+BEGIN
+  INSERT INTO depots (name, phone, address, owner_user_id, depot_user_id, updated_at)
+  VALUES (p_name, p_phone, p_address, p_owner_user_id, p_depot_user_id, p_updated_at);
+  SELECT LAST_INSERT_ID() AS insertId;
+END;
+
+CREATE PROCEDURE sp_update_depot(
+  IN p_id INT UNSIGNED,
+  IN p_name VARCHAR(120),
+  IN p_phone VARCHAR(30),
+  IN p_address VARCHAR(255),
+  IN p_owner_user_id INT UNSIGNED,
+  IN p_depot_user_id INT UNSIGNED,
+  IN p_updated_at DATETIME
+)
+BEGIN
+  UPDATE depots
+  SET name = p_name,
+      phone = p_phone,
+      address = p_address,
+      owner_user_id = p_owner_user_id,
+      depot_user_id = p_depot_user_id,
+      updated_at = p_updated_at
+  WHERE id = p_id AND is_active = 1;
+  SELECT ROW_COUNT() AS affectedRows;
+END;
+
+CREATE PROCEDURE sp_delete_depot(IN p_id INT UNSIGNED, IN p_updated_at DATETIME)
+BEGIN
+  UPDATE depots SET is_active = 0, updated_at = p_updated_at WHERE id = p_id AND is_active = 1;
   SELECT ROW_COUNT() AS affectedRows;
 END;
 
@@ -1073,6 +1257,89 @@ UPDATE bakong_transactions
 SET payment_id = p_payment_id, updated_at = p_updated_at
 WHERE md5 = p_md5;
 
+CREATE PROCEDURE sp_list_borrow_materials()
+SELECT id, name, unit, note
+FROM borrow_materials
+WHERE is_active = 1
+ORDER BY name ASC;
+
+CREATE PROCEDURE sp_get_borrow_material_by_id(IN p_id INT UNSIGNED)
+SELECT id, name, unit, note
+FROM borrow_materials
+WHERE id = p_id AND is_active = 1
+LIMIT 1;
+
+CREATE PROCEDURE sp_create_borrow_material(
+  IN p_name VARCHAR(120),
+  IN p_unit VARCHAR(30),
+  IN p_note VARCHAR(255),
+  IN p_updated_at DATETIME
+)
+BEGIN
+  INSERT INTO borrow_materials (name, unit, note, updated_at)
+  VALUES (p_name, p_unit, p_note, p_updated_at);
+  SELECT LAST_INSERT_ID() AS insertId;
+END;
+
+CREATE PROCEDURE sp_update_borrow_material(
+  IN p_id INT UNSIGNED,
+  IN p_name VARCHAR(120),
+  IN p_unit VARCHAR(30),
+  IN p_note VARCHAR(255),
+  IN p_updated_at DATETIME
+)
+BEGIN
+  UPDATE borrow_materials
+  SET name = p_name, unit = p_unit, note = p_note, updated_at = p_updated_at
+  WHERE id = p_id AND is_active = 1;
+  SELECT ROW_COUNT() AS affectedRows;
+END;
+
+CREATE PROCEDURE sp_delete_borrow_material(IN p_id INT UNSIGNED, IN p_updated_at DATETIME)
+BEGIN
+  UPDATE borrow_materials SET is_active = 0, updated_at = p_updated_at WHERE id = p_id AND is_active = 1;
+  SELECT ROW_COUNT() AS affectedRows;
+END;
+
+CREATE PROCEDURE sp_list_customer_borrowed_materials(IN p_customer_id INT UNSIGNED)
+SELECT cbm.id, cbm.customer_id, c.name AS customer_name, cbm.material_id, m.name AS material_name, m.unit, cbm.qty, cbm.note, cbm.created_at, cbm.updated_at
+FROM customer_borrowed_materials cbm
+INNER JOIN borrow_materials m ON m.id = cbm.material_id
+INNER JOIN customers c ON c.id = cbm.customer_id
+WHERE cbm.customer_id = p_customer_id AND m.is_active = 1 AND c.is_active = 1
+ORDER BY m.name ASC;
+
+CREATE PROCEDURE sp_list_all_customer_borrowed_materials()
+SELECT cbm.id, cbm.customer_id, c.name AS customer_name, cbm.material_id, m.name AS material_name, m.unit, cbm.qty, cbm.note, cbm.created_at, cbm.updated_at
+FROM customer_borrowed_materials cbm
+INNER JOIN borrow_materials m ON m.id = cbm.material_id
+INNER JOIN customers c ON c.id = cbm.customer_id
+WHERE m.is_active = 1 AND c.is_active = 1
+ORDER BY c.name ASC, m.name ASC;
+
+CREATE PROCEDURE sp_upsert_customer_borrowed_material(
+  IN p_customer_id INT UNSIGNED,
+  IN p_material_id INT UNSIGNED,
+  IN p_qty INT UNSIGNED,
+  IN p_note VARCHAR(255),
+  IN p_updated_at DATETIME
+)
+BEGIN
+  INSERT INTO customer_borrowed_materials (customer_id, material_id, qty, note, updated_at)
+  VALUES (p_customer_id, p_material_id, p_qty, p_note, p_updated_at)
+  ON DUPLICATE KEY UPDATE qty = VALUES(qty), note = VALUES(note), updated_at = VALUES(updated_at);
+  SELECT id FROM customer_borrowed_materials WHERE customer_id = p_customer_id AND material_id = p_material_id LIMIT 1;
+END;
+
+CREATE PROCEDURE sp_delete_customer_borrowed_material(
+  IN p_customer_id INT UNSIGNED,
+  IN p_material_id INT UNSIGNED
+)
+BEGIN
+  DELETE FROM customer_borrowed_materials WHERE customer_id = p_customer_id AND material_id = p_material_id;
+  SELECT ROW_COUNT() AS affectedRows;
+END;
+
 DROP PROCEDURE IF EXISTS sp_dashboard_totals;
 CREATE PROCEDURE sp_dashboard_totals()
 SELECT
@@ -1115,13 +1382,16 @@ EXECUTE stmt_role_menus;
 DEALLOCATE PREPARE stmt_role_menus;
 
 INSERT INTO role_menus (role_id, menu_key) VALUES
-(1, 'overview'), (1, 'newOrder'), (1, 'catalogs'), (1, 'items'), (1, 'customers'),
+(1, 'overview'), (1, 'newOrder'), (1, 'catalogs'), (1, 'items'), (1, 'customers'), (1, 'depots'),
 (1, 'producers'), (1, 'deliveryAgents'), (1, 'trucks'), (1, 'orders'), (1, 'payments'), (1, 'users'), (1, 'activityLogs'),
-(2, 'overview'), (2, 'newOrder'), (2, 'catalogs'), (2, 'items'), (2, 'customers'),
+(1, 'borrowedMaterials'),
+(2, 'overview'), (2, 'newOrder'), (2, 'catalogs'), (2, 'items'), (2, 'customers'), (2, 'depots'),
 (2, 'producers'), (2, 'deliveryAgents'), (2, 'trucks'), (2, 'orders'), (2, 'payments'),
+(2, 'borrowedMaterials'),
 (3, 'overview'), (3, 'deliveryAgents'), (3, 'trucks'), (3, 'orders'),
 (4, 'overview'), (4, 'orders'),
-(5, 'overview'), (5, 'orders'), (5, 'payments')
+(5, 'overview'), (5, 'orders'), (5, 'payments'),
+(6, 'overview'), (6, 'customers'), (6, 'orders'), (6, 'borrowedMaterials')
 ON DUPLICATE KEY UPDATE menu_key = VALUES(menu_key);
 
 -- 2) Remove obsolete orders.producer_confirm_status if it still exists
@@ -1489,5 +1759,69 @@ EXECUTE stmt_migrate_history_to_supplier_ready;
 DEALLOCATE PREPARE stmt_migrate_history_to_supplier_ready;
 
 DELETE FROM status WHERE name = 'SUPPLIER_ORDER_READY';
+
+-- 13) Ensure borrow_materials and customer_borrowed_materials tables exist
+SET @has_borrow_materials := (
+  SELECT COUNT(*)
+  FROM information_schema.tables
+  WHERE table_schema = DATABASE()
+    AND table_name = 'borrow_materials'
+);
+SET @sql_create_borrow_materials := IF(
+  @has_borrow_materials = 0,
+  'CREATE TABLE borrow_materials (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    name VARCHAR(120) NOT NULL,
+    unit VARCHAR(30) DEFAULT '''',
+    note VARCHAR(255) DEFAULT '''',
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NULL,
+    PRIMARY KEY (id),
+    KEY idx_borrow_materials_name (name)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8',
+  'SELECT 1'
+);
+PREPARE stmt_create_borrow_materials FROM @sql_create_borrow_materials;
+EXECUTE stmt_create_borrow_materials;
+DEALLOCATE PREPARE stmt_create_borrow_materials;
+
+SET @has_customer_borrowed_materials := (
+  SELECT COUNT(*)
+  FROM information_schema.tables
+  WHERE table_schema = DATABASE()
+    AND table_name = 'customer_borrowed_materials'
+);
+SET @sql_create_customer_borrowed_materials := IF(
+  @has_customer_borrowed_materials = 0,
+  'CREATE TABLE customer_borrowed_materials (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    customer_id INT UNSIGNED NOT NULL,
+    material_id INT UNSIGNED NOT NULL,
+    qty INT UNSIGNED NOT NULL DEFAULT 0,
+    note VARCHAR(255) DEFAULT '''',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_cbm_customer_material (customer_id, material_id),
+    KEY idx_cbm_customer (customer_id),
+    KEY idx_cbm_material (material_id),
+    CONSTRAINT fk_cbm_customer FOREIGN KEY (customer_id) REFERENCES customers (id)
+      ON UPDATE RESTRICT ON DELETE CASCADE,
+    CONSTRAINT fk_cbm_material FOREIGN KEY (material_id) REFERENCES borrow_materials (id)
+      ON UPDATE RESTRICT ON DELETE RESTRICT
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8',
+  'SELECT 1'
+);
+PREPARE stmt_create_customer_borrowed_materials FROM @sql_create_customer_borrowed_materials;
+EXECUTE stmt_create_customer_borrowed_materials;
+DEALLOCATE PREPARE stmt_create_customer_borrowed_materials;
+
+-- 14) Grant new borrowedMaterials menu to existing Admin/Owner/Depot roles
+INSERT INTO role_menus (role_id, menu_key)
+SELECT r.id, 'borrowedMaterials'
+FROM roles r
+WHERE r.name IN ('Admin', 'Owner', 'Depot')
+ON DUPLICATE KEY UPDATE menu_key = VALUES(menu_key);
 
 SET FOREIGN_KEY_CHECKS = 1;

@@ -16,6 +16,8 @@ import { CatalogsPage } from "./pages/CatalogsPage";
 import { ItemsPage } from "./pages/ItemsPage";
 import { ProducersPage } from "./pages/ProducersPage";
 import { CustomersPage } from "./pages/CustomersPage";
+import { DepotsPage } from "./pages/DepotsPage";
+import { BorrowedMaterialsPage } from "./pages/BorrowedMaterialsPage";
 import { UsersPage } from "./pages/UsersPage";
 import { UserActivityLogsPage } from "./pages/UserActivityLogsPage";
 import "./App.css";
@@ -30,6 +32,7 @@ function App() {
     statuses,
     orders,
     customers,
+    depots,
     customerUsers,
     addresses,
     producers,
@@ -39,25 +42,33 @@ function App() {
     items,
     payments,
     paymentMethods,
+    borrowMaterials,
+    customerBorrowedMaterials,
     flash,
     dismissFlash,
     newOrder,
     newProducer,
     newCustomer,
+    newDepot,
     newCatalog,
     newItem,
     newDelivery,
     newTruck,
     newPayment,
+    newBorrowMaterial,
+    newCustomerBorrow,
     setAuth,
     setNewOrder,
     setNewProducer,
     setNewCustomer,
+    setNewDepot,
     setNewCatalog,
     setNewItem,
     setNewDelivery,
     setNewTruck,
     setNewPayment,
+    setNewBorrowMaterial,
+    setNewCustomerBorrow,
     login,
     submitOrder,
     submitCatalog,
@@ -72,6 +83,9 @@ function App() {
     submitCustomer,
     submitCustomerUpdate,
     submitCustomerDelete,
+    submitDepot,
+    submitDepotUpdate,
+    submitDepotDelete,
     submitDelivery,
     submitDeliveryUpdate,
     submitDeliveryDelete,
@@ -82,6 +96,11 @@ function App() {
     submitOrderStatus,
     submitOrderMovement,
     submitPayment,
+    submitBorrowMaterial,
+    submitBorrowMaterialUpdate,
+    submitBorrowMaterialDelete,
+    submitCustomerBorrow,
+    submitCustomerBorrowDelete,
     users,
     activityLogs,
     newUser,
@@ -94,7 +113,7 @@ function App() {
     refresh,
     logout,
   } = useAdminDashboard();
-  const isAllowedAdminPanelRole = user?.role === "Admin" || user?.role === "Owner";
+  const isAllowedAdminPanelRole = user?.role === "Admin" || user?.role === "Owner" || user?.role === "Depot";
   const [showAccessDenied, setShowAccessDenied] = useState(false);
 
   useEffect(() => {
@@ -154,7 +173,7 @@ function App() {
               </div>
               <p style={{ margin: "0 0 16px", color: "var(--text-muted)" }}>
                 {t("accessDenied.message", {
-                  defaultValue: "Your account role cannot access the Admin Panel. Please sign in with an Admin or Owner account.",
+                  defaultValue: "Your account role cannot access the Admin Panel. Please sign in with an Admin, Owner, or Depot account.",
                 })}
               </p>
               <div style={{ display: "flex", justifyContent: "flex-end" }}>
@@ -195,8 +214,6 @@ function App() {
               customers={customers}
               customerUsers={customerUsers}
               addresses={addresses}
-              producers={producers}
-              trucks={trucks}
               items={items}
               newOrder={newOrder}
               setNewOrder={setNewOrder}
@@ -256,6 +273,48 @@ function App() {
               onCreateCustomer={submitCustomer}
               onUpdateCustomer={submitCustomerUpdate}
               onDeleteCustomer={submitCustomerDelete}
+            />
+          ) : (
+            <Navigate to="/overview" replace />
+          ),
+        )}
+      />
+      <Route
+        path="/depots"
+        element={withLayout(
+          canAccessPath(user, "/depots") ? (
+            <DepotsPage
+              depots={depots}
+              user={user}
+              newDepot={newDepot}
+              setNewDepot={setNewDepot}
+              onCreateDepot={submitDepot}
+              onUpdateDepot={submitDepotUpdate}
+              onDeleteDepot={submitDepotDelete}
+            />
+          ) : (
+            <Navigate to="/overview" replace />
+          ),
+        )}
+      />
+      <Route
+        path="/borrowed-materials"
+        element={withLayout(
+          canAccessPath(user, "/borrowed-materials") ? (
+            <BorrowedMaterialsPage
+              user={user}
+              customers={customers}
+              borrowMaterials={borrowMaterials}
+              customerBorrowedMaterials={customerBorrowedMaterials}
+              newBorrowMaterial={newBorrowMaterial}
+              setNewBorrowMaterial={setNewBorrowMaterial}
+              newCustomerBorrow={newCustomerBorrow}
+              setNewCustomerBorrow={setNewCustomerBorrow}
+              onCreateBorrowMaterial={submitBorrowMaterial}
+              onUpdateBorrowMaterial={submitBorrowMaterialUpdate}
+              onDeleteBorrowMaterial={submitBorrowMaterialDelete}
+              onSubmitCustomerBorrow={submitCustomerBorrow}
+              onDeleteCustomerBorrow={submitCustomerBorrowDelete}
             />
           ) : (
             <Navigate to="/overview" replace />

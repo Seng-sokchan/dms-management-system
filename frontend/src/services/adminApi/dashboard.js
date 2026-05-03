@@ -9,6 +9,7 @@ const ROUTE_DATA_MAP = {
   "/catalogs": ["catalogs"],
   "/items": ["catalogs", "items", "customers"],
   "/customers": ["customers", "customerUsers", "addresses"],
+  "/depots": ["depots"],
   "/producers": ["producers"],
   "/delivery-agents": ["deliveryAgents"],
   "/trucks": ["trucks", "deliveryAgents"],
@@ -17,6 +18,7 @@ const ROUTE_DATA_MAP = {
   "/orders": ["orders", "statuses"],
   "/order-movement": ["orders", "statuses"],
   "/payments": ["orders", "payments", "paymentMethods"],
+  "/borrowed-materials": ["customers", "borrowMaterials", "customerBorrowedMaterials"],
 };
 
 function getKeysForRoute(pathname = "/overview") {
@@ -27,7 +29,7 @@ export async function fetchDashboardData(token, pathname = "/overview") {
   const config = authConfig(token);
   const profile = await apiClient.get("/users/me", config);
   const user = unwrapApiData(profile.data);
-  const canManageCustomers = user?.role === "Admin" || user?.role === "Owner";
+  const canManageCustomers = user?.role === "Admin" || user?.role === "Owner" || user?.role === "Depot";
   const routeKeys = getKeysForRoute(pathname);
   const requested = new Set(routeKeys);
 
@@ -45,6 +47,7 @@ export async function fetchDashboardData(token, pathname = "/overview") {
     statuses: [],
     orders: [],
     customers: [],
+    depots: [],
     customerUsers: [],
     addresses: [],
     producers: [],
@@ -58,6 +61,8 @@ export async function fetchDashboardData(token, pathname = "/overview") {
     users: [],
     roleMenusByRole: null,
     activityLogs: [],
+    borrowMaterials: [],
+    customerBorrowedMaterials: [],
   };
 
   const tasks = [];
@@ -84,6 +89,11 @@ export async function fetchDashboardData(token, pathname = "/overview") {
     const res = await apiClient.get("/customers", config);
     const rows = unwrapApiData(res.data);
     data.customers = Array.isArray(rows) ? rows : [];
+  });
+  queue("depots", async () => {
+    const res = await apiClient.get("/depots", config);
+    const rows = unwrapApiData(res.data);
+    data.depots = Array.isArray(rows) ? rows : [];
   });
   queue("customerUsers", async () => {
     if (!canManageCustomers) return;
@@ -150,6 +160,16 @@ export async function fetchDashboardData(token, pathname = "/overview") {
     const res = await apiClient.get("/activity-logs?limit=5000", config);
     const rows = unwrapApiData(res.data);
     data.activityLogs = Array.isArray(rows) ? rows : [];
+  });
+  queue("borrowMaterials", async () => {
+    const res = await apiClient.get("/borrow-materials", config);
+    const rows = unwrapApiData(res.data);
+    data.borrowMaterials = Array.isArray(rows) ? rows : [];
+  });
+  queue("customerBorrowedMaterials", async () => {
+    const res = await apiClient.get("/customer-borrowed-materials", config);
+    const rows = unwrapApiData(res.data);
+    data.customerBorrowedMaterials = Array.isArray(rows) ? rows : [];
   });
 
   await Promise.all(tasks);

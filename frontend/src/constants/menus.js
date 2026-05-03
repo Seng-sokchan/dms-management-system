@@ -7,6 +7,8 @@ export const MENU_ITEMS = [
   { key: "catalogs", path: "/catalogs", labelKey: "nav.catalogs", subKey: "nav.catalogsSub" },
   { key: "items", path: "/items", labelKey: "nav.items", subKey: "nav.itemsSub" },
   { key: "customers", path: "/customers", labelKey: "nav.customers", subKey: "nav.customersSub" },
+  { key: "borrowedMaterials", path: "/borrowed-materials", labelKey: "nav.borrowedMaterials", subKey: "nav.borrowedMaterialsSub" },
+  { key: "depots", path: "/depots", labelKey: "nav.depots", subKey: "nav.depotsSub" },
   { key: "producers", path: "/producers", labelKey: "nav.producers", subKey: "nav.producersSub" },
   { key: "deliveryAgents", path: "/delivery-agents", labelKey: "nav.delivery", subKey: "nav.deliverySub" },
   { key: "trucks", path: "/trucks", labelKey: "nav.trucks", subKey: "nav.trucksSub" },

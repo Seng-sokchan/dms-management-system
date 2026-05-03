@@ -16,6 +16,7 @@ export function CatalogsPage({
 }) {
   const { t } = useTranslation();
   const { confirm } = useConfirm();
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingCatalog, setEditingCatalog] = useState(EMPTY_EDIT);
   const isEditing = useMemo(() => Boolean(editingCatalog.id), [editingCatalog.id]);
 
@@ -50,6 +51,14 @@ export function CatalogsPage({
     await onDeleteCatalog(catalogId);
   }
 
+  function openCreateModal() {
+    setShowCreateModal(true);
+  }
+
+  function closeCreateModal() {
+    setShowCreateModal(false);
+  }
+
   return (
     <section className="admin-page">
       <div className="section-heading">
@@ -57,35 +66,47 @@ export function CatalogsPage({
         <p className="section-lead">{t("catalogs.pageLead")}</p>
       </div>
 
-      <div className="form-single">
-        <CatalogForm
-          newCatalog={newCatalog}
-          setNewCatalog={setNewCatalog}
-          onCreateCatalog={onCreateCatalog}
-        />
-      </div>
-
       <section className="panel entity-list">
-        <h3>{t("catalogs.listTitle")}</h3>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
+          <h3 style={{ margin: 0 }}>{t("catalogs.listTitle")}</h3>
+          <button type="button" className="btn-primary" onClick={openCreateModal}>
+            {t("catalogs.new", { defaultValue: "New" })}
+          </button>
+        </div>
         {catalogs.length === 0 ? (
           <p className="entity-list-empty">{t("catalogs.empty")}</p>
         ) : (
-          <ul className="entity-list-ul">
-            {catalogs.map((c) => (
-              <li key={c.id} className="entity-list-item">
-                <span className="entity-list-name">{c.name}</span>
-                {c.note ? <span className="entity-list-note">{c.note}</span> : null}
-                <div className="row-actions">
-                  <button type="button" className="btn-ghost btn-edit" onClick={() => startEdit(c)}>
-                    {t("catalogs.edit")}
-                  </button>
-                  <button type="button" className="btn-ghost btn-delete" onClick={() => void handleDelete(c.id)}>
-                    {t("catalogs.delete")}
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>{t("catalogs.labelName")}</th>
+                  <th>{t("catalogs.labelNote")}</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {catalogs.map((c) => (
+                  <tr key={c.id}>
+                    <td>{c.id}</td>
+                    <td>{c.name}</td>
+                    <td>{c.note || "—"}</td>
+                    <td>
+                      <div className="row-actions">
+                        <button type="button" className="btn-ghost btn-edit" onClick={() => startEdit(c)}>
+                          {t("catalogs.edit")}
+                        </button>
+                        <button type="button" className="btn-ghost btn-delete" onClick={() => void handleDelete(c.id)}>
+                          {t("catalogs.delete")}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
 
@@ -95,6 +116,25 @@ export function CatalogsPage({
           {t("catalogs.linkToItems")}
         </Link>
       </p>
+      {showCreateModal ? (
+        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="catalog-create-title">
+          <div className="modal-card">
+            <CatalogForm
+              newCatalog={newCatalog}
+              setNewCatalog={setNewCatalog}
+              onCreateCatalog={async (event) => {
+                await onCreateCatalog(event);
+                closeCreateModal();
+              }}
+            />
+            <div className="row-actions" style={{ marginTop: 12 }}>
+              <button type="button" className="btn-ghost btn-cancel" onClick={closeCreateModal}>
+                {t("catalogs.cancel")}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       {isEditing ? (
         <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="catalog-edit-title">
           <form className="panel form modal-card" onSubmit={submitEdit}>

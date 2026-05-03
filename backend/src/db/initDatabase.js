@@ -54,6 +54,7 @@ async function run() {
   await dbConn.query("DELETE FROM addresses");
   await dbConn.query("DELETE FROM order_groups");
   await dbConn.query("DELETE FROM customers");
+  await dbConn.query("DELETE FROM depots");
   await dbConn.query("DELETE FROM trucks");
   await dbConn.query("DELETE FROM producers");
   await dbConn.query("DELETE FROM delivery_agents");
@@ -67,18 +68,22 @@ async function run() {
       "(2, 'Owner'), " +
       "(3, 'Logistics'), " +
       "(4, 'Delivery'), " +
-      "(5, 'Customer')",
+      "(5, 'Customer'), " +
+      "(6, 'Depot')",
   );
 
   await dbConn.query(
     `INSERT INTO role_menus (role_id, menu_key) VALUES
-     (1, 'overview'), (1, 'newOrder'), (1, 'catalogs'), (1, 'items'), (1, 'customers'),
+     (1, 'overview'), (1, 'newOrder'), (1, 'catalogs'), (1, 'items'), (1, 'customers'), (1, 'depots'),
      (1, 'producers'), (1, 'deliveryAgents'), (1, 'trucks'), (1, 'orders'), (1, 'payments'), (1, 'users'), (1, 'activityLogs'),
-     (2, 'overview'), (2, 'newOrder'), (2, 'catalogs'), (2, 'items'), (2, 'customers'),
+     (1, 'borrowedMaterials'),
+     (2, 'overview'), (2, 'newOrder'), (2, 'catalogs'), (2, 'items'), (2, 'customers'), (2, 'depots'),
      (2, 'producers'), (2, 'deliveryAgents'), (2, 'trucks'), (2, 'orders'), (2, 'payments'),
+     (2, 'borrowedMaterials'),
      (3, 'overview'), (3, 'deliveryAgents'), (3, 'trucks'), (3, 'orders'),
      (4, 'overview'), (4, 'orders'),
-     (5, 'overview'), (5, 'orders'), (5, 'payments')`,
+     (5, 'overview'), (5, 'orders'), (5, 'payments'),
+     (6, 'overview'), (6, 'customers'), (6, 'orders'), (6, 'borrowedMaterials')`,
   );
 
   const adminHash = bcrypt.hashSync(getSeedPassword("SEED_ADMIN_PASSWORD", "admin123"), 10);
@@ -86,6 +91,7 @@ async function run() {
   const logisticsHash = bcrypt.hashSync(getSeedPassword("SEED_LOGISTICS_PASSWORD", "logistics123"), 10);
   const deliveryHash = bcrypt.hashSync(getSeedPassword("SEED_DELIVERY_PASSWORD", "delivery123"), 10);
   const customerHash = bcrypt.hashSync(getSeedPassword("SEED_CUSTOMER_PASSWORD", "customer123"), 10);
+  const depotHash = bcrypt.hashSync(getSeedPassword("SEED_DEPOT_PASSWORD", "depot123"), 10);
   await dbConn.query(
     `INSERT INTO users (id, name, username, password_hash, role_id, is_active, updated_at) VALUES
       (1, 'System Admin', 'admin', '${adminHash}', 1, 1, NOW()),
@@ -95,7 +101,8 @@ async function run() {
       (5, 'Customer User 1', 'customer1', '${customerHash}', 5, 1, NOW()),
       (6, 'Customer User 2', 'customer2', '${customerHash}', 5, 1, NOW()),
       (7, 'Customer User 3', 'customer3', '${customerHash}', 5, 1, NOW()),
-      (8, 'Customer User 4', 'customer4', '${customerHash}', 5, 1, NOW())`,
+      (8, 'Customer User 4', 'customer4', '${customerHash}', 5, 1, NOW()),
+      (9, 'Depot User 1', 'depot1', '${depotHash}', 6, 1, NOW())`,
   );
 
 

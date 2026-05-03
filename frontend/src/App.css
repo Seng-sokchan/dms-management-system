@@ -824,7 +824,7 @@ textarea:focus {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   border-radius: var(--radius);
-  border: 1px solid var(--border);
+  border: 1.5px solid var(--border-strong);
   background: var(--surface);
   box-shadow: var(--shadow-sm);
 }
@@ -838,14 +838,22 @@ textarea:focus {
 }
 
 .data-table thead tr {
-  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  background: #e2e8f0;
+}
+
+.data-table thead th:first-child {
+  border-top-left-radius: var(--radius-sm);
+}
+
+.data-table thead th:last-child {
+  border-top-right-radius: var(--radius-sm);
 }
 
 .data-table th {
   position: sticky;
   top: 0;
   z-index: 2;
-  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  background: #e2e8f0;
   font-size: 0.67rem;
   text-transform: uppercase;
   letter-spacing: 0.09em;
@@ -853,18 +861,30 @@ textarea:focus {
   font-weight: 700;
   white-space: nowrap;
   padding: 0.82rem 0.9rem;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1.5px solid var(--border-strong);
+  border-right: 1px solid var(--border);
+}
+
+.data-table th:first-child {
+  text-align: center;
 }
 
 .data-table td {
   text-align: left;
   padding: 0.82rem 0.9rem;
-  border-bottom: 1px solid #f0f4f8;
+  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border-strong);
   vertical-align: middle;
   color: var(--text);
 }
 
+.data-table tbody td:first-child {
+  text-align: center;
+  border-left: 1px solid var(--border-strong);
+}
+
 .data-table tbody tr { transition: background var(--t-fast); }
+.data-table tbody tr:nth-child(even) td { background: #fbfdff; }
 .data-table tbody tr:hover td { background: #f5f8ff; }
 .data-table tbody tr:last-child td { border-bottom: none; }
 
@@ -1111,6 +1131,21 @@ a.text-link:hover { text-decoration: underline; color: var(--primary-dark); }
 .entity-list-note { width: 100%; margin-top: 0.1rem; font-size: 0.8rem; color: var(--text-muted); }
 
 .row-actions { margin-left: auto; display: inline-flex; gap: 0.4rem; }
+
+.data-table th:last-child,
+.data-table td:last-child {
+  min-width: 170px;
+  width: 170px;
+  white-space: nowrap;
+}
+
+.data-table td:last-child .row-actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: nowrap;
+}
 
 
 /* ══════════════════════════════════════════════

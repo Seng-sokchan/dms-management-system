@@ -8,7 +8,7 @@ const ORDER_STATUS = [
 
 const PAYMENT_STATUS = ["UNPAID", "PAID"];
 
-const ROLES = ["Admin", "Owner", "Logistics", "Delivery", "Customer"];
+const ROLES = ["Admin", "Owner", "Logistics", "Delivery", "Customer", "Depot"];
 
 const NEXT_STATUS = {
   NEW_ORDER: ["OWNER_PREPARING"],

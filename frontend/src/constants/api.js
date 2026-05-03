@@ -13,4 +13,4 @@ export const ORDER_STATUS = [
 
 export const PAYMENT_STATUS = ["UNPAID", "PAID"];
 
-export const ROLES = ["Admin", "Owner", "Logistics", "Delivery", "Customer"];
+export const ROLES = ["Admin", "Owner", "Logistics", "Delivery", "Customer", "Depot"];

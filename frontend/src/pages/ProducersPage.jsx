@@ -15,6 +15,7 @@ export function ProducersPage({
 }) {
   const { t } = useTranslation();
   const { confirm } = useConfirm();
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingProducer, setEditingProducer] = useState(EMPTY_EDIT);
   const isEditing = useMemo(() => Boolean(editingProducer.id), [editingProducer.id]);
 
@@ -58,43 +59,84 @@ export function ProducersPage({
     await onDeleteProducer(producerId);
   }
 
+  function openCreateModal() {
+    setShowCreateModal(true);
+  }
+
+  function closeCreateModal() {
+    setShowCreateModal(false);
+  }
+
   return (
     <section className="admin-page">
       <div className="section-heading">
         <h2>{t("producers.title")}</h2>
         <p className="section-lead">{t("producers.lead")}</p>
       </div>
-      <div className="form-single">
-        <ProducerForm
-          newProducer={newProducer}
-          setNewProducer={setNewProducer}
-          onCreateProducer={onCreateProducer}
-        />
-      </div>
       <section className="panel entity-list">
-        <h3>{t("producers.listTitle")}</h3>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
+          <h3 style={{ margin: 0 }}>{t("producers.listTitle")}</h3>
+          <button type="button" className="btn-primary" onClick={openCreateModal}>
+            {t("producers.new", { defaultValue: "New" })}
+          </button>
+        </div>
         {producers.length === 0 ? (
           <p className="entity-list-empty">{t("producers.empty")}</p>
         ) : (
-          <ul className="entity-list-ul">
-            {producers.map((p) => (
-              <li key={p.id} className="entity-list-item">
-                <span className="entity-list-name">{p.name}</span>
-                <span className="entity-list-meta">{p.phone}</span>
-                {p.capacityNote ? <span className="entity-list-note">{p.capacityNote}</span> : null}
-                <div className="row-actions">
-                  <button type="button" className="btn-ghost btn-edit" onClick={() => startEdit(p)}>
-                    {t("producers.edit")}
-                  </button>
-                  <button type="button" className="btn-ghost btn-delete" onClick={() => void handleDelete(p.id)}>
-                    {t("producers.delete")}
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>{t("producers.namePh")}</th>
+                  <th>{t("producers.phonePh")}</th>
+                  <th>{t("producers.capacityPh")}</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {producers.map((p) => (
+                  <tr key={p.id}>
+                    <td>{p.id}</td>
+                    <td>{p.name}</td>
+                    <td>{p.phone}</td>
+                    <td>{p.capacityNote || "—"}</td>
+                    <td>
+                      <div className="row-actions">
+                        <button type="button" className="btn-ghost btn-edit" onClick={() => startEdit(p)}>
+                          {t("producers.edit")}
+                        </button>
+                        <button type="button" className="btn-ghost btn-delete" onClick={() => void handleDelete(p.id)}>
+                          {t("producers.delete")}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
+      {showCreateModal ? (
+        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="producer-create-title">
+          <div className="modal-card">
+            <ProducerForm
+              newProducer={newProducer}
+              setNewProducer={setNewProducer}
+              onCreateProducer={async (event) => {
+                await onCreateProducer(event);
+                closeCreateModal();
+              }}
+            />
+            <div className="row-actions" style={{ marginTop: 12 }}>
+              <button type="button" className="btn-ghost btn-cancel" onClick={closeCreateModal}>
+                {t("producers.cancel")}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       {isEditing ? (
         <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="producer-edit-title">
           <form className="panel form modal-card" onSubmit={submitEdit}>

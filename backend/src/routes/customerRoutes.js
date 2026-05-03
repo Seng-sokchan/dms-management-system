@@ -17,25 +17,25 @@ const {
 const router = express.Router();
 
 router.get("/customers", requireAuth, listCustomers);
-router.get("/customer-users", requireAuth, requireRoles("Admin", "Owner"), listCustomerUsers);
+router.get("/customer-users", requireAuth, requireRoles("Admin", "Owner", "Depot"), listCustomerUsers);
 router.post(
   "/customers",
   requireAuth,
-  requireRoles("Admin", "Owner"),
+  requireRoles("Admin", "Owner", "Depot"),
   validate({ body: createCustomerSchema }),
   createCustomer,
 );
 router.post(
   "/customers/:id",
   requireAuth,
-  requireRoles("Admin", "Owner"),
+  requireRoles("Admin", "Owner", "Depot"),
   validate({ params: customerIdParamsSchema, body: updateCustomerSchema }),
   updateCustomer,
 );
 router.delete(
   "/customers/:id",
   requireAuth,
-  requireRoles("Admin", "Owner"),
+  requireRoles("Admin", "Owner", "Depot"),
   validate({ params: customerIdParamsSchema }),
   deleteCustomer,
 );

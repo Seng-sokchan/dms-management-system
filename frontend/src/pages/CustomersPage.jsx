@@ -17,6 +17,7 @@ export function CustomersPage({
 }) {
   const { t } = useTranslation();
   const { confirm } = useConfirm();
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(EMPTY_EDIT);
   const isEditing = useMemo(() => Boolean(editingCustomer.id), [editingCustomer.id]);
 
@@ -64,53 +65,92 @@ export function CustomersPage({
     await onDeleteCustomer(customerId);
   }
 
+  function openCreateModal() {
+    setShowCreateModal(true);
+  }
+
+  function closeCreateModal() {
+    setShowCreateModal(false);
+  }
+
   return (
     <section className="admin-page">
       <div className="section-heading">
         <h2>{t("customers.title")}</h2>
         <p className="section-lead">{t("customers.lead")}</p>
       </div>
-      <div className="form-single">
-        <CustomerForm
-          addresses={addresses}
-          customerUsers={customerUsers}
-          newCustomer={newCustomer}
-          setNewCustomer={setNewCustomer}
-          onCreateCustomer={onCreateCustomer}
-        />
-      </div>
       <section className="panel entity-list">
-        <h3>{t("customers.listTitle")}</h3>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
+          <h3 style={{ margin: 0 }}>{t("customers.listTitle")}</h3>
+          <button type="button" className="btn-primary" onClick={openCreateModal}>
+            {t("customers.new", { defaultValue: "New" })}
+          </button>
+        </div>
         {customers.length === 0 ? (
           <p className="entity-list-empty">{t("customers.empty")}</p>
         ) : (
-          <ul className="entity-list-ul">
-            {customers.map((customer) => (
-              <li key={customer.id} className="entity-list-item">
-                <span className="entity-list-name">{customer.name}</span>
-                {customer.phone ? <span className="entity-list-meta">{customer.phone}</span> : null}
-                {customer.userName ? (
-                  <span className="entity-list-meta">
-                    {t("customers.user")}: {customer.userName} ({customer.userUsername})
-                  </span>
-                ) : null}
-                {customer.addressName ? (
-                  <span className="entity-list-note">{customer.addressName}</span>
-                ) : null}
-                {customer.subAddress ? <span className="entity-list-meta">{customer.subAddress}</span> : null}
-                <div className="row-actions">
-                  <button type="button" className="btn-ghost btn-edit" onClick={() => startEdit(customer)}>
-                    {t("customers.edit")}
-                  </button>
-                  <button type="button" className="btn-ghost btn-delete" onClick={() => void handleDelete(customer.id)}>
-                    {t("customers.delete")}
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>{t("customers.name")}</th>
+                  <th>{t("customers.phone")}</th>
+                  <th>{t("customers.user")}</th>
+                  <th>{t("customers.address")}</th>
+                  <th>{t("customers.subAddress")}</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {customers.map((customer) => (
+                  <tr key={customer.id}>
+                    <td>{customer.id}</td>
+                    <td>{customer.name}</td>
+                    <td>{customer.phone || "—"}</td>
+                    <td>
+                      {customer.userName ? `${customer.userName} (${customer.userUsername})` : "—"}
+                    </td>
+                    <td>{customer.addressName || "—"}</td>
+                    <td>{customer.subAddress || "—"}</td>
+                    <td>
+                      <div className="row-actions">
+                        <button type="button" className="btn-ghost btn-edit" onClick={() => startEdit(customer)}>
+                          {t("customers.edit")}
+                        </button>
+                        <button type="button" className="btn-ghost btn-delete" onClick={() => void handleDelete(customer.id)}>
+                          {t("customers.delete")}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
+      {showCreateModal ? (
+        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="customer-create-title">
+          <div className="modal-card">
+            <CustomerForm
+              addresses={addresses}
+              customerUsers={customerUsers}
+              newCustomer={newCustomer}
+              setNewCustomer={setNewCustomer}
+              onCreateCustomer={async (event) => {
+                await onCreateCustomer(event);
+                closeCreateModal();
+              }}
+            />
+            <div className="row-actions" style={{ marginTop: 12 }}>
+              <button type="button" className="btn-ghost btn-cancel" onClick={closeCreateModal}>
+                {t("customers.cancel")}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       {isEditing ? (
         <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="customer-edit-title">
           <form className="panel form modal-card" onSubmit={submitEdit}>

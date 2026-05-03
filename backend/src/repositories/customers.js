@@ -8,6 +8,16 @@ async function listCustomers() {
   return unwrapProcedureRows(rows).map(mapCustomer);
 }
 
+async function listCustomersByDepotId(depotId) {
+  const [rows] = await getPool().query("CALL sp_list_customers_by_depot_id(?)", [depotId]);
+  return unwrapProcedureRows(rows).map(mapCustomer);
+}
+
+async function listCustomersByOwnerUserId(ownerUserId) {
+  const [rows] = await getPool().query("CALL sp_list_customers_by_owner_user_id(?)", [ownerUserId]);
+  return unwrapProcedureRows(rows).map(mapCustomer);
+}
+
 async function getCustomerById(id) {
   const [rows] = await getPool().query("CALL sp_get_customer_by_id(?)", [id]);
   const resultRows = unwrapProcedureRows(rows);
@@ -26,9 +36,10 @@ async function createCustomer(payload) {
   const phone = (payload.phone && String(payload.phone).trim()) || "";
   const address = Number(payload.address);
   const userId = payload.userId ? Number(payload.userId) : null;
+  const depotId = payload.depotId ? Number(payload.depotId) : null;
   const subAddress = (payload.subAddress && String(payload.subAddress).trim()) || "";
-  const [rowsRaw] = await getPool().query("CALL sp_create_customer(?, ?, ?, ?, ?, ?)", [
-    name, phone, address, userId, subAddress, nowIso(),
+  const [rowsRaw] = await getPool().query("CALL sp_create_customer(?, ?, ?, ?, ?, ?, ?)", [
+    name, phone, address, userId, depotId, subAddress, nowIso(),
   ]);
   const meta = getProcedureMeta(rowsRaw);
   return getCustomerById(meta.insertId);
@@ -39,9 +50,10 @@ async function updateCustomer(id, payload) {
   const phone = (payload.phone && String(payload.phone).trim()) || "";
   const address = Number(payload.address);
   const userId = payload.userId ? Number(payload.userId) : null;
+  const depotId = payload.depotId ? Number(payload.depotId) : null;
   const subAddress = (payload.subAddress && String(payload.subAddress).trim()) || "";
-  const [rowsRaw] = await getPool().query("CALL sp_update_customer(?, ?, ?, ?, ?, ?, ?)", [
-    id, name, phone, address, userId, subAddress, nowIso(),
+  const [rowsRaw] = await getPool().query("CALL sp_update_customer(?, ?, ?, ?, ?, ?, ?, ?)", [
+    id, name, phone, address, userId, depotId, subAddress, nowIso(),
   ]);
   const meta = getProcedureMeta(rowsRaw);
   if (!Number(meta.affectedRows || 0)) return null;
@@ -56,6 +68,8 @@ async function deleteCustomer(id) {
 
 module.exports = {
   listCustomers,
+  listCustomersByDepotId,
+  listCustomersByOwnerUserId,
   getCustomerById,
   getCustomerByUserId,
   createCustomer,

@@ -5,6 +5,7 @@ const createCustomerSchema = z.object({
   phone: z.string().optional().default(""),
   address: z.string().min(1),
   userId: z.string().min(1),
+  depotId: z.string().min(1).optional(),
   subAddress: z.string().optional().default(""),
 });
 

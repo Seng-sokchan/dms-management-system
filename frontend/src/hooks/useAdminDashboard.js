@@ -16,13 +16,16 @@ import {
   deleteUser,
   createCatalog,
   createCustomer,
+  createDepot,
   deleteCustomer,
+  deleteDepot,
   deleteProducer,
   createProducer,
   fetchDashboardData,
   login as loginRequest,
   updateCatalog,
   updateCustomer,
+  updateDepot,
   updateDeliveryAgent,
   updateTruck,
   updateItem,
@@ -32,6 +35,11 @@ import {
   updateProducer,
   updateUser,
   updateRoleMenus,
+  createBorrowMaterial,
+  updateBorrowMaterial,
+  deleteBorrowMaterial,
+  upsertCustomerBorrowedMaterial,
+  deleteCustomerBorrowedMaterial,
 } from "../services/adminApi";
 import {
   getStoredToken,
@@ -89,6 +97,7 @@ export function useAdminDashboard() {
   const [activityLogs, setActivityLogs] = useState([]);
   const [roleMenusByRole, setRoleMenusByRole] = useState(null);
   const [customers, setCustomers] = useState([]);
+  const [depots, setDepots] = useState([]);
   const [customerUsers, setCustomerUsers] = useState([]);
   const [addresses, setAddresses] = useState([]);
   const [producers, setProducers] = useState([]);
@@ -99,13 +108,13 @@ export function useAdminDashboard() {
   const [payments, setPayments] = useState([]);
   const [paymentMethods, setPaymentMethods] = useState([]);
   const [orderGroups, setOrderGroups] = useState([]);
+  const [borrowMaterials, setBorrowMaterials] = useState([]);
+  const [customerBorrowedMaterials, setCustomerBorrowedMaterials] = useState([]);
 
   const [newOrder, setNewOrder] = useState({
     customerId: "",
     itemId: "",
     orderedQty: 1,
-    producerId: "",
-    truckId: "",
   });
   const [newProducer, setNewProducer] = useState({ name: "", phone: "", capacityNote: "" });
   const [newCustomer, setNewCustomer] = useState({
@@ -114,6 +123,13 @@ export function useAdminDashboard() {
     address: "",
     userId: "",
     subAddress: "",
+  });
+  const [newDepot, setNewDepot] = useState({
+    name: "",
+    phone: "",
+    address: "",
+    ownerUserId: "",
+    depotUserId: "",
   });
   const [newCatalog, setNewCatalog] = useState({ name: "", note: "" });
   const [newItem, setNewItem] = useState({
@@ -128,6 +144,8 @@ export function useAdminDashboard() {
   const [newTruck, setNewTruck] = useState({ code: "", plateNo: "", deliveryAgentId: "", capacityNote: "" });
   const [newPayment, setNewPayment] = useState({ orderId: "", amount: 1, method: "", note: "" });
   const [newUser, setNewUser] = useState({ name: "", username: "", password: "", role: "Owner" });
+  const [newBorrowMaterial, setNewBorrowMaterial] = useState({ name: "", unit: "", note: "" });
+  const [newCustomerBorrow, setNewCustomerBorrow] = useState({ customerId: "", materialId: "", qty: 1, note: "" });
 
   const refresh = useCallback(async () => {
     if (!token) return;
@@ -138,6 +156,7 @@ export function useAdminDashboard() {
       setStatuses(Array.isArray(data.statuses) ? data.statuses : []);
       setOrders(data.orders);
       setCustomers(Array.isArray(data.customers) ? data.customers : []);
+      setDepots(Array.isArray(data.depots) ? data.depots : []);
       setCustomerUsers(Array.isArray(data.customerUsers) ? data.customerUsers : []);
       setAddresses(Array.isArray(data.addresses) ? data.addresses : []);
       setProducers(Array.isArray(data.producers) ? data.producers : []);
@@ -151,6 +170,8 @@ export function useAdminDashboard() {
       setUsers(Array.isArray(data.users) ? data.users : []);
       setRoleMenusByRole(data.roleMenusByRole && typeof data.roleMenusByRole === "object" ? data.roleMenusByRole : null);
       setActivityLogs(Array.isArray(data.activityLogs) ? data.activityLogs : []);
+      setBorrowMaterials(Array.isArray(data.borrowMaterials) ? data.borrowMaterials : []);
+      setCustomerBorrowedMaterials(Array.isArray(data.customerBorrowedMaterials) ? data.customerBorrowedMaterials : []);
     } catch (error) {
       if (error?.response?.status === 401) {
         setToken("");
@@ -162,6 +183,7 @@ export function useAdminDashboard() {
         setActivityLogs([]);
         setRoleMenusByRole(null);
         setCustomers([]);
+        setDepots([]);
         setCustomerUsers([]);
         setAddresses([]);
         setProducers([]);
@@ -172,6 +194,8 @@ export function useAdminDashboard() {
         setPayments([]);
         setPaymentMethods([]);
         setOrderGroups([]);
+        setBorrowMaterials([]);
+        setCustomerBorrowedMaterials([]);
         showError(i18n.t("errors.sessionExpired"));
         return;
       }
@@ -204,6 +228,8 @@ export function useAdminDashboard() {
         ...newOrder,
         orderedQty: Number(newOrder.orderedQty),
       };
+      delete body.producerId;
+      delete body.truckId;
       if (!body.itemId) {
         delete body.itemId;
       }
@@ -212,8 +238,6 @@ export function useAdminDashboard() {
         customerId: "",
         itemId: "",
         orderedQty: 1,
-        producerId: "",
-        truckId: "",
       });
       await refresh();
       await showSuccessPopup(i18n.t("success.orderCreated"));
@@ -341,6 +365,42 @@ export function useAdminDashboard() {
     }
   }
 
+  async function submitDepot(event) {
+    event.preventDefault();
+    try {
+      await createDepot(token, {
+        ...newDepot,
+        ownerUserId: newDepot.ownerUserId || undefined,
+        depotUserId: newDepot.depotUserId || undefined,
+      });
+      setNewDepot({ name: "", phone: "", address: "", ownerUserId: "", depotUserId: "" });
+      await refresh();
+      await showSuccessPopup(i18n.t("success.depotAdded", { defaultValue: "Depot added" }));
+    } catch (error) {
+      showError(getErrorMessage(error, "errors.createDepot"));
+    }
+  }
+
+  async function submitDepotUpdate(depotId, payload) {
+    try {
+      await updateDepot(token, depotId, payload);
+      await refresh();
+      await showSuccessPopup(i18n.t("success.depotUpdated", { defaultValue: "Depot updated" }));
+    } catch (error) {
+      showError(getErrorMessage(error, "errors.updateDepot"));
+    }
+  }
+
+  async function submitDepotDelete(depotId) {
+    try {
+      await deleteDepot(token, depotId);
+      await refresh();
+      showSuccess(i18n.t("success.depotDeleted", { defaultValue: "Depot deleted" }));
+    } catch (error) {
+      showError(getErrorMessage(error, "errors.deleteDepot"));
+    }
+  }
+
   async function submitProducer(event) {
     event.preventDefault();
     try {
@@ -430,9 +490,6 @@ export function useAdminDashboard() {
   async function submitTruckDelete(truckId) {
     try {
       await deleteTruck(token, truckId);
-      if (newOrder.truckId === truckId) {
-        setNewOrder((prev) => ({ ...prev, truckId: "" }));
-      }
       await refresh();
       showSuccess(i18n.t("success.truckDeleted"));
     } catch (error) {
@@ -565,6 +622,70 @@ export function useAdminDashboard() {
     }
   }
 
+  async function submitBorrowMaterial(event) {
+    event.preventDefault();
+    try {
+      await createBorrowMaterial(token, newBorrowMaterial);
+      setNewBorrowMaterial({ name: "", unit: "", note: "" });
+      await refresh();
+      await showSuccessPopup(i18n.t("success.borrowMaterialAdded", { defaultValue: "Borrow material added" }));
+    } catch (error) {
+      showError(getErrorMessage(error, "errors.createBorrowMaterial"));
+    }
+  }
+
+  async function submitBorrowMaterialUpdate(materialId, payload) {
+    try {
+      await updateBorrowMaterial(token, materialId, payload);
+      await refresh();
+      await showSuccessPopup(i18n.t("success.borrowMaterialUpdated", { defaultValue: "Borrow material updated" }));
+    } catch (error) {
+      showError(getErrorMessage(error, "errors.updateBorrowMaterial"));
+    }
+  }
+
+  async function submitBorrowMaterialDelete(materialId) {
+    try {
+      await deleteBorrowMaterial(token, materialId);
+      await refresh();
+      showSuccess(i18n.t("success.borrowMaterialDeleted", { defaultValue: "Borrow material deleted" }));
+    } catch (error) {
+      showError(getErrorMessage(error, "errors.deleteBorrowMaterial"));
+    }
+  }
+
+  async function submitCustomerBorrow(eventOrOverride) {
+    const isEvent = eventOrOverride && typeof eventOrOverride.preventDefault === "function";
+    if (isEvent) eventOrOverride.preventDefault();
+    const override = !isEvent && eventOrOverride && typeof eventOrOverride === "object" ? eventOrOverride : null;
+    const source = override || newCustomerBorrow;
+    try {
+      const payload = {
+        materialId: String(source.materialId || ""),
+        qty: Math.max(0, Number(source.qty || 0)),
+        note: source.note || "",
+      };
+      await upsertCustomerBorrowedMaterial(token, source.customerId, payload);
+      if (!override) {
+        setNewCustomerBorrow({ customerId: "", materialId: "", qty: 1, note: "" });
+      }
+      await refresh();
+      await showSuccessPopup(i18n.t("success.customerBorrowSaved", { defaultValue: "Borrowing saved" }));
+    } catch (error) {
+      showError(getErrorMessage(error, "errors.saveCustomerBorrow"));
+    }
+  }
+
+  async function submitCustomerBorrowDelete(customerId, materialId) {
+    try {
+      await deleteCustomerBorrowedMaterial(token, customerId, materialId);
+      await refresh();
+      showSuccess(i18n.t("success.customerBorrowDeleted", { defaultValue: "Borrowing removed" }));
+    } catch (error) {
+      showError(getErrorMessage(error, "errors.deleteCustomerBorrow"));
+    }
+  }
+
   function logout() {
     setToken("");
     setUser(null);
@@ -582,6 +703,7 @@ export function useAdminDashboard() {
     roleMenusByRole,
     activityLogs,
     customers,
+    depots,
     customerUsers,
     addresses,
     producers,
@@ -592,27 +714,35 @@ export function useAdminDashboard() {
     payments,
     paymentMethods,
     orderGroups,
+    borrowMaterials,
+    customerBorrowedMaterials,
     flash,
     dismissFlash,
     newOrder,
     newProducer,
     newCustomer,
+    newDepot,
     newCatalog,
     newItem,
     newDelivery,
     newTruck,
     newPayment,
     newUser,
+    newBorrowMaterial,
+    newCustomerBorrow,
     setAuth,
     setNewOrder,
     setNewProducer,
     setNewCustomer,
+    setNewDepot,
     setNewCatalog,
     setNewItem,
     setNewDelivery,
     setNewTruck,
     setNewPayment,
     setNewUser,
+    setNewBorrowMaterial,
+    setNewCustomerBorrow,
     login,
     submitOrder,
     submitCatalog,
@@ -627,6 +757,9 @@ export function useAdminDashboard() {
     submitCustomer,
     submitCustomerUpdate,
     submitCustomerDelete,
+    submitDepot,
+    submitDepotUpdate,
+    submitDepotDelete,
     submitDelivery,
     submitDeliveryUpdate,
     submitDeliveryDelete,
@@ -643,6 +776,11 @@ export function useAdminDashboard() {
     submitUserUpdate,
     submitUserDelete,
     submitRoleMenus,
+    submitBorrowMaterial,
+    submitBorrowMaterialUpdate,
+    submitBorrowMaterialDelete,
+    submitCustomerBorrow,
+    submitCustomerBorrowDelete,
     refresh,
     logout,
   };

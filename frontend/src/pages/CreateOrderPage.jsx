@@ -6,8 +6,6 @@ export function CreateOrderPage({
   user,
   customers,
   addresses,
-  producers,
-  trucks,
   items,
   newOrder,
   setNewOrder,
@@ -36,8 +34,6 @@ export function CreateOrderPage({
         <CreateOrderForm
           customers={customers}
           addresses={addresses}
-          producers={producers}
-          trucks={trucks}
           items={items}
           customerReadonly={isCustomerRole}
           newOrder={newOrder}

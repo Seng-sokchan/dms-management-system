@@ -12,6 +12,8 @@ const PAGE_PATH_MAP = {
   "/catalogs":        "catalogs",
   "/items":           "items",
   "/customers":       "customers",
+  "/borrowed-materials": "borrowedMaterials",
+  "/depots":          "depots",
   "/producers":       "producers",
   "/delivery-agents": "deliveryAgents",
   "/trucks":          "trucks",
@@ -56,6 +58,19 @@ const NAV_ICONS = {
       <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
       <circle cx="9" cy="7" r="4" />
       <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
+    </svg>
+  ),
+  borrowedMaterials: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="3" width="16" height="18" rx="2" />
+      <path d="M8 7h8M8 11h8M8 15h5" />
+    </svg>
+  ),
+  depots: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 10l9-7 9 7" />
+      <path d="M5 10v10h14V10" />
+      <path d="M9 20v-6h6v6" />
     </svg>
   ),
   producers: (
@@ -139,7 +154,7 @@ const NAV_GROUPS = [
   {
     labelKey: "nav.sectionOrders",
     defaultLabel: "Orders",
-    keys: ["newOrder", "catalogs", "items", "customers", "producers", "orders", "orderMovement"],
+    keys: ["newOrder", "catalogs", "items", "customers", "borrowedMaterials", "depots", "producers", "orders", "orderMovement"],
   },
   {
     labelKey: "nav.sectionFulfillment",

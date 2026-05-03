@@ -33,6 +33,7 @@ export function ItemsPage({
   const { t } = useTranslation();
   const { confirm } = useConfirm();
   const hasCatalogs = catalogs.length > 0;
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingItem, setEditingItem] = useState(EMPTY_EDIT);
   const isEditing = useMemo(() => Boolean(editingItem.id), [editingItem.id]);
 
@@ -82,6 +83,14 @@ export function ItemsPage({
     await onDeleteItem(itemId);
   }
 
+  function openCreateModal() {
+    setShowCreateModal(true);
+  }
+
+  function closeCreateModal() {
+    setShowCreateModal(false);
+  }
+
   return (
     <section className="admin-page">
       <div className="section-heading">
@@ -98,51 +107,81 @@ export function ItemsPage({
             </Link>
           </p>
         </div>
-      ) : (
-        <div className="form-single">
-          <ItemForm
-            catalogs={catalogs}
-            customers={customers}
-            newItem={newItem}
-            setNewItem={setNewItem}
-            onCreateItem={onCreateItem}
-          />
-        </div>
-      )}
+      ) : null}
 
       {hasCatalogs ? (
         <section className="panel entity-list">
-          <h3>{t("items.listTitle")}</h3>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
+            <h3 style={{ margin: 0 }}>{t("items.listTitle")}</h3>
+            <button type="button" className="btn-primary" onClick={openCreateModal}>
+              {t("items.new", { defaultValue: "New" })}
+            </button>
+          </div>
           {items.length === 0 ? (
             <p className="entity-list-empty">{t("items.empty")}</p>
           ) : (
-            <ul className="entity-list-ul">
-              {items.map((it) => (
-                <li key={it.id} className="entity-list-item">
-                  <span className="entity-list-name">
-                    {it.catalogName ? `${it.catalogName} — ${it.name}` : it.name}
-                  </span>
-                  <span className="entity-list-meta">
-                    {it.customerName ? `${t("items.rowCustomer", { defaultValue: "Customer {{name}}", name: it.customerName })} · ` : ""}
-                    {it.sku ? `${t("items.rowSku", { sku: it.sku })} · ` : ""}
-                    {t("items.rowDefaultUnitPrices", {
-                      usd: formatUnitPrice(it.defaultUnitPriceUsd),
-                      khr: formatUnitPrice(it.defaultUnitPriceKhr),
-                    })}
-                  </span>
-                  <div className="row-actions">
-                    <button type="button" className="btn-ghost btn-edit" onClick={() => startEdit(it)}>
-                      {t("items.edit")}
-                    </button>
-                    <button type="button" className="btn-ghost btn-delete" onClick={() => void handleDelete(it.id)}>
-                      {t("items.delete")}
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
+            <div className="table-wrap">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>{t("items.labelCatalog")}</th>
+                    <th>{t("items.labelName")}</th>
+                    <th>{t("customers.user", { defaultValue: "Customer" })}</th>
+                    <th>{t("items.labelSku")}</th>
+                    <th>{t("items.labelDefaultPriceUsd")}</th>
+                    <th>{t("items.labelDefaultPriceKhr")}</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((it) => (
+                    <tr key={it.id}>
+                      <td>{it.id}</td>
+                      <td>{it.catalogName || "—"}</td>
+                      <td>{it.name}</td>
+                      <td>{it.customerName || "—"}</td>
+                      <td>{it.sku || "—"}</td>
+                      <td>{formatUnitPrice(it.defaultUnitPriceUsd)}</td>
+                      <td>{formatUnitPrice(it.defaultUnitPriceKhr)}</td>
+                      <td>
+                        <div className="row-actions">
+                          <button type="button" className="btn-ghost btn-edit" onClick={() => startEdit(it)}>
+                            {t("items.edit")}
+                          </button>
+                          <button type="button" className="btn-ghost btn-delete" onClick={() => void handleDelete(it.id)}>
+                            {t("items.delete")}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </section>
+      ) : null}
+      {showCreateModal && hasCatalogs ? (
+        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="item-create-title">
+          <div className="modal-card">
+            <ItemForm
+              catalogs={catalogs}
+              customers={customers}
+              newItem={newItem}
+              setNewItem={setNewItem}
+              onCreateItem={async (event) => {
+                await onCreateItem(event);
+                closeCreateModal();
+              }}
+            />
+            <div className="row-actions" style={{ marginTop: 12 }}>
+              <button type="button" className="btn-ghost btn-cancel" onClick={closeCreateModal}>
+                {t("items.cancel")}
+              </button>
+            </div>
+          </div>
+        </div>
       ) : null}
       {isEditing ? (
         <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="item-edit-title">

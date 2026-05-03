@@ -11,7 +11,7 @@ function validateRequiredEnv() {
 async function start() {
   validateRequiredEnv();
   await checkDbConnection();
-  app.listen(Number(process.env.PORT || 4000), '0.0.0.0', () => {
+  app.listen(Number(process.env.PORT || 4000), () => {
     // eslint-disable-next-line no-console
     console.log(`Backend running on http://localhost:${Number(process.env.PORT || 4000)}`);
   });
