@@ -31,13 +31,19 @@ async function getCustomerByUserId(userId) {
   return row ? mapCustomer(row) : null;
 }
 
+function normalizeNullableString(value) {
+  if (value === null || value === undefined) return null;
+  const s = String(value).trim();
+  return s === "" ? null : s;
+}
+
 async function createCustomer(payload) {
   const name = String(payload.name || "").trim();
-  const phone = (payload.phone && String(payload.phone).trim()) || "";
+  const phone = normalizeNullableString(payload.phone);
   const address = Number(payload.address);
   const userId = payload.userId ? Number(payload.userId) : null;
   const depotId = payload.depotId ? Number(payload.depotId) : null;
-  const subAddress = (payload.subAddress && String(payload.subAddress).trim()) || "";
+  const subAddress = normalizeNullableString(payload.subAddress);
   const [rowsRaw] = await getPool().query("CALL sp_create_customer(?, ?, ?, ?, ?, ?, ?)", [
     name, phone, address, userId, depotId, subAddress, nowIso(),
   ]);
@@ -47,11 +53,11 @@ async function createCustomer(payload) {
 
 async function updateCustomer(id, payload) {
   const name = String(payload.name || "").trim();
-  const phone = (payload.phone && String(payload.phone).trim()) || "";
+  const phone = normalizeNullableString(payload.phone);
   const address = Number(payload.address);
   const userId = payload.userId ? Number(payload.userId) : null;
   const depotId = payload.depotId ? Number(payload.depotId) : null;
-  const subAddress = (payload.subAddress && String(payload.subAddress).trim()) || "";
+  const subAddress = normalizeNullableString(payload.subAddress);
   const [rowsRaw] = await getPool().query("CALL sp_update_customer(?, ?, ?, ?, ?, ?, ?, ?)", [
     id, name, phone, address, userId, depotId, subAddress, nowIso(),
   ]);

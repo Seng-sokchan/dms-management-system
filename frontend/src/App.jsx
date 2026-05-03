@@ -247,7 +247,6 @@ function App() {
           canAccessPath(user, "/items") ? (
             <ItemsPage
               catalogs={catalogs}
-              customers={customers}
               items={items}
               newItem={newItem}
               setNewItem={setNewItem}

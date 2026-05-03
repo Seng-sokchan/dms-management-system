@@ -25,10 +25,10 @@ export function CustomersPage({
     setEditingCustomer({
       id: customer.id,
       name: customer.name || "",
-      phone: customer.phone || "",
+      phone: customer.phone ?? "",
       address: customer.address || "",
       userId: customer.userId || "",
-      subAddress: customer.subAddress || "",
+      subAddress: customer.subAddress ?? "",
     });
   }
 
@@ -112,7 +112,7 @@ export function CustomersPage({
                       {customer.userName ? `${customer.userName} (${customer.userUsername})` : "—"}
                     </td>
                     <td>{customer.addressName || "—"}</td>
-                    <td>{customer.subAddress || "—"}</td>
+                    <td>{customer.subAddress ? customer.subAddress : "—"}</td>
                     <td>
                       <div className="row-actions">
                         <button type="button" className="btn-ghost btn-edit" onClick={() => startEdit(customer)}>

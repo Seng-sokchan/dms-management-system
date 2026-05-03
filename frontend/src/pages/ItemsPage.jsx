@@ -13,7 +13,6 @@ function formatUnitPrice(value) {
 const EMPTY_EDIT = {
   id: "",
   catalogId: "",
-  customerId: "",
   name: "",
   sku: "",
   defaultUnitPriceUsd: 1,
@@ -22,7 +21,6 @@ const EMPTY_EDIT = {
 
 export function ItemsPage({
   catalogs = [],
-  customers = [],
   items = [],
   newItem,
   setNewItem,
@@ -41,7 +39,6 @@ export function ItemsPage({
     setEditingItem({
       id: item.id,
       catalogId: item.catalogId || "",
-      customerId: item.customerId || "",
       name: item.name || "",
       sku: item.sku || "",
       defaultUnitPriceUsd: Number(item.defaultUnitPriceUsd) || 0,
@@ -58,7 +55,6 @@ export function ItemsPage({
     if (!editingItem.id) return;
     await onUpdateItem(editingItem.id, {
       catalogId: editingItem.catalogId,
-      customerId: editingItem.customerId || null,
       name: editingItem.name,
       sku: editingItem.sku,
       defaultUnitPriceUsd: Number(editingItem.defaultUnitPriceUsd),
@@ -127,7 +123,6 @@ export function ItemsPage({
                     <th>ID</th>
                     <th>{t("items.labelCatalog")}</th>
                     <th>{t("items.labelName")}</th>
-                    <th>{t("customers.user", { defaultValue: "Customer" })}</th>
                     <th>{t("items.labelSku")}</th>
                     <th>{t("items.labelDefaultPriceUsd")}</th>
                     <th>{t("items.labelDefaultPriceKhr")}</th>
@@ -140,7 +135,6 @@ export function ItemsPage({
                       <td>{it.id}</td>
                       <td>{it.catalogName || "—"}</td>
                       <td>{it.name}</td>
-                      <td>{it.customerName || "—"}</td>
                       <td>{it.sku || "—"}</td>
                       <td>{formatUnitPrice(it.defaultUnitPriceUsd)}</td>
                       <td>{formatUnitPrice(it.defaultUnitPriceKhr)}</td>
@@ -167,7 +161,6 @@ export function ItemsPage({
           <div className="modal-card">
             <ItemForm
               catalogs={catalogs}
-              customers={customers}
               newItem={newItem}
               setNewItem={setNewItem}
               onCreateItem={async (event) => {
@@ -200,22 +193,6 @@ export function ItemsPage({
               {catalogs.map((catalog) => (
                 <option key={catalog.id} value={catalog.id}>
                   {catalog.name}
-                </option>
-              ))}
-            </select>
-            <label className="form-label" htmlFor="item-edit-customer">
-              {t("items.labelCustomer", { defaultValue: "Assigned customer" })}
-            </label>
-            <select
-              id="item-edit-customer"
-              value={editingItem.customerId || ""}
-              onChange={(event) => setEditingItem({ ...editingItem, customerId: event.target.value })}
-              required
-            >
-              <option value="">{t("items.customerPlaceholder", { defaultValue: "— Select a customer —" })}</option>
-              {customers.map((customer) => (
-                <option key={customer.id} value={customer.id}>
-                  {customer.name}
                 </option>
               ))}
             </select>

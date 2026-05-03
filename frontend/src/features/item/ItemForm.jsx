@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 
-export function ItemForm({ catalogs = [], customers = [], newItem, setNewItem, onCreateItem }) {
+export function ItemForm({ catalogs = [], newItem, setNewItem, onCreateItem }) {
   const { t } = useTranslation();
 
   return (
@@ -21,28 +21,6 @@ export function ItemForm({ catalogs = [], customers = [], newItem, setNewItem, o
         >
           <option value="">{t("items.catalogPlaceholder")}</option>
           {catalogs.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="form-pick-catalog">
-        <label className="form-label" htmlFor="item-customer">
-          {t("items.labelCustomer", { defaultValue: "Assigned customer" })}
-        </label>
-        <p className="form-hint">
-          {t("items.customerSelectHint", { defaultValue: "Only this customer can see/select this item in mobile order creation." })}
-        </p>
-        <select
-          id="item-customer"
-          className="form-select-catalog"
-          value={newItem.customerId || ""}
-          onChange={(event) => setNewItem({ ...newItem, customerId: event.target.value })}
-          required
-        >
-          <option value="">{t("items.customerPlaceholder", { defaultValue: "— Select a customer —" })}</option>
-          {customers.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
             </option>

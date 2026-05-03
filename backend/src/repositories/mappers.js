@@ -72,11 +72,10 @@ function mapTruck(row) {
 }
 
 function mapCustomer(row) {
-  const subAddress = row.sub_address || "";
   return {
     id: String(row.id),
     name: row.name,
-    phone: row.phone || "",
+    phone: row.phone != null && String(row.phone).trim() !== "" ? String(row.phone) : null,
     address: row.address != null ? String(row.address) : "",
     userId: row.user_id != null ? String(row.user_id) : "",
     userName: row.user_name || "",
@@ -84,7 +83,10 @@ function mapCustomer(row) {
     depotId: row.depot_id != null ? String(row.depot_id) : "",
     depotName: row.depot_name || "",
     addressName: row.address_name || "",
-    subAddress,
+    subAddress:
+      row.sub_address != null && String(row.sub_address).trim() !== ""
+        ? String(row.sub_address)
+        : null,
   };
 }
 
@@ -127,8 +129,6 @@ function mapItem(row) {
     id: String(row.id),
     catalogId: String(row.catalog_id),
     catalogName: row.catalog_name != null ? row.catalog_name : null,
-    customerId: row.customer_id != null ? String(row.customer_id) : null,
-    customerName: row.customer_name != null ? row.customer_name : null,
     name: row.name,
     sku: row.sku || "",
     defaultUnitPrice: defaultUnitPriceUsd,

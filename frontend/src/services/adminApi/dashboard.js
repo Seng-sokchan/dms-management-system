@@ -7,7 +7,7 @@ const ROUTE_DATA_MAP = {
   "/overview": ["summary", "statuses"],
   "/create-order": ["customers", "customerUsers", "addresses", "producers", "trucks", "items"],
   "/catalogs": ["catalogs"],
-  "/items": ["catalogs", "items", "customers"],
+  "/items": ["catalogs", "items"],
   "/customers": ["customers", "customerUsers", "addresses"],
   "/depots": ["depots"],
   "/producers": ["producers"],

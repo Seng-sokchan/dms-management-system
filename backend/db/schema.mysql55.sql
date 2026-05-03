@@ -162,11 +162,11 @@ CREATE TABLE addresses (
 CREATE TABLE customers (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   name VARCHAR(120) NOT NULL,
-  phone VARCHAR(30) DEFAULT '',
+  phone VARCHAR(30) NULL DEFAULT NULL,
   address INT UNSIGNED NOT NULL,
   user_id INT UNSIGNED DEFAULT NULL,
   depot_id INT UNSIGNED DEFAULT NULL,
-  sub_address VARCHAR(255) DEFAULT '',
+  sub_address VARCHAR(255) NULL DEFAULT NULL,
   is_active TINYINT(1) NOT NULL DEFAULT 1,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NULL,
@@ -227,7 +227,6 @@ CREATE TABLE catalogs (
 CREATE TABLE items (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   catalog_id INT UNSIGNED NOT NULL,
-  customer_id INT UNSIGNED DEFAULT NULL,
   name VARCHAR(120) NOT NULL,
   sku VARCHAR(40) DEFAULT '',
   default_unit_price_usd DECIMAL(14,2) NOT NULL,
@@ -239,10 +238,7 @@ CREATE TABLE items (
   KEY idx_items_name (name),
   KEY idx_items_sku (sku),
   KEY idx_items_catalog (catalog_id),
-  KEY idx_items_customer (customer_id),
   CONSTRAINT fk_items_catalog FOREIGN KEY (catalog_id) REFERENCES catalogs (id)
-    ON UPDATE RESTRICT ON DELETE RESTRICT,
-  CONSTRAINT fk_items_customer FOREIGN KEY (customer_id) REFERENCES customers (id)
     ON UPDATE RESTRICT ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
@@ -710,20 +706,17 @@ WHERE is_active = 1
 ORDER BY name ASC;
 
 CREATE PROCEDURE sp_get_item_by_id(IN p_id INT UNSIGNED)
-SELECT i.id, i.catalog_id, i.customer_id, i.name, i.sku, i.default_unit_price_usd, i.default_unit_price_khr, c.name AS catalog_name, cu.name AS customer_name
+SELECT i.id, i.catalog_id, i.name, i.sku, i.default_unit_price_usd, i.default_unit_price_khr, c.name AS catalog_name
 FROM items i
 INNER JOIN catalogs c ON c.id = i.catalog_id
-LEFT JOIN customers cu ON cu.id = i.customer_id
 WHERE i.id = p_id AND i.is_active = 1 AND c.is_active = 1
 LIMIT 1;
 
-CREATE PROCEDURE sp_list_items(IN p_customer_id INT UNSIGNED)
-SELECT i.id, i.catalog_id, i.customer_id, i.name, i.sku, i.default_unit_price_usd, i.default_unit_price_khr, c.name AS catalog_name, cu.name AS customer_name
+CREATE PROCEDURE sp_list_items()
+SELECT i.id, i.catalog_id, i.name, i.sku, i.default_unit_price_usd, i.default_unit_price_khr, c.name AS catalog_name
 FROM items i
 INNER JOIN catalogs c ON c.id = i.catalog_id
-LEFT JOIN customers cu ON cu.id = i.customer_id
 WHERE i.is_active = 1 AND c.is_active = 1
-  AND (p_customer_id IS NULL OR i.customer_id = p_customer_id)
 ORDER BY c.name ASC, i.name ASC;
 
 CREATE PROCEDURE sp_list_statuses()
@@ -1095,20 +1088,20 @@ BEGIN
 END;
 
 CREATE PROCEDURE sp_create_item(
-  IN p_catalog_id INT UNSIGNED, IN p_customer_id INT UNSIGNED, IN p_name VARCHAR(255), IN p_sku VARCHAR(80), IN p_usd DECIMAL(12,2), IN p_khr DECIMAL(18,2), IN p_updated_at DATETIME
+  IN p_catalog_id INT UNSIGNED, IN p_name VARCHAR(255), IN p_sku VARCHAR(80), IN p_usd DECIMAL(12,2), IN p_khr DECIMAL(18,2), IN p_updated_at DATETIME
 )
 BEGIN
-  INSERT INTO items (catalog_id, customer_id, name, sku, default_unit_price_usd, default_unit_price_khr, updated_at)
-  VALUES (p_catalog_id, p_customer_id, p_name, p_sku, p_usd, p_khr, p_updated_at);
+  INSERT INTO items (catalog_id, name, sku, default_unit_price_usd, default_unit_price_khr, updated_at)
+  VALUES (p_catalog_id, p_name, p_sku, p_usd, p_khr, p_updated_at);
   SELECT LAST_INSERT_ID() AS insertId;
 END;
 
 CREATE PROCEDURE sp_update_item(
-  IN p_id INT UNSIGNED, IN p_catalog_id INT UNSIGNED, IN p_customer_id INT UNSIGNED, IN p_name VARCHAR(255), IN p_sku VARCHAR(80), IN p_usd DECIMAL(12,2), IN p_khr DECIMAL(18,2), IN p_updated_at DATETIME
+  IN p_id INT UNSIGNED, IN p_catalog_id INT UNSIGNED, IN p_name VARCHAR(255), IN p_sku VARCHAR(80), IN p_usd DECIMAL(12,2), IN p_khr DECIMAL(18,2), IN p_updated_at DATETIME
 )
 BEGIN
   UPDATE items
-  SET catalog_id = p_catalog_id, customer_id = p_customer_id, name = p_name, sku = p_sku, default_unit_price_usd = p_usd, default_unit_price_khr = p_khr, updated_at = p_updated_at
+  SET catalog_id = p_catalog_id, name = p_name, sku = p_sku, default_unit_price_usd = p_usd, default_unit_price_khr = p_khr, updated_at = p_updated_at
   WHERE id = p_id AND is_active = 1;
   SELECT ROW_COUNT() AS affectedRows;
 END;
@@ -1540,6 +1533,61 @@ PREPARE stmt_add_customers_user_id FROM @sql_add_customers_user_id;
 EXECUTE stmt_add_customers_user_id;
 DEALLOCATE PREPARE stmt_add_customers_user_id;
 
+-- 7a) Customers: name NOT NULL; phone and sub_address nullable
+SET @cust_name_nullable := (
+  SELECT COUNT(*)
+  FROM information_schema.columns
+  WHERE table_schema = DATABASE()
+    AND table_name = 'customers'
+    AND column_name = 'name'
+    AND is_nullable = 'YES'
+);
+SET @sql_cust_name_nn := IF(
+  @cust_name_nullable > 0,
+  'ALTER TABLE customers MODIFY COLUMN name VARCHAR(120) NOT NULL',
+  'SELECT 1'
+);
+PREPARE stmt_cust_name_nn FROM @sql_cust_name_nn;
+EXECUTE stmt_cust_name_nn;
+DEALLOCATE PREPARE stmt_cust_name_nn;
+
+SET @cust_phone_not_null := (
+  SELECT COUNT(*)
+  FROM information_schema.columns
+  WHERE table_schema = DATABASE()
+    AND table_name = 'customers'
+    AND column_name = 'phone'
+    AND is_nullable = 'NO'
+);
+SET @sql_cust_phone_null := IF(
+  @cust_phone_not_null > 0,
+  'ALTER TABLE customers MODIFY COLUMN phone VARCHAR(30) NULL DEFAULT NULL',
+  'SELECT 1'
+);
+PREPARE stmt_cust_phone_null FROM @sql_cust_phone_null;
+EXECUTE stmt_cust_phone_null;
+DEALLOCATE PREPARE stmt_cust_phone_null;
+
+SET @cust_sub_not_null := (
+  SELECT COUNT(*)
+  FROM information_schema.columns
+  WHERE table_schema = DATABASE()
+    AND table_name = 'customers'
+    AND column_name = 'sub_address'
+    AND is_nullable = 'NO'
+);
+SET @sql_cust_sub_null := IF(
+  @cust_sub_not_null > 0,
+  'ALTER TABLE customers MODIFY COLUMN sub_address VARCHAR(255) NULL DEFAULT NULL',
+  'SELECT 1'
+);
+PREPARE stmt_cust_sub_null FROM @sql_cust_sub_null;
+EXECUTE stmt_cust_sub_null;
+DEALLOCATE PREPARE stmt_cust_sub_null;
+
+UPDATE customers SET phone = NULL WHERE phone = '';
+UPDATE customers SET sub_address = NULL WHERE sub_address = '';
+
 -- 8) Ensure dual-currency item prices exist for USD and KHR
 SET @has_items_price_usd := (
   SELECT COUNT(*)
@@ -1617,24 +1665,41 @@ PREPARE stmt_set_items_price_khr_not_null FROM @sql_set_items_price_khr_not_null
 EXECUTE stmt_set_items_price_khr_not_null;
 DEALLOCATE PREPARE stmt_set_items_price_khr_not_null;
 
--- 9) Ensure items.customer_id exists for customer item assignment
-SET @has_items_customer_id := (
+-- 9) Drop items.customer_id if present (items are catalog-wide)
+SET @has_items_customer_col := (
   SELECT COUNT(*)
   FROM information_schema.columns
   WHERE table_schema = DATABASE()
     AND table_name = 'items'
     AND column_name = 'customer_id'
 );
-SET @sql_add_items_customer_id := IF(
-  @has_items_customer_id = 0,
-  'ALTER TABLE items ADD COLUMN customer_id INT UNSIGNED NULL',
+SET @items_customer_fk := (
+  SELECT CONSTRAINT_NAME
+  FROM information_schema.KEY_COLUMN_USAGE
+  WHERE table_schema = DATABASE()
+    AND table_name = 'items'
+    AND column_name = 'customer_id'
+    AND referenced_table_name IS NOT NULL
+  LIMIT 1
+);
+SET @sql_drop_items_cust_fk := IF(
+  @has_items_customer_col > 0 AND @items_customer_fk IS NOT NULL,
+  CONCAT('ALTER TABLE items DROP FOREIGN KEY ', @items_customer_fk),
   'SELECT 1'
 );
-PREPARE stmt_add_items_customer_id FROM @sql_add_items_customer_id;
-EXECUTE stmt_add_items_customer_id;
-DEALLOCATE PREPARE stmt_add_items_customer_id;
+PREPARE stmt_drop_items_cust_fk FROM @sql_drop_items_cust_fk;
+EXECUTE stmt_drop_items_cust_fk;
+DEALLOCATE PREPARE stmt_drop_items_cust_fk;
+SET @sql_drop_items_cust_col := IF(
+  @has_items_customer_col > 0,
+  'ALTER TABLE items DROP COLUMN customer_id',
+  'SELECT 1'
+);
+PREPARE stmt_drop_items_cust_col FROM @sql_drop_items_cust_col;
+EXECUTE stmt_drop_items_cust_col;
+DEALLOCATE PREPARE stmt_drop_items_cust_col;
 
--- 9) Ensure bakong_tokens table exists (token stored in DB, not env/cache)
+-- 10) Ensure bakong_tokens table exists (token stored in DB, not env/cache)
 SET @has_bakong_tokens := (
   SELECT COUNT(*)
   FROM information_schema.tables
@@ -1657,7 +1722,7 @@ PREPARE stmt_create_bakong_tokens FROM @sql_create_bakong_tokens;
 EXECUTE stmt_create_bakong_tokens;
 DEALLOCATE PREPARE stmt_create_bakong_tokens;
 
--- 10) Ensure bakong_transactions table exists
+-- 11) Ensure bakong_transactions table exists
 SET @has_bakong_transactions := (
   SELECT COUNT(*)
   FROM information_schema.tables
@@ -1704,7 +1769,7 @@ PREPARE stmt_create_bakong_transactions FROM @sql_create_bakong_transactions;
 EXECUTE stmt_create_bakong_transactions;
 DEALLOCATE PREPARE stmt_create_bakong_transactions;
 
--- 11) Ensure orders.currency exists and defaults to USD
+-- 12) Ensure orders.currency exists and defaults to USD
 SET @has_orders_currency := (
   SELECT COUNT(*)
   FROM information_schema.columns
@@ -1723,7 +1788,7 @@ DEALLOCATE PREPARE stmt_add_orders_currency;
 
 UPDATE orders SET currency = 'USD' WHERE currency IS NULL OR currency = '';
 
--- 12) Remove SUPPLIER_ORDER_READY and collapse flow to OUT_FOR_DELIVERY
+-- 13) Remove SUPPLIER_ORDER_READY and collapse flow to OUT_FOR_DELIVERY
 SET @supplier_ready_id := (
   SELECT id FROM status WHERE name = 'SUPPLIER_ORDER_READY' LIMIT 1
 );
@@ -1760,7 +1825,7 @@ DEALLOCATE PREPARE stmt_migrate_history_to_supplier_ready;
 
 DELETE FROM status WHERE name = 'SUPPLIER_ORDER_READY';
 
--- 13) Ensure borrow_materials and customer_borrowed_materials tables exist
+-- 14) Ensure borrow_materials and customer_borrowed_materials tables exist
 SET @has_borrow_materials := (
   SELECT COUNT(*)
   FROM information_schema.tables
@@ -1817,7 +1882,7 @@ PREPARE stmt_create_customer_borrowed_materials FROM @sql_create_customer_borrow
 EXECUTE stmt_create_customer_borrowed_materials;
 DEALLOCATE PREPARE stmt_create_customer_borrowed_materials;
 
--- 14) Grant new borrowedMaterials menu to existing Admin/Owner/Depot roles
+-- 15) Grant new borrowedMaterials menu to existing Admin/Owner/Depot roles
 INSERT INTO role_menus (role_id, menu_key)
 SELECT r.id, 'borrowedMaterials'
 FROM roles r
