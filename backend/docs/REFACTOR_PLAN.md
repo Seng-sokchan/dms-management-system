@@ -190,7 +190,7 @@ once, the rest is mechanical.
   `/api/v1` (already mounted in `app.js`). Keep `/api` mounted for the
   legacy clients during the transition.
 - Smoke test after each module: hit the routes listed in
-  `docs/API_DOCS.md` for that module via the `mobile-web` client and the
+  `docs/API_DOCS.md` for that module via the admin frontend client and the
   Postman collection.
 
 ---
