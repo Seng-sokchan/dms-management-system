@@ -248,7 +248,11 @@
     "months": "ខែ",
     "dueDate": "កាលបង់",
     "amountDue": "ត្រូវបង់",
-    "amountPaid": "បានបង់",
+    "installmentStatus": "ស្ថានភាព",
+    "installmentPaid": "បានបង់",
+    "installmentUnpaid": "មិនទាន់បង់",
+    "markInstallmentPaid": "សម្គាល់ថាបានបង់",
+    "markInstallmentUnpaid": "សម្គាល់ថាមិនទាន់បង់",
     "close": "បិទ",
     "actions": "សកម្មភាព",
     "columnId": "លេខ",
@@ -620,6 +624,7 @@
     "deleteBorrowOrderLoan": "ដកកម្ចីតាមការកម្មង់បរាជ័យ",
     "saveBorrowMonthlySchedule": "បង្កើតកាលវិភាគប្រចាំខែបរាជ័យ",
     "deleteBorrowMonthlySchedule": "លុបកាលវិភាគបរាជ័យ",
+    "updateBorrowMonthlyInstallmentStatus": "មិនអាចធ្វើបច្ចុប្បន្នភាពស្ថានភាពការបង់បានទេ",
     "sessionExpired": "សម័យផុតកំណត់។ សូមចូលម្តងទៀត។"
   },
   "accessDenied": {

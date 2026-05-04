@@ -23,9 +23,21 @@ const customerBorrowMonthlyScheduleDeleteParamsSchema = z.object({
   id: z.string().min(1),
 });
 
+const customerBorrowMonthlyInstallmentStatusParamsSchema = z.object({
+  customerId: z.string().min(1),
+  scheduleId: z.string().min(1),
+  installmentId: z.string().min(1),
+});
+
+const updateBorrowMaterialMonthlyInstallmentStatusBodySchema = z.object({
+  status: z.coerce.number().int().refine((n) => n === 0 || n === 1, { message: "status must be 0 or 1" }),
+});
+
 module.exports = {
   createBorrowMaterialMonthlyScheduleBodySchema,
   customerBorrowMonthlyScheduleParamsSchema,
   customerBorrowMonthlyScheduleDetailParamsSchema,
   customerBorrowMonthlyScheduleDeleteParamsSchema,
+  customerBorrowMonthlyInstallmentStatusParamsSchema,
+  updateBorrowMaterialMonthlyInstallmentStatusBodySchema,
 };

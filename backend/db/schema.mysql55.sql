@@ -349,7 +349,7 @@ CREATE TABLE borrow_material_monthly_installments (
   period_no INT UNSIGNED NOT NULL,
   due_date DATE NOT NULL,
   amount_due DECIMAL(14,2) NOT NULL,
-  amount_paid DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+  status TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '0=unpaid, 1=paid',
   paid_at DATETIME NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NULL,
@@ -481,6 +481,7 @@ DROP PROCEDURE IF EXISTS sp_list_all_borrow_material_monthly_schedules;
 DROP PROCEDURE IF EXISTS sp_get_borrow_material_monthly_schedule_by_id;
 DROP PROCEDURE IF EXISTS sp_list_borrow_material_monthly_installments;
 DROP PROCEDURE IF EXISTS sp_create_borrow_material_monthly_schedule;
+DROP PROCEDURE IF EXISTS sp_update_borrow_material_monthly_installment_status;
 DROP PROCEDURE IF EXISTS sp_delete_borrow_material_monthly_schedule;
 
 CREATE PROCEDURE sp_get_user_by_username(IN p_username VARCHAR(60))
@@ -1235,7 +1236,7 @@ WHERE s.id = p_schedule_id AND s.customer_id = p_customer_id
 LIMIT 1;
 
 CREATE PROCEDURE sp_list_borrow_material_monthly_installments(IN p_schedule_id INT UNSIGNED)
-SELECT id, schedule_id, period_no, due_date, amount_due, amount_paid, paid_at, created_at, updated_at
+SELECT id, schedule_id, period_no, due_date, amount_due, status, paid_at, created_at, updated_at
 FROM borrow_material_monthly_installments
 WHERE schedule_id = p_schedule_id
 ORDER BY period_no ASC;
@@ -1276,11 +1277,30 @@ BEGIN
     ELSE
       SET v_amt = v_per;
     END IF;
-    INSERT INTO borrow_material_monthly_installments (schedule_id, period_no, due_date, amount_due, amount_paid, updated_at)
+    INSERT INTO borrow_material_monthly_installments (schedule_id, period_no, due_date, amount_due, status, updated_at)
     VALUES (v_schedule_id, v_i, v_due, v_amt, 0, p_updated_at);
     SET v_i = v_i + 1;
   END WHILE;
   SELECT v_schedule_id AS insertId;
+END;
+
+CREATE PROCEDURE sp_update_borrow_material_monthly_installment_status(
+  IN p_customer_id INT UNSIGNED,
+  IN p_schedule_id INT UNSIGNED,
+  IN p_installment_id INT UNSIGNED,
+  IN p_status TINYINT UNSIGNED,
+  IN p_updated_at DATETIME
+)
+BEGIN
+  UPDATE borrow_material_monthly_installments i
+  INNER JOIN borrow_material_monthly_schedules s
+    ON s.id = i.schedule_id AND s.customer_id = p_customer_id
+  SET
+    i.status = p_status,
+    i.paid_at = IF(p_status = 1, p_updated_at, NULL),
+    i.updated_at = p_updated_at
+  WHERE i.id = p_installment_id AND i.schedule_id = p_schedule_id;
+  SELECT ROW_COUNT() AS affectedRows;
 END;
 
 CREATE PROCEDURE sp_delete_borrow_material_monthly_schedule(IN p_id INT UNSIGNED, IN p_customer_id INT UNSIGNED)
@@ -1997,7 +2017,7 @@ SET @sql_create_bmmsi := IF(
     period_no INT UNSIGNED NOT NULL,
     due_date DATE NOT NULL,
     amount_due DECIMAL(14,2) NOT NULL,
-    amount_paid DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+    status TINYINT UNSIGNED NOT NULL DEFAULT 0,
     paid_at DATETIME NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NULL,
@@ -2012,5 +2032,113 @@ SET @sql_create_bmmsi := IF(
 PREPARE stmt_create_bmmsi FROM @sql_create_bmmsi;
 EXECUTE stmt_create_bmmsi;
 DEALLOCATE PREPARE stmt_create_bmmsi;
+
+-- 20) borrow_material_monthly_installments: amount_paid -> status (0=unpaid, 1=paid)
+SET @bmmsi_has_amount_paid := (
+  SELECT COUNT(*) FROM information_schema.columns
+  WHERE table_schema = DATABASE() AND table_name = 'borrow_material_monthly_installments' AND column_name = 'amount_paid'
+);
+SET @bmmsi_has_status := (
+  SELECT COUNT(*) FROM information_schema.columns
+  WHERE table_schema = DATABASE() AND table_name = 'borrow_material_monthly_installments' AND column_name = 'status'
+);
+SET @sql_bmmsi_add_status := IF(
+  @bmmsi_has_amount_paid > 0 AND @bmmsi_has_status = 0,
+  'ALTER TABLE borrow_material_monthly_installments ADD COLUMN status TINYINT UNSIGNED NOT NULL DEFAULT 0 AFTER amount_due',
+  'SELECT 1'
+);
+PREPARE stmt_bmmsi_add_status FROM @sql_bmmsi_add_status;
+EXECUTE stmt_bmmsi_add_status;
+DEALLOCATE PREPARE stmt_bmmsi_add_status;
+
+SET @sql_bmmsi_fill_status := IF(
+  @bmmsi_has_amount_paid > 0,
+  'UPDATE borrow_material_monthly_installments SET status = IF(amount_paid >= amount_due, 1, 0)',
+  'SELECT 1'
+);
+PREPARE stmt_bmmsi_fill_status FROM @sql_bmmsi_fill_status;
+EXECUTE stmt_bmmsi_fill_status;
+DEALLOCATE PREPARE stmt_bmmsi_fill_status;
+
+SET @sql_bmmsi_drop_ap := IF(
+  @bmmsi_has_amount_paid > 0,
+  'ALTER TABLE borrow_material_monthly_installments DROP COLUMN amount_paid',
+  'SELECT 1'
+);
+PREPARE stmt_bmmsi_drop_ap FROM @sql_bmmsi_drop_ap;
+EXECUTE stmt_bmmsi_drop_ap;
+DEALLOCATE PREPARE stmt_bmmsi_drop_ap;
+
+DROP PROCEDURE IF EXISTS sp_list_borrow_material_monthly_installments;
+DROP PROCEDURE IF EXISTS sp_create_borrow_material_monthly_schedule;
+DROP PROCEDURE IF EXISTS sp_update_borrow_material_monthly_installment_status;
+
+CREATE PROCEDURE sp_list_borrow_material_monthly_installments(IN p_schedule_id INT UNSIGNED)
+SELECT id, schedule_id, period_no, due_date, amount_due, status, paid_at, created_at, updated_at
+FROM borrow_material_monthly_installments
+WHERE schedule_id = p_schedule_id
+ORDER BY period_no ASC;
+
+CREATE PROCEDURE sp_create_borrow_material_monthly_schedule(
+  IN p_customer_id INT UNSIGNED,
+  IN p_material_id INT UNSIGNED,
+  IN p_total_amount DECIMAL(14,2),
+  IN p_currency VARCHAR(10),
+  IN p_total_period INT UNSIGNED,
+  IN p_start_due_date DATE,
+  IN p_note VARCHAR(255),
+  IN p_updated_at DATETIME
+)
+BEGIN
+  DECLARE v_schedule_id INT UNSIGNED;
+  DECLARE v_i INT UNSIGNED DEFAULT 1;
+  DECLARE v_per DECIMAL(14,2);
+  DECLARE v_last DECIMAL(14,2);
+  DECLARE v_due DATE;
+  DECLARE v_amt DECIMAL(14,2);
+  IF p_total_period < 1 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'total_period must be at least 1';
+  END IF;
+  INSERT INTO borrow_material_monthly_schedules (
+    customer_id, material_id, total_amount, currency, total_period, start_due_date, note, updated_at
+  )
+  VALUES (
+    p_customer_id, p_material_id, p_total_amount, p_currency, p_total_period, p_start_due_date, p_note, p_updated_at
+  );
+  SET v_schedule_id = LAST_INSERT_ID();
+  SET v_per = TRUNCATE(p_total_amount / p_total_period, 2);
+  SET v_last = p_total_amount - v_per * (p_total_period - 1);
+  WHILE v_i <= p_total_period DO
+    SET v_due = DATE_ADD(p_start_due_date, INTERVAL (v_i - 1) MONTH);
+    IF v_i = p_total_period THEN
+      SET v_amt = v_last;
+    ELSE
+      SET v_amt = v_per;
+    END IF;
+    INSERT INTO borrow_material_monthly_installments (schedule_id, period_no, due_date, amount_due, status, updated_at)
+    VALUES (v_schedule_id, v_i, v_due, v_amt, 0, p_updated_at);
+    SET v_i = v_i + 1;
+  END WHILE;
+  SELECT v_schedule_id AS insertId;
+END;
+
+CREATE PROCEDURE sp_update_borrow_material_monthly_installment_status(
+  IN p_customer_id INT UNSIGNED,
+  IN p_schedule_id INT UNSIGNED,
+  IN p_installment_id INT UNSIGNED,
+  IN p_status TINYINT UNSIGNED,
+  IN p_updated_at DATETIME
+)
+BEGIN
+  UPDATE borrow_material_monthly_installments i
+  INNER JOIN borrow_material_monthly_schedules s
+    ON s.id = i.schedule_id AND s.customer_id = p_customer_id
+  SET
+    i.status = p_status,
+    i.paid_at = IF(p_status = 1, p_updated_at, NULL),
+    i.updated_at = p_updated_at
+  WHERE i.id = p_installment_id AND i.schedule_id = p_schedule_id;
+  SELECT ROW_COUNT() AS affectedRows;
+END;
 
 SET FOREIGN_KEY_CHECKS = 1;

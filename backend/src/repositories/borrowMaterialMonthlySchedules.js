@@ -52,10 +52,28 @@ async function deleteBorrowMaterialMonthlySchedule(customerId, id) {
   return Number(meta.affectedRows || 0) > 0;
 }
 
+async function updateBorrowMaterialMonthlyInstallmentStatus(payload) {
+  const status = Number(payload.status);
+  const normalized = status === 1 ? 1 : 0;
+  const [rowsRaw] = await getPool().query(
+    "CALL sp_update_borrow_material_monthly_installment_status(?, ?, ?, ?, ?)",
+    [
+      Number(payload.customerId),
+      Number(payload.scheduleId),
+      Number(payload.installmentId),
+      normalized,
+      nowIso(),
+    ],
+  );
+  const meta = getProcedureMeta(rowsRaw);
+  return Number(meta.affectedRows || 0) > 0;
+}
+
 module.exports = {
   listAllBorrowMaterialMonthlySchedules,
   getBorrowMaterialMonthlyScheduleById,
   listBorrowMaterialMonthlyInstallments,
   createBorrowMaterialMonthlySchedule,
   deleteBorrowMaterialMonthlySchedule,
+  updateBorrowMaterialMonthlyInstallmentStatus,
 };

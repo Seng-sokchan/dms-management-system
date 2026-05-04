@@ -7,6 +7,7 @@ const {
   createMonthlySchedule,
   getMonthlyScheduleDetail,
   deleteMonthlySchedule,
+  updateMonthlyInstallmentStatus,
 } = require("../controllers/borrowMaterialLoansController");
 const { requireAuth, requireRoles } = require("../middleware/auth");
 const { validate } = require("../validators/validate");
@@ -20,6 +21,8 @@ const {
   customerBorrowMonthlyScheduleParamsSchema,
   customerBorrowMonthlyScheduleDetailParamsSchema,
   customerBorrowMonthlyScheduleDeleteParamsSchema,
+  customerBorrowMonthlyInstallmentStatusParamsSchema,
+  updateBorrowMaterialMonthlyInstallmentStatusBodySchema,
 } = require("../validators/borrowMaterialMonthlySchedule.validator");
 
 const router = express.Router();
@@ -70,6 +73,16 @@ router.get(
   requireRoles("Admin", "Owner", "Depot"),
   validate({ params: customerBorrowMonthlyScheduleDetailParamsSchema }),
   getMonthlyScheduleDetail,
+);
+router.patch(
+  "/customers/:customerId/borrow-material-monthly-schedules/:scheduleId/installments/:installmentId",
+  requireAuth,
+  requireRoles("Admin", "Owner", "Depot"),
+  validate({
+    params: customerBorrowMonthlyInstallmentStatusParamsSchema,
+    body: updateBorrowMaterialMonthlyInstallmentStatusBodySchema,
+  }),
+  updateMonthlyInstallmentStatus,
 );
 router.delete(
   "/customers/:customerId/borrow-material-monthly-schedules/:id",

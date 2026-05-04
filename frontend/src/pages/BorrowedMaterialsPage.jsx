@@ -3,9 +3,32 @@ import { useTranslation } from "react-i18next";
 import { Button } from "../components/ui/Button";
 import { DataTable } from "../components/ui/DataTable";
 import { useConfirm } from "../components/ui/ConfirmProvider";
+import "./BorrowedMaterialsPage.css";
 
 const EMPTY_MATERIAL_EDIT = { id: "", name: "", unit: "", note: "" };
 const EMPTY_BORROW_EDIT = { id: "", customerId: "", materialId: "", qty: 0, note: "" };
+
+/** Calendar due dates as YYYY-MM-DD; values with a real time as YYYY-MM-DD HH:mm:ss (local). */
+function formatInstallmentDueDisplay(value) {
+  if (value == null || value === "") return "—";
+  const s = String(value).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    return s;
+  }
+  // DATE fields often serialize as UTC midnight — show date only, no 00:00:00.
+  if (/^\d{4}-\d{2}-\d{2}T00:00:00(?:\.0+)?Z$/i.test(s)) {
+    return s.slice(0, 10);
+  }
+  const d = new Date(s);
+  if (Number.isNaN(d.getTime())) return s;
+  const y = d.getFullYear();
+  const mo = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  const h = String(d.getHours()).padStart(2, "0");
+  const mi = String(d.getMinutes()).padStart(2, "0");
+  const sec = String(d.getSeconds()).padStart(2, "0");
+  return `${y}-${mo}-${day}`;
+}
 
 export function BorrowedMaterialsPage({
   user,
@@ -33,6 +56,7 @@ export function BorrowedMaterialsPage({
   onSubmitBorrowMaterialMonthlySchedule,
   onDeleteBorrowMaterialMonthlySchedule,
   onLoadBorrowMaterialMonthlyScheduleDetail,
+  onUpdateBorrowMaterialMonthlyInstallmentStatus,
 }) {
   const { t } = useTranslation();
   const { confirm, alert } = useConfirm();
@@ -42,6 +66,7 @@ export function BorrowedMaterialsPage({
   const [showOrderLoanModal, setShowOrderLoanModal] = useState(false);
   const [showMonthlyModal, setShowMonthlyModal] = useState(false);
   const [scheduleInstallmentModal, setScheduleInstallmentModal] = useState(null);
+  const [installmentStatusSavingId, setInstallmentStatusSavingId] = useState(null);
 
   const customerOrders = useMemo(() => {
     if (!newOrderLoan.customerId) return [];
@@ -201,6 +226,24 @@ export function BorrowedMaterialsPage({
     } catch (error) {
       const msg = error?.response?.data?.message || error?.message || "Request failed";
       await alert({ title: t("confirm.defaultTitle"), message: String(msg) });
+    }
+  }
+
+  async function handleToggleInstallmentStatus(ins) {
+    const schedule = scheduleInstallmentModal?.schedule;
+    if (!schedule?.id || !schedule.customerId || !onUpdateBorrowMaterialMonthlyInstallmentStatus) return;
+    const nextStatus = Number(ins.status) === 1 ? 0 : 1;
+    setInstallmentStatusSavingId(ins.id);
+    try {
+      const data = await onUpdateBorrowMaterialMonthlyInstallmentStatus(
+        schedule.customerId,
+        schedule.id,
+        ins.id,
+        nextStatus,
+      );
+      if (data) setScheduleInstallmentModal(data);
+    } finally {
+      setInstallmentStatusSavingId(null);
     }
   }
 
@@ -1048,7 +1091,7 @@ export function BorrowedMaterialsPage({
 
       {scheduleInstallmentModal ? (
         <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="installments-title">
-          <div className="panel form modal-card" style={{ maxWidth: 520 }}>
+          <div className="panel form modal-card borrow-installments-modal">
             <h3 id="installments-title">
               {t("borrowedMaterials.installmentsTitle", { defaultValue: "Installments" })}
             </h3>
@@ -1067,21 +1110,38 @@ export function BorrowedMaterialsPage({
                   <th>{t("borrowedMaterials.periodNo", { defaultValue: "No." })}</th>
                   <th>{t("borrowedMaterials.dueDate", { defaultValue: "Due" })}</th>
                   <th>{t("borrowedMaterials.amountDue", { defaultValue: "Due" })}</th>
-                  <th>{t("borrowedMaterials.amountPaid", { defaultValue: "Paid" })}</th>
+                  <th>{t("borrowedMaterials.installmentStatus", { defaultValue: "Status" })}</th>
+                  <th>{t("borrowedMaterials.actions", { defaultValue: "Actions" })}</th>
                 </tr>
               </thead>
               <tbody>
                 {(scheduleInstallmentModal.installments || []).map((ins) => (
                   <tr key={ins.id}>
                     <td>{ins.periodNo}</td>
-                    <td>{ins.dueDate}</td>
+                    <td>{formatInstallmentDueDisplay(ins.dueDate)}</td>
                     <td>{ins.amountDue}</td>
-                    <td>{ins.amountPaid}</td>
+                    <td>
+                      {Number(ins.status) === 1
+                        ? t("borrowedMaterials.installmentPaid", { defaultValue: "Paid" })
+                        : t("borrowedMaterials.installmentUnpaid", { defaultValue: "Unpaid" })}
+                    </td>
+                    <td>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        disabled={installmentStatusSavingId === ins.id || !onUpdateBorrowMaterialMonthlyInstallmentStatus}
+                        onClick={() => handleToggleInstallmentStatus(ins)}
+                      >
+                        {Number(ins.status) === 1
+                          ? t("borrowedMaterials.markInstallmentUnpaid", { defaultValue: "Mark unpaid" })
+                          : t("borrowedMaterials.markInstallmentPaid", { defaultValue: "Mark paid" })}
+                      </Button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </DataTable>
-            <div className="row-actions" style={{ marginTop: 12 }}>
+            <div className="row-actions">
               <Button variant="ghost" tone="cancel" type="button" onClick={() => setScheduleInstallmentModal(null)}>
                 {t("borrowedMaterials.close", { defaultValue: "Close" })}
               </Button>

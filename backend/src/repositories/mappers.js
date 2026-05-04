@@ -207,7 +207,7 @@ function mapBorrowMaterialMonthlyInstallment(row) {
     periodNo: Number(row.period_no || 0),
     dueDate: row.due_date,
     amountDue: Number(row.amount_due),
-    amountPaid: Number(row.amount_paid || 0),
+    status: Number(row.status ?? 0),
     paidAt: row.paid_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,

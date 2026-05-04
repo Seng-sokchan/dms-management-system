@@ -248,7 +248,11 @@
     "months": "months",
     "dueDate": "Due date",
     "amountDue": "Amount due",
-    "amountPaid": "Paid",
+    "installmentStatus": "Status",
+    "installmentPaid": "Paid",
+    "installmentUnpaid": "Unpaid",
+    "markInstallmentPaid": "Mark paid",
+    "markInstallmentUnpaid": "Mark unpaid",
     "close": "Close",
     "actions": "Actions",
     "columnId": "ID",
@@ -620,6 +624,7 @@
     "deleteBorrowOrderLoan": "Remove order loan failed",
     "saveBorrowMonthlySchedule": "Create monthly schedule failed",
     "deleteBorrowMonthlySchedule": "Remove schedule failed",
+    "updateBorrowMonthlyInstallmentStatus": "Could not update installment status",
     "sessionExpired": "Session expired. Please sign in again."
   },
   "accessDenied": {

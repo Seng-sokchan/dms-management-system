@@ -43,6 +43,7 @@ import {
   deleteBorrowMaterialOrderLoan,
   createBorrowMaterialMonthlySchedule,
   fetchBorrowMaterialMonthlyScheduleDetail,
+  updateBorrowMaterialMonthlyInstallmentStatus,
   deleteBorrowMaterialMonthlySchedule,
 } from "../services/adminApi";
 import {
@@ -772,6 +773,19 @@ export function useAdminDashboard() {
     return unwrapApiData(res.data);
   }
 
+  async function submitBorrowMaterialMonthlyInstallmentStatusUpdate(customerId, scheduleId, installmentId, status) {
+    try {
+      await updateBorrowMaterialMonthlyInstallmentStatus(token, customerId, scheduleId, installmentId, {
+        status,
+      });
+      const res = await fetchBorrowMaterialMonthlyScheduleDetail(token, customerId, scheduleId);
+      return unwrapApiData(res.data);
+    } catch (error) {
+      showError(getErrorMessage(error, "errors.updateBorrowMonthlyInstallmentStatus"));
+      return null;
+    }
+  }
+
   function logout() {
     setToken("");
     setUser(null);
@@ -875,6 +889,7 @@ export function useAdminDashboard() {
     submitBorrowMaterialMonthlySchedule,
     submitBorrowMaterialMonthlyScheduleDelete,
     loadBorrowMaterialMonthlyScheduleDetail,
+    submitBorrowMaterialMonthlyInstallmentStatusUpdate,
     refresh,
     logout,
   };

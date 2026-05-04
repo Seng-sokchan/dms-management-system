@@ -1,0 +1,53 @@
+/* Installments popup: compact table + typography so content fits narrow modals */
+.borrow-installments-modal {
+  width: min(520px, 96vw);
+  max-height: min(88vh, 40rem);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 1rem 1.1rem 1.1rem;
+  gap: 0.35rem;
+}
+
+.borrow-installments-modal h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.borrow-installments-modal .section-lead {
+  margin: 0 0 0.35rem;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+.borrow-installments-modal .table-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: min(52vh, 22rem);
+  overflow: auto;
+}
+
+.borrow-installments-modal .data-table {
+  min-width: 0;
+  width: 100%;
+  font-size: 0.8125rem;
+}
+
+.borrow-installments-modal .data-table th {
+  font-size: 0.62rem;
+  padding: 0.5rem 0.45rem;
+  letter-spacing: 0.05em;
+}
+
+.borrow-installments-modal .data-table td {
+  padding: 0.45rem 0.45rem;
+  font-size: 0.8125rem;
+}
+
+.borrow-installments-modal .row-actions {
+  margin-top: 0.35rem;
+  flex-shrink: 0;
+}

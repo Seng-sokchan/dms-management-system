@@ -13,6 +13,7 @@ const {
   getBorrowMaterialMonthlyScheduleById,
   listBorrowMaterialMonthlyInstallments,
   deleteBorrowMaterialMonthlySchedule: deleteBorrowMaterialMonthlyScheduleDb,
+  updateBorrowMaterialMonthlyInstallmentStatus: updateBorrowMaterialMonthlyInstallmentStatusDb,
 } = require("../repositories");
 const { success, noContent } = require("../utils/response");
 const { asyncHandler, BadRequestError, NotFoundError } = require("../errors");
@@ -139,6 +140,24 @@ const deleteMonthlySchedule = asyncHandler(async (req, res) => {
   return noContent(res);
 });
 
+const updateMonthlyInstallmentStatus = asyncHandler(async (req, res) => {
+  await assertCustomerAccess(req, req.params.customerId);
+  const status = Number(req.body.status);
+  if (status !== 0 && status !== 1) {
+    throw new BadRequestError("status must be 0 or 1");
+  }
+  const updated = await updateBorrowMaterialMonthlyInstallmentStatusDb({
+    customerId: req.params.customerId,
+    scheduleId: req.params.scheduleId,
+    installmentId: req.params.installmentId,
+    status,
+  });
+  if (!updated) {
+    throw new NotFoundError("Installment not found");
+  }
+  return success(res, { ok: true });
+});
+
 module.exports = {
   listAllOrderLoans,
   createOrderLoan,
@@ -147,4 +166,5 @@ module.exports = {
   createMonthlySchedule,
   getMonthlyScheduleDetail,
   deleteMonthlySchedule,
+  updateMonthlyInstallmentStatus,
 };

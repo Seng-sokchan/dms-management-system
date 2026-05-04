@@ -217,7 +217,7 @@ async function run() {
 
   await dbConn.query(
     `INSERT INTO borrow_material_monthly_installments (
-       schedule_id, period_no, due_date, amount_due, amount_paid, updated_at
+       schedule_id, period_no, due_date, amount_due, status, updated_at
      ) VALUES
       (1, 1, CURDATE(), 20.00, 0, NOW()),
       (1, 2, DATE_ADD(CURDATE(), INTERVAL 1 MONTH), 20.00, 0, NOW()),

@@ -19,6 +19,20 @@ export async function fetchBorrowMaterialMonthlyScheduleDetail(token, customerId
   );
 }
 
+export async function updateBorrowMaterialMonthlyInstallmentStatus(
+  token,
+  customerId,
+  scheduleId,
+  installmentId,
+  body,
+) {
+  return apiClient.patch(
+    `/customers/${customerId}/borrow-material-monthly-schedules/${scheduleId}/installments/${installmentId}`,
+    body,
+    authConfig(token),
+  );
+}
+
 export async function deleteBorrowMaterialMonthlySchedule(token, customerId, id) {
   return apiClient.delete(
     `/customers/${customerId}/borrow-material-monthly-schedules/${id}`,

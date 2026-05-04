@@ -95,6 +95,7 @@ const {
   getBorrowMaterialMonthlyScheduleById,
   listBorrowMaterialMonthlyInstallments,
   deleteBorrowMaterialMonthlySchedule,
+  updateBorrowMaterialMonthlyInstallmentStatus,
 } = require("./borrowMaterialMonthlySchedules");
 
 // producers
@@ -213,6 +214,7 @@ module.exports = {
   createBorrowMaterialOrderLoan,
   createBorrowMaterialMonthlySchedule,
   getBorrowMaterialMonthlyScheduleById,
+  updateBorrowMaterialMonthlyInstallmentStatus,
 
   // delete
   deactivateUser,

@@ -112,6 +112,7 @@ function App() {
     submitBorrowMaterialMonthlySchedule,
     submitBorrowMaterialMonthlyScheduleDelete,
     loadBorrowMaterialMonthlyScheduleDetail,
+    submitBorrowMaterialMonthlyInstallmentStatusUpdate,
     users,
     activityLogs,
     newUser,
@@ -322,6 +323,7 @@ function App() {
               onSubmitBorrowMaterialMonthlySchedule={submitBorrowMaterialMonthlySchedule}
               onDeleteBorrowMaterialMonthlySchedule={submitBorrowMaterialMonthlyScheduleDelete}
               onLoadBorrowMaterialMonthlyScheduleDetail={loadBorrowMaterialMonthlyScheduleDetail}
+              onUpdateBorrowMaterialMonthlyInstallmentStatus={submitBorrowMaterialMonthlyInstallmentStatusUpdate}
             />
           ) : (
             <Navigate to="/overview" replace />
