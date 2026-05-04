@@ -215,7 +215,44 @@
     "delete": "Delete",
     "remove": "Remove",
     "confirmDeleteMaterial": "Delete this borrow material?",
-    "confirmDeleteBorrow": "Remove this borrowing record?"
+    "confirmDeleteBorrow": "Remove this borrowing record?",
+    "tabCustomerBorrow": "1. Borrow for customer",
+    "tabOrderLoan": "2. Loan normal (order)",
+    "tabMonthlySchedule": "3. Loan schedule (monthly)",
+    "orderLoansTitle": "Order-linked loans (qty × fixed unit price)",
+    "addOrderLoan": "Add order loan",
+    "orderLoansEmpty": "No order loans yet.",
+    "orderId": "Order",
+    "orderedQty": "Order qty",
+    "fixedUnitPrice": "Fixed unit price",
+    "computedTotal": "Line total",
+    "currency": "Currency",
+    "confirmDeleteOrderLoan": "Remove this order loan?",
+    "monthlySchedulesTitle": "Monthly payment schedules",
+    "addMonthlySchedule": "Create schedule",
+    "monthlySchedulesEmpty": "No schedules yet.",
+    "totalAmount": "Total amount",
+    "totalPeriod": "Periods",
+    "totalPeriodMonths": "Total periods (months)",
+    "startDueDate": "First due date",
+    "viewInstallments": "Installments",
+    "confirmDeleteSchedule": "Delete this schedule and all installments?",
+    "orderLoanFormTitle": "Add order loan",
+    "orderSelect": "Order (same customer)",
+    "selectOrder": "— Select order —",
+    "pickCustomerFirst": "— Pick customer first —",
+    "orderLoanPreview": "Computed line total: {{total}}",
+    "monthlyFormTitle": "Create monthly schedule",
+    "createSchedule": "Generate schedule",
+    "installmentsTitle": "Installments",
+    "months": "months",
+    "dueDate": "Due date",
+    "amountDue": "Amount due",
+    "amountPaid": "Paid",
+    "close": "Close",
+    "actions": "Actions",
+    "columnId": "ID",
+    "periodNo": "No."
   },
   "catalogs": {
     "pageTitle": "Catalogs",
@@ -360,7 +397,11 @@
     "loss": "Loss",
     "remaining": "Remaining",
     "saveDelivery": "Save",
-    "dash": "—"
+    "dash": "—",
+    "mixedStatus": "Mixed",
+    "actions": "Actions",
+    "view": "View",
+    "groupOrdersFor": "Orders for {{group}}"
   },
   "assignOrders": {
     "title": "Assign orders",
@@ -575,6 +616,10 @@
     "deleteBorrowMaterial": "Delete borrow material failed",
     "saveCustomerBorrow": "Save customer borrowing failed",
     "deleteCustomerBorrow": "Remove customer borrowing failed",
+    "saveBorrowOrderLoan": "Save order loan failed",
+    "deleteBorrowOrderLoan": "Remove order loan failed",
+    "saveBorrowMonthlySchedule": "Create monthly schedule failed",
+    "deleteBorrowMonthlySchedule": "Remove schedule failed",
     "sessionExpired": "Session expired. Please sign in again."
   },
   "accessDenied": {
@@ -619,6 +664,10 @@
     "borrowMaterialUpdated": "Borrow material updated",
     "borrowMaterialDeleted": "Borrow material deleted",
     "customerBorrowSaved": "Borrowing saved",
-    "customerBorrowDeleted": "Borrowing removed"
+    "customerBorrowDeleted": "Borrowing removed",
+    "borrowOrderLoanSaved": "Order loan saved",
+    "borrowOrderLoanDeleted": "Order loan removed",
+    "borrowMonthlyScheduleSaved": "Monthly schedule created",
+    "borrowMonthlyScheduleDeleted": "Schedule removed"
   }
 }

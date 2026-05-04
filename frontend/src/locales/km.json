@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "Admin Panel",
+    "name": "ផ្ទាំងគ្រប់គ្រង",
     "tagline": "ផ្ទាំងប្រតិបត្តិការ",
     "footer": "v1 — ប្រើក្នុងផ្ទៃក្នុង",
     "breadcrumb": "ផ្ទាំងគ្រប់គ្រង",
@@ -18,7 +18,7 @@
   },
   "auth": {
     "eyebrow": "ការចូលដោយសុវត្ថិភាព",
-    "title": "Admin Panel",
+    "title": "ផ្ទាំងគ្រប់គ្រង",
     "blurb": "ចូលដើម្បីគ្រប់គ្រងការកម្មង់ ការដឹកជញ្ជូន និងការទូទាត់។ ឧទាហរណ៍៖ admin / admin123, owner / owner123, logistics / logistics123, delivery / delivery123, customer1 / customer123",
     "username": "ឈ្មោះអ្នកប្រើ",
     "password": "ពាក្យសម្ងាត់",
@@ -215,7 +215,44 @@
     "delete": "លុប",
     "remove": "ដកចេញ",
     "confirmDeleteMaterial": "តើអ្នកចង់លុបសម្ភារៈនេះមែនទេ?",
-    "confirmDeleteBorrow": "តើអ្នកចង់ដកការខ្ចីនេះមែនទេ?"
+    "confirmDeleteBorrow": "តើអ្នកចង់ដកការខ្ចីនេះមែនទេ?",
+    "tabCustomerBorrow": "១. ខ្ចីសម្រាប់អតិថិជន",
+    "tabOrderLoan": "២. កម្ចីធម្មតា (តាមការកម្មង់)",
+    "tabMonthlySchedule": "៣. កាលវិភាគបង់ប្រចាំខែ",
+    "orderLoansTitle": "កម្ចីភ្ជាប់នឹងការកម្មង់ (បរិមាណ × តម្លៃឯកតាថេរ)",
+    "addOrderLoan": "បន្ថែមកម្ចីតាមការកម្មង់",
+    "orderLoansEmpty": "មិនទាន់មានកម្ចីតាមការកម្មង់ទេ។",
+    "orderId": "ការកម្មង់",
+    "orderedQty": "បរិមាណកម្មង់",
+    "fixedUnitPrice": "តម្លៃឯកតាថេរ",
+    "computedTotal": "សរុបបន្ទាត់",
+    "currency": "រូបិយប័ណ្ណ",
+    "confirmDeleteOrderLoan": "តើអ្នកចង់ដកកម្ចីតាមការកម្មង់នេះមែនទេ?",
+    "monthlySchedulesTitle": "កាលវិភាគការបង់ប្រាក់ប្រចាំខែ",
+    "addMonthlySchedule": "បង្កើតកាលវិភាគ",
+    "monthlySchedulesEmpty": "មិនទាន់មានកាលវិភាគទេ។",
+    "totalAmount": "ចំនួនទឹកប្រាក់សរុប",
+    "totalPeriod": "ចំនួនរយៈពេល",
+    "totalPeriodMonths": "ចំនួនរយៈពេលសរុប (ខែ)",
+    "startDueDate": "កាលបង់លើកដំបូង",
+    "viewInstallments": "ការបង់តាមកាលវិភាគ",
+    "confirmDeleteSchedule": "លុបកាលវិភាគនេះ និងការបង់ទាំងអស់?",
+    "orderLoanFormTitle": "បន្ថែមកម្ចីតាមការកម្មង់",
+    "orderSelect": "ការកម្មង់ (អតិថិជនដូចគ្នា)",
+    "selectOrder": "— ជ្រើសការកម្មង់ —",
+    "pickCustomerFirst": "— ជ្រើសអតិថិជនជាមុន —",
+    "orderLoanPreview": "សរុបបន្ទាត់ដែលគណនា៖ {{total}}",
+    "monthlyFormTitle": "បង្កើតកាលវិភាគប្រចាំខែ",
+    "createSchedule": "បង្កើតកាលវិភាគ",
+    "installmentsTitle": "តារាងបង់ប្រាក់",
+    "months": "ខែ",
+    "dueDate": "កាលបង់",
+    "amountDue": "ត្រូវបង់",
+    "amountPaid": "បានបង់",
+    "close": "បិទ",
+    "actions": "សកម្មភាព",
+    "columnId": "លេខ",
+    "periodNo": "ល.រ."
   },
   "catalogs": {
     "pageTitle": "កាតាឡុក",
@@ -360,7 +397,11 @@
     "loss": "បាត់",
     "remaining": "នៅសល់",
     "saveDelivery": "រក្សាទុក",
-    "dash": "—"
+    "dash": "—",
+    "mixedStatus": "លាយគ្នា",
+    "actions": "សកម្មភាព",
+    "view": "មើល",
+    "groupOrdersFor": "ការកម្មង់សម្រាប់ {{group}}"
   },
   "assignOrders": {
     "title": "កំណត់ការកម្មង់",
@@ -575,6 +616,10 @@
     "deleteBorrowMaterial": "លុបសម្ភារៈខ្ចីបរាជ័យ",
     "saveCustomerBorrow": "រក្សាទុកការខ្ចីរបស់អតិថិជនបរាជ័យ",
     "deleteCustomerBorrow": "ដកការខ្ចីរបស់អតិថិជនបរាជ័យ",
+    "saveBorrowOrderLoan": "រក្សាទុកកម្ចីតាមការកម្មង់បរាជ័យ",
+    "deleteBorrowOrderLoan": "ដកកម្ចីតាមការកម្មង់បរាជ័យ",
+    "saveBorrowMonthlySchedule": "បង្កើតកាលវិភាគប្រចាំខែបរាជ័យ",
+    "deleteBorrowMonthlySchedule": "លុបកាលវិភាគបរាជ័យ",
     "sessionExpired": "សម័យផុតកំណត់។ សូមចូលម្តងទៀត។"
   },
   "accessDenied": {
@@ -619,6 +664,10 @@
     "borrowMaterialUpdated": "បានកែប្រែសម្ភារៈខ្ចី",
     "borrowMaterialDeleted": "បានលុបសម្ភារៈខ្ចី",
     "customerBorrowSaved": "បានរក្សាទុកការខ្ចី",
-    "customerBorrowDeleted": "បានដកការខ្ចី"
+    "customerBorrowDeleted": "បានដកការខ្ចី",
+    "borrowOrderLoanSaved": "បានរក្សាទុកកម្ចីតាមការកម្មង់",
+    "borrowOrderLoanDeleted": "បានដកកម្ចីតាមការកម្មង់",
+    "borrowMonthlyScheduleSaved": "បានបង្កើតកាលវិភាគប្រចាំខែ",
+    "borrowMonthlyScheduleDeleted": "បានលុបកាលវិភាគ"
   }
 }

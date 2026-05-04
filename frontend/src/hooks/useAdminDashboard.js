@@ -39,6 +39,11 @@ import {
   deleteBorrowMaterial,
   upsertCustomerBorrowedMaterial,
   deleteCustomerBorrowedMaterial,
+  createBorrowMaterialOrderLoan,
+  deleteBorrowMaterialOrderLoan,
+  createBorrowMaterialMonthlySchedule,
+  fetchBorrowMaterialMonthlyScheduleDetail,
+  deleteBorrowMaterialMonthlySchedule,
 } from "../services/adminApi";
 import {
   getStoredToken,
@@ -46,7 +51,7 @@ import {
 } from "../services/authStorage";
 import i18n from "../i18n/config";
 import { useConfirm } from "../components/ui/ConfirmProvider";
-import { getApiErrorMessage as getApiErrorMessageFromResponse } from "../services/apiClient";
+import { getApiErrorMessage as getApiErrorMessageFromResponse, unwrapApiData } from "../services/apiClient";
 
 function getErrorMessage(error, errorKey) {
   return getApiErrorMessageFromResponse(error, i18n.t(errorKey));
@@ -107,6 +112,8 @@ export function useAdminDashboard() {
   const [orderGroups, setOrderGroups] = useState([]);
   const [borrowMaterials, setBorrowMaterials] = useState([]);
   const [customerBorrowedMaterials, setCustomerBorrowedMaterials] = useState([]);
+  const [borrowMaterialOrderLoans, setBorrowMaterialOrderLoans] = useState([]);
+  const [borrowMaterialMonthlySchedules, setBorrowMaterialMonthlySchedules] = useState([]);
   const [paymentTotals, setPaymentTotals] = useState({ byCustomer: [], byDepot: [] });
 
   const [newOrder, setNewOrder] = useState({
@@ -142,6 +149,22 @@ export function useAdminDashboard() {
   const [newUser, setNewUser] = useState({ name: "", username: "", password: "", role: "Owner" });
   const [newBorrowMaterial, setNewBorrowMaterial] = useState({ name: "", unit: "", note: "" });
   const [newCustomerBorrow, setNewCustomerBorrow] = useState({ customerId: "", materialId: "", qty: 1, note: "" });
+  const [newOrderLoan, setNewOrderLoan] = useState({
+    customerId: "",
+    materialId: "",
+    orderId: "",
+    fixedUnitPrice: "",
+    note: "",
+  });
+  const [newMonthlySchedule, setNewMonthlySchedule] = useState({
+    customerId: "",
+    materialId: "",
+    totalAmount: "",
+    currency: "KHR",
+    totalPeriod: 6,
+    startDueDate: "",
+    note: "",
+  });
 
   const refresh = useCallback(async () => {
     if (!token) return;
@@ -166,6 +189,12 @@ export function useAdminDashboard() {
       setActivityLogs(Array.isArray(data.activityLogs) ? data.activityLogs : []);
       setBorrowMaterials(Array.isArray(data.borrowMaterials) ? data.borrowMaterials : []);
       setCustomerBorrowedMaterials(Array.isArray(data.customerBorrowedMaterials) ? data.customerBorrowedMaterials : []);
+      setBorrowMaterialOrderLoans(
+        Array.isArray(data.borrowMaterialOrderLoans) ? data.borrowMaterialOrderLoans : [],
+      );
+      setBorrowMaterialMonthlySchedules(
+        Array.isArray(data.borrowMaterialMonthlySchedules) ? data.borrowMaterialMonthlySchedules : [],
+      );
       setPaymentTotals(
         data.paymentTotals && typeof data.paymentTotals === "object"
           ? {
@@ -196,6 +225,8 @@ export function useAdminDashboard() {
         setOrderGroups([]);
         setBorrowMaterials([]);
         setCustomerBorrowedMaterials([]);
+        setBorrowMaterialOrderLoans([]);
+        setBorrowMaterialMonthlySchedules([]);
         setPaymentTotals({ byCustomer: [], byDepot: [] });
         showError(i18n.t("errors.sessionExpired"));
         return;
@@ -666,6 +697,81 @@ export function useAdminDashboard() {
     }
   }
 
+  async function submitBorrowMaterialOrderLoan(event) {
+    if (event && typeof event.preventDefault === "function") event.preventDefault();
+    try {
+      await createBorrowMaterialOrderLoan(token, newOrderLoan.customerId, {
+        materialId: String(newOrderLoan.materialId || ""),
+        orderId: String(newOrderLoan.orderId || ""),
+        fixedUnitPrice: Number(newOrderLoan.fixedUnitPrice),
+        note: newOrderLoan.note || "",
+      });
+      setNewOrderLoan({ customerId: "", materialId: "", orderId: "", fixedUnitPrice: "", note: "" });
+      await refresh();
+      await showSuccessPopup(
+        i18n.t("success.borrowOrderLoanSaved", { defaultValue: "Order loan saved" }),
+      );
+    } catch (error) {
+      showError(getErrorMessage(error, "errors.saveBorrowOrderLoan"));
+      throw error;
+    }
+  }
+
+  async function submitBorrowMaterialOrderLoanDelete(customerId, id) {
+    try {
+      await deleteBorrowMaterialOrderLoan(token, customerId, id);
+      await refresh();
+      showSuccess(i18n.t("success.borrowOrderLoanDeleted", { defaultValue: "Order loan removed" }));
+    } catch (error) {
+      showError(getErrorMessage(error, "errors.deleteBorrowOrderLoan"));
+    }
+  }
+
+  async function submitBorrowMaterialMonthlySchedule(event) {
+    if (event && typeof event.preventDefault === "function") event.preventDefault();
+    try {
+      await createBorrowMaterialMonthlySchedule(token, newMonthlySchedule.customerId, {
+        materialId: String(newMonthlySchedule.materialId || ""),
+        totalAmount: Number(newMonthlySchedule.totalAmount),
+        currency: newMonthlySchedule.currency || "KHR",
+        totalPeriod: Math.max(1, Math.floor(Number(newMonthlySchedule.totalPeriod || 1))),
+        startDueDate: String(newMonthlySchedule.startDueDate || "").trim(),
+        note: newMonthlySchedule.note || "",
+      });
+      setNewMonthlySchedule({
+        customerId: "",
+        materialId: "",
+        totalAmount: "",
+        currency: "KHR",
+        totalPeriod: 6,
+        startDueDate: "",
+        note: "",
+      });
+      await refresh();
+      await showSuccessPopup(
+        i18n.t("success.borrowMonthlyScheduleSaved", { defaultValue: "Monthly schedule created" }),
+      );
+    } catch (error) {
+      showError(getErrorMessage(error, "errors.saveBorrowMonthlySchedule"));
+      throw error;
+    }
+  }
+
+  async function submitBorrowMaterialMonthlyScheduleDelete(customerId, id) {
+    try {
+      await deleteBorrowMaterialMonthlySchedule(token, customerId, id);
+      await refresh();
+      showSuccess(i18n.t("success.borrowMonthlyScheduleDeleted", { defaultValue: "Schedule removed" }));
+    } catch (error) {
+      showError(getErrorMessage(error, "errors.deleteBorrowMonthlySchedule"));
+    }
+  }
+
+  async function loadBorrowMaterialMonthlyScheduleDetail(customerId, scheduleId) {
+    const res = await fetchBorrowMaterialMonthlyScheduleDetail(token, customerId, scheduleId);
+    return unwrapApiData(res.data);
+  }
+
   function logout() {
     setToken("");
     setUser(null);
@@ -694,6 +800,8 @@ export function useAdminDashboard() {
     orderGroups,
     borrowMaterials,
     customerBorrowedMaterials,
+    borrowMaterialOrderLoans,
+    borrowMaterialMonthlySchedules,
     paymentTotals,
     flash,
     dismissFlash,
@@ -708,6 +816,10 @@ export function useAdminDashboard() {
     newUser,
     newBorrowMaterial,
     newCustomerBorrow,
+    newOrderLoan,
+    setNewOrderLoan,
+    newMonthlySchedule,
+    setNewMonthlySchedule,
     setAuth,
     setNewOrder,
     setNewProducer,
@@ -758,6 +870,11 @@ export function useAdminDashboard() {
     submitBorrowMaterialDelete,
     submitCustomerBorrow,
     submitCustomerBorrowDelete,
+    submitBorrowMaterialOrderLoan,
+    submitBorrowMaterialOrderLoanDelete,
+    submitBorrowMaterialMonthlySchedule,
+    submitBorrowMaterialMonthlyScheduleDelete,
+    loadBorrowMaterialMonthlyScheduleDetail,
     refresh,
     logout,
   };

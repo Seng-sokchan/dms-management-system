@@ -43,7 +43,7 @@ async function createOrder(payload) {
     itemId,
     order.orderedQty,
     order.unitPrice,
-    order.currency || "USD",
+    order.currency || "KHR",
     producerId,
     truckId,
     order.amountTotal,

@@ -15,6 +15,7 @@ const roleMenuRoutes = require("./roleMenuRoutes");
 const activityLogRoutes = require("./activityLogRoutes");
 const borrowMaterialRoutes = require("./borrowMaterialRoutes");
 const customerBorrowedMaterialRoutes = require("./customerBorrowedMaterialRoutes");
+const borrowMaterialLoanRoutes = require("./borrowMaterialLoanRoutes");
 
 const router = express.Router();
 
@@ -33,6 +34,7 @@ router.use(roleMenuRoutes);
 router.use(activityLogRoutes);
 router.use(borrowMaterialRoutes);
 router.use(customerBorrowedMaterialRoutes);
+router.use(borrowMaterialLoanRoutes);
 router.use(orderRoutes);
 
 module.exports = router;

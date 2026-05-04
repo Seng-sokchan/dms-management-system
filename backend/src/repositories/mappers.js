@@ -16,7 +16,7 @@ function mapOrder(row) {
     itemId: row.item_id != null ? String(row.item_id) : null,
     itemSku: row.item_sku != null ? row.item_sku : null,
     itemName: row.item_name,
-    currency: (row.currency || "USD"),
+    currency: (row.currency || "KHR"),
     orderedQty: row.ordered_qty,
     unitPrice: Number(row.unit_price),
     producerId: row.producer_id != null ? String(row.producer_id) : null,
@@ -163,6 +163,57 @@ function mapCustomerBorrowedMaterial(row) {
   };
 }
 
+function mapBorrowMaterialOrderLoan(row) {
+  return {
+    id: String(row.id),
+    customerId: row.customer_id != null ? String(row.customer_id) : "",
+    customerName: row.customer_name || "",
+    materialId: row.material_id != null ? String(row.material_id) : "",
+    materialName: row.material_name || "",
+    unit: row.unit || "",
+    orderId: row.order_id != null ? String(row.order_id) : "",
+    fixedUnitPrice: Number(row.fixed_unit_price),
+    currency: row.currency || "KHR",
+    orderedQty: Number(row.ordered_qty || 0),
+    computedLineTotal: Number(row.computed_line_total),
+    note: row.note || "",
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function mapBorrowMaterialMonthlySchedule(row) {
+  return {
+    id: String(row.id),
+    customerId: row.customer_id != null ? String(row.customer_id) : "",
+    customerName: row.customer_name || "",
+    materialId: row.material_id != null ? String(row.material_id) : "",
+    materialName: row.material_name || "",
+    unit: row.unit || "",
+    totalAmount: Number(row.total_amount),
+    currency: row.currency || "KHR",
+    totalPeriod: Number(row.total_period || 0),
+    startDueDate: row.start_due_date,
+    note: row.note || "",
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function mapBorrowMaterialMonthlyInstallment(row) {
+  return {
+    id: String(row.id),
+    scheduleId: row.schedule_id != null ? String(row.schedule_id) : "",
+    periodNo: Number(row.period_no || 0),
+    dueDate: row.due_date,
+    amountDue: Number(row.amount_due),
+    amountPaid: Number(row.amount_paid || 0),
+    paidAt: row.paid_at,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
 module.exports = {
   mapOrder,
   mapProducer,
@@ -176,4 +227,7 @@ module.exports = {
   mapUser,
   mapBorrowMaterial,
   mapCustomerBorrowedMaterial,
+  mapBorrowMaterialOrderLoan,
+  mapBorrowMaterialMonthlySchedule,
+  mapBorrowMaterialMonthlyInstallment,
 };

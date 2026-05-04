@@ -18,3 +18,5 @@ export * from "./activityLogs";
 export * from "./roleMenus";
 export * from "./borrowMaterials";
 export * from "./customerBorrowedMaterials";
+export * from "./borrowMaterialOrderLoans";
+export * from "./borrowMaterialMonthlySchedules";

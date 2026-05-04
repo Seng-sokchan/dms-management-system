@@ -1,6 +1,9 @@
 SET NAMES utf8;
 SET FOREIGN_KEY_CHECKS = 0;
 
+DROP TABLE IF EXISTS borrow_material_monthly_installments;
+DROP TABLE IF EXISTS borrow_material_monthly_schedules;
+DROP TABLE IF EXISTS borrow_material_order_loans;
 DROP TABLE IF EXISTS order_status_history;
 DROP TABLE IF EXISTS user_activity_logs;
 DROP TABLE IF EXISTS bakong_transactions;
@@ -261,7 +264,7 @@ CREATE TABLE orders (
   address INT UNSIGNED NOT NULL,
   order_group_id INT UNSIGNED DEFAULT NULL,
   item_id INT UNSIGNED NOT NULL,
-  currency VARCHAR(10) NOT NULL DEFAULT 'USD',
+  currency VARCHAR(10) NOT NULL DEFAULT 'KHR',
   ordered_qty INT UNSIGNED NOT NULL,
   unit_price DECIMAL(14,2) NOT NULL,
   producer_id INT UNSIGNED DEFAULT NULL,
@@ -294,6 +297,67 @@ CREATE TABLE orders (
     ON UPDATE RESTRICT ON DELETE RESTRICT,
   CONSTRAINT fk_orders_status FOREIGN KEY (status) REFERENCES status (id)
     ON UPDATE RESTRICT ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE borrow_material_order_loans (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  customer_id INT UNSIGNED NOT NULL,
+  material_id INT UNSIGNED NOT NULL,
+  order_id INT UNSIGNED NOT NULL,
+  fixed_unit_price DECIMAL(14,2) NOT NULL,
+  currency VARCHAR(10) NOT NULL DEFAULT 'KHR',
+  ordered_qty INT UNSIGNED NOT NULL,
+  computed_line_total DECIMAL(14,2) NOT NULL,
+  note VARCHAR(255) DEFAULT '',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_bmol_order (order_id),
+  KEY idx_bmol_customer (customer_id),
+  KEY idx_bmol_material (material_id),
+  CONSTRAINT fk_bmol_customer FOREIGN KEY (customer_id) REFERENCES customers (id)
+    ON UPDATE RESTRICT ON DELETE CASCADE,
+  CONSTRAINT fk_bmol_material FOREIGN KEY (material_id) REFERENCES borrow_materials (id)
+    ON UPDATE RESTRICT ON DELETE RESTRICT,
+  CONSTRAINT fk_bmol_order FOREIGN KEY (order_id) REFERENCES orders (id)
+    ON UPDATE RESTRICT ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE borrow_material_monthly_schedules (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  customer_id INT UNSIGNED NOT NULL,
+  material_id INT UNSIGNED NOT NULL,
+  total_amount DECIMAL(14,2) NOT NULL,
+  currency VARCHAR(10) NOT NULL DEFAULT 'KHR',
+  total_period INT UNSIGNED NOT NULL,
+  start_due_date DATE NOT NULL,
+  note VARCHAR(255) DEFAULT '',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NULL,
+  PRIMARY KEY (id),
+  KEY idx_bmms_customer (customer_id),
+  KEY idx_bmms_material (material_id),
+  CONSTRAINT fk_bmms_customer FOREIGN KEY (customer_id) REFERENCES customers (id)
+    ON UPDATE RESTRICT ON DELETE CASCADE,
+  CONSTRAINT fk_bmms_material FOREIGN KEY (material_id) REFERENCES borrow_materials (id)
+    ON UPDATE RESTRICT ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE borrow_material_monthly_installments (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  schedule_id INT UNSIGNED NOT NULL,
+  period_no INT UNSIGNED NOT NULL,
+  due_date DATE NOT NULL,
+  amount_due DECIMAL(14,2) NOT NULL,
+  amount_paid DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+  paid_at DATETIME NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_bmmsi_schedule_period (schedule_id, period_no),
+  KEY idx_bmmsi_schedule (schedule_id),
+  CONSTRAINT fk_bmmsi_schedule FOREIGN KEY (schedule_id) REFERENCES borrow_material_monthly_schedules (id)
+    ON UPDATE RESTRICT ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE order_status_history (
@@ -410,6 +474,14 @@ DROP PROCEDURE IF EXISTS sp_list_customer_borrowed_materials;
 DROP PROCEDURE IF EXISTS sp_list_all_customer_borrowed_materials;
 DROP PROCEDURE IF EXISTS sp_upsert_customer_borrowed_material;
 DROP PROCEDURE IF EXISTS sp_delete_customer_borrowed_material;
+DROP PROCEDURE IF EXISTS sp_list_all_borrow_material_order_loans;
+DROP PROCEDURE IF EXISTS sp_create_borrow_material_order_loan;
+DROP PROCEDURE IF EXISTS sp_delete_borrow_material_order_loan;
+DROP PROCEDURE IF EXISTS sp_list_all_borrow_material_monthly_schedules;
+DROP PROCEDURE IF EXISTS sp_get_borrow_material_monthly_schedule_by_id;
+DROP PROCEDURE IF EXISTS sp_list_borrow_material_monthly_installments;
+DROP PROCEDURE IF EXISTS sp_create_borrow_material_monthly_schedule;
+DROP PROCEDURE IF EXISTS sp_delete_borrow_material_monthly_schedule;
 
 CREATE PROCEDURE sp_get_user_by_username(IN p_username VARCHAR(60))
 SELECT u.id, u.name, u.username, u.password_hash, r.name AS role
@@ -1092,6 +1164,131 @@ BEGIN
   SELECT ROW_COUNT() AS affectedRows;
 END;
 
+CREATE PROCEDURE sp_list_all_borrow_material_order_loans()
+SELECT
+  l.id, l.customer_id, c.name AS customer_name, l.material_id, m.name AS material_name, m.unit,
+  l.order_id, l.fixed_unit_price, l.currency, l.ordered_qty, l.computed_line_total, l.note, l.created_at, l.updated_at
+FROM borrow_material_order_loans l
+INNER JOIN customers c ON c.id = l.customer_id
+INNER JOIN borrow_materials m ON m.id = l.material_id
+WHERE c.is_active = 1 AND m.is_active = 1
+ORDER BY l.created_at DESC;
+
+CREATE PROCEDURE sp_create_borrow_material_order_loan(
+  IN p_customer_id INT UNSIGNED,
+  IN p_material_id INT UNSIGNED,
+  IN p_order_id INT UNSIGNED,
+  IN p_fixed_unit_price DECIMAL(14,2),
+  IN p_note VARCHAR(255),
+  IN p_updated_at DATETIME
+)
+BEGIN
+  DECLARE v_ordered_qty INT UNSIGNED;
+  DECLARE v_currency VARCHAR(10);
+  DECLARE v_cust INT UNSIGNED;
+  DECLARE v_computed DECIMAL(14,2);
+  SELECT ordered_qty, currency, customer_id INTO v_ordered_qty, v_currency, v_cust
+  FROM orders WHERE id = p_order_id LIMIT 1;
+  IF v_cust IS NULL THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Order not found';
+  END IF;
+  IF v_cust <> p_customer_id THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Order customer mismatch';
+  END IF;
+  SET v_computed = ROUND(v_ordered_qty * p_fixed_unit_price, 2);
+  INSERT INTO borrow_material_order_loans (
+    customer_id, material_id, order_id, fixed_unit_price, currency, ordered_qty, computed_line_total, note, updated_at
+  )
+  VALUES (
+    p_customer_id, p_material_id, p_order_id, p_fixed_unit_price, v_currency, v_ordered_qty, v_computed, p_note, p_updated_at
+  );
+  SELECT LAST_INSERT_ID() AS insertId;
+END;
+
+CREATE PROCEDURE sp_delete_borrow_material_order_loan(IN p_id INT UNSIGNED, IN p_customer_id INT UNSIGNED)
+BEGIN
+  DELETE FROM borrow_material_order_loans WHERE id = p_id AND customer_id = p_customer_id;
+  SELECT ROW_COUNT() AS affectedRows;
+END;
+
+CREATE PROCEDURE sp_list_all_borrow_material_monthly_schedules()
+SELECT
+  s.id, s.customer_id, c.name AS customer_name, s.material_id, m.name AS material_name, m.unit,
+  s.total_amount, s.currency, s.total_period, s.start_due_date, s.note, s.created_at, s.updated_at
+FROM borrow_material_monthly_schedules s
+INNER JOIN customers c ON c.id = s.customer_id
+INNER JOIN borrow_materials m ON m.id = s.material_id
+WHERE c.is_active = 1 AND m.is_active = 1
+ORDER BY s.created_at DESC;
+
+CREATE PROCEDURE sp_get_borrow_material_monthly_schedule_by_id(
+  IN p_schedule_id INT UNSIGNED,
+  IN p_customer_id INT UNSIGNED
+)
+SELECT
+  s.id, s.customer_id, c.name AS customer_name, s.material_id, m.name AS material_name, m.unit,
+  s.total_amount, s.currency, s.total_period, s.start_due_date, s.note, s.created_at, s.updated_at
+FROM borrow_material_monthly_schedules s
+INNER JOIN customers c ON c.id = s.customer_id
+INNER JOIN borrow_materials m ON m.id = s.material_id
+WHERE s.id = p_schedule_id AND s.customer_id = p_customer_id
+LIMIT 1;
+
+CREATE PROCEDURE sp_list_borrow_material_monthly_installments(IN p_schedule_id INT UNSIGNED)
+SELECT id, schedule_id, period_no, due_date, amount_due, amount_paid, paid_at, created_at, updated_at
+FROM borrow_material_monthly_installments
+WHERE schedule_id = p_schedule_id
+ORDER BY period_no ASC;
+
+CREATE PROCEDURE sp_create_borrow_material_monthly_schedule(
+  IN p_customer_id INT UNSIGNED,
+  IN p_material_id INT UNSIGNED,
+  IN p_total_amount DECIMAL(14,2),
+  IN p_currency VARCHAR(10),
+  IN p_total_period INT UNSIGNED,
+  IN p_start_due_date DATE,
+  IN p_note VARCHAR(255),
+  IN p_updated_at DATETIME
+)
+BEGIN
+  DECLARE v_schedule_id INT UNSIGNED;
+  DECLARE v_i INT UNSIGNED DEFAULT 1;
+  DECLARE v_per DECIMAL(14,2);
+  DECLARE v_last DECIMAL(14,2);
+  DECLARE v_due DATE;
+  DECLARE v_amt DECIMAL(14,2);
+  IF p_total_period < 1 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'total_period must be at least 1';
+  END IF;
+  INSERT INTO borrow_material_monthly_schedules (
+    customer_id, material_id, total_amount, currency, total_period, start_due_date, note, updated_at
+  )
+  VALUES (
+    p_customer_id, p_material_id, p_total_amount, p_currency, p_total_period, p_start_due_date, p_note, p_updated_at
+  );
+  SET v_schedule_id = LAST_INSERT_ID();
+  SET v_per = TRUNCATE(p_total_amount / p_total_period, 2);
+  SET v_last = p_total_amount - v_per * (p_total_period - 1);
+  WHILE v_i <= p_total_period DO
+    SET v_due = DATE_ADD(p_start_due_date, INTERVAL (v_i - 1) MONTH);
+    IF v_i = p_total_period THEN
+      SET v_amt = v_last;
+    ELSE
+      SET v_amt = v_per;
+    END IF;
+    INSERT INTO borrow_material_monthly_installments (schedule_id, period_no, due_date, amount_due, amount_paid, updated_at)
+    VALUES (v_schedule_id, v_i, v_due, v_amt, 0, p_updated_at);
+    SET v_i = v_i + 1;
+  END WHILE;
+  SELECT v_schedule_id AS insertId;
+END;
+
+CREATE PROCEDURE sp_delete_borrow_material_monthly_schedule(IN p_id INT UNSIGNED, IN p_customer_id INT UNSIGNED)
+BEGIN
+  DELETE FROM borrow_material_monthly_schedules WHERE id = p_id AND customer_id = p_customer_id;
+  SELECT ROW_COUNT() AS affectedRows;
+END;
+
 DROP PROCEDURE IF EXISTS sp_dashboard_totals;
 CREATE PROCEDURE sp_dashboard_totals()
 SELECT
@@ -1457,7 +1654,7 @@ PREPARE stmt_drop_items_cust_col FROM @sql_drop_items_cust_col;
 EXECUTE stmt_drop_items_cust_col;
 DEALLOCATE PREPARE stmt_drop_items_cust_col;
 
--- 10) Ensure orders.currency exists and defaults to USD
+-- 10) Ensure orders.currency exists and defaults to KHR
 SET @has_orders_currency := (
   SELECT COUNT(*)
   FROM information_schema.columns
@@ -1467,14 +1664,14 @@ SET @has_orders_currency := (
 );
 SET @sql_add_orders_currency := IF(
   @has_orders_currency = 0,
-  'ALTER TABLE orders ADD COLUMN currency VARCHAR(10) NOT NULL DEFAULT ''USD'' AFTER item_id',
+  'ALTER TABLE orders ADD COLUMN currency VARCHAR(10) NOT NULL DEFAULT ''KHR'' AFTER item_id',
   'SELECT 1'
 );
 PREPARE stmt_add_orders_currency FROM @sql_add_orders_currency;
 EXECUTE stmt_add_orders_currency;
 DEALLOCATE PREPARE stmt_add_orders_currency;
 
-UPDATE orders SET currency = 'USD' WHERE currency IS NULL OR currency = '';
+UPDATE orders SET currency = 'KHR' WHERE currency IS NULL OR currency = '';
 
 -- 13) Remove SUPPLIER_ORDER_READY and collapse flow to Ready_For_Delivery (when that status exists)
 SET @supplier_ready_id := (
@@ -1720,5 +1917,100 @@ SELECT r.id, 'payments'
 FROM roles r
 WHERE r.name IN ('Admin', 'Owner', 'Depot')
 ON DUPLICATE KEY UPDATE menu_key = VALUES(menu_key);
+
+-- 19) Borrow material order loans + monthly payment schedules (idempotent)
+SET @has_bmol := (
+  SELECT COUNT(*) FROM information_schema.tables
+  WHERE table_schema = DATABASE() AND table_name = 'borrow_material_order_loans'
+);
+SET @sql_create_bmol := IF(
+  @has_bmol = 0,
+  'CREATE TABLE borrow_material_order_loans (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    customer_id INT UNSIGNED NOT NULL,
+    material_id INT UNSIGNED NOT NULL,
+    order_id INT UNSIGNED NOT NULL,
+    fixed_unit_price DECIMAL(14,2) NOT NULL,
+    currency VARCHAR(10) NOT NULL DEFAULT ''KHR'',
+    ordered_qty INT UNSIGNED NOT NULL,
+    computed_line_total DECIMAL(14,2) NOT NULL,
+    note VARCHAR(255) DEFAULT '''',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_bmol_order (order_id),
+    KEY idx_bmol_customer (customer_id),
+    KEY idx_bmol_material (material_id),
+    CONSTRAINT fk_bmol_customer FOREIGN KEY (customer_id) REFERENCES customers (id)
+      ON UPDATE RESTRICT ON DELETE CASCADE,
+    CONSTRAINT fk_bmol_material FOREIGN KEY (material_id) REFERENCES borrow_materials (id)
+      ON UPDATE RESTRICT ON DELETE RESTRICT,
+    CONSTRAINT fk_bmol_order FOREIGN KEY (order_id) REFERENCES orders (id)
+      ON UPDATE RESTRICT ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8',
+  'SELECT 1'
+);
+PREPARE stmt_create_bmol FROM @sql_create_bmol;
+EXECUTE stmt_create_bmol;
+DEALLOCATE PREPARE stmt_create_bmol;
+
+SET @has_bmms := (
+  SELECT COUNT(*) FROM information_schema.tables
+  WHERE table_schema = DATABASE() AND table_name = 'borrow_material_monthly_schedules'
+);
+SET @sql_create_bmms := IF(
+  @has_bmms = 0,
+  'CREATE TABLE borrow_material_monthly_schedules (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    customer_id INT UNSIGNED NOT NULL,
+    material_id INT UNSIGNED NOT NULL,
+    total_amount DECIMAL(14,2) NOT NULL,
+    currency VARCHAR(10) NOT NULL DEFAULT ''KHR'',
+    total_period INT UNSIGNED NOT NULL,
+    start_due_date DATE NOT NULL,
+    note VARCHAR(255) DEFAULT '''',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NULL,
+    PRIMARY KEY (id),
+    KEY idx_bmms_customer (customer_id),
+    KEY idx_bmms_material (material_id),
+    CONSTRAINT fk_bmms_customer FOREIGN KEY (customer_id) REFERENCES customers (id)
+      ON UPDATE RESTRICT ON DELETE CASCADE,
+    CONSTRAINT fk_bmms_material FOREIGN KEY (material_id) REFERENCES borrow_materials (id)
+      ON UPDATE RESTRICT ON DELETE RESTRICT
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8',
+  'SELECT 1'
+);
+PREPARE stmt_create_bmms FROM @sql_create_bmms;
+EXECUTE stmt_create_bmms;
+DEALLOCATE PREPARE stmt_create_bmms;
+
+SET @has_bmmsi := (
+  SELECT COUNT(*) FROM information_schema.tables
+  WHERE table_schema = DATABASE() AND table_name = 'borrow_material_monthly_installments'
+);
+SET @sql_create_bmmsi := IF(
+  @has_bmmsi = 0,
+  'CREATE TABLE borrow_material_monthly_installments (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    schedule_id INT UNSIGNED NOT NULL,
+    period_no INT UNSIGNED NOT NULL,
+    due_date DATE NOT NULL,
+    amount_due DECIMAL(14,2) NOT NULL,
+    amount_paid DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+    paid_at DATETIME NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_bmmsi_schedule_period (schedule_id, period_no),
+    KEY idx_bmmsi_schedule (schedule_id),
+    CONSTRAINT fk_bmmsi_schedule FOREIGN KEY (schedule_id) REFERENCES borrow_material_monthly_schedules (id)
+      ON UPDATE RESTRICT ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8',
+  'SELECT 1'
+);
+PREPARE stmt_create_bmmsi FROM @sql_create_bmmsi;
+EXECUTE stmt_create_bmmsi;
+DEALLOCATE PREPARE stmt_create_bmmsi;
 
 SET FOREIGN_KEY_CHECKS = 1;

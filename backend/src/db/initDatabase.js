@@ -45,6 +45,8 @@ async function run() {
   // Child / dependent rows first (FK-safe order).
   await dbConn.query("DELETE FROM order_status_history");
   await dbConn.query("DELETE FROM user_activity_logs");
+  await dbConn.query("DELETE FROM borrow_material_monthly_schedules");
+  await dbConn.query("DELETE FROM borrow_material_order_loans");
   await dbConn.query("DELETE FROM orders");
   await dbConn.query("DELETE FROM customer_borrowed_materials");
   await dbConn.query("DELETE FROM borrow_materials");
@@ -183,20 +185,46 @@ async function run() {
        amount_total, status, updated_at
      ) VALUES
       (
-        1, 1, 1, 1, 1, 'USD', 10, 0.50,
+        1, 1, 1, 1, 1, 'KHR', 10, 0.50,
         1, 1, NULL,
         5.00, 1, NOW()
       ),
       (
-        2, 2, 2, 1, 3, 'USD', 20, 1.20,
+        2, 2, 2, 1, 3, 'KHR', 20, 1.20,
         1, 2, NULL,
         24.00, 3, NOW()
       ),
       (
-        3, 3, 3, 3, 2, 'USD', 48, 0.35,
+        3, 3, 3, 3, 2, 'KHR', 48, 0.35,
         1, 1, NULL,
         16.80, 4, NOW()
       )`,
+  );
+
+  await dbConn.query(
+    `INSERT INTO borrow_material_order_loans (
+       id, customer_id, material_id, order_id, fixed_unit_price, currency, ordered_qty, computed_line_total, note, updated_at
+     ) VALUES
+      (1, 1, 1, 1, 0.25, 'KHR', 10, 2.50, 'Seeded order-linked loan (10 * 0.25)', NOW())`,
+  );
+
+  await dbConn.query(
+    `INSERT INTO borrow_material_monthly_schedules (
+       id, customer_id, material_id, total_amount, currency, total_period, start_due_date, note, updated_at
+     ) VALUES
+      (1, 1, 2, 120.00, 'KHR', 6, CURDATE(), 'Seeded 6-month schedule', NOW())`,
+  );
+
+  await dbConn.query(
+    `INSERT INTO borrow_material_monthly_installments (
+       schedule_id, period_no, due_date, amount_due, amount_paid, updated_at
+     ) VALUES
+      (1, 1, CURDATE(), 20.00, 0, NOW()),
+      (1, 2, DATE_ADD(CURDATE(), INTERVAL 1 MONTH), 20.00, 0, NOW()),
+      (1, 3, DATE_ADD(CURDATE(), INTERVAL 2 MONTH), 20.00, 0, NOW()),
+      (1, 4, DATE_ADD(CURDATE(), INTERVAL 3 MONTH), 20.00, 0, NOW()),
+      (1, 5, DATE_ADD(CURDATE(), INTERVAL 4 MONTH), 20.00, 0, NOW()),
+      (1, 6, DATE_ADD(CURDATE(), INTERVAL 5 MONTH), 20.00, 0, NOW())`,
   );
 
   await dbConn.query(

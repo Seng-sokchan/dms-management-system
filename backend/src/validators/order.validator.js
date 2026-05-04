@@ -20,7 +20,7 @@ const createOrderSchema = z.object({
   itemId: idString,
   orderedQty: z.number().int().positive(),
   unitPrice: z.number().nonnegative().optional(),
-  currency: z.enum(["USD", "KHR"]).optional().default("USD"),
+  currency: z.enum(["USD", "KHR"]).optional().default("KHR"),
   producerId: idString.nullable().optional(),
   truckId: idString.nullable().optional(),
 });

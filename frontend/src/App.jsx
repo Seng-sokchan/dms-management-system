@@ -44,6 +44,8 @@ function App() {
     items,
     borrowMaterials,
     customerBorrowedMaterials,
+    borrowMaterialOrderLoans,
+    borrowMaterialMonthlySchedules,
     paymentTotals,
     flash,
     dismissFlash,
@@ -57,6 +59,10 @@ function App() {
     newTruck,
     newBorrowMaterial,
     newCustomerBorrow,
+    newOrderLoan,
+    setNewOrderLoan,
+    newMonthlySchedule,
+    setNewMonthlySchedule,
     setAuth,
     setNewOrder,
     setNewProducer,
@@ -101,6 +107,11 @@ function App() {
     submitBorrowMaterialDelete,
     submitCustomerBorrow,
     submitCustomerBorrowDelete,
+    submitBorrowMaterialOrderLoan,
+    submitBorrowMaterialOrderLoanDelete,
+    submitBorrowMaterialMonthlySchedule,
+    submitBorrowMaterialMonthlyScheduleDelete,
+    loadBorrowMaterialMonthlyScheduleDetail,
     users,
     activityLogs,
     newUser,
@@ -288,17 +299,29 @@ function App() {
             <BorrowedMaterialsPage
               user={user}
               customers={customers}
+              orders={orders}
               borrowMaterials={borrowMaterials}
               customerBorrowedMaterials={customerBorrowedMaterials}
+              borrowMaterialOrderLoans={borrowMaterialOrderLoans}
+              borrowMaterialMonthlySchedules={borrowMaterialMonthlySchedules}
               newBorrowMaterial={newBorrowMaterial}
               setNewBorrowMaterial={setNewBorrowMaterial}
               newCustomerBorrow={newCustomerBorrow}
               setNewCustomerBorrow={setNewCustomerBorrow}
+              newOrderLoan={newOrderLoan}
+              setNewOrderLoan={setNewOrderLoan}
+              newMonthlySchedule={newMonthlySchedule}
+              setNewMonthlySchedule={setNewMonthlySchedule}
               onCreateBorrowMaterial={submitBorrowMaterial}
               onUpdateBorrowMaterial={submitBorrowMaterialUpdate}
               onDeleteBorrowMaterial={submitBorrowMaterialDelete}
               onSubmitCustomerBorrow={submitCustomerBorrow}
               onDeleteCustomerBorrow={submitCustomerBorrowDelete}
+              onSubmitBorrowMaterialOrderLoan={submitBorrowMaterialOrderLoan}
+              onDeleteBorrowMaterialOrderLoan={submitBorrowMaterialOrderLoanDelete}
+              onSubmitBorrowMaterialMonthlySchedule={submitBorrowMaterialMonthlySchedule}
+              onDeleteBorrowMaterialMonthlySchedule={submitBorrowMaterialMonthlyScheduleDelete}
+              onLoadBorrowMaterialMonthlyScheduleDetail={loadBorrowMaterialMonthlyScheduleDetail}
             />
           ) : (
             <Navigate to="/overview" replace />

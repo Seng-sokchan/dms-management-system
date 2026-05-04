@@ -4,7 +4,7 @@ import { DataTable } from "../components/ui/DataTable";
 import "./PaymentsPage.css";
 
 function formatMoney(amount, currency, locale) {
-  const cur = currency === "KHR" ? "KHR" : "USD";
+  const cur = currency === "USD" ? "USD" : "KHR";
   try {
     return new Intl.NumberFormat(locale, {
       style: "currency",

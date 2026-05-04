@@ -19,7 +19,7 @@ function mapCustomerRow(row) {
   return {
     customerId: String(row.customer_id),
     customerName: row.customer_name,
-    currency: row.currency || "USD",
+    currency: row.currency || "KHR",
     orderCount: Number(row.order_count || 0),
     totalAmount: Number(row.total_amount),
   };
@@ -29,7 +29,7 @@ function mapDepotRow(row) {
   return {
     depotId: String(row.depot_id),
     depotName: row.depot_name,
-    currency: row.currency || "USD",
+    currency: row.currency || "KHR",
     orderCount: Number(row.order_count || 0),
     totalAmount: Number(row.total_amount),
   };

@@ -1,5 +1,7 @@
 import { apiClient, authConfig, unwrapApiData } from "../apiClient";
 import { fetchOrderPaymentTotals } from "./orders";
+import { fetchBorrowMaterialOrderLoans } from "./borrowMaterialOrderLoans";
+import { fetchBorrowMaterialMonthlySchedules } from "./borrowMaterialMonthlySchedules";
 
 /**
  * Route-aware dashboard load so each page requests only needed data.
@@ -20,7 +22,14 @@ const ROUTE_DATA_MAP = {
   "/assign-orders": ["orders", "trucks", "orderGroups"],
   "/order-movement": ["orders", "statuses"],
   "/payments": ["paymentTotals"],
-  "/borrowed-materials": ["customers", "borrowMaterials", "customerBorrowedMaterials"],
+  "/borrowed-materials": [
+    "customers",
+    "borrowMaterials",
+    "customerBorrowedMaterials",
+    "orders",
+    "borrowMaterialOrderLoans",
+    "borrowMaterialMonthlySchedules",
+  ],
 };
 
 function getKeysForRoute(pathname = "/overview") {
@@ -63,6 +72,8 @@ export async function fetchDashboardData(token, pathname = "/overview") {
     activityLogs: [],
     borrowMaterials: [],
     customerBorrowedMaterials: [],
+    borrowMaterialOrderLoans: [],
+    borrowMaterialMonthlySchedules: [],
     paymentTotals: { byCustomer: [], byDepot: [] },
   };
 
@@ -161,6 +172,16 @@ export async function fetchDashboardData(token, pathname = "/overview") {
     const res = await apiClient.get("/customer-borrowed-materials", config);
     const rows = unwrapApiData(res.data);
     data.customerBorrowedMaterials = Array.isArray(rows) ? rows : [];
+  });
+  queue("borrowMaterialOrderLoans", async () => {
+    const res = await fetchBorrowMaterialOrderLoans(token);
+    const rows = unwrapApiData(res.data);
+    data.borrowMaterialOrderLoans = Array.isArray(rows) ? rows : [];
+  });
+  queue("borrowMaterialMonthlySchedules", async () => {
+    const res = await fetchBorrowMaterialMonthlySchedules(token);
+    const rows = unwrapApiData(res.data);
+    data.borrowMaterialMonthlySchedules = Array.isArray(rows) ? rows : [];
   });
   queue("paymentTotals", async () => {
     data.paymentTotals = await fetchOrderPaymentTotals(token);

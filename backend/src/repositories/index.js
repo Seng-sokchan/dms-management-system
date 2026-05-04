@@ -84,6 +84,19 @@ const {
   deleteCustomerBorrowedMaterial,
 } = require("./customerBorrowedMaterials");
 
+const {
+  listAllBorrowMaterialOrderLoans,
+  createBorrowMaterialOrderLoan,
+  deleteBorrowMaterialOrderLoan,
+} = require("./borrowMaterialOrderLoans");
+const {
+  listAllBorrowMaterialMonthlySchedules,
+  createBorrowMaterialMonthlySchedule,
+  getBorrowMaterialMonthlyScheduleById,
+  listBorrowMaterialMonthlyInstallments,
+  deleteBorrowMaterialMonthlySchedule,
+} = require("./borrowMaterialMonthlySchedules");
+
 // producers
 const {
   listProducers,
@@ -144,6 +157,9 @@ module.exports = {
   listBorrowMaterials,
   listCustomerBorrowedMaterialsByCustomer,
   listAllCustomerBorrowedMaterials,
+  listAllBorrowMaterialOrderLoans,
+  listAllBorrowMaterialMonthlySchedules,
+  listBorrowMaterialMonthlyInstallments,
   getDashboardSummary,
 
   // get (single/read)
@@ -194,6 +210,9 @@ module.exports = {
   deleteOrder,
   updateBorrowMaterial,
   upsertCustomerBorrowedMaterial,
+  createBorrowMaterialOrderLoan,
+  createBorrowMaterialMonthlySchedule,
+  getBorrowMaterialMonthlyScheduleById,
 
   // delete
   deactivateUser,
@@ -206,4 +225,6 @@ module.exports = {
   deleteItem,
   deleteBorrowMaterial,
   deleteCustomerBorrowedMaterial,
+  deleteBorrowMaterialOrderLoan,
+  deleteBorrowMaterialMonthlySchedule,
 };

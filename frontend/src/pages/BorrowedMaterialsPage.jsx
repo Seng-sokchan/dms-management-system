@@ -10,21 +10,51 @@ const EMPTY_BORROW_EDIT = { id: "", customerId: "", materialId: "", qty: 0, note
 export function BorrowedMaterialsPage({
   user,
   customers,
+  orders = [],
   borrowMaterials,
   customerBorrowedMaterials,
+  borrowMaterialOrderLoans = [],
+  borrowMaterialMonthlySchedules = [],
   newBorrowMaterial,
   setNewBorrowMaterial,
   newCustomerBorrow,
   setNewCustomerBorrow,
+  newOrderLoan,
+  setNewOrderLoan,
+  newMonthlySchedule,
+  setNewMonthlySchedule,
   onCreateBorrowMaterial,
   onUpdateBorrowMaterial,
   onDeleteBorrowMaterial,
   onSubmitCustomerBorrow,
   onDeleteCustomerBorrow,
+  onSubmitBorrowMaterialOrderLoan,
+  onDeleteBorrowMaterialOrderLoan,
+  onSubmitBorrowMaterialMonthlySchedule,
+  onDeleteBorrowMaterialMonthlySchedule,
+  onLoadBorrowMaterialMonthlyScheduleDetail,
 }) {
   const { t } = useTranslation();
-  const { confirm } = useConfirm();
+  const { confirm, alert } = useConfirm();
   const canManageMaterials = user?.role === "Admin" || user?.role === "Owner";
+
+  const [borrowTab, setBorrowTab] = useState("customer");
+  const [showOrderLoanModal, setShowOrderLoanModal] = useState(false);
+  const [showMonthlyModal, setShowMonthlyModal] = useState(false);
+  const [scheduleInstallmentModal, setScheduleInstallmentModal] = useState(null);
+
+  const customerOrders = useMemo(() => {
+    if (!newOrderLoan.customerId) return [];
+    return orders.filter((o) => String(o.customerId) === String(newOrderLoan.customerId));
+  }, [orders, newOrderLoan.customerId]);
+
+  const orderLoanPreview = useMemo(() => {
+    const order = orders.find((o) => String(o.id) === String(newOrderLoan.orderId));
+    const price = Number(newOrderLoan.fixedUnitPrice);
+    if (!order || !Number.isFinite(price) || price <= 0) return null;
+    const qty = Number(order.orderedQty || 0);
+    return Math.round(qty * price * 100) / 100;
+  }, [orders, newOrderLoan.orderId, newOrderLoan.fixedUnitPrice]);
 
   const [showMaterialModal, setShowMaterialModal] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState(EMPTY_MATERIAL_EDIT);
@@ -136,6 +166,44 @@ export function BorrowedMaterialsPage({
     setShowBorrowModal(false);
   }
 
+  function openOrderLoanModal() {
+    setNewOrderLoan({ customerId: "", materialId: "", orderId: "", fixedUnitPrice: "", note: "" });
+    setShowOrderLoanModal(true);
+  }
+
+  function closeOrderLoanModal() {
+    setShowOrderLoanModal(false);
+  }
+
+  function openMonthlyModal() {
+    const today = new Date();
+    const iso = today.toISOString().slice(0, 10);
+    setNewMonthlySchedule({
+      customerId: "",
+      materialId: "",
+      totalAmount: "",
+      currency: "KHR",
+      totalPeriod: 6,
+      startDueDate: iso,
+      note: "",
+    });
+    setShowMonthlyModal(true);
+  }
+
+  function closeMonthlyModal() {
+    setShowMonthlyModal(false);
+  }
+
+  async function handleViewScheduleInstallments(customerId, scheduleId) {
+    try {
+      const data = await onLoadBorrowMaterialMonthlyScheduleDetail(customerId, scheduleId);
+      setScheduleInstallmentModal(data);
+    } catch (error) {
+      const msg = error?.response?.data?.message || error?.message || "Request failed";
+      await alert({ title: t("confirm.defaultTitle"), message: String(msg) });
+    }
+  }
+
   return (
     <section className="admin-page">
       <div className="section-heading">
@@ -145,6 +213,34 @@ export function BorrowedMaterialsPage({
             defaultValue: "Track returnable materials customers borrowed from the owner.",
           })}
         </p>
+      </div>
+
+      <div
+        className="borrow-material-tabs"
+        style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 20 }}
+        role="tablist"
+      >
+        <Button
+          type="button"
+          variant={borrowTab === "customer" ? "primary" : "ghost"}
+          onClick={() => setBorrowTab("customer")}
+        >
+          {t("borrowedMaterials.tabCustomerBorrow", { defaultValue: "1. Borrow for customer" })}
+        </Button>
+        <Button
+          type="button"
+          variant={borrowTab === "orderLoan" ? "primary" : "ghost"}
+          onClick={() => setBorrowTab("orderLoan")}
+        >
+          {t("borrowedMaterials.tabOrderLoan", { defaultValue: "2. Loan normal (order)" })}
+        </Button>
+        <Button
+          type="button"
+          variant={borrowTab === "monthly" ? "primary" : "ghost"}
+          onClick={() => setBorrowTab("monthly")}
+        >
+          {t("borrowedMaterials.tabMonthlySchedule", { defaultValue: "3. Loan schedule (monthly)" })}
+        </Button>
       </div>
 
       <section className="panel entity-list" style={{ marginBottom: 24 }}>
@@ -174,11 +270,13 @@ export function BorrowedMaterialsPage({
           <DataTable>
               <thead>
                 <tr>
-                  <th>ID</th>
+                  <th>{t("borrowedMaterials.columnId", { defaultValue: "ID" })}</th>
                   <th>{t("borrowedMaterials.name", { defaultValue: "Name" })}</th>
                   <th>{t("borrowedMaterials.unit", { defaultValue: "Unit" })}</th>
                   <th>{t("borrowedMaterials.note", { defaultValue: "Note" })}</th>
-                  {canManageMaterials ? <th>Actions</th> : null}
+                  {canManageMaterials ? (
+                    <th>{t("borrowedMaterials.actions", { defaultValue: "Actions" })}</th>
+                  ) : null}
                 </tr>
               </thead>
               <tbody>
@@ -215,73 +313,245 @@ export function BorrowedMaterialsPage({
         )}
       </section>
 
-      <section className="panel entity-list">
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 12,
-            marginBottom: 12,
-          }}
-        >
-          <h3 style={{ margin: 0 }}>
-            {t("borrowedMaterials.borrowingsListTitle", {
-              defaultValue: "Customer borrowings (current balance)",
-            })}
-          </h3>
-          <Button
-            variant="primary"
-            onClick={openBorrowModal}
-            disabled={borrowMaterials.length === 0 || customers.length === 0}
-            title={
-              borrowMaterials.length === 0 || customers.length === 0
-                ? t("borrowedMaterials.needBoth", {
-                    defaultValue: "Add a customer and a borrow material first.",
-                  })
-                : undefined
-            }
+      {borrowTab === "customer" ? (
+        <section className="panel entity-list">
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 12,
+              marginBottom: 12,
+            }}
           >
-            {t("borrowedMaterials.setBorrowing", { defaultValue: "Set borrowing" })}
-          </Button>
-        </div>
-        {customerBorrowedMaterials.length === 0 ? (
-          <p className="entity-list-empty">
-            {t("borrowedMaterials.borrowingsEmpty", { defaultValue: "No customer borrowings yet." })}
-          </p>
-        ) : (
-          <DataTable>
-              <thead>
-                <tr>
-                  <th>{t("borrowedMaterials.customer", { defaultValue: "Customer" })}</th>
-                  <th>{t("borrowedMaterials.material", { defaultValue: "Material" })}</th>
-                  <th>{t("borrowedMaterials.qty", { defaultValue: "Qty" })}</th>
-                  <th>{t("borrowedMaterials.unit", { defaultValue: "Unit" })}</th>
-                  <th>{t("borrowedMaterials.note", { defaultValue: "Note" })}</th>
-                  <th>Actions</th>
+            <h3 style={{ margin: 0 }}>
+              {t("borrowedMaterials.borrowingsListTitle", {
+                defaultValue: "Customer borrowings (current balance)",
+              })}
+            </h3>
+            <Button
+              variant="primary"
+              onClick={openBorrowModal}
+              disabled={borrowMaterials.length === 0 || customers.length === 0}
+              title={
+                borrowMaterials.length === 0 || customers.length === 0
+                  ? t("borrowedMaterials.needBoth", {
+                      defaultValue: "Add a customer and a borrow material first.",
+                    })
+                  : undefined
+              }
+            >
+              {t("borrowedMaterials.setBorrowing", { defaultValue: "Set borrowing" })}
+            </Button>
+          </div>
+          {customerBorrowedMaterials.length === 0 ? (
+            <p className="entity-list-empty">
+              {t("borrowedMaterials.borrowingsEmpty", { defaultValue: "No customer borrowings yet." })}
+            </p>
+          ) : (
+            <DataTable>
+                <thead>
+                  <tr>
+                    <th>{t("borrowedMaterials.customer", { defaultValue: "Customer" })}</th>
+                    <th>{t("borrowedMaterials.material", { defaultValue: "Material" })}</th>
+                    <th>{t("borrowedMaterials.qty", { defaultValue: "Qty" })}</th>
+                    <th>{t("borrowedMaterials.unit", { defaultValue: "Unit" })}</th>
+                    <th>{t("borrowedMaterials.note", { defaultValue: "Note" })}</th>
+                    <th>{t("borrowedMaterials.actions", { defaultValue: "Actions" })}</th>
                 </tr>
               </thead>
               <tbody>
                 {customerBorrowedMaterials.map((row) => (
+                    <tr key={row.id}>
+                      <td>{row.customerName || row.customerId || "—"}</td>
+                      <td>{row.materialName || row.materialId || "—"}</td>
+                      <td>{row.qty}</td>
+                      <td>{row.unit || "—"}</td>
+                      <td>{row.note || "—"}</td>
+                      <td>
+                        <div className="row-actions">
+                          <Button
+                            variant="ghost"
+                            tone="edit"
+                            onClick={() => startEditBorrow(row)}
+                          >
+                            {t("borrowedMaterials.edit", { defaultValue: "Edit" })}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            tone="delete"
+                            onClick={() => void handleDeleteBorrow(row.customerId, row.materialId)}
+                          >
+                            {t("borrowedMaterials.remove", { defaultValue: "Remove" })}
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+            </DataTable>
+          )}
+        </section>
+      ) : null}
+
+      {borrowTab === "orderLoan" ? (
+        <section className="panel entity-list">
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 12,
+              marginBottom: 12,
+            }}
+          >
+            <h3 style={{ margin: 0 }}>
+              {t("borrowedMaterials.orderLoansTitle", {
+                defaultValue: "Order-linked loans (qty × fixed unit price)",
+              })}
+            </h3>
+            <Button
+              variant="primary"
+              onClick={openOrderLoanModal}
+              disabled={borrowMaterials.length === 0 || customers.length === 0 || orders.length === 0}
+            >
+              {t("borrowedMaterials.addOrderLoan", { defaultValue: "Add order loan" })}
+            </Button>
+          </div>
+          {borrowMaterialOrderLoans.length === 0 ? (
+            <p className="entity-list-empty">
+              {t("borrowedMaterials.orderLoansEmpty", { defaultValue: "No order loans yet." })}
+            </p>
+          ) : (
+            <DataTable>
+              <thead>
+                <tr>
+                  <th>{t("borrowedMaterials.customer", { defaultValue: "Customer" })}</th>
+                  <th>{t("borrowedMaterials.material", { defaultValue: "Material" })}</th>
+                  <th>{t("borrowedMaterials.orderId", { defaultValue: "Order" })}</th>
+                  <th>{t("borrowedMaterials.orderedQty", { defaultValue: "Order qty" })}</th>
+                  <th>{t("borrowedMaterials.fixedUnitPrice", { defaultValue: "Fixed unit price" })}</th>
+                  <th>{t("borrowedMaterials.computedTotal", { defaultValue: "Line total" })}</th>
+                  <th>{t("borrowedMaterials.currency", { defaultValue: "Currency" })}</th>
+                  <th>{t("borrowedMaterials.actions", { defaultValue: "Actions" })}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {borrowMaterialOrderLoans.map((row) => (
                   <tr key={row.id}>
-                    <td>{row.customerName || row.customerId || "—"}</td>
-                    <td>{row.materialName || row.materialId || "—"}</td>
-                    <td>{row.qty}</td>
-                    <td>{row.unit || "—"}</td>
-                    <td>{row.note || "—"}</td>
+                    <td>{row.customerName || row.customerId}</td>
+                    <td>{row.materialName || row.materialId}</td>
+                    <td>{row.orderId}</td>
+                    <td>{row.orderedQty}</td>
+                    <td>{row.fixedUnitPrice}</td>
+                    <td>{row.computedLineTotal}</td>
+                    <td>{row.currency}</td>
+                    <td>
+                      <Button
+                        variant="ghost"
+                        tone="delete"
+                        onClick={async () => {
+                          if (
+                            !(await confirm({
+                              title: t("confirm.deleteTitle"),
+                              message: t("borrowedMaterials.confirmDeleteOrderLoan", {
+                                defaultValue: "Remove this order loan?",
+                              }),
+                              tone: "danger",
+                            }))
+                          ) {
+                            return;
+                          }
+                          await onDeleteBorrowMaterialOrderLoan(row.customerId, row.id);
+                        }}
+                      >
+                        {t("borrowedMaterials.remove", { defaultValue: "Remove" })}
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </DataTable>
+          )}
+        </section>
+      ) : null}
+
+      {borrowTab === "monthly" ? (
+        <section className="panel entity-list">
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 12,
+              marginBottom: 12,
+            }}
+          >
+            <h3 style={{ margin: 0 }}>
+              {t("borrowedMaterials.monthlySchedulesTitle", {
+                defaultValue: "Monthly payment schedules",
+              })}
+            </h3>
+            <Button
+              variant="primary"
+              onClick={openMonthlyModal}
+              disabled={borrowMaterials.length === 0 || customers.length === 0}
+            >
+              {t("borrowedMaterials.addMonthlySchedule", { defaultValue: "Create schedule" })}
+            </Button>
+          </div>
+          {borrowMaterialMonthlySchedules.length === 0 ? (
+            <p className="entity-list-empty">
+              {t("borrowedMaterials.monthlySchedulesEmpty", { defaultValue: "No schedules yet." })}
+            </p>
+          ) : (
+            <DataTable>
+              <thead>
+                <tr>
+                  <th>{t("borrowedMaterials.customer", { defaultValue: "Customer" })}</th>
+                  <th>{t("borrowedMaterials.material", { defaultValue: "Material" })}</th>
+                  <th>{t("borrowedMaterials.totalAmount", { defaultValue: "Total amount" })}</th>
+                  <th>{t("borrowedMaterials.totalPeriod", { defaultValue: "Periods" })}</th>
+                  <th>{t("borrowedMaterials.startDueDate", { defaultValue: "First due" })}</th>
+                  <th>{t("borrowedMaterials.actions", { defaultValue: "Actions" })}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {borrowMaterialMonthlySchedules.map((row) => (
+                  <tr key={row.id}>
+                    <td>{row.customerName || row.customerId}</td>
+                    <td>{row.materialName || row.materialId}</td>
+                    <td>
+                      {row.totalAmount} {row.currency}
+                    </td>
+                    <td>{row.totalPeriod}</td>
+                    <td>{row.startDueDate}</td>
                     <td>
                       <div className="row-actions">
                         <Button
                           variant="ghost"
                           tone="edit"
-                          onClick={() => startEditBorrow(row)}
+                          onClick={() => void handleViewScheduleInstallments(row.customerId, row.id)}
                         >
-                          {t("borrowedMaterials.edit", { defaultValue: "Edit" })}
+                          {t("borrowedMaterials.viewInstallments", { defaultValue: "Installments" })}
                         </Button>
                         <Button
                           variant="ghost"
                           tone="delete"
-                          onClick={() => void handleDeleteBorrow(row.customerId, row.materialId)}
+                          onClick={async () => {
+                            if (
+                              !(await confirm({
+                                title: t("confirm.deleteTitle"),
+                                message: t("borrowedMaterials.confirmDeleteSchedule", {
+                                  defaultValue: "Delete this schedule and all installments?",
+                                }),
+                                tone: "danger",
+                              }))
+                            ) {
+                              return;
+                            }
+                            await onDeleteBorrowMaterialMonthlySchedule(row.customerId, row.id);
+                          }}
                         >
                           {t("borrowedMaterials.remove", { defaultValue: "Remove" })}
                         </Button>
@@ -290,9 +560,10 @@ export function BorrowedMaterialsPage({
                   </tr>
                 ))}
               </tbody>
-          </DataTable>
-        )}
-      </section>
+            </DataTable>
+          )}
+        </section>
+      ) : null}
 
       {showMaterialModal ? (
         <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="borrow-material-create-title">
@@ -530,6 +801,292 @@ export function BorrowedMaterialsPage({
               </Button>
             </div>
           </form>
+        </div>
+      ) : null}
+
+      {showOrderLoanModal ? (
+        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="order-loan-title">
+          <form
+            className="panel form modal-card"
+            onSubmit={async (event) => {
+              try {
+                await onSubmitBorrowMaterialOrderLoan(event);
+                closeOrderLoanModal();
+              } catch {
+                /* error surfaced in hook */
+              }
+            }}
+          >
+            <h3 id="order-loan-title">
+              {t("borrowedMaterials.orderLoanFormTitle", { defaultValue: "Add order loan" })}
+            </h3>
+            <label className="form-label" htmlFor="order-loan-customer">
+              {t("borrowedMaterials.customer", { defaultValue: "Customer" })}
+            </label>
+            <select
+              id="order-loan-customer"
+              value={newOrderLoan.customerId}
+              onChange={(event) =>
+                setNewOrderLoan((prev) => ({
+                  ...prev,
+                  customerId: event.target.value,
+                  orderId: "",
+                }))
+              }
+              required
+            >
+              <option value="">{t("borrowedMaterials.selectCustomer", { defaultValue: "— Select —" })}</option>
+              {customers.map((customer) => (
+                <option key={customer.id} value={customer.id}>
+                  {customer.name}
+                </option>
+              ))}
+            </select>
+            <label className="form-label" htmlFor="order-loan-material">
+              {t("borrowedMaterials.material", { defaultValue: "Material" })}
+            </label>
+            <select
+              id="order-loan-material"
+              value={newOrderLoan.materialId}
+              onChange={(event) => setNewOrderLoan((prev) => ({ ...prev, materialId: event.target.value }))}
+              required
+            >
+              <option value="">{t("borrowedMaterials.selectMaterial", { defaultValue: "— Select —" })}</option>
+              {borrowMaterials.map((material) => (
+                <option key={material.id} value={material.id}>
+                  {material.name}
+                </option>
+              ))}
+            </select>
+            <label className="form-label" htmlFor="order-loan-order">
+              {t("borrowedMaterials.orderSelect", { defaultValue: "Order (same customer)" })}
+            </label>
+            <select
+              id="order-loan-order"
+              value={newOrderLoan.orderId}
+              onChange={(event) => setNewOrderLoan((prev) => ({ ...prev, orderId: event.target.value }))}
+              required
+              disabled={!newOrderLoan.customerId}
+            >
+              <option value="">
+                {newOrderLoan.customerId
+                  ? t("borrowedMaterials.selectOrder", { defaultValue: "— Select order —" })
+                  : t("borrowedMaterials.pickCustomerFirst", { defaultValue: "— Pick customer first —" })}
+              </option>
+              {customerOrders.map((o) => (
+                <option key={o.id} value={o.id}>
+                  #{o.id} · {o.itemName || o.itemId} · qty {o.orderedQty}
+                </option>
+              ))}
+            </select>
+            <label className="form-label" htmlFor="order-loan-fixed">
+              {t("borrowedMaterials.fixedUnitPrice", { defaultValue: "Fixed unit price" })}
+            </label>
+            <input
+              id="order-loan-fixed"
+              type="number"
+              min="0"
+              step="0.01"
+              value={newOrderLoan.fixedUnitPrice}
+              onChange={(event) => setNewOrderLoan((prev) => ({ ...prev, fixedUnitPrice: event.target.value }))}
+              required
+            />
+            {orderLoanPreview != null ? (
+              <p className="section-lead" style={{ marginTop: 8, marginBottom: 0 }}>
+                {t("borrowedMaterials.orderLoanPreview", {
+                  defaultValue: "Computed line total: {{total}}",
+                  total: orderLoanPreview,
+                })}
+              </p>
+            ) : null}
+            <label className="form-label" htmlFor="order-loan-note">
+              {t("borrowedMaterials.note", { defaultValue: "Note" })}
+            </label>
+            <input
+              id="order-loan-note"
+              value={newOrderLoan.note}
+              onChange={(event) => setNewOrderLoan((prev) => ({ ...prev, note: event.target.value }))}
+            />
+            <div className="row-actions">
+              <Button variant="primary" type="submit">
+                {t("borrowedMaterials.save", { defaultValue: "Save" })}
+              </Button>
+              <Button variant="ghost" tone="cancel" type="button" onClick={closeOrderLoanModal}>
+                {t("borrowedMaterials.cancel", { defaultValue: "Cancel" })}
+              </Button>
+            </div>
+          </form>
+        </div>
+      ) : null}
+
+      {showMonthlyModal ? (
+        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="monthly-schedule-title">
+          <form
+            className="panel form modal-card"
+            onSubmit={async (event) => {
+              try {
+                await onSubmitBorrowMaterialMonthlySchedule(event);
+                closeMonthlyModal();
+              } catch {
+                /* error surfaced in hook */
+              }
+            }}
+          >
+            <h3 id="monthly-schedule-title">
+              {t("borrowedMaterials.monthlyFormTitle", { defaultValue: "Create monthly schedule" })}
+            </h3>
+            <label className="form-label" htmlFor="monthly-customer">
+              {t("borrowedMaterials.customer", { defaultValue: "Customer" })}
+            </label>
+            <select
+              id="monthly-customer"
+              value={newMonthlySchedule.customerId}
+              onChange={(event) =>
+                setNewMonthlySchedule((prev) => ({ ...prev, customerId: event.target.value }))
+              }
+              required
+            >
+              <option value="">{t("borrowedMaterials.selectCustomer", { defaultValue: "— Select —" })}</option>
+              {customers.map((customer) => (
+                <option key={customer.id} value={customer.id}>
+                  {customer.name}
+                </option>
+              ))}
+            </select>
+            <label className="form-label" htmlFor="monthly-material">
+              {t("borrowedMaterials.material", { defaultValue: "Material" })}
+            </label>
+            <select
+              id="monthly-material"
+              value={newMonthlySchedule.materialId}
+              onChange={(event) =>
+                setNewMonthlySchedule((prev) => ({ ...prev, materialId: event.target.value }))
+              }
+              required
+            >
+              <option value="">{t("borrowedMaterials.selectMaterial", { defaultValue: "— Select —" })}</option>
+              {borrowMaterials.map((material) => (
+                <option key={material.id} value={material.id}>
+                  {material.name}
+                </option>
+              ))}
+            </select>
+            <label className="form-label" htmlFor="monthly-total">
+              {t("borrowedMaterials.totalAmount", { defaultValue: "Total amount" })}
+            </label>
+            <input
+              id="monthly-total"
+              type="number"
+              min="0"
+              step="0.01"
+              value={newMonthlySchedule.totalAmount}
+              onChange={(event) =>
+                setNewMonthlySchedule((prev) => ({ ...prev, totalAmount: event.target.value }))
+              }
+              required
+            />
+            <label className="form-label" htmlFor="monthly-currency">
+              {t("borrowedMaterials.currency", { defaultValue: "Currency" })}
+            </label>
+            <select
+              id="monthly-currency"
+              value={newMonthlySchedule.currency}
+              onChange={(event) =>
+                setNewMonthlySchedule((prev) => ({ ...prev, currency: event.target.value }))
+              }
+            >
+              <option value="KHR">KHR</option>
+              <option value="USD">USD</option>
+            </select>
+            <label className="form-label" htmlFor="monthly-period">
+              {t("borrowedMaterials.totalPeriodMonths", { defaultValue: "Total periods (months)" })}
+            </label>
+            <input
+              id="monthly-period"
+              type="number"
+              min={1}
+              step={1}
+              value={newMonthlySchedule.totalPeriod}
+              onChange={(event) =>
+                setNewMonthlySchedule((prev) => ({ ...prev, totalPeriod: event.target.value }))
+              }
+              required
+            />
+            <label className="form-label" htmlFor="monthly-start">
+              {t("borrowedMaterials.startDueDate", { defaultValue: "First due date" })}
+            </label>
+            <input
+              id="monthly-start"
+              type="date"
+              value={newMonthlySchedule.startDueDate}
+              onChange={(event) =>
+                setNewMonthlySchedule((prev) => ({ ...prev, startDueDate: event.target.value }))
+              }
+              required
+            />
+            <label className="form-label" htmlFor="monthly-note">
+              {t("borrowedMaterials.note", { defaultValue: "Note" })}
+            </label>
+            <input
+              id="monthly-note"
+              value={newMonthlySchedule.note}
+              onChange={(event) =>
+                setNewMonthlySchedule((prev) => ({ ...prev, note: event.target.value }))
+              }
+            />
+            <div className="row-actions">
+              <Button variant="primary" type="submit">
+                {t("borrowedMaterials.createSchedule", { defaultValue: "Generate schedule" })}
+              </Button>
+              <Button variant="ghost" tone="cancel" type="button" onClick={closeMonthlyModal}>
+                {t("borrowedMaterials.cancel", { defaultValue: "Cancel" })}
+              </Button>
+            </div>
+          </form>
+        </div>
+      ) : null}
+
+      {scheduleInstallmentModal ? (
+        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="installments-title">
+          <div className="panel form modal-card" style={{ maxWidth: 520 }}>
+            <h3 id="installments-title">
+              {t("borrowedMaterials.installmentsTitle", { defaultValue: "Installments" })}
+            </h3>
+            {scheduleInstallmentModal.schedule ? (
+              <p className="section-lead" style={{ marginTop: 0 }}>
+                {scheduleInstallmentModal.schedule.customerName} ·{" "}
+                {scheduleInstallmentModal.schedule.materialName} ·{" "}
+                {scheduleInstallmentModal.schedule.totalAmount}{" "}
+                {scheduleInstallmentModal.schedule.currency} / {scheduleInstallmentModal.schedule.totalPeriod}{" "}
+                {t("borrowedMaterials.months", { defaultValue: "months" })}
+              </p>
+            ) : null}
+            <DataTable>
+              <thead>
+                <tr>
+                  <th>{t("borrowedMaterials.periodNo", { defaultValue: "No." })}</th>
+                  <th>{t("borrowedMaterials.dueDate", { defaultValue: "Due" })}</th>
+                  <th>{t("borrowedMaterials.amountDue", { defaultValue: "Due" })}</th>
+                  <th>{t("borrowedMaterials.amountPaid", { defaultValue: "Paid" })}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(scheduleInstallmentModal.installments || []).map((ins) => (
+                  <tr key={ins.id}>
+                    <td>{ins.periodNo}</td>
+                    <td>{ins.dueDate}</td>
+                    <td>{ins.amountDue}</td>
+                    <td>{ins.amountPaid}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </DataTable>
+            <div className="row-actions" style={{ marginTop: 12 }}>
+              <Button variant="ghost" tone="cancel" type="button" onClick={() => setScheduleInstallmentModal(null)}>
+                {t("borrowedMaterials.close", { defaultValue: "Close" })}
+              </Button>
+            </div>
+          </div>
         </div>
       ) : null}
     </section>

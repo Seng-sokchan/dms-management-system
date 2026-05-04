@@ -98,7 +98,7 @@ async function create(payload) {
   if (!producer) throw new BadRequestError("Default producer not found");
 
   const unitPrice = payload.unitPrice ?? item.defaultUnitPriceUsd;
-  const currency = String(payload.currency || "USD").toUpperCase() === "KHR" ? "KHR" : "USD";
+  const currency = String(payload.currency || "KHR").toUpperCase() === "USD" ? "USD" : "KHR";
 
   return orderRepository.createOrder({
     customerId: payload.customerId,
