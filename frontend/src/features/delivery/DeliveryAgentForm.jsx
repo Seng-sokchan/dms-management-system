@@ -1,10 +1,12 @@
 ﻿import { useTranslation } from "react-i18next";
+import { Button } from "../../components/ui/Button";
+import "./DeliveryAgentForm.css";
 
 export function DeliveryAgentForm({ newDelivery, setNewDelivery, onCreateDelivery }) {
   const { t } = useTranslation();
 
   return (
-    <form className="panel form" onSubmit={onCreateDelivery}>
+    <form className="panel form delivery-agent-form" onSubmit={onCreateDelivery}>
       <h3>{t("deliveryAgents.formTitle")}</h3>
       <label className="form-label" htmlFor="delivery-name">
         {t("deliveryAgents.namePh")}
@@ -36,9 +38,9 @@ export function DeliveryAgentForm({ newDelivery, setNewDelivery, onCreateDeliver
         placeholder={t("deliveryAgents.vehiclePh")}
         required
       />
-      <button type="submit" className="btn-primary">
+      <Button variant="primary" type="submit">
         {t("deliveryAgents.save")}
-      </button>
+      </Button>
     </form>
   );
 }

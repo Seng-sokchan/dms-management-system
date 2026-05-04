@@ -1,17 +1,18 @@
-import { useEffect, useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { canAccessPath } from "./constants/menus";
 import { AdminLayout } from "./components/layout/AdminLayout";
+import { Button } from "./components/ui/Button";
 import { LoginForm } from "./features/auth/LoginForm";
 import { useAdminDashboard } from "./hooks/useAdminDashboard";
 import { CreateOrderPage } from "./pages/CreateOrderPage";
 import { DeliveryAgentsPage } from "./pages/DeliveryAgentsPage";
 import { TrucksPage } from "./pages/TrucksPage";
 import { OrdersPage } from "./pages/OrdersPage";
+import { AssignOrdersPage } from "./pages/AssignOrdersPage";
 import { OrderMovementPage } from "./pages/OrderMovementPage";
-import { OverviewPage } from "./pages/OverviewPage";
 import { PaymentsPage } from "./pages/PaymentsPage";
+import { OverviewPage } from "./pages/OverviewPage";
 import { CatalogsPage } from "./pages/CatalogsPage";
 import { ItemsPage } from "./pages/ItemsPage";
 import { ProducersPage } from "./pages/ProducersPage";
@@ -38,12 +39,12 @@ function App() {
     producers,
     deliveryAgents,
     trucks,
+    orderGroups,
     catalogs,
     items,
-    payments,
-    paymentMethods,
     borrowMaterials,
     customerBorrowedMaterials,
+    paymentTotals,
     flash,
     dismissFlash,
     newOrder,
@@ -54,7 +55,6 @@ function App() {
     newItem,
     newDelivery,
     newTruck,
-    newPayment,
     newBorrowMaterial,
     newCustomerBorrow,
     setAuth,
@@ -66,7 +66,6 @@ function App() {
     setNewItem,
     setNewDelivery,
     setNewTruck,
-    setNewPayment,
     setNewBorrowMaterial,
     setNewCustomerBorrow,
     login,
@@ -95,7 +94,8 @@ function App() {
     submitDeliveryConfirmation,
     submitOrderStatus,
     submitOrderMovement,
-    submitPayment,
+    submitOrderTruckAssignment,
+    submitOrderGroupAssignment,
     submitBorrowMaterial,
     submitBorrowMaterialUpdate,
     submitBorrowMaterialDelete,
@@ -110,16 +110,9 @@ function App() {
     submitUserUpdate,
     submitUserDelete,
     submitRoleMenus,
-    refresh,
     logout,
   } = useAdminDashboard();
   const isAllowedAdminPanelRole = user?.role === "Admin" || user?.role === "Owner" || user?.role === "Depot";
-  const [showAccessDenied, setShowAccessDenied] = useState(false);
-
-  useEffect(() => {
-    if (!token || !user || isAllowedAdminPanelRole) return;
-    setShowAccessDenied(true);
-  }, [token, user, isAllowedAdminPanelRole, logout]);
 
   if (!token) {
     return (
@@ -143,54 +136,45 @@ function App() {
   if (user && !isAllowedAdminPanelRole) {
     return (
       <div className="auth-shell" style={{ position: "relative" }}>
-        {showAccessDenied ? (
-          <div
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15, 23, 42, 0.45)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+            backdropFilter: "blur(2px)",
+            padding: 16,
+          }}
+        >
+          <section
+            className="panel"
             style={{
-              position: "fixed",
-              inset: 0,
-              background: "rgba(15, 23, 42, 0.45)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              zIndex: 9999,
-              backdropFilter: "blur(2px)",
-              padding: 16,
+              width: "100%",
+              maxWidth: 460,
+              borderRadius: 16,
+              boxShadow: "0 24px 48px rgba(15, 23, 42, 0.25)",
             }}
           >
-            <section
-              className="panel"
-              style={{
-                width: "100%",
-                maxWidth: 460,
-                borderRadius: 16,
-                boxShadow: "0 24px 48px rgba(15, 23, 42, 0.25)",
-              }}
-            >
-              <div className="panel-header">
-                <h3 style={{ margin: 0 }}>
-                  {t("accessDenied.title", { defaultValue: "Access Restricted" })}
-                </h3>
-              </div>
-              <p style={{ margin: "0 0 16px", color: "var(--text-muted)" }}>
-                {t("accessDenied.message", {
-                  defaultValue: "Your account role cannot access the Admin Panel. Please sign in with an Admin, Owner, or Depot account.",
-                })}
-              </p>
-              <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                <button
-                  type="button"
-                  className="btn-primary"
-                  onClick={() => {
-                    setShowAccessDenied(false);
-                    logout();
-                  }}
-                >
-                  {t("accessDenied.ok", { defaultValue: "OK" })}
-                </button>
-              </div>
-            </section>
-          </div>
-        ) : null}
+            <div className="panel-header">
+              <h3 style={{ margin: 0 }}>
+                {t("accessDenied.title", { defaultValue: "Access Restricted" })}
+              </h3>
+            </div>
+            <p style={{ margin: "0 0 16px", color: "var(--text-muted)" }}>
+              {t("accessDenied.message", {
+                defaultValue: "Your account role cannot access the Admin Panel. Please sign in with an Admin, Owner, or Depot account.",
+              })}
+            </p>
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <Button variant="primary" onClick={() => logout()}>
+                {t("accessDenied.ok", { defaultValue: "OK" })}
+              </Button>
+            </div>
+          </section>
+        </div>
       </div>
     );
   }
@@ -284,6 +268,7 @@ function App() {
           canAccessPath(user, "/depots") ? (
             <DepotsPage
               depots={depots}
+              customers={customers}
               user={user}
               newDepot={newDepot}
               setNewDepot={setNewDepot}
@@ -377,7 +362,6 @@ function App() {
         element={withLayout(
           user?.role === "Admin" && canAccessPath(user, "/users") ? (
             <UsersPage
-              token={token}
               users={users}
               currentUser={user}
               newUser={newUser}
@@ -419,6 +403,22 @@ function App() {
         )}
       />
       <Route
+        path="/assign-orders"
+        element={withLayout(
+          (user?.role === "Admin" || user?.role === "Owner") && canAccessPath(user, "/assign-orders") ? (
+            <AssignOrdersPage
+              orders={orders}
+              trucks={trucks}
+              orderGroups={orderGroups}
+              onAssignTruck={submitOrderTruckAssignment}
+              onAssignOrderGroup={submitOrderGroupAssignment}
+            />
+          ) : (
+            <Navigate to="/overview" replace />
+          ),
+        )}
+      />
+      <Route
         path="/order-movement"
         element={withLayout(
           canAccessPath(user, "/order-movement") ? (
@@ -436,17 +436,7 @@ function App() {
         path="/payments"
         element={withLayout(
           canAccessPath(user, "/payments") ? (
-            <PaymentsPage
-              token={token}
-              user={user}
-              orders={orders}
-              payments={payments}
-              paymentMethods={paymentMethods}
-              newPayment={newPayment}
-              setNewPayment={setNewPayment}
-              onSubmitPayment={submitPayment}
-              onRefreshData={refresh}
-            />
+            <PaymentsPage paymentTotals={paymentTotals} />
           ) : (
             <Navigate to="/overview" replace />
           ),

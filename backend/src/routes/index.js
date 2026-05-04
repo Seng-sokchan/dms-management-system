@@ -8,7 +8,6 @@ const addressRoutes = require("./addressRoutes");
 const deliveryRoutes = require("./deliveryRoutes");
 const truckRoutes = require("./truckRoutes");
 const orderRoutes = require("./orderRoutes");
-const paymentRoutes = require("./paymentRoutes");
 const catalogRoutes = require("./catalogRoutes");
 const itemRoutes = require("./itemRoutes");
 const userManagementRoutes = require("./userManagementRoutes");
@@ -35,6 +34,5 @@ router.use(activityLogRoutes);
 router.use(borrowMaterialRoutes);
 router.use(customerBorrowedMaterialRoutes);
 router.use(orderRoutes);
-router.use(paymentRoutes);
 
 module.exports = router;

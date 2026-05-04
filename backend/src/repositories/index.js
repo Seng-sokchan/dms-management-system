@@ -123,20 +123,6 @@ const {
   deleteOrder,
 } = require("./orders");
 
-// payments
-const {
-  listPayments,
-  listPaymentMethods,
-  createPayment,
-  applyPaymentToOrder,
-} = require("./payments");
-const { getLatestBakongToken, insertBakongToken } = require("./bakongTokens");
-const {
-  getBakongTransactionByMd5,
-  createBakongTransaction,
-  updateBakongTransactionPaymentIdByMd5,
-} = require("./bakongTransactions");
-
 module.exports = {
   // select (list/report)
   listUsers,
@@ -154,8 +140,6 @@ module.exports = {
   listOrderGroups,
   listOrderStatuses,
   listOrders,
-  listPayments,
-  listPaymentMethods,
   listUserActivityLogs,
   listBorrowMaterials,
   listCustomerBorrowedMaterialsByCustomer,
@@ -192,7 +176,6 @@ module.exports = {
   createCatalog,
   createItem,
   createOrder,
-  createPayment,
   createUserActivityLog,
   createBorrowMaterial,
 
@@ -209,12 +192,6 @@ module.exports = {
   updateOrderStatus,
   confirmOrderDelivery,
   deleteOrder,
-  applyPaymentToOrder,
-  getLatestBakongToken,
-  insertBakongToken,
-  getBakongTransactionByMd5,
-  createBakongTransaction,
-  updateBakongTransactionPaymentIdByMd5,
   updateBorrowMaterial,
   upsertCustomerBorrowedMaterial,
 

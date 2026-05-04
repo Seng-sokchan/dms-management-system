@@ -13,6 +13,7 @@ export const MENU_ITEMS = [
   { key: "deliveryAgents", path: "/delivery-agents", labelKey: "nav.delivery", subKey: "nav.deliverySub" },
   { key: "trucks", path: "/trucks", labelKey: "nav.trucks", subKey: "nav.trucksSub" },
   { key: "orders", path: "/orders", labelKey: "nav.orders", subKey: "nav.ordersSub" },
+  { key: "assignOrders", path: "/assign-orders", labelKey: "nav.assignOrders", subKey: "nav.assignOrdersSub" },
   { key: "orderMovement", path: "/order-movement", labelKey: "nav.orderMovement", subKey: "nav.orderMovementSub" },
   { key: "payments", path: "/payments", labelKey: "nav.payments", subKey: "nav.paymentsSub" },
   { key: "users", path: "/users", labelKey: "nav.users", subKey: "nav.usersSub" },

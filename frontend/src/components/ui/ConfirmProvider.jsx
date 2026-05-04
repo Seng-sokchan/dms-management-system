@@ -7,6 +7,8 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
+import { Button } from "./Button";
+import "./ConfirmProvider.css";
 
 const ConfirmContext = createContext(null);
 
@@ -119,13 +121,13 @@ export function ConfirmProvider({ children }) {
                 </p>
                 <div className="confirm-card__actions">
                   {state.mode !== "alert" ? (
-                    <button
-                      type="button"
-                      className="btn-ghost confirm-card__btn-cancel"
+                    <Button
+                      variant="ghost"
+                      className="confirm-card__btn-cancel"
                       onClick={() => finish(false)}
                     >
                       {state.cancelLabel}
-                    </button>
+                    </Button>
                   ) : null}
                   <button
                     type="button"
@@ -167,6 +169,8 @@ function IconWarning() {
   );
 }
 
+// Hook is intentionally exported next to its provider; fast-refresh wants hooks in separate files.
+// eslint-disable-next-line react-refresh/only-export-components
 export function useConfirm() {
   const ctx = useContext(ConfirmContext);
   if (!ctx) {

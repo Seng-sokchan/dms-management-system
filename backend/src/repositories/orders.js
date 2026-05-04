@@ -2,8 +2,7 @@ const { getPool } = require("../db/pool");
 const { nowIso } = require("../utils");
 const { mapOrder } = require("./mappers");
 const { unwrapProcedureRows, getProcedureMeta } = require("./unwrap");
-const { getStatusIdByName, getPaymentStatusIdByName } = require("./lookups");
-const { getTruckById } = require("./trucks");
+const { getStatusIdByName } = require("./lookups");
 
 function resolveExecutor(executor) {
   return executor || getPool();
@@ -24,14 +23,8 @@ async function getOrderById(id, executor) {
 async function createOrder(payload) {
   const order = {
     ...payload,
-    deliveredQty: 0,
-    lossQty: 0,
-    remainingQty: 0,
-    discrepancy: 0,
     amountTotal: payload.orderedQty * payload.unitPrice,
-    amountPaid: 0,
-    paymentStatus: "UNPAID",
-    status: "NEW_ORDER",
+    status: "New_Order",
     createdAt: nowIso(),
     updatedAt: nowIso(),
   };
@@ -40,13 +33,11 @@ async function createOrder(payload) {
   const addressId = Number(order.addressId);
   const producerId = order.producerId ? Number(order.producerId) : null;
   const truckId = order.truckId ? Number(order.truckId) : null;
-  const truck = truckId ? await getTruckById(truckId) : null;
-  const deliveryAgentId = truck?.deliveryAgentId ? Number(truck.deliveryAgentId) : null;
   const statusId = await getStatusIdByName(order.status);
   if (!statusId) {
     throw new Error("Status not found");
   }
-  const [rowsRaw] = await getPool().query("CALL sp_create_order(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [
+  const [rowsRaw] = await getPool().query("CALL sp_create_order(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [
     customerId,
     addressId,
     itemId,
@@ -55,14 +46,7 @@ async function createOrder(payload) {
     order.currency || "USD",
     producerId,
     truckId,
-    deliveryAgentId,
-    order.deliveredQty,
-    order.lossQty,
-    order.remainingQty,
-    order.discrepancy,
     order.amountTotal,
-    order.amountPaid,
-    await getPaymentStatusIdByName("UNPAID"),
     statusId,
     order.updatedAt,
   ]);
@@ -75,26 +59,16 @@ async function updateOrderAssignment(id, payload) {
   if (!order) return null;
   let nextStatus = order.status;
   if (payload.producerId !== undefined && payload.producerId !== null) {
-    nextStatus = "OWNER_PREPARING";
+    nextStatus = "Owner Preparing";
   }
   if (payload.truckId !== undefined && payload.truckId !== null) {
-    nextStatus = "OWNER_PREPARING";
+    nextStatus = "Owner Preparing";
   }
-  if (payload.deliveryAgentId !== undefined && payload.deliveryAgentId !== null) {
-    nextStatus = "OWNER_PREPARING";
-  }
-  const truck = payload.truckId !== undefined && payload.truckId !== null
-    ? await getTruckById(payload.truckId)
-    : null;
-  const resolvedDeliveryAgentId = truck?.deliveryAgentId
-    ? Number(truck.deliveryAgentId)
-    : (payload.deliveryAgentId ?? null);
   const statusId = await getStatusIdByName(nextStatus);
-  await getPool().query("CALL sp_update_order_assignment(?, ?, ?, ?, ?, ?, ?, ?)", [
+  await getPool().query("CALL sp_update_order_assignment(?, ?, ?, ?, ?, ?, ?)", [
     id,
     payload.producerId ?? null,
     payload.truckId ?? null,
-    resolvedDeliveryAgentId,
     payload.orderGroupId ?? null,
     payload.deliveryTime ?? null,
     statusId ?? null,
@@ -118,18 +92,15 @@ async function updateOrderStatus(id, status, { changedByUserId = null, note = ""
   return getOrderById(id);
 }
 
-async function confirmOrderDelivery(id, deliveredQty, lossQty, remainingQty, deliveryProofType, deliveryProofValue) {
+async function confirmOrderDelivery(id) {
   const order = await getOrderById(id);
   if (!order) return null;
-  const discrepancy = order.orderedQty - deliveredQty - lossQty - remainingQty;
-  const nextStatus = "RECEIVED_BY_CUSTOMER";
+  const nextStatus = "Recieve_By_Customer";
   const nextStatusId = await getStatusIdByName(nextStatus);
   if (!nextStatusId) {
     throw new Error("Status not found");
   }
-  await getPool().query("CALL sp_confirm_order_delivery(?, ?, ?, ?, ?, ?, ?, ?, ?)", [
-    id, deliveredQty, lossQty, remainingQty, discrepancy, nextStatusId, deliveryProofType, deliveryProofValue, nowIso(),
-  ]);
+  await getPool().query("CALL sp_confirm_order_delivery(?, ?, ?)", [id, nextStatusId, nowIso()]);
   return getOrderById(id);
 }
 

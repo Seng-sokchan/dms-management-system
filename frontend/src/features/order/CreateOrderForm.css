@@ -1,0 +1,5 @@
+/* CreateOrderForm on CreateOrderPage */
+
+.create-order-form.panel.form {
+  max-width: 100%;
+}

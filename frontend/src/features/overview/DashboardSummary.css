@@ -1,0 +1,175 @@
+/* Overview dashboard summary (DashboardSummary) */
+
+.summary-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  align-items: stretch;
+}
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.3rem 1.15rem;
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+  transition: transform var(--t), box-shadow var(--t);
+}
+
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+.stat-card::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+
+.stat-card:nth-child(1)::before { background: linear-gradient(90deg, #3b82f6, #06b6d4); }
+.stat-card:nth-child(2)::before { background: linear-gradient(90deg, #8b5cf6, #6366f1); }
+.stat-card:nth-child(3)::before { background: linear-gradient(90deg, #10b981, #06b6d4); }
+.stat-card:nth-child(4)::before { background: linear-gradient(90deg, #f59e0b, #ef4444); }
+
+.stat-card--accent {
+  background: linear-gradient(150deg, #1a2845 0%, #0c1427 100%);
+  border-color: #1e3050;
+  color: #dce8f8;
+}
+
+.stat-card--accent::before { background: linear-gradient(90deg, #3b82f6, #06b6d4); }
+.stat-card--accent .stat-label, .stat-card--accent .stat-hint { color: #4e6280; }
+.stat-card--accent .stat-value { color: #fff; }
+
+.stat-label {
+  margin: 0 0 0.45rem;
+  font-size: 0.67rem;
+  text-transform: uppercase;
+  letter-spacing: 0.11em;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.stat-value {
+  margin: 0;
+  font-size: 1.9rem;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-value--ok   { color: #059669; }
+.stat-value--warn { color: #d97706; }
+
+.stat-subvalue {
+  margin: 0.3rem 0 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.stat-hint {
+  margin: 0.55rem 0 0;
+  font-size: 0.72rem;
+  color: var(--text-faint);
+  line-height: 1.4;
+}
+
+.insight-card {
+  grid-column: 1 / -1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.4rem;
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--t), box-shadow var(--t);
+}
+
+.insight-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+
+@media (min-width: 900px) { .insight-card { grid-column: span 2; } }
+
+.insight-title { margin: 0 0 0.95rem; font-size: 0.9rem; font-weight: 700; color: var(--text); }
+
+.insight-list {
+  list-style: none;
+  margin: 0; padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.65rem 1.25rem;
+}
+
+.insight-list--compact {
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 0.45rem 0.75rem;
+}
+
+.insight-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  padding: 0.7rem 0.75rem;
+  background: var(--surface-muted);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  transition: background var(--t-fast), border-color var(--t-fast);
+}
+
+.insight-list li:hover {
+  background: var(--surface-hover);
+  border-color: var(--border-strong);
+}
+
+.insight-list strong {
+  font-size: 1.15rem;
+  color: var(--text);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.summary-skeleton { min-height: 200px; }
+
+.skeleton-line {
+  height: 1rem; max-width: 200px; border-radius: 6px; margin-bottom: 1rem;
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 400% 100%;
+  animation: dashboard-shimmer 1.6s infinite;
+}
+
+.skeleton-grid { display: grid; gap: 0.75rem; grid-template-columns: repeat(3, 1fr); }
+
+.skeleton-card {
+  height: 100px; border-radius: var(--radius);
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 400% 100%;
+  animation: dashboard-shimmer 1.6s infinite;
+}
+
+@keyframes dashboard-shimmer {
+  0%   { background-position:  100% 50%; }
+  100% { background-position: -100% 50%; }
+}
+
+@media (max-width: 768px) {
+  .summary-grid { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 600px) {
+  .summary-grid { grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+}
+
+@media (max-width: 420px) {
+  .summary-grid { grid-template-columns: 1fr; }
+  .stat-value { font-size: 1.65rem; }
+}

@@ -1,8 +1,10 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import "./UsersPage.css";
 import { ROLES } from "../services/adminApi";
-import { fetchBakongTokenStatus, saveBakongToken } from "../services/adminApi/payments";
 import { ALL_MENU_KEYS, MENU_ITEMS } from "../constants/menus";
+import { Button } from "../components/ui/Button";
+import { DataTable } from "../components/ui/DataTable";
 import { useConfirm } from "../components/ui/ConfirmProvider";
 
 const EMPTY_EDIT = { id: "", name: "", username: "", password: "", role: "Owner", isActive: true };
@@ -10,7 +12,6 @@ const EMPTY_EDIT = { id: "", name: "", username: "", password: "", role: "Owner"
 const EMPTY_NEW = { name: "", username: "", password: "", role: "Owner" };
 
 export function UsersPage({
-  token,
   users = [],
   currentUser,
   newUser,
@@ -22,64 +23,13 @@ export function UsersPage({
   onSaveRoleMenus,
 }) {
   const { t } = useTranslation();
-  const { confirm, alert } = useConfirm();
+  const { confirm } = useConfirm();
   const [editingUser, setEditingUser] = useState(EMPTY_EDIT);
   const isEditing = useMemo(() => Boolean(editingUser.id), [editingUser.id]);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [menuModalOpen, setMenuModalOpen] = useState(false);
   const [menuRole, setMenuRole] = useState("Owner");
   const [menuDraft, setMenuDraft] = useState(() => new Set(ALL_MENU_KEYS));
-  const [bakongTokenModalOpen, setBakongTokenModalOpen] = useState(false);
-  const [newBakongToken, setNewBakongToken] = useState("");
-  const [bakongTokenMeta, setBakongTokenMeta] = useState(null);
-  const [bakongTokenSaving, setBakongTokenSaving] = useState(false);
-
-  useEffect(() => {
-    if (!token) return;
-    let cancelled = false;
-    void fetchBakongTokenStatus(token)
-      .then((data) => {
-        if (!cancelled) setBakongTokenMeta(data);
-      })
-      .catch(() => {
-        if (!cancelled) setBakongTokenMeta(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [token]);
-
-  async function handleSaveBakongToken(event) {
-    event.preventDefault();
-    const value = newBakongToken.trim();
-    if (!value) return;
-    setBakongTokenSaving(true);
-    try {
-      const response = await saveBakongToken(token, value);
-      const data = response?.data || response;
-      setBakongTokenMeta({
-        hasToken: true,
-        expiresAt: data?.expiresAt,
-        updatedAt: data?.updatedAt,
-      });
-      setNewBakongToken("");
-      setBakongTokenModalOpen(false);
-      await alert({
-        title: t("confirm.successTitle"),
-        message: t("payments.bakongTokenSaved"),
-        tone: "primary",
-      });
-    } catch (error) {
-      await alert({
-        title: t("confirm.defaultTitle"),
-        message: error?.response?.data?.message || error?.message || t("errors.saveBakongToken"),
-        tone: "danger",
-      });
-    } finally {
-      setBakongTokenSaving(false);
-    }
-  }
-
   useEffect(() => {
     if (!roleMenusByRole) return;
     const keys = roleMenusByRole[menuRole];
@@ -87,7 +37,10 @@ export function UsersPage({
       Array.isArray(keys) && keys.length
         ? keys
         : ALL_MENU_KEYS;
-    setMenuDraft(new Set(base));
+    const id = requestAnimationFrame(() => {
+      setMenuDraft(new Set(base));
+    });
+    return () => cancelAnimationFrame(id);
   }, [roleMenusByRole, menuRole]);
 
   function closeCreateModal() {
@@ -194,31 +147,15 @@ export function UsersPage({
         <div className="section-heading-text">
           <h2>{t("users.title")}</h2>
           <p className="section-lead">{t("users.lead")}</p>
-          {bakongTokenMeta?.hasToken ? (
-            <p className="section-lead section-lead--meta">
-              {t("payments.bakongTokenStatus", {
-                expires: bakongTokenMeta.expiresAt
-                  ? new Date(bakongTokenMeta.expiresAt).toLocaleString()
-                  : t("payments.bakongTokenExpiresUnknown"),
-              })}
-            </p>
-          ) : (
-            <p className="section-lead section-lead--meta admin-flash--error">
-              {t("payments.bakongTokenMissing")}
-            </p>
-          )}
         </div>
         <div className="section-heading-actions">
-          <button type="button" className="btn-primary" onClick={requestOpenCreateModal}>
+          <Button variant="primary" onClick={requestOpenCreateModal}>
             {t("users.addUser")}
-          </button>
-          <button type="button" className="btn-ghost" onClick={() => setBakongTokenModalOpen(true)}>
-            {t("payments.bakongTokenButton")}
-          </button>
+          </Button>
           {roleMenusByRole ? (
-            <button type="button" className="btn-ghost" onClick={openMenuAccessModal}>
+            <Button variant="ghost" onClick={openMenuAccessModal}>
               {t("users.configureMenus")}
-            </button>
+            </Button>
           ) : null}
         </div>
       </div>
@@ -228,8 +165,7 @@ export function UsersPage({
         {users.length === 0 ? (
           <p className="entity-list-empty">{t("users.empty")}</p>
         ) : (
-          <div className="table-wrap">
-            <table className="data-table">
+          <DataTable>
               <thead>
                 <tr>
                   <th>ID</th>
@@ -250,24 +186,23 @@ export function UsersPage({
                     <td>{user.isActive ? t("users.active") : t("users.inactive")}</td>
                     <td>
                       <div className="row-actions">
-                        <button type="button" className="btn-ghost btn-edit" onClick={() => startEdit(user)}>
+                        <Button variant="ghost" tone="edit" onClick={() => startEdit(user)}>
                           {t("users.edit")}
-                        </button>
-                        <button
-                          type="button"
-                          className="btn-ghost btn-delete"
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          tone="delete"
                           onClick={() => void handleDelete(user.id)}
                           disabled={currentUser?.id === user.id || !user.isActive}
                         >
                           {t("users.delete")}
-                        </button>
+                        </Button>
                       </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
+          </DataTable>
         )}
       </section>
 
@@ -303,8 +238,8 @@ export function UsersPage({
             </select>
 
             <div className="row-actions">
-              <button type="submit" className="btn-primary">{t("users.save")}</button>
-              <button type="button" className="btn-ghost btn-cancel" onClick={requestCloseCreateModal}>{t("users.cancel")}</button>
+              <Button variant="primary" type="submit">{t("users.save")}</Button>
+              <Button variant="ghost" tone="cancel" onClick={requestCloseCreateModal}>{t("users.cancel")}</Button>
             </div>
           </form>
         </div>
@@ -384,12 +319,12 @@ export function UsersPage({
             </div>
 
             <div className="menu-access-modal__footer">
-              <button type="button" className="btn-ghost btn-cancel" onClick={requestCloseMenuModal}>
+              <Button variant="ghost" tone="cancel" onClick={requestCloseMenuModal}>
                 {t("users.cancel")}
-              </button>
-              <button type="submit" className="btn-primary">
+              </Button>
+              <Button variant="primary" type="submit">
                 {t("users.roleMenusSave")}
-              </button>
+              </Button>
             </div>
           </form>
         </div>
@@ -427,55 +362,13 @@ export function UsersPage({
             </select>
 
             <div className="row-actions">
-              <button type="submit" className="btn-primary">{t("users.update")}</button>
-              <button type="button" className="btn-ghost btn-cancel" onClick={requestCancelEdit}>{t("users.cancel")}</button>
+              <Button variant="primary" type="submit">{t("users.update")}</Button>
+              <Button variant="ghost" tone="cancel" onClick={requestCancelEdit}>{t("users.cancel")}</Button>
             </div>
           </form>
         </div>
       ) : null}
 
-      {bakongTokenModalOpen ? (
-        <div
-          className="modal-overlay"
-          role="presentation"
-          onClick={() => !bakongTokenSaving && setBakongTokenModalOpen(false)}
-        >
-          <form
-            className="panel form modal-card"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="bakong-token-title"
-            onClick={(e) => e.stopPropagation()}
-            onSubmit={handleSaveBakongToken}
-          >
-            <h3 id="bakong-token-title">{t("payments.bakongTokenModalTitle")}</h3>
-            <p className="section-lead">{t("payments.bakongTokenModalLead")}</p>
-            <label className="form-label" htmlFor="bakong-access-token">{t("payments.bakongTokenLabel")}</label>
-            <textarea
-              id="bakong-access-token"
-              rows={4}
-              value={newBakongToken}
-              onChange={(e) => setNewBakongToken(e.target.value)}
-              placeholder={t("payments.bakongTokenPlaceholder")}
-              required
-              autoFocus
-            />
-            <div className="row-actions">
-              <button type="submit" className="btn-primary" disabled={bakongTokenSaving}>
-                {bakongTokenSaving ? t("common.loading", { defaultValue: "Loading..." }) : t("payments.bakongTokenSave")}
-              </button>
-              <button
-                type="button"
-                className="btn-ghost btn-cancel"
-                disabled={bakongTokenSaving}
-                onClick={() => setBakongTokenModalOpen(false)}
-              >
-                {t("users.cancel")}
-              </button>
-            </div>
-          </form>
-        </div>
-      ) : null}
     </section>
   );
 }

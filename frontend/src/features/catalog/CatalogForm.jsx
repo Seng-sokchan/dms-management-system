@@ -1,10 +1,12 @@
 import { useTranslation } from "react-i18next";
+import { Button } from "../../components/ui/Button";
+import "./CatalogForm.css";
 
 export function CatalogForm({ newCatalog, setNewCatalog, onCreateCatalog }) {
   const { t } = useTranslation();
 
   return (
-    <form className="panel form" onSubmit={onCreateCatalog}>
+    <form className="panel form catalog-form" onSubmit={onCreateCatalog}>
       <h3>{t("catalogs.formTitle")}</h3>
       <p className="section-lead section-lead--tight">{t("catalogs.formBlurb")}</p>
       <label className="form-label" htmlFor="catalog-name">
@@ -27,9 +29,9 @@ export function CatalogForm({ newCatalog, setNewCatalog, onCreateCatalog }) {
         onChange={(event) => setNewCatalog({ ...newCatalog, note: event.target.value })}
         placeholder={t("catalogs.notePh")}
       />
-      <button type="submit" className="btn-primary">
+      <Button variant="primary" type="submit">
         {t("catalogs.save")}
-      </button>
+      </Button>
     </form>
   );
 }

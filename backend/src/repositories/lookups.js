@@ -17,15 +17,7 @@ async function getStatusIdByName(name, executor) {
   return resultRows[0] ? resultRows[0].id : null;
 }
 
-async function getPaymentStatusIdByName(name, executor) {
-  const db = resolveExecutor(executor);
-  const [rows] = await db.query("CALL sp_get_payment_status_id_by_name(?)", [name]);
-  const resultRows = unwrapProcedureRows(rows);
-  return resultRows[0] ? resultRows[0].id : null;
-}
-
 module.exports = {
   listOrderStatuses,
   getStatusIdByName,
-  getPaymentStatusIdByName,
 };

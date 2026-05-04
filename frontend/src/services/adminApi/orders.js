@@ -1,10 +1,10 @@
-import { apiClient, authConfig } from "../apiClient";
+import { apiClient, authConfig, unwrapApiData } from "../apiClient";
 
 export async function createOrder(token, payload) {
   return apiClient.post("/orders", payload, authConfig(token));
 }
 
-export async function confirmDelivery(token, orderId, payload) {
+export async function confirmDelivery(token, orderId, payload = {}) {
   return apiClient.post(`/orders/${orderId}/delivery-confirmation`, payload, authConfig(token));
 }
 
@@ -26,4 +26,14 @@ export async function deleteOrder(token, orderId) {
 
 export async function fetchOrderGroups(token) {
   return apiClient.get("/order-groups", authConfig(token));
+}
+
+/** @returns {Promise<{ byCustomer: object[], byDepot: object[] }>} */
+export async function fetchOrderPaymentTotals(token) {
+  const res = await apiClient.get("/orders/payment-totals", authConfig(token));
+  const payload = unwrapApiData(res.data);
+  return {
+    byCustomer: Array.isArray(payload?.byCustomer) ? payload.byCustomer : [],
+    byDepot: Array.isArray(payload?.byDepot) ? payload.byDepot : [],
+  };
 }

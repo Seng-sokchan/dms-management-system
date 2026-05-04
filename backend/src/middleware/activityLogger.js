@@ -8,11 +8,7 @@ function activityLogger(req, res, next) {
 
   res.on("finish", async () => {
     try {
-      const isKhqrRequest = req.method === "POST" && req.path === "/api/payments/khqr";
-      const requestedAmount = isKhqrRequest ? Number(req.body?.amount) : NaN;
-      const successMessage = isKhqrRequest && Number.isFinite(requestedAmount)
-        ? `Request success | Amount requested: ${requestedAmount.toFixed(2)}`
-        : "Request success";
+      const successMessage = "Request success";
       await createUserActivityLog({
         userId: req.user?.sub || null,
         username: req.user?.username || null,

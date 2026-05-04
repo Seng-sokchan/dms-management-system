@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { DataTable } from "../components/ui/DataTable";
 
 export function UserActivityLogsPage({ activityLogs = [] }) {
   const { t } = useTranslation();
@@ -23,8 +24,7 @@ export function UserActivityLogsPage({ activityLogs = [] }) {
           {totalRequestEndpointToday}
         </p>
       </div>
-      <div className="table-wrap">
-        <table className="data-table">
+      <DataTable>
           <thead>
             <tr>
               <th>Time</th>
@@ -49,8 +49,7 @@ export function UserActivityLogsPage({ activityLogs = [] }) {
               </tr>
             ))}
           </tbody>
-        </table>
-      </div>
+      </DataTable>
     </section>
   );
 }

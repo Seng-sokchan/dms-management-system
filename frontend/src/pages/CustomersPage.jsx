@@ -1,6 +1,8 @@
 ﻿import { useTranslation } from "react-i18next";
 import { useMemo, useState } from "react";
 import { CustomerForm } from "../features/customer/CustomerForm";
+import { Button } from "../components/ui/Button";
+import { DataTable } from "../components/ui/DataTable";
 import { useConfirm } from "../components/ui/ConfirmProvider";
 
 const EMPTY_EDIT = { id: "", name: "", phone: "", address: "", userId: "", subAddress: "" };
@@ -82,15 +84,14 @@ export function CustomersPage({
       <section className="panel entity-list">
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
           <h3 style={{ margin: 0 }}>{t("customers.listTitle")}</h3>
-          <button type="button" className="btn-primary" onClick={openCreateModal}>
+          <Button variant="primary" onClick={openCreateModal}>
             {t("customers.new", { defaultValue: "New" })}
-          </button>
+          </Button>
         </div>
         {customers.length === 0 ? (
           <p className="entity-list-empty">{t("customers.empty")}</p>
         ) : (
-          <div className="table-wrap">
-            <table className="data-table">
+          <DataTable>
               <thead>
                 <tr>
                   <th>ID</th>
@@ -115,19 +116,18 @@ export function CustomersPage({
                     <td>{customer.subAddress ? customer.subAddress : "—"}</td>
                     <td>
                       <div className="row-actions">
-                        <button type="button" className="btn-ghost btn-edit" onClick={() => startEdit(customer)}>
+                        <Button variant="ghost" tone="edit" onClick={() => startEdit(customer)}>
                           {t("customers.edit")}
-                        </button>
-                        <button type="button" className="btn-ghost btn-delete" onClick={() => void handleDelete(customer.id)}>
+                        </Button>
+                        <Button variant="ghost" tone="delete" onClick={() => void handleDelete(customer.id)}>
                           {t("customers.delete")}
-                        </button>
+                        </Button>
                       </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
+          </DataTable>
         )}
       </section>
       {showCreateModal ? (
@@ -144,9 +144,9 @@ export function CustomersPage({
               }}
             />
             <div className="row-actions" style={{ marginTop: 12 }}>
-              <button type="button" className="btn-ghost btn-cancel" onClick={closeCreateModal}>
+              <Button variant="ghost" tone="cancel" onClick={closeCreateModal}>
                 {t("customers.cancel")}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -214,12 +214,12 @@ export function CustomersPage({
               onChange={(event) => setEditingCustomer({ ...editingCustomer, subAddress: event.target.value })}
             />
             <div className="row-actions">
-              <button type="submit" className="btn-primary">
+              <Button variant="primary" type="submit">
                 {t("customers.update")}
-              </button>
-              <button type="button" className="btn-ghost btn-cancel" onClick={cancelEdit}>
+              </Button>
+              <Button variant="ghost" tone="cancel" onClick={cancelEdit}>
                 {t("customers.cancel")}
-              </button>
+              </Button>
             </div>
           </form>
         </div>

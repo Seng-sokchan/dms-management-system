@@ -3,6 +3,8 @@ SET FOREIGN_KEY_CHECKS = 0;
 
 DROP TABLE IF EXISTS order_status_history;
 DROP TABLE IF EXISTS user_activity_logs;
+DROP TABLE IF EXISTS bakong_transactions;
+DROP TABLE IF EXISTS bakong_tokens;
 DROP TABLE IF EXISTS payments;
 DROP TABLE IF EXISTS orders;
 DROP TABLE IF EXISTS payment_methods;
@@ -22,8 +24,6 @@ DROP TABLE IF EXISTS producers;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS role_menus;
 DROP TABLE IF EXISTS roles;
-DROP TABLE IF EXISTS bakong_tokens;
-DROP TABLE IF EXISTS bakong_transactions;
 
 CREATE TABLE roles (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -250,34 +250,10 @@ CREATE TABLE status (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 INSERT INTO status (id, name) VALUES
-  (1, 'NEW_ORDER'),
-  (2, 'OWNER_PREPARING'),
-  (3, 'SENT_TO_LOGISTICS_SUPPLIER'),
-  (5, 'OUT_FOR_DELIVERY'),
-  (6, 'RECEIVED_BY_CUSTOMER');
-
-CREATE TABLE payment_statuses (
-  id TINYINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  name VARCHAR(20) NOT NULL,
-  PRIMARY KEY (id),
-  UNIQUE KEY uq_payment_statuses_name (name)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
-INSERT INTO payment_statuses (id, name) VALUES
-  (1, 'UNPAID'),
-  (2, 'PAID');
-
-CREATE TABLE payment_methods (
-  id TINYINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  name VARCHAR(50) NOT NULL,
-  PRIMARY KEY (id),
-  UNIQUE KEY uq_payment_methods_name (name)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
-INSERT INTO payment_methods (id, name) VALUES
-  (1, 'Cash'),
-  (2, 'Bank transfer'),
-  (3, 'Card');
+  (1, 'New_Order'),
+  (2, 'Owner Preparing'),
+  (3, 'Ready_For_Delivery'),
+  (4, 'Recieve_By_Customer');
 
 CREATE TABLE orders (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -290,27 +266,16 @@ CREATE TABLE orders (
   unit_price DECIMAL(14,2) NOT NULL,
   producer_id INT UNSIGNED DEFAULT NULL,
   truck_id INT UNSIGNED DEFAULT NULL,
-  delivery_agent_id INT UNSIGNED DEFAULT NULL,
   delivery_time DATETIME NULL,
-  delivered_qty INT UNSIGNED NOT NULL DEFAULT 0,
-  loss_qty INT UNSIGNED NOT NULL DEFAULT 0,
-  remaining_qty INT UNSIGNED NOT NULL DEFAULT 0,
-  discrepancy INT NOT NULL DEFAULT 0,
   amount_total DECIMAL(14,2) NOT NULL,
-  amount_paid DECIMAL(14,2) NOT NULL DEFAULT 0.00,
-  payment_status TINYINT UNSIGNED NOT NULL DEFAULT 1,
-  delivery_proof_type ENUM('PHOTO', 'SIGNATURE', 'OTP') DEFAULT NULL,
-  delivery_proof_value VARCHAR(255) DEFAULT NULL,
   status TINYINT UNSIGNED NOT NULL DEFAULT 1,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NULL,
   PRIMARY KEY (id),
   KEY idx_orders_status (status),
-  KEY idx_orders_payment_status (payment_status),
   KEY idx_orders_created_at (created_at),
   KEY idx_orders_producer_id (producer_id),
   KEY idx_orders_truck_id (truck_id),
-  KEY idx_orders_delivery_agent_id (delivery_agent_id),
   KEY idx_orders_customer_id (customer_id),
   KEY idx_orders_address (address),
   KEY idx_orders_order_group_id (order_group_id),
@@ -318,8 +283,6 @@ CREATE TABLE orders (
   CONSTRAINT fk_orders_producer FOREIGN KEY (producer_id) REFERENCES producers (id)
     ON UPDATE RESTRICT ON DELETE SET NULL,
   CONSTRAINT fk_orders_truck FOREIGN KEY (truck_id) REFERENCES trucks (id)
-    ON UPDATE RESTRICT ON DELETE SET NULL,
-  CONSTRAINT fk_orders_delivery_agent FOREIGN KEY (delivery_agent_id) REFERENCES delivery_agents (id)
     ON UPDATE RESTRICT ON DELETE SET NULL,
   CONSTRAINT fk_orders_customer FOREIGN KEY (customer_id) REFERENCES customers (id)
     ON UPDATE RESTRICT ON DELETE RESTRICT,
@@ -329,68 +292,8 @@ CREATE TABLE orders (
     ON UPDATE RESTRICT ON DELETE SET NULL,
   CONSTRAINT fk_orders_item FOREIGN KEY (item_id) REFERENCES items (id)
     ON UPDATE RESTRICT ON DELETE RESTRICT,
-  CONSTRAINT fk_orders_payment_status FOREIGN KEY (payment_status) REFERENCES payment_statuses (id)
-    ON UPDATE RESTRICT ON DELETE RESTRICT,
   CONSTRAINT fk_orders_status FOREIGN KEY (status) REFERENCES status (id)
     ON UPDATE RESTRICT ON DELETE RESTRICT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
-CREATE TABLE payments (
-  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  order_id INT UNSIGNED NOT NULL,
-  amount DECIMAL(14,2) NOT NULL,
-  method TINYINT UNSIGNED NOT NULL,
-  note VARCHAR(255) DEFAULT '',
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (id),
-  KEY idx_payments_order_created (order_id, created_at),
-  KEY idx_payments_method (method),
-  CONSTRAINT fk_payments_order FOREIGN KEY (order_id) REFERENCES orders (id)
-    ON UPDATE RESTRICT ON DELETE CASCADE,
-  CONSTRAINT fk_payments_method FOREIGN KEY (method) REFERENCES payment_methods (id)
-    ON UPDATE RESTRICT ON DELETE RESTRICT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
-CREATE TABLE bakong_tokens (
-  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  access_token TEXT NOT NULL,
-  expires_at DATETIME NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME NULL,
-  PRIMARY KEY (id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
-CREATE TABLE bakong_transactions (
-  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  order_id INT UNSIGNED NOT NULL,
-  payment_id INT UNSIGNED DEFAULT NULL,
-  md5 VARCHAR(64) NOT NULL,
-  status VARCHAR(30) NOT NULL,
-  message VARCHAR(255) DEFAULT '',
-  tx_hash VARCHAR(255) DEFAULT NULL,
-  from_account_id VARCHAR(120) DEFAULT NULL,
-  to_account_id VARCHAR(120) DEFAULT NULL,
-  currency VARCHAR(10) DEFAULT NULL,
-  amount DECIMAL(14,2) DEFAULT NULL,
-  description_text VARCHAR(255) DEFAULT NULL,
-  created_date_ms BIGINT DEFAULT NULL,
-  acknowledged_date_ms BIGINT DEFAULT NULL,
-  tracking_status VARCHAR(120) DEFAULT NULL,
-  receiver_bank VARCHAR(120) DEFAULT NULL,
-  receiver_bank_account VARCHAR(120) DEFAULT NULL,
-  instruction_ref VARCHAR(120) DEFAULT NULL,
-  external_ref VARCHAR(120) DEFAULT NULL,
-  raw_payload TEXT NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME NULL,
-  PRIMARY KEY (id),
-  UNIQUE KEY uq_bakong_transactions_md5 (md5),
-  KEY idx_bakong_transactions_order_id (order_id),
-  KEY idx_bakong_transactions_payment_id (payment_id),
-  CONSTRAINT fk_bakong_transactions_order FOREIGN KEY (order_id) REFERENCES orders (id)
-    ON UPDATE RESTRICT ON DELETE CASCADE,
-  CONSTRAINT fk_bakong_transactions_payment FOREIGN KEY (payment_id) REFERENCES payments (id)
-    ON UPDATE RESTRICT ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE order_status_history (
@@ -449,10 +352,10 @@ DROP PROCEDURE IF EXISTS sp_list_payments;
 DROP PROCEDURE IF EXISTS sp_get_payment_by_id;
 DROP PROCEDURE IF EXISTS sp_get_status_id_by_name;
 DROP PROCEDURE IF EXISTS sp_get_payment_status_id_by_name;
-DROP PROCEDURE IF EXISTS sp_list_addresses;
 DROP PROCEDURE IF EXISTS sp_list_payment_methods;
 DROP PROCEDURE IF EXISTS sp_create_payment;
 DROP PROCEDURE IF EXISTS sp_apply_payment_to_order;
+DROP PROCEDURE IF EXISTS sp_list_addresses;
 DROP PROCEDURE IF EXISTS sp_list_role_menu_keys_by_role_name;
 DROP PROCEDURE IF EXISTS sp_list_roles;
 DROP PROCEDURE IF EXISTS sp_list_role_menus;
@@ -735,74 +638,16 @@ FROM status
 WHERE name = p_name
 LIMIT 1;
 
-CREATE PROCEDURE sp_get_payment_status_id_by_name(IN p_name VARCHAR(20))
-SELECT id
-FROM payment_statuses
-WHERE name = p_name
-LIMIT 1;
-
-CREATE PROCEDURE sp_get_payment_by_id(IN p_id INT UNSIGNED)
-SELECT
-  p.id, p.order_id, p.amount, p.method, pm.name AS method_name, p.note, p.created_at
-FROM payments p
-INNER JOIN payment_methods pm ON pm.id = p.method
-WHERE p.id = p_id
-LIMIT 1;
-
-CREATE PROCEDURE sp_list_payments()
-SELECT
-  p.id, p.order_id, p.amount, p.method, pm.name AS method_name, p.note, p.created_at,
-  oa.name AS order_customer_name,
-  it.name AS order_item_name
-FROM payments p
-INNER JOIN payment_methods pm ON pm.id = p.method
-LEFT JOIN orders o ON o.id = p.order_id
-LEFT JOIN customers c ON c.id = o.customer_id
-LEFT JOIN addresses oa ON oa.id = o.address
-LEFT JOIN items it ON o.item_id = it.id
-ORDER BY p.created_at DESC;
-
-CREATE PROCEDURE sp_list_payment_methods()
-SELECT id, name
-FROM payment_methods
-ORDER BY id ASC;
-
-CREATE PROCEDURE sp_create_payment(
-  IN p_order_id INT UNSIGNED,
-  IN p_amount DECIMAL(12,2),
-  IN p_method TINYINT UNSIGNED,
-  IN p_note VARCHAR(255)
-)
-BEGIN
-  INSERT INTO payments (order_id, amount, method, note)
-  VALUES (p_order_id, p_amount, p_method, p_note);
-  SELECT LAST_INSERT_ID() AS insertId;
-END;
-
-CREATE PROCEDURE sp_apply_payment_to_order(
-  IN p_order_id INT UNSIGNED,
-  IN p_amount_paid DECIMAL(12,2),
-  IN p_payment_status TINYINT UNSIGNED,
-  IN p_status TINYINT UNSIGNED,
-  IN p_updated_at DATETIME
-)
-UPDATE orders
-SET amount_paid = p_amount_paid,
-    payment_status = p_payment_status,
-    status = p_status,
-    updated_at = p_updated_at
-WHERE id = p_order_id;
-
 CREATE PROCEDURE sp_get_order_by_id(IN p_id INT UNSIGNED)
 SELECT
   o.id, c.name AS customer_name, o.address, oa.name AS order_address_name, c.address AS customer_address_id, ca.name AS customer_address_name, c.sub_address AS customer_sub_address, o.customer_id, o.order_group_id, og.name AS order_group_name, o.item_id, o.currency, o.ordered_qty, o.unit_price,
-  o.producer_id, o.truck_id, o.delivery_agent_id, o.delivery_time, o.delivered_qty, o.loss_qty, o.remaining_qty,
-  o.discrepancy, o.amount_total, o.amount_paid, ps.name AS payment_status, o.delivery_proof_type, o.delivery_proof_value, s.name AS status, o.created_at, o.updated_at,
+  o.producer_id, o.truck_id, da.id AS delivery_agent_id, o.delivery_time,
+  o.amount_total, s.name AS status, o.created_at, o.updated_at,
   c.phone AS customer_phone,
   p.name AS producer_name,
   t.code AS truck_code,
   t.plate_no AS truck_plate_no,
-  d.name AS delivery_agent_name,
+  da.name AS delivery_agent_name,
   it.name AS item_name,
   it.sku AS item_sku
 FROM orders o
@@ -811,10 +656,9 @@ INNER JOIN addresses oa ON oa.id = o.address
 INNER JOIN addresses ca ON ca.id = c.address
 INNER JOIN items it ON it.id = o.item_id
 INNER JOIN status s ON s.id = o.status
-INNER JOIN payment_statuses ps ON ps.id = o.payment_status
 LEFT JOIN producers p ON p.id = o.producer_id
 LEFT JOIN trucks t ON t.id = o.truck_id
-LEFT JOIN delivery_agents d ON d.id = o.delivery_agent_id
+LEFT JOIN delivery_agents da ON da.id = t.delivery_agent_id
 LEFT JOIN order_groups og ON og.id = o.order_group_id
 WHERE o.id = p_id
 LIMIT 1;
@@ -822,13 +666,13 @@ LIMIT 1;
 CREATE PROCEDURE sp_list_orders()
 SELECT
   o.id, c.name AS customer_name, o.address, oa.name AS order_address_name, c.address AS customer_address_id, ca.name AS customer_address_name, c.sub_address AS customer_sub_address, o.customer_id, o.order_group_id, og.name AS order_group_name, o.item_id, o.currency, o.ordered_qty, o.unit_price,
-  o.producer_id, o.truck_id, o.delivery_agent_id, o.delivery_time, o.delivered_qty, o.loss_qty, o.remaining_qty,
-  o.discrepancy, o.amount_total, o.amount_paid, ps.name AS payment_status, o.delivery_proof_type, o.delivery_proof_value, s.name AS status, o.created_at, o.updated_at,
+  o.producer_id, o.truck_id, da.id AS delivery_agent_id, o.delivery_time,
+  o.amount_total, s.name AS status, o.created_at, o.updated_at,
   c.phone AS customer_phone,
   p.name AS producer_name,
   t.code AS truck_code,
   t.plate_no AS truck_plate_no,
-  d.name AS delivery_agent_name,
+  da.name AS delivery_agent_name,
   it.name AS item_name,
   it.sku AS item_sku
 FROM orders o
@@ -837,10 +681,9 @@ INNER JOIN addresses oa ON oa.id = o.address
 INNER JOIN addresses ca ON ca.id = c.address
 INNER JOIN items it ON it.id = o.item_id
 INNER JOIN status s ON s.id = o.status
-INNER JOIN payment_statuses ps ON ps.id = o.payment_status
 LEFT JOIN producers p ON p.id = o.producer_id
 LEFT JOIN trucks t ON t.id = o.truck_id
-LEFT JOIN delivery_agents d ON d.id = o.delivery_agent_id
+LEFT JOIN delivery_agents da ON da.id = t.delivery_agent_id
 LEFT JOIN order_groups og ON og.id = o.order_group_id
 ORDER BY o.created_at DESC;
 
@@ -853,25 +696,18 @@ CREATE PROCEDURE sp_create_order(
   IN p_currency VARCHAR(10),
   IN p_producer_id INT UNSIGNED,
   IN p_truck_id INT UNSIGNED,
-  IN p_delivery_agent_id INT UNSIGNED,
-  IN p_delivered_qty DECIMAL(12,2),
-  IN p_loss_qty DECIMAL(12,2),
-  IN p_remaining_qty DECIMAL(12,2),
-  IN p_discrepancy DECIMAL(12,2),
   IN p_amount_total DECIMAL(12,2),
-  IN p_amount_paid DECIMAL(12,2),
-  IN p_payment_status TINYINT UNSIGNED,
   IN p_status TINYINT UNSIGNED,
   IN p_updated_at DATETIME
 )
 BEGIN
   INSERT INTO orders (
-    customer_id, address, order_group_id, item_id, currency, ordered_qty, unit_price, producer_id, truck_id, delivery_agent_id, delivery_time,
-    delivered_qty, loss_qty, remaining_qty, discrepancy, amount_total, amount_paid, payment_status, status, updated_at
+    customer_id, address, order_group_id, item_id, currency, ordered_qty, unit_price, producer_id, truck_id, delivery_time,
+    amount_total, status, updated_at
   )
   VALUES (
-    p_customer_id, p_address, NULL, p_item_id, p_currency, p_ordered_qty, p_unit_price, p_producer_id, p_truck_id, p_delivery_agent_id, NULL,
-    p_delivered_qty, p_loss_qty, p_remaining_qty, p_discrepancy, p_amount_total, p_amount_paid, p_payment_status, p_status, p_updated_at
+    p_customer_id, p_address, NULL, p_item_id, p_currency, p_ordered_qty, p_unit_price, p_producer_id, p_truck_id, NULL,
+    p_amount_total, p_status, p_updated_at
   );
   SELECT LAST_INSERT_ID() AS insertId;
 END;
@@ -880,7 +716,6 @@ CREATE PROCEDURE sp_update_order_assignment(
   IN p_id INT UNSIGNED,
   IN p_producer_id INT UNSIGNED,
   IN p_truck_id INT UNSIGNED,
-  IN p_delivery_agent_id INT UNSIGNED,
   IN p_order_group_id INT UNSIGNED,
   IN p_delivery_time DATETIME,
   IN p_status TINYINT UNSIGNED,
@@ -889,7 +724,6 @@ CREATE PROCEDURE sp_update_order_assignment(
 UPDATE orders
 SET producer_id = COALESCE(p_producer_id, producer_id),
     truck_id = COALESCE(p_truck_id, truck_id),
-    delivery_agent_id = COALESCE(p_delivery_agent_id, delivery_agent_id),
     order_group_id = COALESCE(p_order_group_id, order_group_id),
     delivery_time = COALESCE(p_delivery_time, delivery_time),
     status = COALESCE(p_status, status),
@@ -917,23 +751,11 @@ VALUES (p_order_id, p_from_status, p_to_status, p_changed_by_user_id, p_note);
 
 CREATE PROCEDURE sp_confirm_order_delivery(
   IN p_id INT UNSIGNED,
-  IN p_delivered_qty DECIMAL(12,2),
-  IN p_loss_qty DECIMAL(12,2),
-  IN p_remaining_qty DECIMAL(12,2),
-  IN p_discrepancy DECIMAL(12,2),
   IN p_status TINYINT UNSIGNED,
-  IN p_delivery_proof_type VARCHAR(30),
-  IN p_delivery_proof_value VARCHAR(255),
   IN p_updated_at DATETIME
 )
 UPDATE orders
-SET delivered_qty = p_delivered_qty,
-    loss_qty = p_loss_qty,
-    remaining_qty = p_remaining_qty,
-    discrepancy = p_discrepancy,
-    status = p_status,
-    delivery_proof_type = p_delivery_proof_type,
-    delivery_proof_value = p_delivery_proof_value,
+SET status = p_status,
     updated_at = p_updated_at
 WHERE id = p_id;
 
@@ -1113,7 +935,7 @@ BEGIN
 END;
 
 CREATE PROCEDURE sp_list_order_groups()
-SELECT id, name FROM order_groups ORDER BY name ASC;
+SELECT id, name FROM order_groups ORDER BY id ASC;
 
 CREATE PROCEDURE sp_get_order_group_by_id(IN p_id INT UNSIGNED)
 SELECT id, name FROM order_groups WHERE id = p_id LIMIT 1;
@@ -1124,24 +946,10 @@ FROM orders o
 INNER JOIN status s ON s.id = o.status
 GROUP BY s.name;
 
-CREATE PROCEDURE sp_list_dashboard_payment_summary()
-SELECT ps.name AS payment_status, COUNT(*) AS total
-FROM orders o
-INNER JOIN payment_statuses ps ON ps.id = o.payment_status
-GROUP BY ps.name;
-
 CREATE PROCEDURE sp_dashboard_currency_totals()
 SELECT
   COALESCE(SUM(o.ordered_qty * i.default_unit_price_khr), 0) AS total_revenue_khr,
-  COALESCE(
-    SUM(
-      CASE
-        WHEN o.amount_total > 0 THEN (o.amount_paid / o.amount_total) * (o.ordered_qty * i.default_unit_price_khr)
-        ELSE 0
-      END
-    ),
-    0
-  ) AS total_collected_khr
+  0 AS total_collected_khr
 FROM orders o
 INNER JOIN items i ON i.id = o.item_id;
 
@@ -1200,55 +1008,6 @@ BEGIN
   UPDATE trucks SET is_active = 0, updated_at = p_updated_at WHERE id = p_id AND is_active = 1;
   SELECT ROW_COUNT() AS affectedRows;
 END;
-
-CREATE PROCEDURE sp_get_latest_bakong_token()
-SELECT id, access_token, expires_at, created_at, updated_at
-FROM bakong_tokens
-ORDER BY updated_at DESC, id DESC
-LIMIT 1;
-
-CREATE PROCEDURE sp_insert_bakong_token(IN p_access_token TEXT, IN p_expires_at DATETIME)
-INSERT INTO bakong_tokens (access_token, expires_at, updated_at)
-VALUES (p_access_token, p_expires_at, NOW());
-
-CREATE PROCEDURE sp_get_bakong_transaction_by_md5(IN p_md5 VARCHAR(64))
-SELECT id, order_id, payment_id, md5, status, message, amount, external_ref, raw_payload
-FROM bakong_transactions
-WHERE md5 = p_md5
-LIMIT 1;
-
-CREATE PROCEDURE sp_create_bakong_transaction(
-  IN p_order_id INT UNSIGNED, IN p_payment_id INT UNSIGNED, IN p_md5 VARCHAR(64), IN p_status VARCHAR(30), IN p_message VARCHAR(255),
-  IN p_tx_hash VARCHAR(120), IN p_from_account_id VARCHAR(100), IN p_to_account_id VARCHAR(100), IN p_currency VARCHAR(10),
-  IN p_amount DECIMAL(12,2), IN p_description_text VARCHAR(255), IN p_created_date_ms BIGINT, IN p_acknowledged_date_ms BIGINT,
-  IN p_tracking_status VARCHAR(40), IN p_receiver_bank VARCHAR(120), IN p_receiver_bank_account VARCHAR(120),
-  IN p_instruction_ref VARCHAR(120), IN p_external_ref VARCHAR(120), IN p_raw_payload LONGTEXT, IN p_updated_at DATETIME
-)
-BEGIN
-  INSERT INTO bakong_transactions (
-    order_id, payment_id, md5, status, message, tx_hash, from_account_id, to_account_id,
-    currency, amount, description_text, created_date_ms, acknowledged_date_ms, tracking_status,
-    receiver_bank, receiver_bank_account, instruction_ref, external_ref, raw_payload, updated_at
-  ) VALUES (
-    p_order_id, p_payment_id, p_md5, p_status, p_message, p_tx_hash, p_from_account_id, p_to_account_id,
-    p_currency, p_amount, p_description_text, p_created_date_ms, p_acknowledged_date_ms, p_tracking_status,
-    p_receiver_bank, p_receiver_bank_account, p_instruction_ref, p_external_ref, p_raw_payload, p_updated_at
-  );
-  SELECT LAST_INSERT_ID() AS insertId;
-END;
-
-CREATE PROCEDURE sp_get_bakong_transaction_by_id(IN p_id INT UNSIGNED)
-SELECT id, order_id, payment_id, md5, status, message, amount, external_ref, raw_payload
-FROM bakong_transactions
-WHERE id = p_id
-LIMIT 1;
-
-CREATE PROCEDURE sp_update_bakong_transaction_payment_id_by_md5(
-  IN p_payment_id INT UNSIGNED, IN p_updated_at DATETIME, IN p_md5 VARCHAR(64)
-)
-UPDATE bakong_transactions
-SET payment_id = p_payment_id, updated_at = p_updated_at
-WHERE md5 = p_md5;
 
 CREATE PROCEDURE sp_list_borrow_materials()
 SELECT id, name, unit, note
@@ -1339,13 +1098,11 @@ SELECT
   (SELECT COUNT(*) FROM orders) AS orders,
   (SELECT COUNT(*) FROM producers WHERE is_active = 1) AS producers,
   (SELECT COUNT(*) FROM delivery_agents WHERE is_active = 1) AS deliveryAgents,
-  (SELECT COUNT(*) FROM payments) AS payments,
-  COALESCE(SUM(amount_total), 0) AS totalRevenue,
-  COALESCE(SUM(amount_paid), 0) AS totalCollected,
-  COALESCE(SUM(CASE WHEN discrepancy > 0 THEN discrepancy ELSE 0 END), 0) AS totalDiscrepancy,
-  COALESCE(SUM(loss_qty), 0) AS totalLossQty,
-  COALESCE(SUM(remaining_qty), 0) AS totalRemainingQty
-FROM orders;
+  (SELECT COALESCE(SUM(amount_total), 0) FROM orders) AS totalRevenue,
+  0 AS totalCollected,
+  0 AS totalDiscrepancy,
+  0 AS totalLossQty,
+  0 AS totalRemainingQty;
 
 -- ---------------------------------------------------------------------------
 -- Legacy migration scripts consolidated here (single-file DB source)
@@ -1376,15 +1133,16 @@ DEALLOCATE PREPARE stmt_role_menus;
 
 INSERT INTO role_menus (role_id, menu_key) VALUES
 (1, 'overview'), (1, 'newOrder'), (1, 'catalogs'), (1, 'items'), (1, 'customers'), (1, 'depots'),
-(1, 'producers'), (1, 'deliveryAgents'), (1, 'trucks'), (1, 'orders'), (1, 'payments'), (1, 'users'), (1, 'activityLogs'),
+(1, 'producers'), (1, 'deliveryAgents'), (1, 'trucks'), (1, 'orders'), (1, 'assignOrders'), (1, 'orderMovement'), (1, 'payments'),
+(1, 'users'), (1, 'activityLogs'),
 (1, 'borrowedMaterials'),
 (2, 'overview'), (2, 'newOrder'), (2, 'catalogs'), (2, 'items'), (2, 'customers'), (2, 'depots'),
-(2, 'producers'), (2, 'deliveryAgents'), (2, 'trucks'), (2, 'orders'), (2, 'payments'),
+(2, 'producers'), (2, 'deliveryAgents'), (2, 'trucks'), (2, 'orders'), (2, 'assignOrders'), (2, 'orderMovement'), (2, 'payments'),
 (2, 'borrowedMaterials'),
 (3, 'overview'), (3, 'deliveryAgents'), (3, 'trucks'), (3, 'orders'),
 (4, 'overview'), (4, 'orders'),
-(5, 'overview'), (5, 'orders'), (5, 'payments'),
-(6, 'overview'), (6, 'customers'), (6, 'orders'), (6, 'borrowedMaterials')
+(5, 'overview'), (5, 'orders'),
+(6, 'overview'), (6, 'customers'), (6, 'orders'), (6, 'payments'), (6, 'borrowedMaterials')
 ON DUPLICATE KEY UPDATE menu_key = VALUES(menu_key);
 
 -- 2) Remove obsolete orders.producer_confirm_status if it still exists
@@ -1699,77 +1457,7 @@ PREPARE stmt_drop_items_cust_col FROM @sql_drop_items_cust_col;
 EXECUTE stmt_drop_items_cust_col;
 DEALLOCATE PREPARE stmt_drop_items_cust_col;
 
--- 10) Ensure bakong_tokens table exists (token stored in DB, not env/cache)
-SET @has_bakong_tokens := (
-  SELECT COUNT(*)
-  FROM information_schema.tables
-  WHERE table_schema = DATABASE()
-    AND table_name = 'bakong_tokens'
-);
-SET @sql_create_bakong_tokens := IF(
-  @has_bakong_tokens = 0,
-  'CREATE TABLE bakong_tokens (
-    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-    access_token TEXT NOT NULL,
-    expires_at DATETIME NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME NULL,
-    PRIMARY KEY (id)
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8',
-  'SELECT 1'
-);
-PREPARE stmt_create_bakong_tokens FROM @sql_create_bakong_tokens;
-EXECUTE stmt_create_bakong_tokens;
-DEALLOCATE PREPARE stmt_create_bakong_tokens;
-
--- 11) Ensure bakong_transactions table exists
-SET @has_bakong_transactions := (
-  SELECT COUNT(*)
-  FROM information_schema.tables
-  WHERE table_schema = DATABASE()
-    AND table_name = 'bakong_transactions'
-);
-SET @sql_create_bakong_transactions := IF(
-  @has_bakong_transactions = 0,
-  'CREATE TABLE bakong_transactions (
-    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-    order_id INT UNSIGNED NOT NULL,
-    payment_id INT UNSIGNED DEFAULT NULL,
-    md5 VARCHAR(64) NOT NULL,
-    status VARCHAR(30) NOT NULL,
-    message VARCHAR(255) DEFAULT '''',
-    tx_hash VARCHAR(255) DEFAULT NULL,
-    from_account_id VARCHAR(120) DEFAULT NULL,
-    to_account_id VARCHAR(120) DEFAULT NULL,
-    currency VARCHAR(10) DEFAULT NULL,
-    amount DECIMAL(14,2) DEFAULT NULL,
-    description_text VARCHAR(255) DEFAULT NULL,
-    created_date_ms BIGINT DEFAULT NULL,
-    acknowledged_date_ms BIGINT DEFAULT NULL,
-    tracking_status VARCHAR(120) DEFAULT NULL,
-    receiver_bank VARCHAR(120) DEFAULT NULL,
-    receiver_bank_account VARCHAR(120) DEFAULT NULL,
-    instruction_ref VARCHAR(120) DEFAULT NULL,
-    external_ref VARCHAR(120) DEFAULT NULL,
-    raw_payload TEXT NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME NULL,
-    PRIMARY KEY (id),
-    UNIQUE KEY uq_bakong_transactions_md5 (md5),
-    KEY idx_bakong_transactions_order_id (order_id),
-    KEY idx_bakong_transactions_payment_id (payment_id),
-    CONSTRAINT fk_bakong_transactions_order FOREIGN KEY (order_id) REFERENCES orders (id)
-      ON UPDATE RESTRICT ON DELETE CASCADE,
-    CONSTRAINT fk_bakong_transactions_payment FOREIGN KEY (payment_id) REFERENCES payments (id)
-      ON UPDATE RESTRICT ON DELETE SET NULL
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8',
-  'SELECT 1'
-);
-PREPARE stmt_create_bakong_transactions FROM @sql_create_bakong_transactions;
-EXECUTE stmt_create_bakong_transactions;
-DEALLOCATE PREPARE stmt_create_bakong_transactions;
-
--- 12) Ensure orders.currency exists and defaults to USD
+-- 10) Ensure orders.currency exists and defaults to USD
 SET @has_orders_currency := (
   SELECT COUNT(*)
   FROM information_schema.columns
@@ -1788,12 +1476,12 @@ DEALLOCATE PREPARE stmt_add_orders_currency;
 
 UPDATE orders SET currency = 'USD' WHERE currency IS NULL OR currency = '';
 
--- 13) Remove SUPPLIER_ORDER_READY and collapse flow to OUT_FOR_DELIVERY
+-- 13) Remove SUPPLIER_ORDER_READY and collapse flow to Ready_For_Delivery (when that status exists)
 SET @supplier_ready_id := (
   SELECT id FROM status WHERE name = 'SUPPLIER_ORDER_READY' LIMIT 1
 );
 SET @out_for_delivery_id := (
-  SELECT id FROM status WHERE name = 'OUT_FOR_DELIVERY' LIMIT 1
+  SELECT id FROM status WHERE name = 'Ready_For_Delivery' LIMIT 1
 );
 
 SET @sql_migrate_order_status_supplier_ready := IF(
@@ -1885,6 +1573,150 @@ DEALLOCATE PREPARE stmt_create_customer_borrowed_materials;
 -- 15) Grant new borrowedMaterials menu to existing Admin/Owner/Depot roles
 INSERT INTO role_menus (role_id, menu_key)
 SELECT r.id, 'borrowedMaterials'
+FROM roles r
+WHERE r.name IN ('Admin', 'Owner', 'Depot')
+ON DUPLICATE KEY UPDATE menu_key = VALUES(menu_key);
+
+-- 16) Assign Orders page (Admin + Owner)
+INSERT INTO role_menus (role_id, menu_key)
+SELECT r.id, 'assignOrders'
+FROM roles r
+WHERE r.name IN ('Admin', 'Owner')
+ON DUPLICATE KEY UPDATE menu_key = VALUES(menu_key);
+
+-- 17) Drop orders.delivery_agent_id; refresh order procedures (delivery agent via truck join)
+DROP PROCEDURE IF EXISTS sp_get_order_by_id;
+DROP PROCEDURE IF EXISTS sp_list_orders;
+DROP PROCEDURE IF EXISTS sp_create_order;
+DROP PROCEDURE IF EXISTS sp_update_order_assignment;
+
+SET @has_ord_da_fk := (
+  SELECT COUNT(*) FROM information_schema.table_constraints
+  WHERE table_schema = DATABASE() AND table_name = 'orders' AND constraint_name = 'fk_orders_delivery_agent'
+);
+SET @sql_drop_ord_da_fk := IF(
+  @has_ord_da_fk > 0,
+  'ALTER TABLE orders DROP FOREIGN KEY fk_orders_delivery_agent',
+  'SELECT 1'
+);
+PREPARE stmt_drop_ord_da_fk FROM @sql_drop_ord_da_fk;
+EXECUTE stmt_drop_ord_da_fk;
+DEALLOCATE PREPARE stmt_drop_ord_da_fk;
+
+SET @has_ord_da_col := (
+  SELECT COUNT(*) FROM information_schema.columns
+  WHERE table_schema = DATABASE() AND table_name = 'orders' AND column_name = 'delivery_agent_id'
+);
+SET @sql_drop_ord_da_col := IF(
+  @has_ord_da_col > 0,
+  'ALTER TABLE orders DROP COLUMN delivery_agent_id',
+  'SELECT 1'
+);
+PREPARE stmt_drop_ord_da_col FROM @sql_drop_ord_da_col;
+EXECUTE stmt_drop_ord_da_col;
+DEALLOCATE PREPARE stmt_drop_ord_da_col;
+
+CREATE PROCEDURE sp_get_order_by_id(IN p_id INT UNSIGNED)
+SELECT
+  o.id, c.name AS customer_name, o.address, oa.name AS order_address_name, c.address AS customer_address_id, ca.name AS customer_address_name, c.sub_address AS customer_sub_address, o.customer_id, o.order_group_id, og.name AS order_group_name, o.item_id, o.currency, o.ordered_qty, o.unit_price,
+  o.producer_id, o.truck_id, da.id AS delivery_agent_id, o.delivery_time,
+  o.amount_total, s.name AS status, o.created_at, o.updated_at,
+  c.phone AS customer_phone,
+  p.name AS producer_name,
+  t.code AS truck_code,
+  t.plate_no AS truck_plate_no,
+  da.name AS delivery_agent_name,
+  it.name AS item_name,
+  it.sku AS item_sku
+FROM orders o
+INNER JOIN customers c ON c.id = o.customer_id
+INNER JOIN addresses oa ON oa.id = o.address
+INNER JOIN addresses ca ON ca.id = c.address
+INNER JOIN items it ON it.id = o.item_id
+INNER JOIN status s ON s.id = o.status
+LEFT JOIN producers p ON p.id = o.producer_id
+LEFT JOIN trucks t ON t.id = o.truck_id
+LEFT JOIN delivery_agents da ON da.id = t.delivery_agent_id
+LEFT JOIN order_groups og ON og.id = o.order_group_id
+WHERE o.id = p_id
+LIMIT 1;
+
+CREATE PROCEDURE sp_list_orders()
+SELECT
+  o.id, c.name AS customer_name, o.address, oa.name AS order_address_name, c.address AS customer_address_id, ca.name AS customer_address_name, c.sub_address AS customer_sub_address, o.customer_id, o.order_group_id, og.name AS order_group_name, o.item_id, o.currency, o.ordered_qty, o.unit_price,
+  o.producer_id, o.truck_id, da.id AS delivery_agent_id, o.delivery_time,
+  o.amount_total, s.name AS status, o.created_at, o.updated_at,
+  c.phone AS customer_phone,
+  p.name AS producer_name,
+  t.code AS truck_code,
+  t.plate_no AS truck_plate_no,
+  da.name AS delivery_agent_name,
+  it.name AS item_name,
+  it.sku AS item_sku
+FROM orders o
+INNER JOIN customers c ON c.id = o.customer_id
+INNER JOIN addresses oa ON oa.id = o.address
+INNER JOIN addresses ca ON ca.id = c.address
+INNER JOIN items it ON it.id = o.item_id
+INNER JOIN status s ON s.id = o.status
+LEFT JOIN producers p ON p.id = o.producer_id
+LEFT JOIN trucks t ON t.id = o.truck_id
+LEFT JOIN delivery_agents da ON da.id = t.delivery_agent_id
+LEFT JOIN order_groups og ON og.id = o.order_group_id
+ORDER BY o.created_at DESC;
+
+CREATE PROCEDURE sp_create_order(
+  IN p_customer_id INT UNSIGNED,
+  IN p_address INT UNSIGNED,
+  IN p_item_id INT UNSIGNED,
+  IN p_ordered_qty DECIMAL(12,2),
+  IN p_unit_price DECIMAL(12,2),
+  IN p_currency VARCHAR(10),
+  IN p_producer_id INT UNSIGNED,
+  IN p_truck_id INT UNSIGNED,
+  IN p_amount_total DECIMAL(12,2),
+  IN p_status TINYINT UNSIGNED,
+  IN p_updated_at DATETIME
+)
+BEGIN
+  INSERT INTO orders (
+    customer_id, address, order_group_id, item_id, currency, ordered_qty, unit_price, producer_id, truck_id, delivery_time,
+    amount_total, status, updated_at
+  )
+  VALUES (
+    p_customer_id, p_address, NULL, p_item_id, p_currency, p_ordered_qty, p_unit_price, p_producer_id, p_truck_id, NULL,
+    p_amount_total, p_status, p_updated_at
+  );
+  SELECT LAST_INSERT_ID() AS insertId;
+END;
+
+CREATE PROCEDURE sp_update_order_assignment(
+  IN p_id INT UNSIGNED,
+  IN p_producer_id INT UNSIGNED,
+  IN p_truck_id INT UNSIGNED,
+  IN p_order_group_id INT UNSIGNED,
+  IN p_delivery_time DATETIME,
+  IN p_status TINYINT UNSIGNED,
+  IN p_updated_at DATETIME
+)
+UPDATE orders
+SET producer_id = COALESCE(p_producer_id, producer_id),
+    truck_id = COALESCE(p_truck_id, truck_id),
+    order_group_id = COALESCE(p_order_group_id, order_group_id),
+    delivery_time = COALESCE(p_delivery_time, delivery_time),
+    status = COALESCE(p_status, status),
+    updated_at = p_updated_at
+WHERE id = p_id;
+
+-- 18) Order movement + Payments menu for existing installs (idempotent)
+INSERT INTO role_menus (role_id, menu_key)
+SELECT r.id, 'orderMovement'
+FROM roles r
+WHERE r.name IN ('Admin', 'Owner')
+ON DUPLICATE KEY UPDATE menu_key = VALUES(menu_key);
+
+INSERT INTO role_menus (role_id, menu_key)
+SELECT r.id, 'payments'
 FROM roles r
 WHERE r.name IN ('Admin', 'Owner', 'Depot')
 ON DUPLICATE KEY UPDATE menu_key = VALUES(menu_key);

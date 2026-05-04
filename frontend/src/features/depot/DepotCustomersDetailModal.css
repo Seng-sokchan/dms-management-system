@@ -1,0 +1,36 @@
+/* Depot “customers in depot” read-only popup (not a form) */
+
+.panel.modal-card.depot-modal-card--customers {
+  width: fit-content;
+  max-width: min(92vw, 48rem);
+  min-width: min(16rem, 90vw);
+  max-height: min(92vh, calc(100vh - 2rem));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.depot-customers-modal__empty {
+  margin: 0 0 0.75rem;
+}
+
+.panel.modal-card.depot-modal-card--customers .depot-customers-modal__table-wrap {
+  flex: 0 1 auto;
+  min-height: 0;
+  max-height: min(72vh, 30rem);
+  overflow: auto;
+  margin-bottom: 0.75rem;
+  width: 100%;
+}
+
+.panel.modal-card.depot-modal-card--customers .depot-customers-modal__table-wrap .data-table {
+  width: max-content;
+  max-width: 100%;
+  min-width: min(100%, 12rem);
+}
+
+.panel.modal-card.depot-modal-card--customers .depot-customers-modal__footer {
+  flex-shrink: 0;
+  margin-top: auto;
+}

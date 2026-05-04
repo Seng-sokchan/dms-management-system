@@ -1,0 +1,5 @@
+/* LoginForm: full-page auth shell (.auth-container / .auth-card) lives in App.css */
+
+.login-form.form {
+  max-width: 100%;
+}

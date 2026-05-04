@@ -1,6 +1,8 @@
 import { useTranslation } from "react-i18next";
 import { useMemo, useState } from "react";
 import { DeliveryAgentForm } from "../features/delivery/DeliveryAgentForm";
+import { Button } from "../components/ui/Button";
+import { DataTable } from "../components/ui/DataTable";
 import { useConfirm } from "../components/ui/ConfirmProvider";
 
 const EMPTY_EDIT = { id: "", name: "", phone: "", vehicleType: "" };
@@ -76,15 +78,14 @@ export function DeliveryAgentsPage({
       <section className="panel entity-list">
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
           <h3 style={{ margin: 0 }}>{t("deliveryAgents.listTitle")}</h3>
-          <button type="button" className="btn-primary" onClick={openCreateModal}>
+          <Button variant="primary" onClick={openCreateModal}>
             {t("deliveryAgents.new", { defaultValue: "New" })}
-          </button>
+          </Button>
         </div>
         {deliveryAgents.length === 0 ? (
           <p className="entity-list-empty">{t("deliveryAgents.empty")}</p>
         ) : (
-          <div className="table-wrap">
-            <table className="data-table">
+          <DataTable>
               <thead>
                 <tr>
                   <th>ID</th>
@@ -103,19 +104,18 @@ export function DeliveryAgentsPage({
                     <td>{d.vehicleType}</td>
                     <td>
                       <div className="row-actions">
-                        <button type="button" className="btn-ghost btn-edit" onClick={() => startEdit(d)}>
+                        <Button variant="ghost" tone="edit" onClick={() => startEdit(d)}>
                           {t("deliveryAgents.edit")}
-                        </button>
-                        <button type="button" className="btn-ghost btn-delete" onClick={() => void handleDelete(d.id)}>
+                        </Button>
+                        <Button variant="ghost" tone="delete" onClick={() => void handleDelete(d.id)}>
                           {t("deliveryAgents.delete")}
-                        </button>
+                        </Button>
                       </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
+          </DataTable>
         )}
       </section>
       {showCreateModal ? (
@@ -130,9 +130,9 @@ export function DeliveryAgentsPage({
               }}
             />
             <div className="row-actions" style={{ marginTop: 12 }}>
-              <button type="button" className="btn-ghost btn-cancel" onClick={closeCreateModal}>
+              <Button variant="ghost" tone="cancel" onClick={closeCreateModal}>
                 {t("deliveryAgents.cancel")}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -172,12 +172,12 @@ export function DeliveryAgentsPage({
               minLength={2}
             />
             <div className="row-actions">
-              <button type="submit" className="btn-primary">
+              <Button variant="primary" type="submit">
                 {t("deliveryAgents.update")}
-              </button>
-              <button type="button" className="btn-ghost btn-cancel" onClick={cancelEdit}>
+              </Button>
+              <Button variant="ghost" tone="cancel" onClick={cancelEdit}>
                 {t("deliveryAgents.cancel")}
-              </button>
+              </Button>
             </div>
           </form>
         </div>

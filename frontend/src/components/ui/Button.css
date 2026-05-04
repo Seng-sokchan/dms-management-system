@@ -1,0 +1,102 @@
+/* Design system — primary, ghost, compact, and ghost tones */
+
+.btn-ghost {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.46rem 0.82rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--t-fast), color var(--t-fast), border-color var(--t-fast), box-shadow var(--t-fast);
+}
+
+.btn-ghost:hover {
+  color: var(--text);
+  background: var(--surface-hover);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-xs);
+}
+
+.btn-ghost.btn-edit {
+  color: #0f766e;
+  background: #f0fdfa;
+  border-color: #99f6e4;
+}
+.btn-ghost.btn-edit:hover {
+  color: #115e59;
+  background: #ccfbf1;
+  border-color: #5eead4;
+  box-shadow: 0 2px 8px rgba(13, 148, 136, 0.14);
+}
+
+.btn-ghost.btn-delete {
+  color: #b91c1c;
+  background: #fff1f2;
+  border-color: #fecdd3;
+}
+.btn-ghost.btn-delete:hover {
+  color: #991b1b;
+  background: #ffe4e6;
+  border-color: #fda4af;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.14);
+}
+
+.btn-ghost.btn-cancel {
+  color: #92400e;
+  background: #fffbeb;
+  border-color: #fcd34d;
+}
+.btn-ghost.btn-cancel:hover {
+  color: #78350f;
+  background: #fef3c7;
+  border-color: #fbbf24;
+}
+
+button.btn-primary,
+button[type="submit"].btn-primary,
+.btn-primary {
+  border: none;
+  padding: 0.6rem 1.2rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: #fff;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.28), 0 1px 3px rgba(37, 99, 235, 0.18);
+  transition: filter var(--t-fast), transform var(--t-fast), box-shadow var(--t-fast);
+}
+
+button.btn-primary:hover, .btn-primary:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+  box-shadow: 0 5px 16px rgba(37, 99, 235, 0.38), 0 2px 6px rgba(37, 99, 235, 0.22);
+}
+
+button.btn-primary:active, .btn-primary:active {
+  transform: translateY(0);
+  filter: brightness(0.97);
+}
+
+button.btn-sm {
+  font-size: 0.775rem;
+  padding: 0.4rem 0.72rem;
+  border: none;
+  font-weight: 700;
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  color: #dde8f5;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: transform var(--t-fast), box-shadow var(--t-fast), filter var(--t-fast);
+}
+
+button.btn-sm:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.22);
+  filter: brightness(1.12);
+}
+
+button.btn-sm:active { transform: translateY(0); }

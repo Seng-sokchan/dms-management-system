@@ -48,10 +48,12 @@
     "trucksSub": "Fleet master data",
     "orders": "Orders",
     "ordersSub": "Pipeline & delivery",
+    "assignOrders": "Assign orders",
+    "assignOrdersSub": "Truck & route group",
     "orderMovement": "Order movement",
     "orderMovementSub": "Move status",
     "payments": "Payments",
-    "paymentsSub": "Record & history",
+    "paymentsSub": "Order totals by customer & depot",
     "activityLogs": "User Activity Log",
     "activityLogsSub": "Track user actions",
     "borrowedMaterials": "Borrowed materials",
@@ -69,6 +71,7 @@
     "deliveryAgents": "Delivery agents",
     "trucks": "Trucks",
     "orders": "Orders",
+    "assignOrders": "Assign orders",
     "orderMovement": "Order movement",
     "payments": "Payments",
     "activityLogs": "User Activity Log",
@@ -167,7 +170,20 @@
     "delete": "Delete",
     "confirmDelete": "Delete this depot?",
     "listTitle": "Registered depots",
-    "empty": "No depots yet."
+    "empty": "No depots yet.",
+    "customerSummaryTitle": "Customers by depot",
+    "customerSummaryLead": "Customers from the customers list grouped by depot (depot user is the depot account on each row).",
+    "customerCount": "Customers",
+    "customersWithPortalUser": "With portal user",
+    "distinctCustomerUsers": "Distinct customer users",
+    "actions": "Actions",
+    "viewCustomers": "View",
+    "customersInDepotTitle": "Customers in {{depot}}",
+    "customersInDepotEmpty": "No customers are assigned to this depot.",
+    "closeDetail": "Close",
+    "expandColumnLabel": "Expand customer names",
+    "expandCustomerNames": "Show customer names for this depot",
+    "collapseCustomerNames": "Hide customer names for this depot"
   },
   "borrowedMaterials": {
     "title": "Borrowed materials",
@@ -346,6 +362,20 @@
     "saveDelivery": "Save",
     "dash": "—"
   },
+  "assignOrders": {
+    "title": "Assign orders",
+    "lead": "Set the truck and order group for each line. Choosing a value saves immediately.",
+    "truckPanelTitle": "Assign truck",
+    "truckPanelHint": "Pick a truck for each order. Delivery agent follows the truck record.",
+    "groupPanelTitle": "Assign order group",
+    "groupPanelHint": "Pick a route / main-address group for planning and grouping on the Orders page.",
+    "currentTruck": "Current truck",
+    "assignTruck": "Truck",
+    "selectTruckPlaceholder": "— Select truck —",
+    "currentGroup": "Current group",
+    "assignGroup": "Order group",
+    "selectGroupPlaceholder": "— Select group —"
+  },
   "orderMovement": {
     "title": "Order movement",
     "lead": "Move order status forward or backward.",
@@ -356,6 +386,18 @@
     "selectStatus": "— Select status —",
     "currentStatus": "Current status: {{status}}",
     "move": "Move status"
+  },
+  "paymentTotalsPage": {
+    "title": "Payments",
+    "lead": "Order line totals grouped by customer and by the depot that manages each customer.",
+    "byCustomer": "Totals by customer",
+    "byDepot": "Totals by depot",
+    "customer": "Customer",
+    "depot": "Depot",
+    "orders": "Order lines",
+    "total": "Total amount",
+    "currency": "Currency",
+    "empty": "No matching orders yet."
   },
   "payments": {
     "title": "Payments",
@@ -426,11 +468,10 @@
   },
   "enums": {
     "orderStatus": {
-      "NEW_ORDER": "New order",
-      "OWNER_PREPARING": "Owner preparing and assigning truck",
-      "SENT_TO_LOGISTICS_SUPPLIER": "Sent to logistics supplier",
-      "OUT_FOR_DELIVERY": "Out for delivery",
-      "RECEIVED_BY_CUSTOMER": "Received by customer"
+      "New_Order": "New order",
+      "Owner Preparing": "Owner preparing",
+      "Ready_For_Delivery": "Ready for delivery",
+      "Recieve_By_Customer": "Received by customer"
     },
     "paymentStatus": {
       "UNPAID": "Unpaid",
@@ -520,6 +561,7 @@
     "confirmDelivery": "Delivery confirmation failed",
     "updateStatus": "Status update failed",
     "updateOrderGroup": "Order group update failed",
+    "updateTruckAssignment": "Truck assignment failed",
     "deleteOrder": "Delete order failed",
     "createPayment": "Create payment failed",
     "createUser": "Create user failed",
@@ -567,9 +609,9 @@
     "deliveryConfirmed": "Delivery confirmed",
     "statusUpdated": "Status updated",
     "orderGroupAssigned": "Order group assigned",
+    "truckAssigned": "Truck assignment saved",
     "orderDeleted": "Order deleted",
-    "paymentRecorded": "Payment recorded"
-    ,
+    "paymentRecorded": "Payment recorded",
     "userAdded": "User created",
     "userUpdated": "User updated",
     "userDeleted": "User deactivated",

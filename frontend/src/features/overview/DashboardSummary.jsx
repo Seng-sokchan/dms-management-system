@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
-import { ORDER_STATUS, PAYMENT_STATUS } from "../../services/adminApi";
+import { ORDER_STATUS } from "../../services/adminApi";
+import "./DashboardSummary.css";
 
 export function DashboardSummary({ summary, statuses }) {
   const { t } = useTranslation();
@@ -23,10 +24,9 @@ export function DashboardSummary({ summary, statuses }) {
     );
   }
 
-  const { totals, statusSummary, paymentSummary } = summary;
+  const { totals, statusSummary } = summary;
   const statusOptions = Array.isArray(statuses) && statuses.length ? statuses.map((row) => row.name) : ORDER_STATUS;
   const orderStatusLabels = t("enums.orderStatus", { returnObjects: true });
-  const paymentStatusLabels = t("enums.paymentStatus", { returnObjects: true });
 
   return (
     <div className="summary-grid">
@@ -41,18 +41,6 @@ export function DashboardSummary({ summary, statuses }) {
         <p className="stat-subvalue">KHR {formatKhr(totals.totalRevenueKhr)}</p>
         <p className="stat-hint">{t("dashboard.revenueHint")}</p>
       </article>
-      <article className="stat-card">
-        <p className="stat-label">{t("dashboard.collected")}</p>
-        <p className="stat-value stat-value--ok">${formatMoney(totals.totalCollected)}</p>
-        <p className="stat-subvalue">KHR {formatKhr(totals.totalCollectedKhr)}</p>
-        <p className="stat-hint">{t("dashboard.collectedHint")}</p>
-      </article>
-      <article className="stat-card">
-        <p className="stat-label">{t("dashboard.outstanding")}</p>
-        <p className="stat-value stat-value--warn">${formatMoney(totals.outstandingBalance)}</p>
-        <p className="stat-subvalue">KHR {formatKhr(totals.outstandingBalanceKhr)}</p>
-        <p className="stat-hint">{t("dashboard.outstandingHint")}</p>
-      </article>
 
       {statusSummary ? (
         <article className="insight-card">
@@ -62,22 +50,6 @@ export function DashboardSummary({ summary, statuses }) {
               <li key={s}>
                 <span>{typeof orderStatusLabels === "object" && orderStatusLabels?.[s] ? orderStatusLabels[s] : s}</span>
                 <strong>{statusSummary[s] ?? 0}</strong>
-              </li>
-            ))}
-          </ul>
-        </article>
-      ) : null}
-
-      {paymentSummary ? (
-        <article className="insight-card">
-          <h3 className="insight-title">{t("dashboard.byPayment")}</h3>
-          <ul className="insight-list insight-list--compact">
-            {PAYMENT_STATUS.map((s) => (
-              <li key={s}>
-                <span>
-                  {typeof paymentStatusLabels === "object" && paymentStatusLabels?.[s] ? paymentStatusLabels[s] : s}
-                </span>
-                <strong>{paymentSummary[s] ?? 0}</strong>
               </li>
             ))}
           </ul>

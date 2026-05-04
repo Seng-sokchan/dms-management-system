@@ -1,4 +1,6 @@
 ﻿import { useTranslation } from "react-i18next";
+import { Button } from "../../components/ui/Button";
+import "./CustomerForm.css";
 
 export function CustomerForm({
   addresses = [],
@@ -10,7 +12,7 @@ export function CustomerForm({
   const { t } = useTranslation();
 
   return (
-    <form className="panel form" onSubmit={onCreateCustomer}>
+    <form className="panel form customer-form" onSubmit={onCreateCustomer}>
       <h3>{t("customers.formTitle")}</h3>
       <label className="form-label" htmlFor="customer-name">
         {t("customers.name")}
@@ -76,9 +78,9 @@ export function CustomerForm({
         onChange={(event) => setNewCustomer({ ...newCustomer, subAddress: event.target.value })}
         placeholder={t("customers.subAddress")}
       />
-      <button type="submit" className="btn-primary">
+      <Button variant="primary" type="submit">
         {t("customers.save")}
-      </button>
+      </Button>
     </form>
   );
 }

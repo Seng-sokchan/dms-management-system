@@ -27,15 +27,7 @@ function mapOrder(row) {
     truckCode: row.truck_code != null ? row.truck_code : null,
     truckPlateNo: row.truck_plate_no != null ? row.truck_plate_no : null,
     deliveryAgentName: row.delivery_agent_name != null ? row.delivery_agent_name : null,
-    deliveredQty: row.delivered_qty,
-    lossQty: row.loss_qty,
-    remainingQty: row.remaining_qty,
-    discrepancy: row.discrepancy,
     amountTotal: Number(row.amount_total),
-    amountPaid: Number(row.amount_paid),
-    paymentStatus: row.payment_status,
-    deliveryProofType: row.delivery_proof_type || null,
-    deliveryProofValue: row.delivery_proof_value || null,
     status: row.status,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -137,20 +129,6 @@ function mapItem(row) {
   };
 }
 
-function mapPayment(row) {
-  return {
-    id: String(row.id),
-    orderId: String(row.order_id),
-    orderCustomerName: row.order_customer_name != null ? row.order_customer_name : null,
-    orderItemName: row.order_item_name != null ? row.order_item_name : null,
-    amount: Number(row.amount),
-    method: Number(row.method),
-    methodName: row.method_name != null ? row.method_name : null,
-    note: row.note,
-    createdAt: row.created_at,
-  };
-}
-
 function mapUser(row) {
   return {
     id: String(row.id),
@@ -195,7 +173,6 @@ module.exports = {
   mapCatalog,
   mapItem,
   mapAddress,
-  mapPayment,
   mapUser,
   mapBorrowMaterial,
   mapCustomerBorrowedMaterial,

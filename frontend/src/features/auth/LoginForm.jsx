@@ -1,5 +1,8 @@
 ﻿import { useTranslation } from "react-i18next";
+import { Button } from "../../components/ui/Button";
 import { LanguageSwitcher } from "../../components/ui/LanguageSwitcher";
+import "./AuthShell.css";
+import "./LoginForm.css";
 
 export function LoginForm({ auth, setAuth, onSubmit, message, messageVariant = "success" }) {
   const { t } = useTranslation();
@@ -13,7 +16,7 @@ export function LoginForm({ auth, setAuth, onSubmit, message, messageVariant = "
           {t("auth.title")}
         </h1>
         <p className="muted">{t("auth.blurb")}</p>
-        <form className="form" onSubmit={onSubmit}>
+        <form className="form login-form" onSubmit={onSubmit}>
           <label className="form-label" htmlFor="login-username">
             {t("auth.username")}
           </label>
@@ -37,9 +40,9 @@ export function LoginForm({ auth, setAuth, onSubmit, message, messageVariant = "
             autoComplete="current-password"
             aria-label={t("auth.password")}
           />
-          <button type="submit" className="btn-primary form-submit">
+          <Button variant="primary" type="submit" className="form-submit">
             {t("auth.signIn")}
-          </button>
+          </Button>
         </form>
         {message ? (
           <p className={`message${messageVariant === "error" ? " message--error" : ""}`}>{message}</p>

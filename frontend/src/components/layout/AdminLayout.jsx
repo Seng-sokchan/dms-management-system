@@ -3,7 +3,9 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "../ui/LanguageSwitcher";
 import { useConfirm } from "../ui/ConfirmProvider";
+import { Button } from "../ui/Button";
 import { MENU_ITEMS } from "../../constants/menus";
+import "./AdminLayout.css";
 
 /* ── Page title map ── */
 const PAGE_PATH_MAP = {
@@ -18,6 +20,7 @@ const PAGE_PATH_MAP = {
   "/delivery-agents": "deliveryAgents",
   "/trucks":          "trucks",
   "/orders":          "orders",
+  "/assign-orders":   "assignOrders",
   "/order-movement":  "orderMovement",
   "/payments":        "payments",
   "/users":           "users",
@@ -100,6 +103,16 @@ const NAV_ICONS = {
       <line x1="9"  y1="16" x2="13" y2="16" />
     </svg>
   ),
+  assignOrders: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h3" />
+      <path d="M9 12h4M9 16h3" />
+      <rect x="14" y="8" width="7" height="5" rx="1" />
+      <path d="M21 11h1.5l1 2v2h-2.5V11z" />
+      <circle cx="16" cy="17" r="1.5" />
+      <circle cx="20" cy="17" r="1.5" />
+    </svg>
+  ),
   orderMovement: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M17 3h4v4" />
@@ -112,8 +125,8 @@ const NAV_ICONS = {
   ),
   payments: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="1" y="4" width="22" height="16" rx="2" />
-      <line x1="1" y1="10" x2="23" y2="10" />
+      <rect x="2" y="5" width="20" height="14" rx="2" />
+      <line x1="2" y1="10" x2="22" y2="10" />
     </svg>
   ),
   users: (
@@ -154,17 +167,12 @@ const NAV_GROUPS = [
   {
     labelKey: "nav.sectionOrders",
     defaultLabel: "Orders",
-    keys: ["newOrder", "catalogs", "items", "customers", "borrowedMaterials", "depots", "producers", "orders", "orderMovement"],
+    keys: ["newOrder", "catalogs", "items", "customers", "borrowedMaterials", "depots", "producers", "orders", "assignOrders", "orderMovement", "payments"],
   },
   {
     labelKey: "nav.sectionFulfillment",
     defaultLabel: "Fulfillment",
     keys: ["deliveryAgents", "trucks"],
-  },
-  {
-    labelKey: "nav.sectionFinance",
-    defaultLabel: "Finance",
-    keys: ["payments"],
   },
   {
     labelKey: "nav.sectionAdmin",
@@ -322,9 +330,9 @@ export function AdminLayout({ user, onLogout, flash, onFlashDismiss, children = 
                 <span className="admin-user-role">{roleLabel(t, user?.role)}</span>
               </div>
             </div>
-            <button type="button" className="btn-ghost" onClick={() => void handleLogout()}>
+            <Button variant="ghost" onClick={() => void handleLogout()}>
               {t("auth.signOut")}
-            </button>
+            </Button>
           </div>
         </header>
 

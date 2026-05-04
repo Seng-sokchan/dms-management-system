@@ -14,16 +14,19 @@ const orderGroupRepository = require("../repositories/orderGroups");
 const customerRepository = require("../repositories/customers");
 const itemRepository = require("../repositories/items");
 const truckRepository = require("../repositories/trucks");
+const producerRepository = require("../repositories/producers");
 const lookupRepository = require("../repositories/lookups");
 const overviewRepository = require("../repositories/overview");
 const { BadRequestError, NotFoundError, ForbiddenError } = require("../errors");
 
+/** New orders always use this producer; truck/agent are set later via assign. */
+const DEFAULT_NEW_ORDER_PRODUCER_ID = "1";
+
 const STATUS_UPDATE_ROLES = new Set(["Admin", "Owner", "Logistics", "Delivery"]);
 const STATUS_OWNER_BY_TARGET = {
-  OWNER_PREPARING: new Set(["Admin", "Owner"]),
-  SENT_TO_LOGISTICS_SUPPLIER: new Set(["Admin", "Owner"]),
-  OUT_FOR_DELIVERY: new Set(["Admin", "Logistics", "Delivery"]),
-  RECEIVED_BY_CUSTOMER: new Set(["Admin", "Delivery"]),
+  "Owner Preparing": new Set(["Admin", "Owner"]),
+  Ready_For_Delivery: new Set(["Admin", "Owner", "Logistics", "Delivery"]),
+  Recieve_By_Customer: new Set(["Admin", "Delivery"]),
 };
 
 // ---------------------------------------------------------------------------
@@ -91,10 +94,8 @@ async function create(payload) {
   const item = await itemRepository.getItemById(payload.itemId);
   if (!item) throw new BadRequestError("Item not found");
 
-  if (payload.truckId) {
-    const truck = await truckRepository.getTruckById(payload.truckId);
-    if (!truck) throw new BadRequestError("Truck not found");
-  }
+  const producer = await producerRepository.getProducerById(DEFAULT_NEW_ORDER_PRODUCER_ID);
+  if (!producer) throw new BadRequestError("Default producer not found");
 
   const unitPrice = payload.unitPrice ?? item.defaultUnitPriceUsd;
   const currency = String(payload.currency || "USD").toUpperCase() === "KHR" ? "KHR" : "USD";
@@ -106,8 +107,8 @@ async function create(payload) {
     orderedQty: payload.orderedQty,
     unitPrice,
     currency,
-    producerId: payload.producerId ?? null,
-    truckId: payload.truckId ?? null,
+    producerId: DEFAULT_NEW_ORDER_PRODUCER_ID,
+    truckId: null,
   });
 }
 
@@ -168,40 +169,24 @@ async function updateStatus(orderId, nextStatus, { user, allowReverse = false } 
 }
 
 /**
- * Confirm a delivery. Enforces the qty arithmetic invariant:
- * delivered + loss + remaining <= ordered.
+ * Confirm a delivery: moves the order to Recieve_By_Customer.
  */
-async function confirmDelivery(orderId, payload) {
+async function confirmDelivery(orderId) {
   const order = await orderRepository.getOrderById(orderId);
   if (!order) throw new NotFoundError("Order not found");
 
-  const total = payload.deliveredQty + payload.lossQty + payload.remainingQty;
-  if (total > order.orderedQty) {
-    throw new BadRequestError(
-      "Invalid quantities: delivered + loss + remaining cannot exceed ordered quantity",
-      { orderedQty: order.orderedQty, total },
-    );
-  }
-
-  return orderRepository.confirmOrderDelivery(
-    orderId,
-    payload.deliveredQty,
-    payload.lossQty,
-    payload.remainingQty,
-    payload.deliveryProofType,
-    payload.deliveryProofValue,
-  );
+  return orderRepository.confirmOrderDelivery(orderId);
 }
 
 /**
- * Delete an order. Only NEW_ORDER is deletable.
+ * Delete an order. Only New_Order is deletable.
  */
 async function remove(orderId) {
   const order = await orderRepository.getOrderById(orderId);
   if (!order) throw new NotFoundError("Order not found");
 
-  if (order.status !== "NEW_ORDER") {
-    throw new BadRequestError("Only NEW_ORDER can be deleted");
+  if (order.status !== "New_Order") {
+    throw new BadRequestError("Only New_Order can be deleted");
   }
 
   const result = await orderRepository.deleteOrder(orderId);

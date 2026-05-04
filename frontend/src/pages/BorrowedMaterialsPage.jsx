@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Button } from "../components/ui/Button";
+import { DataTable } from "../components/ui/DataTable";
 import { useConfirm } from "../components/ui/ConfirmProvider";
 
 const EMPTY_MATERIAL_EDIT = { id: "", name: "", unit: "", note: "" };
@@ -159,9 +161,9 @@ export function BorrowedMaterialsPage({
             {t("borrowedMaterials.materialsListTitle", { defaultValue: "Borrow materials" })}
           </h3>
           {canManageMaterials ? (
-            <button type="button" className="btn-primary" onClick={openMaterialModal}>
+            <Button variant="primary" onClick={openMaterialModal}>
               {t("borrowedMaterials.newMaterial", { defaultValue: "New material" })}
-            </button>
+            </Button>
           ) : null}
         </div>
         {borrowMaterials.length === 0 ? (
@@ -169,8 +171,7 @@ export function BorrowedMaterialsPage({
             {t("borrowedMaterials.materialsEmpty", { defaultValue: "No borrow materials yet." })}
           </p>
         ) : (
-          <div className="table-wrap">
-            <table className="data-table">
+          <DataTable>
               <thead>
                 <tr>
                   <th>ID</th>
@@ -190,28 +191,27 @@ export function BorrowedMaterialsPage({
                     {canManageMaterials ? (
                       <td>
                         <div className="row-actions">
-                          <button
-                            type="button"
-                            className="btn-ghost btn-edit"
+                          <Button
+                            variant="ghost"
+                            tone="edit"
                             onClick={() => startEditMaterial(material)}
                           >
                             {t("borrowedMaterials.edit", { defaultValue: "Edit" })}
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-ghost btn-delete"
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            tone="delete"
                             onClick={() => void handleDeleteMaterial(material.id)}
                           >
                             {t("borrowedMaterials.delete", { defaultValue: "Delete" })}
-                          </button>
+                          </Button>
                         </div>
                       </td>
                     ) : null}
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
+          </DataTable>
         )}
       </section>
 
@@ -230,9 +230,8 @@ export function BorrowedMaterialsPage({
               defaultValue: "Customer borrowings (current balance)",
             })}
           </h3>
-          <button
-            type="button"
-            className="btn-primary"
+          <Button
+            variant="primary"
             onClick={openBorrowModal}
             disabled={borrowMaterials.length === 0 || customers.length === 0}
             title={
@@ -244,15 +243,14 @@ export function BorrowedMaterialsPage({
             }
           >
             {t("borrowedMaterials.setBorrowing", { defaultValue: "Set borrowing" })}
-          </button>
+          </Button>
         </div>
         {customerBorrowedMaterials.length === 0 ? (
           <p className="entity-list-empty">
             {t("borrowedMaterials.borrowingsEmpty", { defaultValue: "No customer borrowings yet." })}
           </p>
         ) : (
-          <div className="table-wrap">
-            <table className="data-table">
+          <DataTable>
               <thead>
                 <tr>
                   <th>{t("borrowedMaterials.customer", { defaultValue: "Customer" })}</th>
@@ -273,27 +271,26 @@ export function BorrowedMaterialsPage({
                     <td>{row.note || "—"}</td>
                     <td>
                       <div className="row-actions">
-                        <button
-                          type="button"
-                          className="btn-ghost btn-edit"
+                        <Button
+                          variant="ghost"
+                          tone="edit"
                           onClick={() => startEditBorrow(row)}
                         >
                           {t("borrowedMaterials.edit", { defaultValue: "Edit" })}
-                        </button>
-                        <button
-                          type="button"
-                          className="btn-ghost btn-delete"
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          tone="delete"
                           onClick={() => void handleDeleteBorrow(row.customerId, row.materialId)}
                         >
                           {t("borrowedMaterials.remove", { defaultValue: "Remove" })}
-                        </button>
+                        </Button>
                       </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
+          </DataTable>
         )}
       </section>
 
@@ -337,12 +334,12 @@ export function BorrowedMaterialsPage({
               onChange={(event) => setNewBorrowMaterial((prev) => ({ ...prev, note: event.target.value }))}
             />
             <div className="row-actions">
-              <button type="submit" className="btn-primary">
+              <Button variant="primary" type="submit">
                 {t("borrowedMaterials.save", { defaultValue: "Save" })}
-              </button>
-              <button type="button" className="btn-ghost btn-cancel" onClick={closeMaterialModal}>
+              </Button>
+              <Button variant="ghost" tone="cancel" onClick={closeMaterialModal}>
                 {t("borrowedMaterials.cancel", { defaultValue: "Cancel" })}
-              </button>
+              </Button>
             </div>
           </form>
         </div>
@@ -381,12 +378,12 @@ export function BorrowedMaterialsPage({
               onChange={(event) => setEditingMaterial((prev) => ({ ...prev, note: event.target.value }))}
             />
             <div className="row-actions">
-              <button type="submit" className="btn-primary">
+              <Button variant="primary" type="submit">
                 {t("borrowedMaterials.update", { defaultValue: "Update" })}
-              </button>
-              <button type="button" className="btn-ghost btn-cancel" onClick={cancelEditMaterial}>
+              </Button>
+              <Button variant="ghost" tone="cancel" onClick={cancelEditMaterial}>
                 {t("borrowedMaterials.cancel", { defaultValue: "Cancel" })}
-              </button>
+              </Button>
             </div>
           </form>
         </div>
@@ -463,12 +460,12 @@ export function BorrowedMaterialsPage({
               onChange={(event) => setNewCustomerBorrow((prev) => ({ ...prev, note: event.target.value }))}
             />
             <div className="row-actions">
-              <button type="submit" className="btn-primary">
+              <Button variant="primary" type="submit">
                 {t("borrowedMaterials.save", { defaultValue: "Save" })}
-              </button>
-              <button type="button" className="btn-ghost btn-cancel" onClick={closeBorrowModal}>
+              </Button>
+              <Button variant="ghost" tone="cancel" onClick={closeBorrowModal}>
                 {t("borrowedMaterials.cancel", { defaultValue: "Cancel" })}
-              </button>
+              </Button>
             </div>
           </form>
         </div>
@@ -525,12 +522,12 @@ export function BorrowedMaterialsPage({
               onChange={(event) => setEditingBorrow((prev) => ({ ...prev, note: event.target.value }))}
             />
             <div className="row-actions">
-              <button type="submit" className="btn-primary">
+              <Button variant="primary" type="submit">
                 {t("borrowedMaterials.update", { defaultValue: "Update" })}
-              </button>
-              <button type="button" className="btn-ghost btn-cancel" onClick={cancelEditBorrow}>
+              </Button>
+              <Button variant="ghost" tone="cancel" onClick={cancelEditBorrow}>
                 {t("borrowedMaterials.cancel", { defaultValue: "Cancel" })}
-              </button>
+              </Button>
             </div>
           </form>
         </div>

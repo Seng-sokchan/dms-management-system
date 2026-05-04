@@ -12,6 +12,7 @@ const {
   listStatuses,
   listOrderGroups,
   listOrders,
+  listOrderPaymentTotals,
   createOrder,
   assignOrder,
   updateOrderStatus,
@@ -37,6 +38,12 @@ const router = express.Router();
 router.get("/statuses", requireAuth, listStatuses);
 router.get("/order-groups", requireAuth, listOrderGroups);
 router.get("/orders", requireAuth, listOrders);
+router.get(
+  "/orders/payment-totals",
+  requireAuth,
+  requireRoles("Admin", "Owner", "Depot"),
+  listOrderPaymentTotals,
+);
 
 router.post(
   "/orders",

@@ -1,26 +1,21 @@
 const ORDER_STATUS = [
-  "NEW_ORDER",
-  "OWNER_PREPARING",
-  "SENT_TO_LOGISTICS_SUPPLIER",
-  "OUT_FOR_DELIVERY",
-  "RECEIVED_BY_CUSTOMER",
+  "New_Order",
+  "Owner Preparing",
+  "Ready_For_Delivery",
+  "Recieve_By_Customer",
 ];
-
-const PAYMENT_STATUS = ["UNPAID", "PAID"];
 
 const ROLES = ["Admin", "Owner", "Logistics", "Delivery", "Customer", "Depot"];
 
 const NEXT_STATUS = {
-  NEW_ORDER: ["OWNER_PREPARING"],
-  OWNER_PREPARING: ["SENT_TO_LOGISTICS_SUPPLIER"],
-  SENT_TO_LOGISTICS_SUPPLIER: ["OUT_FOR_DELIVERY"],
-  OUT_FOR_DELIVERY: ["RECEIVED_BY_CUSTOMER"],
-  RECEIVED_BY_CUSTOMER: [],
+  "New_Order": ["Owner Preparing"],
+  "Owner Preparing": ["Ready_For_Delivery"],
+  Ready_For_Delivery: ["Recieve_By_Customer"],
+  Recieve_By_Customer: [],
 };
 
 module.exports = {
   ORDER_STATUS,
-  PAYMENT_STATUS,
   ROLES,
   NEXT_STATUS,
 };

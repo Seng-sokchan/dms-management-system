@@ -1,4 +1,6 @@
 ﻿import { useTranslation } from "react-i18next";
+import { Button } from "../../components/ui/Button";
+import "./CreateOrderForm.css";
 
 export function CreateOrderForm({
   customers = [],
@@ -27,7 +29,7 @@ export function CreateOrderForm({
   const catalogValue = newOrder.itemId && items.some((it) => it.id === newOrder.itemId) ? newOrder.itemId : "";
 
   return (
-    <form className="panel form" onSubmit={onCreateOrder}>
+    <form className="panel form create-order-form" onSubmit={onCreateOrder}>
       <h3>{t("createOrder.formTitle")}</h3>
       <label className="form-label" htmlFor="order-customer">
         {t("createOrder.customerName")}
@@ -73,9 +75,13 @@ export function CreateOrderForm({
         placeholder={t("createOrder.orderedQty")}
         required
       />
-      <button type="submit" className="btn-primary" disabled={items.length === 0 || customers.length === 0}>
+      <Button
+        variant="primary"
+        type="submit"
+        disabled={items.length === 0 || customers.length === 0}
+      >
         {t("createOrder.submit")}
-      </button>
+      </Button>
       {customers.length === 0 ? <p className="entity-list-empty">{t("createOrder.noCustomersHint")}</p> : null}
       {items.length === 0 ? <p className="entity-list-empty">{t("createOrder.noItemsHint")}</p> : null}
     </form>

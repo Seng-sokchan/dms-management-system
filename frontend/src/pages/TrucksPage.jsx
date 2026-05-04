@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Button } from "../components/ui/Button";
+import { DataTable } from "../components/ui/DataTable";
 import { useConfirm } from "../components/ui/ConfirmProvider";
 
 const EMPTY_EDIT = { id: "", code: "", plateNo: "", deliveryAgentId: "", capacityNote: "" };
@@ -82,15 +84,14 @@ export function TrucksPage({
       <section className="panel entity-list">
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
           <h3 style={{ margin: 0 }}>{t("trucks.listTitle")}</h3>
-          <button type="button" className="btn-primary" onClick={openCreateModal}>
+          <Button variant="primary" onClick={openCreateModal}>
             {t("trucks.new", { defaultValue: "New" })}
-          </button>
+          </Button>
         </div>
         {trucks.length === 0 ? (
           <p className="entity-list-empty">{t("trucks.empty")}</p>
         ) : (
-          <div className="table-wrap">
-            <table className="data-table">
+          <DataTable>
               <thead>
                 <tr>
                   <th>ID</th>
@@ -111,15 +112,14 @@ export function TrucksPage({
                     <td>{truck.capacityNote || t("orders.dash")}</td>
                     <td>
                       <div className="row-actions">
-                        <button type="button" className="btn-ghost btn-edit" onClick={() => startEdit(truck)}>{t("trucks.edit")}</button>
-                        <button type="button" className="btn-ghost btn-delete" onClick={() => void handleDelete(truck.id)}>{t("trucks.delete")}</button>
+                        <Button variant="ghost" tone="edit" onClick={() => startEdit(truck)}>{t("trucks.edit")}</Button>
+                        <Button variant="ghost" tone="delete" onClick={() => void handleDelete(truck.id)}>{t("trucks.delete")}</Button>
                       </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
+          </DataTable>
         )}
       </section>
       {showCreateModal ? (
@@ -150,8 +150,8 @@ export function TrucksPage({
             <label className="form-label" htmlFor="truck-capacity">{t("trucks.capacityNote")}</label>
             <input id="truck-capacity" value={newTruck.capacityNote} onChange={(e) => setNewTruck({ ...newTruck, capacityNote: e.target.value })} />
             <div className="row-actions">
-              <button type="submit" className="btn-primary">{t("trucks.save")}</button>
-              <button type="button" className="btn-ghost btn-cancel" onClick={closeCreateModal}>{t("trucks.cancel")}</button>
+              <Button variant="primary" type="submit">{t("trucks.save")}</Button>
+              <Button variant="ghost" tone="cancel" onClick={closeCreateModal}>{t("trucks.cancel")}</Button>
             </div>
           </form>
         </div>
@@ -181,8 +181,8 @@ export function TrucksPage({
             <label className="form-label" htmlFor="truck-edit-capacity">{t("trucks.capacityNote")}</label>
             <input id="truck-edit-capacity" value={editingTruck.capacityNote} onChange={(e) => setEditingTruck({ ...editingTruck, capacityNote: e.target.value })} />
             <div className="row-actions">
-              <button type="submit" className="btn-primary">{t("trucks.update")}</button>
-              <button type="button" className="btn-ghost btn-cancel" onClick={cancelEdit}>{t("trucks.cancel")}</button>
+              <Button variant="primary" type="submit">{t("trucks.update")}</Button>
+              <Button variant="ghost" tone="cancel" onClick={cancelEdit}>{t("trucks.cancel")}</Button>
             </div>
           </form>
         </div>

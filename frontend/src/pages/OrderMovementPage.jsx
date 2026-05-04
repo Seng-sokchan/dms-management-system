@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Button } from "../components/ui/Button";
 
 export function OrderMovementPage({ orders = [], statuses = [], onMoveStatus }) {
   const { t } = useTranslation();
@@ -57,9 +58,9 @@ export function OrderMovementPage({ orders = [], statuses = [], onMoveStatus }) 
             </p>
           ) : null}
 
-          <button type="submit" className="btn-primary">
+          <Button variant="primary" type="submit">
             {t("orderMovement.move", { defaultValue: "Move status" })}
-          </button>
+          </Button>
         </form>
       </section>
     </section>

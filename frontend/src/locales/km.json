@@ -48,10 +48,12 @@
     "trucksSub": "ទិន្នន័យគោលរថយន្ត",
     "orders": "ការកម្មង់",
     "ordersSub": "ខ្សែផលិតកម្ម & ដឹកជញ្ជូន",
+    "assignOrders": "កំណត់ការកម្មង់",
+    "assignOrdersSub": "ឡាន & ក្រុមផ្លូវ",
     "orderMovement": "ផ្លាស់ទីការកម្មង់",
     "orderMovementSub": "ប្តូរស្ថានភាព",
     "payments": "ការទូទាត់",
-    "paymentsSub": "កត់ត្រា & ប្រវត្តិ",
+    "paymentsSub": "សរុបតាមអតិថិជន និងឃ្លាំង",
     "activityLogs": "កំណត់ហេតុសកម្មភាពអ្នកប្រើ",
     "activityLogsSub": "តាមដានសកម្មភាពអ្នកប្រើ",
     "borrowedMaterials": "សម្ភារៈខ្ចី",
@@ -69,6 +71,7 @@
     "deliveryAgents": "ភ្នាក់ងារដឹកជញ្ជូន",
     "trucks": "ឡានដឹកទំនិញ",
     "orders": "ការកម្មង់",
+    "assignOrders": "កំណត់ការកម្មង់",
     "orderMovement": "ផ្លាស់ទីការកម្មង់",
     "payments": "ការទូទាត់",
     "activityLogs": "កំណត់ហេតុសកម្មភាពអ្នកប្រើ",
@@ -167,7 +170,20 @@
     "delete": "លុប",
     "confirmDelete": "តើអ្នកចង់លុបឃ្លាំងនេះមែនទេ?",
     "listTitle": "ឃ្លាំងដែលបានចុះឈ្មោះ",
-    "empty": "មិនទាន់មានឃ្លាំងទេ។"
+    "empty": "មិនទាន់មានឃ្លាំងទេ។",
+    "customerSummaryTitle": "អតិថិជនតាមឃ្លាំង",
+    "customerSummaryLead": "អតិថិជនពីបញ្ជីអតិថិជន ដែលដាក់ក្រុមតាមឃ្លាំង (Depot user គឺគណនីឃ្លាំងនីមួយៗ)។",
+    "customerCount": "អតិថិជន",
+    "customersWithPortalUser": "មានគណនី portal",
+    "distinctCustomerUsers": "អ្នកប្រើអតិថិជនខុសគ្នា",
+    "actions": "សកម្មភាព",
+    "viewCustomers": "មើល",
+    "customersInDepotTitle": "អតិថិជននៅ {{depot}}",
+    "customersInDepotEmpty": "មិនមានអតិថិជនភ្ជាប់ទៅឃ្លាំងនេះទេ។",
+    "closeDetail": "បិទ",
+    "expandColumnLabel": "ពង្រីកឈ្មោះអតិថិជន",
+    "expandCustomerNames": "បង្ហាញឈ្មោះអតិថិជនសម្រាប់ឃ្លាំងនេះ",
+    "collapseCustomerNames": "លាក់ឈ្មោះអតិថិជនសម្រាប់ឃ្លាំងនេះ"
   },
   "borrowedMaterials": {
     "title": "សម្ភារៈខ្ចី",
@@ -346,6 +362,20 @@
     "saveDelivery": "រក្សាទុក",
     "dash": "—"
   },
+  "assignOrders": {
+    "title": "កំណត់ការកម្មង់",
+    "lead": "កំណត់ឡាន និងក្រុមផ្លូវសម្រាប់បន្ទាត់នីមួយៗ។ ជ្រើសរើសរួចរក្សាទុកភ្លាមៗ។",
+    "truckPanelTitle": "កំណត់ឡានដឹក",
+    "truckPanelHint": "ជ្រើសរើសឡានសម្រាប់រាល់ការកម្មង់។ ភ្នាក់ងារដឹកជញ្ជូនតាមកំណត់ត្រាឡាន។",
+    "groupPanelTitle": "កំណត់ក្រុមការកម្មង់",
+    "groupPanelHint": "ជ្រើសរើសក្រុមផ្លូវ / អាសយដ្ឋានសម្រាប់ផែនការ និងក្រុមនៅទំព័រការកម្មង់។",
+    "currentTruck": "ឡានបច្ចុប្បន្ន",
+    "assignTruck": "ឡាន",
+    "selectTruckPlaceholder": "— ជ្រើសរើសឡាន —",
+    "currentGroup": "ក្រុមបច្ចុប្បន្ន",
+    "assignGroup": "ក្រុមការកម្មង់",
+    "selectGroupPlaceholder": "— ជ្រើសរើសក្រុម —"
+  },
   "orderMovement": {
     "title": "ផ្លាស់ទីការកម្មង់",
     "lead": "អនុញ្ញាតប្ដូរស្ថានភាពការកម្មង់ទៅមុខ ឬ ថយក្រោយ។",
@@ -356,6 +386,18 @@
     "selectStatus": "— ជ្រើសរើសស្ថានភាព —",
     "currentStatus": "ស្ថានភាពបច្ចុប្បន្ន: {{status}}",
     "move": "ប្ដូរស្ថានភាព"
+  },
+  "paymentTotalsPage": {
+    "title": "ការទូទាត់",
+    "lead": "សរុបបន្ទាត់ការកម្មង់តាមអតិថិជន និងតាមឃ្លាំងដែលគ្រប់គ្រងអតិថិជន។",
+    "byCustomer": "សរុបតាមអតិថិជន",
+    "byDepot": "សរុបតាមឃ្លាំង",
+    "customer": "អតិថិជន",
+    "depot": "ឃ្លាំង",
+    "orders": "បន្ទាត់ការកម្មង់",
+    "total": "ចំនួនសរុប",
+    "currency": "រូបិយប័ណ្ណ",
+    "empty": "មិនទាន់មានការកម្មង់ដែលត្រូវគ្នា។"
   },
   "payments": {
     "title": "ការទូទាត់",
@@ -426,11 +468,10 @@
   },
   "enums": {
     "orderStatus": {
-      "NEW_ORDER": "ការកម្មង់ថ្មី",
-      "OWNER_PREPARING": "ម្ចាស់រៀបចំ និងកំណត់ឡាន",
-      "SENT_TO_LOGISTICS_SUPPLIER": "ផ្ញើទៅអ្នកផ្គត់ផ្គង់ឡូជីស្ទិក",
-      "OUT_FOR_DELIVERY": "កំពុងដឹកជញ្ជូន",
-      "RECEIVED_BY_CUSTOMER": "អតិថិជនបានទទួល"
+      "New_Order": "ការកម្មង់ថ្មី",
+      "Owner Preparing": "ម្ចាស់កំពុងរៀបចំ",
+      "Ready_For_Delivery": "រួចរាល់សម្រាប់ដឹកជញ្ជូន",
+      "Recieve_By_Customer": "អតិថិជនបានទទួល"
     },
     "paymentStatus": {
       "UNPAID": "មិនទាន់បង់",
@@ -520,6 +561,7 @@
     "confirmDelivery": "ធានាការដឹកជញ្ជូនបរាជ័យ",
     "updateStatus": "ធ្វើបច្ចុប្បន្នភាពស្ថានភាពបរាជ័យ",
     "updateOrderGroup": "ធ្វើបច្ចុប្បន្នភាពក្រុមការកម្មង់បរាជ័យ",
+    "updateTruckAssignment": "កំណត់ឡានបរាជ័យ",
     "deleteOrder": "លុបការកម្មង់បរាជ័យ",
     "createPayment": "កត់ត្រាការទូទាត់បរាជ័យ",
     "createUser": "បង្កើតអ្នកប្រើបរាជ័យ",
@@ -567,6 +609,7 @@
     "deliveryConfirmed": "បានធានាការដឹកជញ្ជូន",
     "statusUpdated": "បានធ្វើបច្ចុប្បន្នភាពស្ថានភាព",
     "orderGroupAssigned": "បានកំណត់ក្រុមការកម្មង់",
+    "truckAssigned": "បានរក្សាការកំណត់ឡាន",
     "orderDeleted": "បានលុបការកម្មង់",
     "paymentRecorded": "បានកត់ត្រាការទូទាត់",
     "userAdded": "បានបង្កើតអ្នកប្រើ",

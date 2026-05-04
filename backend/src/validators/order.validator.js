@@ -7,7 +7,7 @@
  * `req.body` / `req.params` / `req.query`.
  */
 const { z } = require("zod");
-const { ORDER_STATUS, PAYMENT_STATUS } = require("../constants/general");
+const { ORDER_STATUS } = require("../constants/general");
 
 // Reusable primitives -------------------------------------------------------
 
@@ -36,17 +36,7 @@ const updateOrderStatusSchema = z.object({
   status: z.enum(ORDER_STATUS),
 });
 
-const updatePaymentStatusSchema = z.object({
-  paymentStatus: z.enum(PAYMENT_STATUS),
-});
-
-const confirmDeliverySchema = z.object({
-  deliveredQty: z.number().int().nonnegative(),
-  lossQty: z.number().int().nonnegative().default(0),
-  remainingQty: z.number().int().nonnegative().default(0),
-  deliveryProofType: z.enum(["PHOTO", "SIGNATURE", "OTP"]),
-  deliveryProofValue: z.string().min(1),
-});
+const confirmDeliverySchema = z.object({}).passthrough();
 
 // Param + query schemas -----------------------------------------------------
 
@@ -65,7 +55,6 @@ module.exports = {
   createOrderSchema,
   assignOrderSchema,
   updateOrderStatusSchema,
-  updatePaymentStatusSchema,
   confirmDeliverySchema,
   orderIdParamsSchema,
   listOrdersQuerySchema,

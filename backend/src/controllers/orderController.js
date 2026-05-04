@@ -10,6 +10,7 @@
  * No Zod, no try/catch, no business logic, no repository imports.
  */
 const orderService = require("../services/orderService");
+const paymentTotalsService = require("../services/paymentTotalsService");
 const { success, created } = require("../utils/response");
 const { asyncHandler } = require("../errors");
 
@@ -18,6 +19,11 @@ const { asyncHandler } = require("../errors");
 const listOrders = asyncHandler(async (req, res) => {
   const orders = await orderService.list({ user: req.user });
   return success(res, orders);
+});
+
+const listOrderPaymentTotals = asyncHandler(async (req, res) => {
+  const data = await paymentTotalsService.listOrderPaymentTotals({ user: req.user });
+  return success(res, data);
 });
 
 const listOrderGroups = asyncHandler(async (_req, res) => {
@@ -63,7 +69,7 @@ const moveOrderStatus = asyncHandler(async (req, res) => {
 });
 
 const confirmDelivery = asyncHandler(async (req, res) => {
-  const order = await orderService.confirmDelivery(req.params.id, req.body);
+  const order = await orderService.confirmDelivery(req.params.id);
   return success(res, order);
 });
 
@@ -92,6 +98,7 @@ module.exports = {
   listStatuses,
   listOrderGroups,
   listOrders,
+  listOrderPaymentTotals,
   createOrder,
   assignOrder,
   updateOrderStatus,

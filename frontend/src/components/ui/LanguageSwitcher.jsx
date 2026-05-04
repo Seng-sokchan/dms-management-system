@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { LANG_STORAGE_KEY } from "../../i18n/config";
+import "./LanguageSwitcher.css";
 
 const LANGS = [
   { code: "en", labelKey: "language.en", flag: "/flags/us.svg" },

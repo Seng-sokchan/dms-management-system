@@ -1,4 +1,5 @@
 import { apiClient, authConfig, unwrapApiData } from "../apiClient";
+import { fetchOrderPaymentTotals } from "./orders";
 
 /**
  * Route-aware dashboard load so each page requests only needed data.
@@ -9,15 +10,16 @@ const ROUTE_DATA_MAP = {
   "/catalogs": ["catalogs"],
   "/items": ["catalogs", "items"],
   "/customers": ["customers", "customerUsers", "addresses"],
-  "/depots": ["depots"],
+  "/depots": ["depots", "customers"],
   "/producers": ["producers"],
   "/delivery-agents": ["deliveryAgents"],
   "/trucks": ["trucks", "deliveryAgents"],
   "/users": ["users", "roleMenus"],
   "/activity-logs": ["activityLogs"],
   "/orders": ["orders", "statuses"],
+  "/assign-orders": ["orders", "trucks", "orderGroups"],
   "/order-movement": ["orders", "statuses"],
-  "/payments": ["orders", "payments", "paymentMethods"],
+  "/payments": ["paymentTotals"],
   "/borrowed-materials": ["customers", "borrowMaterials", "customerBorrowedMaterials"],
 };
 
@@ -53,8 +55,6 @@ export async function fetchDashboardData(token, pathname = "/overview") {
     producers: [],
     deliveryAgents: [],
     trucks: [],
-    payments: [],
-    paymentMethods: [],
     catalogs: [],
     items: [],
     orderGroups: [],
@@ -63,6 +63,7 @@ export async function fetchDashboardData(token, pathname = "/overview") {
     activityLogs: [],
     borrowMaterials: [],
     customerBorrowedMaterials: [],
+    paymentTotals: { byCustomer: [], byDepot: [] },
   };
 
   const tasks = [];
@@ -121,16 +122,6 @@ export async function fetchDashboardData(token, pathname = "/overview") {
     const rows = unwrapApiData(res.data);
     data.trucks = Array.isArray(rows) ? rows : [];
   });
-  queue("payments", async () => {
-    const res = await apiClient.get("/payments", config);
-    const rows = unwrapApiData(res.data);
-    data.payments = Array.isArray(rows) ? rows : [];
-  });
-  queue("paymentMethods", async () => {
-    const res = await apiClient.get("/payment-methods", config);
-    const rows = unwrapApiData(res.data);
-    data.paymentMethods = Array.isArray(rows) ? rows : [];
-  });
   queue("catalogs", async () => {
     const res = await apiClient.get("/catalogs", config);
     const rows = unwrapApiData(res.data);
@@ -170,6 +161,9 @@ export async function fetchDashboardData(token, pathname = "/overview") {
     const res = await apiClient.get("/customer-borrowed-materials", config);
     const rows = unwrapApiData(res.data);
     data.customerBorrowedMaterials = Array.isArray(rows) ? rows : [];
+  });
+  queue("paymentTotals", async () => {
+    data.paymentTotals = await fetchOrderPaymentTotals(token);
   });
 
   await Promise.all(tasks);

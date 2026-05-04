@@ -1,10 +1,12 @@
 import { useTranslation } from "react-i18next";
+import { Button } from "../../components/ui/Button";
+import "./ItemForm.css";
 
 export function ItemForm({ catalogs = [], newItem, setNewItem, onCreateItem }) {
   const { t } = useTranslation();
 
   return (
-    <form className="panel form" onSubmit={onCreateItem}>
+    <form className="panel form item-form" onSubmit={onCreateItem}>
       <h3>{t("items.formTitle")}</h3>
       <p className="section-lead section-lead--tight">{t("items.formBlurb")}</p>
       <div className="form-pick-catalog">
@@ -72,9 +74,9 @@ export function ItemForm({ catalogs = [], newItem, setNewItem, onCreateItem }) {
         placeholder={t("items.defaultPriceKhrPh")}
         required
       />
-      <button type="submit" className="btn-primary">
+      <Button variant="primary" type="submit">
         {t("items.save")}
-      </button>
+      </Button>
     </form>
   );
 }

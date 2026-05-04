@@ -1,6 +1,8 @@
 import { useTranslation } from "react-i18next";
 import { useMemo, useState } from "react";
 import { ProducerForm } from "../features/producer/ProducerForm";
+import { Button } from "../components/ui/Button";
+import { DataTable } from "../components/ui/DataTable";
 import { useConfirm } from "../components/ui/ConfirmProvider";
 
 const EMPTY_EDIT = { id: "", name: "", phone: "", capacityNote: "" };
@@ -76,15 +78,14 @@ export function ProducersPage({
       <section className="panel entity-list">
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
           <h3 style={{ margin: 0 }}>{t("producers.listTitle")}</h3>
-          <button type="button" className="btn-primary" onClick={openCreateModal}>
+          <Button variant="primary" onClick={openCreateModal}>
             {t("producers.new", { defaultValue: "New" })}
-          </button>
+          </Button>
         </div>
         {producers.length === 0 ? (
           <p className="entity-list-empty">{t("producers.empty")}</p>
         ) : (
-          <div className="table-wrap">
-            <table className="data-table">
+          <DataTable>
               <thead>
                 <tr>
                   <th>ID</th>
@@ -103,19 +104,18 @@ export function ProducersPage({
                     <td>{p.capacityNote || "—"}</td>
                     <td>
                       <div className="row-actions">
-                        <button type="button" className="btn-ghost btn-edit" onClick={() => startEdit(p)}>
+                        <Button variant="ghost" tone="edit" onClick={() => startEdit(p)}>
                           {t("producers.edit")}
-                        </button>
-                        <button type="button" className="btn-ghost btn-delete" onClick={() => void handleDelete(p.id)}>
+                        </Button>
+                        <Button variant="ghost" tone="delete" onClick={() => void handleDelete(p.id)}>
                           {t("producers.delete")}
-                        </button>
+                        </Button>
                       </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
+          </DataTable>
         )}
       </section>
       {showCreateModal ? (
@@ -130,9 +130,9 @@ export function ProducersPage({
               }}
             />
             <div className="row-actions" style={{ marginTop: 12 }}>
-              <button type="button" className="btn-ghost btn-cancel" onClick={closeCreateModal}>
+              <Button variant="ghost" tone="cancel" onClick={closeCreateModal}>
                 {t("producers.cancel")}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -170,12 +170,12 @@ export function ProducersPage({
               onChange={(event) => setEditingProducer({ ...editingProducer, capacityNote: event.target.value })}
             />
             <div className="row-actions">
-              <button type="submit" className="btn-primary">
+              <Button variant="primary" type="submit">
                 {t("producers.update")}
-              </button>
-              <button type="button" className="btn-ghost btn-cancel" onClick={cancelEdit}>
+              </Button>
+              <Button variant="ghost" tone="cancel" onClick={cancelEdit}>
                 {t("producers.cancel")}
-              </button>
+              </Button>
             </div>
           </form>
         </div>

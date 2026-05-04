@@ -2,6 +2,8 @@ import { useTranslation } from "react-i18next";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ItemForm } from "../features/item/ItemForm";
+import { Button } from "../components/ui/Button";
+import { DataTable } from "../components/ui/DataTable";
 import { useConfirm } from "../components/ui/ConfirmProvider";
 
 function formatUnitPrice(value) {
@@ -109,15 +111,14 @@ export function ItemsPage({
         <section className="panel entity-list">
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
             <h3 style={{ margin: 0 }}>{t("items.listTitle")}</h3>
-            <button type="button" className="btn-primary" onClick={openCreateModal}>
+            <Button variant="primary" onClick={openCreateModal}>
               {t("items.new", { defaultValue: "New" })}
-            </button>
+            </Button>
           </div>
           {items.length === 0 ? (
             <p className="entity-list-empty">{t("items.empty")}</p>
           ) : (
-            <div className="table-wrap">
-              <table className="data-table">
+            <DataTable>
                 <thead>
                   <tr>
                     <th>ID</th>
@@ -140,19 +141,18 @@ export function ItemsPage({
                       <td>{formatUnitPrice(it.defaultUnitPriceKhr)}</td>
                       <td>
                         <div className="row-actions">
-                          <button type="button" className="btn-ghost btn-edit" onClick={() => startEdit(it)}>
+                          <Button variant="ghost" tone="edit" onClick={() => startEdit(it)}>
                             {t("items.edit")}
-                          </button>
-                          <button type="button" className="btn-ghost btn-delete" onClick={() => void handleDelete(it.id)}>
+                          </Button>
+                          <Button variant="ghost" tone="delete" onClick={() => void handleDelete(it.id)}>
                             {t("items.delete")}
-                          </button>
+                          </Button>
                         </div>
                       </td>
                     </tr>
                   ))}
                 </tbody>
-              </table>
-            </div>
+            </DataTable>
           )}
         </section>
       ) : null}
@@ -169,9 +169,9 @@ export function ItemsPage({
               }}
             />
             <div className="row-actions" style={{ marginTop: 12 }}>
-              <button type="button" className="btn-ghost btn-cancel" onClick={closeCreateModal}>
+              <Button variant="ghost" tone="cancel" onClick={closeCreateModal}>
                 {t("items.cancel")}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -239,12 +239,12 @@ export function ItemsPage({
               required
             />
             <div className="row-actions">
-              <button type="submit" className="btn-primary">
+              <Button variant="primary" type="submit">
                 {t("items.update")}
-              </button>
-              <button type="button" className="btn-ghost btn-cancel" onClick={cancelEdit}>
+              </Button>
+              <Button variant="ghost" tone="cancel" onClick={cancelEdit}>
                 {t("items.cancel")}
-              </button>
+              </Button>
             </div>
           </form>
         </div>

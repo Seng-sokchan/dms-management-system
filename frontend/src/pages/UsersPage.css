@@ -1,0 +1,35 @@
+/* Users page — role menu access modal */
+
+.modal-card--menu-access { width: min(700px, 100%); max-height: min(90vh, 44rem); display: flex; flex-direction: column; overflow: hidden; box-shadow: var(--shadow-lg); border: 1px solid var(--border); }
+form.panel.menu-access-form { display: flex; flex-direction: column; gap: 0; padding: 0; }
+.menu-access-modal__header { padding: 1.25rem 1.5rem 1.1rem; border-bottom: 1px solid var(--border); background: linear-gradient(180deg, #f8fafc 0%, #fff 100%); flex-shrink: 0; }
+.menu-access-modal__title { font-size: 1.0625rem; font-weight: 700; margin: 0 0 0.4rem; color: var(--text); letter-spacing: -0.025em; line-height: 1.3; }
+.menu-access-modal__lead { margin: 0; font-size: 0.8125rem; line-height: 1.5; color: var(--text-muted); max-width: 42em; }
+.menu-access-modal__role { padding: 1rem 1.5rem; border-bottom: 1px solid var(--border); background: var(--surface); flex-shrink: 0; }
+.menu-access-modal__role-label { display: block; font-size: 0.6875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); margin: 0 0 0.4rem; }
+.menu-access-modal__select { width: 100%; max-width: 20rem; border: 1px solid var(--border); padding: 0.5rem 0.75rem; font-size: 0.9rem; font-weight: 500; background: var(--surface-muted); border-radius: var(--radius-sm); color: var(--text); cursor: pointer; transition: border var(--t-fast), background var(--t-fast), box-shadow var(--t-fast); }
+.menu-access-modal__select:hover { border-color: var(--border-strong); }
+.menu-access-modal__select:focus { outline: none; border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px rgba(59,130,246,0.12); }
+.menu-access-modal__body { flex: 1; min-height: 0; overflow-y: auto; padding: 1rem 1.5rem 1.15rem; background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%); -webkit-overflow-scrolling: touch; }
+.menu-access-modal__section-label { margin: 0 0 0.65rem; font-size: 0.6875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #94a3b8; }
+.menu-access-grid { display: grid; grid-template-columns: 1fr; gap: 0.45rem; }
+@media (min-width: 520px) { .menu-access-grid { grid-template-columns: 1fr 1fr; } }
+.menu-access-item { display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.7rem 0.85rem; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); box-shadow: var(--shadow-xs); cursor: pointer; transition: border-color var(--t-fast), background var(--t-fast), box-shadow var(--t-fast); margin: 0; font-weight: 400; }
+.menu-access-item:hover { border-color: var(--border-strong); background: #fff; }
+.menu-access-item--on:not(.menu-access-item--locked) { border-color: rgba(59,130,246,0.42); background: rgba(255,255,255,0.96); box-shadow: 0 0 0 1px rgba(59,130,246,0.12), var(--shadow-xs); }
+.menu-access-item--locked { cursor: default; border-style: dashed; background: #f8fafc; opacity: 0.98; }
+.menu-access-item--locked:hover { background: #f8fafc; border-color: var(--border); }
+.menu-access-item__check { position: relative; flex-shrink: 0; width: 1.125rem; height: 1.125rem; margin-top: 0.15rem; }
+.menu-access-item__input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; z-index: 1; }
+.menu-access-item--locked .menu-access-item__input { cursor: not-allowed; pointer-events: none; }
+.menu-access-item__box { position: absolute; inset: 0; display: block; border: 1.5px solid var(--border-strong); border-radius: 5px; background: #fff; pointer-events: none; transition: border var(--t-fast), background var(--t-fast), box-shadow var(--t-fast); }
+.menu-access-item--on .menu-access-item__box { border-color: var(--primary); background: var(--primary); box-shadow: inset 0 0 0 2px rgba(255,255,255,0.25); }
+.menu-access-item--on .menu-access-item__box::after { content: ""; position: absolute; left: 5px; top: 1px; width: 4px; height: 8px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.menu-access-item__input:focus-visible + .menu-access-item__box { outline: 2px solid var(--primary); outline-offset: 2px; }
+.menu-access-item__content { display: flex; flex-direction: column; align-items: flex-start; gap: 0.2rem; min-width: 0; flex: 1; }
+.menu-access-item__row { display: flex; align-items: center; flex-wrap: wrap; gap: 0.35rem; width: 100%; }
+.menu-access-item__title { font-size: 0.875rem; font-weight: 600; color: var(--text); line-height: 1.25; }
+.menu-access-item__sub { font-size: 0.75rem; line-height: 1.35; color: #94a3b8; }
+.menu-access-item__badge { font-size: 0.625rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #64748b; background: #e2e8f0; padding: 0.2rem 0.4rem; border-radius: 4px; line-height: 1; }
+.menu-access-item--on:not(.menu-access-item--locked) .menu-access-item__title { color: #1e3a5f; }
+.menu-access-modal__footer { padding: 0.9rem 1.5rem; border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 0.5rem; background: #fff; flex-shrink: 0; box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.04); }

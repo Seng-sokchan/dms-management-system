@@ -9,7 +9,6 @@ import {
   deleteCatalog,
   createOrder,
   deleteOrder as deleteOrderRequest,
-  createPayment,
   createUser,
   createItem,
   deleteItem,
@@ -105,11 +104,10 @@ export function useAdminDashboard() {
   const [trucks, setTrucks] = useState([]);
   const [catalogs, setCatalogs] = useState([]);
   const [items, setItems] = useState([]);
-  const [payments, setPayments] = useState([]);
-  const [paymentMethods, setPaymentMethods] = useState([]);
   const [orderGroups, setOrderGroups] = useState([]);
   const [borrowMaterials, setBorrowMaterials] = useState([]);
   const [customerBorrowedMaterials, setCustomerBorrowedMaterials] = useState([]);
+  const [paymentTotals, setPaymentTotals] = useState({ byCustomer: [], byDepot: [] });
 
   const [newOrder, setNewOrder] = useState({
     customerId: "",
@@ -141,7 +139,6 @@ export function useAdminDashboard() {
   });
   const [newDelivery, setNewDelivery] = useState({ name: "", phone: "", vehicleType: "" });
   const [newTruck, setNewTruck] = useState({ code: "", plateNo: "", deliveryAgentId: "", capacityNote: "" });
-  const [newPayment, setNewPayment] = useState({ orderId: "", amount: 1, method: "", note: "" });
   const [newUser, setNewUser] = useState({ name: "", username: "", password: "", role: "Owner" });
   const [newBorrowMaterial, setNewBorrowMaterial] = useState({ name: "", unit: "", note: "" });
   const [newCustomerBorrow, setNewCustomerBorrow] = useState({ customerId: "", materialId: "", qty: 1, note: "" });
@@ -163,14 +160,20 @@ export function useAdminDashboard() {
       setTrucks(Array.isArray(data.trucks) ? data.trucks : []);
       setCatalogs(Array.isArray(data.catalogs) ? data.catalogs : []);
       setItems(Array.isArray(data.items) ? data.items : []);
-      setPayments(Array.isArray(data.payments) ? data.payments : []);
-      setPaymentMethods(Array.isArray(data.paymentMethods) ? data.paymentMethods : []);
       setOrderGroups(Array.isArray(data.orderGroups) ? data.orderGroups : []);
       setUsers(Array.isArray(data.users) ? data.users : []);
       setRoleMenusByRole(data.roleMenusByRole && typeof data.roleMenusByRole === "object" ? data.roleMenusByRole : null);
       setActivityLogs(Array.isArray(data.activityLogs) ? data.activityLogs : []);
       setBorrowMaterials(Array.isArray(data.borrowMaterials) ? data.borrowMaterials : []);
       setCustomerBorrowedMaterials(Array.isArray(data.customerBorrowedMaterials) ? data.customerBorrowedMaterials : []);
+      setPaymentTotals(
+        data.paymentTotals && typeof data.paymentTotals === "object"
+          ? {
+              byCustomer: Array.isArray(data.paymentTotals.byCustomer) ? data.paymentTotals.byCustomer : [],
+              byDepot: Array.isArray(data.paymentTotals.byDepot) ? data.paymentTotals.byDepot : [],
+            }
+          : { byCustomer: [], byDepot: [] },
+      );
     } catch (error) {
       if (error?.response?.status === 401) {
         setToken("");
@@ -190,11 +193,10 @@ export function useAdminDashboard() {
         setTrucks([]);
         setCatalogs([]);
         setItems([]);
-        setPayments([]);
-        setPaymentMethods([]);
         setOrderGroups([]);
         setBorrowMaterials([]);
         setCustomerBorrowedMaterials([]);
+        setPaymentTotals({ byCustomer: [], byDepot: [] });
         showError(i18n.t("errors.sessionExpired"));
         return;
       }
@@ -494,22 +496,9 @@ export function useAdminDashboard() {
     }
   }
 
-  async function submitDeliveryConfirmation(
-    orderId,
-    deliveredQty,
-    lossQty = 0,
-    remainingQty = 0,
-    deliveryProofType = "OTP",
-    deliveryProofValue = "",
-  ) {
+  async function submitDeliveryConfirmation(orderId) {
     try {
-      await confirmDeliveryRequest(token, orderId, {
-        deliveredQty: Number(deliveredQty),
-        lossQty: Number(lossQty),
-        remainingQty: Number(remainingQty),
-        deliveryProofType,
-        deliveryProofValue,
-      });
+      await confirmDeliveryRequest(token, orderId, {});
       await refresh();
       await showSuccessPopup(i18n.t("success.deliveryConfirmed"));
     } catch (error) {
@@ -547,6 +536,16 @@ export function useAdminDashboard() {
     }
   }
 
+  async function submitOrderTruckAssignment(orderId, truckId) {
+    try {
+      await updateOrderAssignment(token, orderId, { truckId: truckId || null });
+      await refresh();
+      await showSuccessPopup(i18n.t("success.truckAssigned", { defaultValue: "Truck assignment saved" }));
+    } catch (error) {
+      showError(getErrorMessage(error, "errors.updateTruckAssignment"));
+    }
+  }
+
   async function submitOrderDelete(orderId) {
     try {
       await deleteOrderRequest(token, orderId);
@@ -554,22 +553,6 @@ export function useAdminDashboard() {
       showSuccess(i18n.t("success.orderDeleted", { defaultValue: "Order deleted" }));
     } catch (error) {
       showError(getErrorMessage(error, "errors.deleteOrder"));
-    }
-  }
-
-  async function submitPayment(event) {
-    event.preventDefault();
-    try {
-      await createPayment(token, {
-        ...newPayment,
-        amount: Number(newPayment.amount),
-        method: Number(newPayment.method),
-      });
-      setNewPayment({ orderId: "", amount: 1, method: "", note: "" });
-      await refresh();
-      await showSuccessPopup(i18n.t("success.paymentRecorded"));
-    } catch (error) {
-      showError(getErrorMessage(error, "errors.createPayment"));
     }
   }
 
@@ -708,11 +691,10 @@ export function useAdminDashboard() {
     trucks,
     catalogs,
     items,
-    payments,
-    paymentMethods,
     orderGroups,
     borrowMaterials,
     customerBorrowedMaterials,
+    paymentTotals,
     flash,
     dismissFlash,
     newOrder,
@@ -723,7 +705,6 @@ export function useAdminDashboard() {
     newItem,
     newDelivery,
     newTruck,
-    newPayment,
     newUser,
     newBorrowMaterial,
     newCustomerBorrow,
@@ -736,7 +717,6 @@ export function useAdminDashboard() {
     setNewItem,
     setNewDelivery,
     setNewTruck,
-    setNewPayment,
     setNewUser,
     setNewBorrowMaterial,
     setNewCustomerBorrow,
@@ -767,8 +747,8 @@ export function useAdminDashboard() {
     submitOrderStatus,
     submitOrderMovement,
     submitOrderGroupAssignment,
+    submitOrderTruckAssignment,
     submitOrderDelete,
-    submitPayment,
     submitUser,
     submitUserUpdate,
     submitUserDelete,

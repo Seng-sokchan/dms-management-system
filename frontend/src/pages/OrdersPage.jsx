@@ -1,5 +1,8 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Button } from "../components/ui/Button";
+import { DataTable } from "../components/ui/DataTable";
+import "./OrdersPage.css";
 
 function getGroupAddress(order) {
   return order.orderGroupName || "";
@@ -55,8 +58,7 @@ export function OrdersPage({ orders }) {
               : t("orders.rowMany", { n: groupedOrders.length })}
           </p>
         </div>
-        <div className="table-wrap">
-          <table className="data-table">
+        <DataTable>
             <thead>
               <tr>
                 <th>{t("orders.groupMainAddress", { defaultValue: "Group main address" })}</th>
@@ -78,15 +80,14 @@ export function OrdersPage({ orders }) {
                     <span className="status-chip">{group.statusLabel}</span>
                   </td>
                   <td>
-                    <button type="button" className="btn-sm" onClick={() => setActiveGroup(group)}>
+                    <Button variant="sm" onClick={() => setActiveGroup(group)}>
                       {t("orders.view", { defaultValue: "View" })}
-                    </button>
+                    </Button>
                   </td>
                 </tr>
               ))}
             </tbody>
-          </table>
-        </div>
+        </DataTable>
       </section>
       {activeGroup ? (
         <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="orders-group-view-title">
@@ -98,12 +99,11 @@ export function OrdersPage({ orders }) {
                   group: activeGroup.groupAddress,
                 })}
               </h3>
-              <button type="button" className="btn-ghost btn-cancel" onClick={() => setActiveGroup(null)}>
+              <Button variant="ghost" tone="cancel" onClick={() => setActiveGroup(null)}>
                 {t("customers.cancel")}
-              </button>
+              </Button>
             </div>
-            <div className="table-wrap">
-              <table className="data-table">
+            <DataTable>
                 <thead>
                   <tr>
                     <th>{t("orders.customer")}</th>
@@ -128,8 +128,7 @@ export function OrdersPage({ orders }) {
                     </tr>
                   ))}
                 </tbody>
-              </table>
-            </div>
+            </DataTable>
           </section>
         </div>
       ) : null}

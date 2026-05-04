@@ -1,10 +1,12 @@
 ﻿import { useTranslation } from "react-i18next";
+import { Button } from "../../components/ui/Button";
+import "./ProducerForm.css";
 
 export function ProducerForm({ newProducer, setNewProducer, onCreateProducer }) {
   const { t } = useTranslation();
 
   return (
-    <form className="panel form" onSubmit={onCreateProducer}>
+    <form className="panel form producer-form" onSubmit={onCreateProducer}>
       <h3>{t("producers.formTitle")}</h3>
       <label className="form-label" htmlFor="producer-name">
         {t("producers.namePh")}
@@ -35,9 +37,9 @@ export function ProducerForm({ newProducer, setNewProducer, onCreateProducer }) 
         onChange={(event) => setNewProducer({ ...newProducer, capacityNote: event.target.value })}
         placeholder={t("producers.capacityPh")}
       />
-      <button type="submit" className="btn-primary">
+      <Button variant="primary" type="submit">
         {t("producers.save")}
-      </button>
+      </Button>
     </form>
   );
 }

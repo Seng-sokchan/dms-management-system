@@ -1,0 +1,8 @@
+/* ItemForm: used inside the create-item modal on ItemsPage */
+
+.item-form.panel.form {
+  max-width: 100%;
+}
+
+.form-pick-catalog { margin-bottom: 1rem; padding: 0.88rem 1rem 1rem; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface); box-shadow: var(--shadow-xs); }
+.form-select-catalog { width: 100%; max-width: 32rem; }
