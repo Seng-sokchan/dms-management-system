@@ -1,64 +1,26 @@
-const { z } = require("zod");
-const {
-  getCatalogById,
-  listItems: listItemsDb,
-  createItem: createItemDb,
-  updateItem: updateItemDb,
-  deleteItem: deleteItemDb,
-} = require("../repositories");
-const { success, created, noContent, fail } = require("../utils/response");
+const itemService = require("../services/itemService");
+const { success, created, noContent } = require("../utils/response");
+const { asyncHandler } = require("../errors");
 
-async function listItems(req, res) {
-  const items = await listItemsDb();
+const listItems = asyncHandler(async (_req, res) => {
+  const items = await itemService.listItems();
   return success(res, items);
-}
+});
 
-function itemSchema() {
-  return z.object({
-    catalogId: z.string().min(1),
-    name: z.string().min(2),
-    sku: z.string().max(40).optional().default(""),
-    defaultUnitPriceUsd: z.number().nonnegative(),
-    defaultUnitPriceKhr: z.number().nonnegative(),
-  });
-}
-
-async function createItem(req, res) {
-  const parsed = itemSchema().safeParse(req.body);
-  if (!parsed.success) {
-    return fail(res, { status: 400, message: "Invalid item payload" });
-  }
-  const catalog = await getCatalogById(parsed.data.catalogId);
-  if (!catalog) {
-    return fail(res, { status: 400, message: "Catalog not found" });
-  }
-  const item = await createItemDb(parsed.data);
+const createItem = asyncHandler(async (req, res) => {
+  const item = await itemService.createItem(req.body);
   return created(res, item);
-}
+});
 
-async function updateItem(req, res) {
-  const parsed = itemSchema().safeParse(req.body);
-  if (!parsed.success) {
-    return fail(res, { status: 400, message: "Invalid item payload" });
-  }
-  const catalog = await getCatalogById(parsed.data.catalogId);
-  if (!catalog) {
-    return fail(res, { status: 400, message: "Catalog not found" });
-  }
-  const item = await updateItemDb(req.params.id, parsed.data);
-  if (!item) {
-    return fail(res, { status: 400, message: "Item not found" });
-  }
+const updateItem = asyncHandler(async (req, res) => {
+  const item = await itemService.updateItem(req.params.id, req.body);
   return success(res, item);
-}
+});
 
-async function deleteItem(req, res) {
-  const deleted = await deleteItemDb(req.params.id);
-  if (!deleted) {
-    return fail(res, { status: 400, message: "Item not found" });
-  }
+const deleteItem = asyncHandler(async (req, res) => {
+  await itemService.deleteItem(req.params.id);
   return noContent(res);
-}
+});
 
 module.exports = {
   listItems,

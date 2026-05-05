@@ -1,53 +1,26 @@
-const { z } = require("zod");
-const {
-  listCatalogs: listCatalogsDb,
-  createCatalog: createCatalogDb,
-  updateCatalog: updateCatalogDb,
-  deleteCatalog: deleteCatalogDb,
-} = require("../repositories");
-const { success, created, noContent, fail } = require("../utils/response");
+const catalogService = require("../services/catalogService");
+const { success, created, noContent } = require("../utils/response");
+const { asyncHandler } = require("../errors");
 
-async function listCatalogs(_req, res) {
-  const catalogs = await listCatalogsDb();
+const listCatalogs = asyncHandler(async (_req, res) => {
+  const catalogs = await catalogService.listCatalogs();
   return success(res, catalogs);
-}
+});
 
-async function createCatalog(req, res) {
-  const schema = z.object({
-    name: z.string().min(2),
-    note: z.string().optional().default(""),
-  });
-  const parsed = schema.safeParse(req.body);
-  if (!parsed.success) {
-    return fail(res, { status: 400, message: "Invalid catalog payload" });
-  }
-  const row = await createCatalogDb(parsed.data);
+const createCatalog = asyncHandler(async (req, res) => {
+  const row = await catalogService.createCatalog(req.body);
   return created(res, row);
-}
+});
 
-async function updateCatalog(req, res) {
-  const schema = z.object({
-    name: z.string().min(2),
-    note: z.string().optional().default(""),
-  });
-  const parsed = schema.safeParse(req.body);
-  if (!parsed.success) {
-    return fail(res, { status: 400, message: "Invalid catalog payload" });
-  }
-  const row = await updateCatalogDb(req.params.id, parsed.data);
-  if (!row) {
-    return fail(res, { status: 400, message: "Catalog not found" });
-  }
+const updateCatalog = asyncHandler(async (req, res) => {
+  const row = await catalogService.updateCatalog(req.params.id, req.body);
   return success(res, row);
-}
+});
 
-async function deleteCatalog(req, res) {
-  const deleted = await deleteCatalogDb(req.params.id);
-  if (!deleted) {
-    return fail(res, { status: 400, message: "Catalog not found" });
-  }
+const deleteCatalog = asyncHandler(async (req, res) => {
+  await catalogService.deleteCatalog(req.params.id);
   return noContent(res);
-}
+});
 
 module.exports = {
   listCatalogs,

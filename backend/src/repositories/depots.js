@@ -38,7 +38,12 @@ async function createDepot(payload) {
   const ownerUserId = Number(payload.ownerUserId);
   const depotUserId = payload.depotUserId ? Number(payload.depotUserId) : null;
   const [rowsRaw] = await getPool().query("CALL sp_create_depot(?, ?, ?, ?, ?, ?)", [
-    name, phone, address, ownerUserId, depotUserId, nowIso(),
+    name,
+    phone,
+    address,
+    ownerUserId,
+    depotUserId,
+    nowIso(),
   ]);
   const meta = getProcedureMeta(rowsRaw);
   return getDepotById(meta.insertId);
@@ -51,7 +56,13 @@ async function updateDepot(id, payload) {
   const ownerUserId = Number(payload.ownerUserId);
   const depotUserId = payload.depotUserId ? Number(payload.depotUserId) : null;
   const [rowsRaw] = await getPool().query("CALL sp_update_depot(?, ?, ?, ?, ?, ?, ?)", [
-    id, name, phone, address, ownerUserId, depotUserId, nowIso(),
+    id,
+    name,
+    phone,
+    address,
+    ownerUserId,
+    depotUserId,
+    nowIso(),
   ]);
   const meta = getProcedureMeta(rowsRaw);
   if (!Number(meta.affectedRows || 0)) return null;

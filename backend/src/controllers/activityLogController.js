@@ -1,10 +1,12 @@
-const { listUserActivityLogs } = require("../repositories");
+const activityLogService = require("../services/activityLogService");
+const { success } = require("../utils/response");
+const { asyncHandler } = require("../errors");
 
-async function listActivityLogs(req, res) {
+const listActivityLogs = asyncHandler(async (req, res) => {
   const limit = Number(req.query.limit || 5000);
-  const rows = await listUserActivityLogs(limit);
-  return res.json(rows);
-}
+  const rows = await activityLogService.listActivityLogs(limit);
+  return success(res, rows);
+});
 
 module.exports = {
   listActivityLogs,

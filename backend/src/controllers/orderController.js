@@ -86,11 +86,9 @@ const mobileListOrders = asyncHandler(async (_req, res) => {
 });
 
 const mobileUpdateStatus = asyncHandler(async (req, res) => {
-  const order = await orderService.updateStatusForMobile(
-    req.params.id,
-    req.body.status,
-    { user: req.user },
-  );
+  const order = await orderService.updateStatusForMobile(req.params.id, req.body.status, {
+    user: req.user,
+  });
   return success(res, order);
 });
 

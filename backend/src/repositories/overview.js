@@ -12,7 +12,9 @@ async function getDashboardSummary() {
   const currencyTotalsRows = unwrapProcedureRows(currencyTotalsRaw);
 
   const statusSummary = statusDefinitions.reduce((acc, row) => ({ ...acc, [row.name]: 0 }), {});
-  statusRows.forEach((row) => { statusSummary[row.status] = Number(row.total); });
+  statusRows.forEach((row) => {
+    statusSummary[row.status] = Number(row.total);
+  });
 
   const totals = totalsRows[0] || {};
   const currencyTotals = currencyTotalsRows[0] || {};

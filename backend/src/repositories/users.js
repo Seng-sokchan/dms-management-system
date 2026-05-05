@@ -34,7 +34,11 @@ async function createUser(payload) {
     throw new Error("Role not found");
   }
   const [rowsRaw] = await getPool().query("CALL sp_create_user(?, ?, ?, ?, ?)", [
-    payload.name, payload.username, payload.passwordHash, roleId, nowIso(),
+    payload.name,
+    payload.username,
+    payload.passwordHash,
+    roleId,
+    nowIso(),
   ]);
   const meta = getProcedureMeta(rowsRaw);
   return getUserById(meta.insertId);

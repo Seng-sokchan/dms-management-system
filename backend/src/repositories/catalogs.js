@@ -28,7 +28,12 @@ async function createCatalog(payload) {
 async function updateCatalog(id, payload) {
   const name = String(payload.name || "").trim();
   const note = (payload.note && String(payload.note).trim()) || "";
-  const [rowsRaw] = await getPool().query("CALL sp_update_catalog(?, ?, ?, ?)", [id, name, note, nowIso()]);
+  const [rowsRaw] = await getPool().query("CALL sp_update_catalog(?, ?, ?, ?)", [
+    id,
+    name,
+    note,
+    nowIso(),
+  ]);
   const meta = getProcedureMeta(rowsRaw);
   if (!Number(meta.affectedRows || 0)) return null;
   return getCatalogById(id);

@@ -17,7 +17,13 @@ const {
 const router = express.Router();
 
 router.get("/depots", requireAuth, requireRoles("Admin", "Owner", "Depot"), listDepots);
-router.get("/depots/:id", requireAuth, requireRoles("Admin", "Owner", "Depot"), validate({ params: depotIdParamsSchema }), getDepotById);
+router.get(
+  "/depots/:id",
+  requireAuth,
+  requireRoles("Admin", "Owner", "Depot"),
+  validate({ params: depotIdParamsSchema }),
+  getDepotById,
+);
 router.post(
   "/depots",
   requireAuth,

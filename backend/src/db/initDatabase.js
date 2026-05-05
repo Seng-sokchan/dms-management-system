@@ -2,7 +2,10 @@ const fs = require("fs");
 const path = require("path");
 const mysql = require("mysql2/promise");
 const bcrypt = require("bcryptjs");
-require("dotenv").config();
+const { loadEnv, validateEnv } = require("../config/env");
+
+loadEnv();
+validateEnv(["JWT_SECRET", "DB_HOST", "DB_USER", "DB_NAME"]);
 
 function getSeedPassword(name, fallback) {
   const value = process.env[name];

@@ -87,7 +87,11 @@ async function updateOrderStatus(id, status, { changedByUserId = null, note = ""
   }
   await getPool().query("CALL sp_update_order_status(?, ?, ?)", [id, toStatusId, nowIso()]);
   await getPool().query("CALL sp_insert_order_status_history(?, ?, ?, ?, ?)", [
-    id, fromStatusId, toStatusId, changedByUserId, note || "",
+    id,
+    fromStatusId,
+    toStatusId,
+    changedByUserId,
+    note || "",
   ]);
   return getOrderById(id);
 }

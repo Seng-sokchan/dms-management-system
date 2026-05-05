@@ -31,7 +31,12 @@ async function updateTruck(id, payload) {
   const plateNo = String(payload.plateNo || "").trim();
   const capacityNote = (payload.capacityNote && String(payload.capacityNote).trim()) || "";
   const [rowsRaw] = await getPool().query("CALL sp_update_truck(?, ?, ?, ?, ?, ?)", [
-    id, code, plateNo, payload.deliveryAgentId ? Number(payload.deliveryAgentId) : null, capacityNote, nowIso(),
+    id,
+    code,
+    plateNo,
+    payload.deliveryAgentId ? Number(payload.deliveryAgentId) : null,
+    capacityNote,
+    nowIso(),
   ]);
   const meta = getProcedureMeta(rowsRaw);
   if (!Number(meta.affectedRows || 0)) return null;

@@ -19,14 +19,10 @@ async function createBorrowMaterialOrderLoan(payload) {
   const orderId = Number(payload.orderId);
   const fixedUnitPrice = Number(payload.fixedUnitPrice);
   const note = (payload.note && String(payload.note).trim()) || "";
-  const [rowsRaw] = await getPool().query("CALL sp_create_borrow_material_order_loan(?, ?, ?, ?, ?, ?)", [
-    customerId,
-    materialId,
-    orderId,
-    fixedUnitPrice,
-    note,
-    nowIso(),
-  ]);
+  const [rowsRaw] = await getPool().query(
+    "CALL sp_create_borrow_material_order_loan(?, ?, ?, ?, ?, ?)",
+    [customerId, materialId, orderId, fixedUnitPrice, note, nowIso()],
+  );
   const meta = getProcedureMeta(rowsRaw);
   return getBorrowMaterialOrderLoanById(meta.insertId);
 }

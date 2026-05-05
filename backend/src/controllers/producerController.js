@@ -1,53 +1,26 @@
-const { z } = require("zod");
-const {
-  createProducer: createProducerDb,
-  listProducers: listProducersDb,
-  updateProducer: updateProducerDb,
-  deleteProducer: deleteProducerDb,
-} = require("../repositories");
-const { success, created, noContent, fail } = require("../utils/response");
+const producerService = require("../services/producerService");
+const { success, created, noContent } = require("../utils/response");
+const { asyncHandler } = require("../errors");
 
-async function listProducers(_req, res) {
-  const producers = await listProducersDb();
+const listProducers = asyncHandler(async (_req, res) => {
+  const producers = await producerService.listProducers();
   return success(res, producers);
-}
+});
 
-function producerSchema() {
-  return z.object({
-    name: z.string().min(2),
-    phone: z.string().min(5),
-    capacityNote: z.string().optional().default(""),
-  });
-}
-
-async function createProducer(req, res) {
-  const parsed = producerSchema().safeParse(req.body);
-  if (!parsed.success) {
-    return fail(res, { status: 400, message: "Invalid producer payload" });
-  }
-  const producer = await createProducerDb(parsed.data);
+const createProducer = asyncHandler(async (req, res) => {
+  const producer = await producerService.createProducer(req.body);
   return created(res, producer);
-}
+});
 
-async function updateProducer(req, res) {
-  const parsed = producerSchema().safeParse(req.body);
-  if (!parsed.success) {
-    return fail(res, { status: 400, message: "Invalid producer payload" });
-  }
-  const producer = await updateProducerDb(req.params.id, parsed.data);
-  if (!producer) {
-    return fail(res, { status: 400, message: "Producer not found" });
-  }
+const updateProducer = asyncHandler(async (req, res) => {
+  const producer = await producerService.updateProducer(req.params.id, req.body);
   return success(res, producer);
-}
+});
 
-async function deleteProducer(req, res) {
-  const deleted = await deleteProducerDb(req.params.id);
-  if (!deleted) {
-    return fail(res, { status: 400, message: "Producer not found" });
-  }
+const deleteProducer = asyncHandler(async (req, res) => {
+  await producerService.deleteProducer(req.params.id);
   return noContent(res);
-}
+});
 
 module.exports = {
   listProducers,

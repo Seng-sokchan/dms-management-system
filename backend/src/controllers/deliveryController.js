@@ -1,53 +1,26 @@
-const { z } = require("zod");
-const {
-  createDeliveryAgent: createDeliveryAgentDb,
-  listDeliveryAgents: listDeliveryAgentsDb,
-  updateDeliveryAgent: updateDeliveryAgentDb,
-  deleteDeliveryAgent: deleteDeliveryAgentDb,
-} = require("../repositories");
-const { success, created, noContent, fail } = require("../utils/response");
+const deliveryService = require("../services/deliveryService");
+const { success, created, noContent } = require("../utils/response");
+const { asyncHandler } = require("../errors");
 
-async function listDeliveryAgents(_req, res) {
-  const deliveryAgents = await listDeliveryAgentsDb();
+const listDeliveryAgents = asyncHandler(async (_req, res) => {
+  const deliveryAgents = await deliveryService.listDeliveryAgents();
   return success(res, deliveryAgents);
-}
+});
 
-function deliverySchema() {
-  return z.object({
-    name: z.string().min(2),
-    phone: z.string().min(5),
-    vehicleType: z.string().min(2),
-  });
-}
-
-async function createDeliveryAgent(req, res) {
-  const parsed = deliverySchema().safeParse(req.body);
-  if (!parsed.success) {
-    return fail(res, { status: 400, message: "Invalid delivery payload" });
-  }
-  const deliveryAgent = await createDeliveryAgentDb(parsed.data);
+const createDeliveryAgent = asyncHandler(async (req, res) => {
+  const deliveryAgent = await deliveryService.createDeliveryAgent(req.body);
   return created(res, deliveryAgent);
-}
+});
 
-async function updateDeliveryAgent(req, res) {
-  const parsed = deliverySchema().safeParse(req.body);
-  if (!parsed.success) {
-    return fail(res, { status: 400, message: "Invalid delivery payload" });
-  }
-  const deliveryAgent = await updateDeliveryAgentDb(req.params.id, parsed.data);
-  if (!deliveryAgent) {
-    return fail(res, { status: 400, message: "Delivery agent not found" });
-  }
+const updateDeliveryAgent = asyncHandler(async (req, res) => {
+  const deliveryAgent = await deliveryService.updateDeliveryAgent(req.params.id, req.body);
   return success(res, deliveryAgent);
-}
+});
 
-async function deleteDeliveryAgent(req, res) {
-  const deleted = await deleteDeliveryAgentDb(req.params.id);
-  if (!deleted) {
-    return fail(res, { status: 400, message: "Delivery agent not found" });
-  }
+const deleteDeliveryAgent = asyncHandler(async (req, res) => {
+  await deliveryService.deleteDeliveryAgent(req.params.id);
   return noContent(res);
-}
+});
 
 module.exports = {
   listDeliveryAgents,

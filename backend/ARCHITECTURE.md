@@ -85,7 +85,6 @@ backend/
     │
     ├── services/              ← business logic; orchestrates repositories
     │   ├── orderService.js
-    │   └── khqrService.js
     │
     ├── repositories/          ← data access (formerly db/dataStore)
     │   ├── orders.js

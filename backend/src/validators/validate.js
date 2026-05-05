@@ -26,12 +26,7 @@ function validate(schemas = {}) {
         if (!schema) continue;
         const result = schema.safeParse(req[key]);
         if (!result.success) {
-          return next(
-            new ValidationError(
-              `Invalid ${key}`,
-              formatZodIssues(result.error.issues),
-            ),
-          );
+          return next(new ValidationError(`Invalid ${key}`, formatZodIssues(result.error.issues)));
         }
         // Replace with the parsed (coerced/defaulted) value.
         req[key] = result.data;

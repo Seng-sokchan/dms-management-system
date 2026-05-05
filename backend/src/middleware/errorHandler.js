@@ -43,8 +43,8 @@ function errorHandler(error, req, res, _next) {
   let details;
 
   if (isApp) {
-    status = error.status === 401 ? 401 : 400;
-    code = error.status === 401 ? "UNAUTHORIZED" : "BAD_REQUEST";
+    status = Number(error.status || 500);
+    code = error.code || "INTERNAL_ERROR";
     message = error.message;
     details = error.details;
   } else if (sqlError) {

@@ -30,7 +30,10 @@ const customerBorrowMonthlyInstallmentStatusParamsSchema = z.object({
 });
 
 const updateBorrowMaterialMonthlyInstallmentStatusBodySchema = z.object({
-  status: z.coerce.number().int().refine((n) => n === 0 || n === 1, { message: "status must be 0 or 1" }),
+  status: z.coerce
+    .number()
+    .int()
+    .refine((n) => n === 0 || n === 1, { message: "status must be 0 or 1" }),
 });
 
 module.exports = {

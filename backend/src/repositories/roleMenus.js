@@ -9,7 +9,9 @@ async function getRoleIdByName(name) {
 }
 
 async function listMenuKeysForRoleName(roleName) {
-  const [rowsRaw] = await getPool().query("CALL sp_list_role_menu_keys_by_role_name(?)", [roleName]);
+  const [rowsRaw] = await getPool().query("CALL sp_list_role_menu_keys_by_role_name(?)", [
+    roleName,
+  ]);
   const rows = unwrapProcedureRows(rowsRaw);
   if (rows.length) {
     return rows.map((row) => row.menu_key);

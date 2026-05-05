@@ -16,7 +16,7 @@ function mapOrder(row) {
     itemId: row.item_id != null ? String(row.item_id) : null,
     itemSku: row.item_sku != null ? row.item_sku : null,
     itemName: row.item_name,
-    currency: (row.currency || "KHR"),
+    currency: row.currency || "KHR",
     orderedQty: row.ordered_qty,
     unitPrice: Number(row.unit_price),
     producerId: row.producer_id != null ? String(row.producer_id) : null,
@@ -111,12 +111,14 @@ function mapCatalog(row) {
 }
 
 function mapItem(row) {
-  const defaultUnitPriceUsd = row.default_unit_price_usd != null
-    ? Number(row.default_unit_price_usd)
-    : Number(row.default_unit_price);
-  const defaultUnitPriceKhr = row.default_unit_price_khr != null
-    ? Number(row.default_unit_price_khr)
-    : Number(row.default_unit_price) * 4100;
+  const defaultUnitPriceUsd =
+    row.default_unit_price_usd != null
+      ? Number(row.default_unit_price_usd)
+      : Number(row.default_unit_price);
+  const defaultUnitPriceKhr =
+    row.default_unit_price_khr != null
+      ? Number(row.default_unit_price_khr)
+      : Number(row.default_unit_price) * 4100;
   return {
     id: String(row.id),
     catalogId: String(row.catalog_id),

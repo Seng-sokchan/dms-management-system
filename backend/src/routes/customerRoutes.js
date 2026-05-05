@@ -17,7 +17,12 @@ const {
 const router = express.Router();
 
 router.get("/customers", requireAuth, listCustomers);
-router.get("/customer-users", requireAuth, requireRoles("Admin", "Owner", "Depot"), listCustomerUsers);
+router.get(
+  "/customer-users",
+  requireAuth,
+  requireRoles("Admin", "Owner", "Depot"),
+  listCustomerUsers,
+);
 router.post(
   "/customers",
   requireAuth,

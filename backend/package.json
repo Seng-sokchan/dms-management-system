@@ -6,13 +6,7 @@
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
-    "db:init": "node src/db/initDatabase.js",
-    "test": "node --test",
-    "lint": "eslint \"src/**/*.js\"",
-    "lint:fix": "eslint \"src/**/*.js\" --fix",
-    "format": "prettier --write \"src/**/*.js\"",
-    "format:check": "prettier --check \"src/**/*.js\"",
-    "audit:prod": "npm audit --omit=dev --audit-level=high"
+    "db:init": "node src/db/initDatabase.js"
   },
   "keywords": [],
   "author": "",
@@ -30,9 +24,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "eslint": "^8.57.0",
-    "nodemon": "^3.1.14",
-    "prettier": "^3.3.3"
+    "nodemon": "^3.1.14"
   },
   "overrides": {
     "axios": "^1.15.2"

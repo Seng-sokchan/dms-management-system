@@ -1,0 +1,83 @@
+const {
+  listCustomers,
+  listCustomersByDepotId,
+  listCustomersByOwnerUserId,
+  getCustomerById,
+  getCustomerByUserId,
+  createCustomer,
+  updateCustomer,
+  deleteCustomer,
+} = require("../customers");
+const {
+  listDepots,
+  listDepotsByOwnerUserId,
+  getDepotById,
+  getDepotByOwnerUserId,
+  getDepotByDepotUserId,
+  createDepot,
+  updateDepot,
+  deleteDepot,
+} = require("../depots");
+const {
+  listBorrowMaterials,
+  getBorrowMaterialById,
+  createBorrowMaterial,
+  updateBorrowMaterial,
+  deleteBorrowMaterial,
+} = require("../borrowMaterials");
+const {
+  listCustomerBorrowedMaterialsByCustomer,
+  listAllCustomerBorrowedMaterials,
+  upsertCustomerBorrowedMaterial,
+  deleteCustomerBorrowedMaterial,
+} = require("../customerBorrowedMaterials");
+const {
+  listAllBorrowMaterialOrderLoans,
+  createBorrowMaterialOrderLoan,
+  deleteBorrowMaterialOrderLoan,
+} = require("../borrowMaterialOrderLoans");
+const {
+  listAllBorrowMaterialMonthlySchedules,
+  createBorrowMaterialMonthlySchedule,
+  getBorrowMaterialMonthlyScheduleById,
+  listBorrowMaterialMonthlyInstallments,
+  deleteBorrowMaterialMonthlySchedule,
+  updateBorrowMaterialMonthlyInstallmentStatus,
+} = require("../borrowMaterialMonthlySchedules");
+
+module.exports = {
+  listCustomers,
+  listCustomersByDepotId,
+  listCustomersByOwnerUserId,
+  getCustomerById,
+  getCustomerByUserId,
+  createCustomer,
+  updateCustomer,
+  deleteCustomer,
+  listDepots,
+  listDepotsByOwnerUserId,
+  getDepotById,
+  getDepotByOwnerUserId,
+  getDepotByDepotUserId,
+  createDepot,
+  updateDepot,
+  deleteDepot,
+  listBorrowMaterials,
+  getBorrowMaterialById,
+  createBorrowMaterial,
+  updateBorrowMaterial,
+  deleteBorrowMaterial,
+  listCustomerBorrowedMaterialsByCustomer,
+  listAllCustomerBorrowedMaterials,
+  upsertCustomerBorrowedMaterial,
+  deleteCustomerBorrowedMaterial,
+  listAllBorrowMaterialOrderLoans,
+  createBorrowMaterialOrderLoan,
+  deleteBorrowMaterialOrderLoan,
+  listAllBorrowMaterialMonthlySchedules,
+  createBorrowMaterialMonthlySchedule,
+  getBorrowMaterialMonthlyScheduleById,
+  listBorrowMaterialMonthlyInstallments,
+  deleteBorrowMaterialMonthlySchedule,
+  updateBorrowMaterialMonthlyInstallmentStatus,
+};

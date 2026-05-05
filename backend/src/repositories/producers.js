@@ -16,7 +16,10 @@ async function getProducerById(id) {
 
 async function createProducer(payload) {
   const [rowsRaw] = await getPool().query("CALL sp_create_producer(?, ?, ?, ?)", [
-    payload.name, payload.phone, payload.capacityNote || "", nowIso(),
+    payload.name,
+    payload.phone,
+    payload.capacityNote || "",
+    nowIso(),
   ]);
   const meta = getProcedureMeta(rowsRaw);
   return getProducerById(meta.insertId);
@@ -27,7 +30,11 @@ async function updateProducer(id, payload) {
   const phone = String(payload.phone || "").trim();
   const capacityNote = (payload.capacityNote && String(payload.capacityNote).trim()) || "";
   const [rowsRaw] = await getPool().query("CALL sp_update_producer(?, ?, ?, ?, ?)", [
-    id, name, phone, capacityNote, nowIso(),
+    id,
+    name,
+    phone,
+    capacityNote,
+    nowIso(),
   ]);
   const meta = getProcedureMeta(rowsRaw);
   if (!Number(meta.affectedRows || 0)) return null;

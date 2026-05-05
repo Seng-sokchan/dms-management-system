@@ -1,19 +1,15 @@
-require("dotenv").config();
-const app = require("./app");
+const { loadEnv, validateEnv } = require("./config/env");
 const { checkDbConnection } = require("./db/pool");
 
-function validateRequiredEnv() {
-  if (!process.env.JWT_SECRET) {
-    throw new Error("Missing required environment variable: JWT_SECRET");
-  }
-}
+loadEnv();
+const app = require("./app");
 
 async function start() {
-  validateRequiredEnv();
+  validateEnv();
   await checkDbConnection();
   app.listen(Number(process.env.PORT || 4000), () => {
     // eslint-disable-next-line no-console
-    console.log(`Backend running on http://localhost:${Number(process.env.PORT || 4000)}`);
+    console.log(`Backend running on http://localhost:${Number(process.env.PORT)}`);
   });
 }
 

@@ -19,14 +19,21 @@ async function upsertCustomerBorrowedMaterial(payload) {
   const qty = Math.max(0, Number(payload.qty || 0));
   const note = (payload.note && String(payload.note).trim()) || "";
   await getPool().query("CALL sp_upsert_customer_borrowed_material(?, ?, ?, ?, ?)", [
-    customerId, materialId, qty, note, nowIso(),
+    customerId,
+    materialId,
+    qty,
+    note,
+    nowIso(),
   ]);
   const list = await listCustomerBorrowedMaterialsByCustomer(customerId);
   return list.find((row) => String(row.materialId) === String(materialId)) || null;
 }
 
 async function deleteCustomerBorrowedMaterial(customerId, materialId) {
-  const [rowsRaw] = await getPool().query("CALL sp_delete_customer_borrowed_material(?, ?)", [customerId, materialId]);
+  const [rowsRaw] = await getPool().query("CALL sp_delete_customer_borrowed_material(?, ?)", [
+    customerId,
+    materialId,
+  ]);
   const meta = getProcedureMeta(rowsRaw);
   return Number(meta.affectedRows || 0) > 0;
 }

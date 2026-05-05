@@ -10,17 +10,15 @@ const { activityLogger } = require("./middleware/activityLogger");
 const { apiRateLimit } = require("./middleware/rateLimit");
 
 const app = express();
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || "")
-  .split(",")
-  .map((origin) => origin.trim())
-  .filter(Boolean);
 
 app.use(helmet());
-app.use(cors({
-  origin: allowedOrigins.length > 0 ? allowedOrigins : true,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-}));
+app.use(
+  cors({
+    origin: [process.env.FRONTEND_URL, process.env.MOBILE_URL],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
+);
 app.use(express.json());
 app.use(morgan("dev"));
 app.use(responsePolicy);

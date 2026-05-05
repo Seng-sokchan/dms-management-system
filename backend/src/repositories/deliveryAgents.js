@@ -16,7 +16,10 @@ async function getDeliveryAgentById(id) {
 
 async function createDeliveryAgent(payload) {
   const [rowsRaw] = await getPool().query("CALL sp_create_delivery_agent(?, ?, ?, ?)", [
-    payload.name, payload.phone, payload.vehicleType, nowIso(),
+    payload.name,
+    payload.phone,
+    payload.vehicleType,
+    nowIso(),
   ]);
   const meta = getProcedureMeta(rowsRaw);
   return getDeliveryAgentById(meta.insertId);
@@ -27,7 +30,11 @@ async function updateDeliveryAgent(id, payload) {
   const phone = String(payload.phone || "").trim();
   const vehicleType = String(payload.vehicleType || "").trim();
   const [rowsRaw] = await getPool().query("CALL sp_update_delivery_agent(?, ?, ?, ?, ?)", [
-    id, name, phone, vehicleType, nowIso(),
+    id,
+    name,
+    phone,
+    vehicleType,
+    nowIso(),
   ]);
   const meta = getProcedureMeta(rowsRaw);
   if (!Number(meta.affectedRows || 0)) return null;

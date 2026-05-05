@@ -104,7 +104,7 @@ focused day per item.
 | 4 | Items + Catalog | `controllers/{item,catalog}Controller.js`, `services/{item,catalog}Service.js` (new), validators, routes | ⬜ |
 | 5 | Trucks + Delivery | as above | ⬜ |
 | 6 | Producers | as above | ⬜ |
-| 7 | Payments (Bakong/KHQR) — biggest, do last | `controllers/paymentController.js` (419 lines), `services/{payment,khqr}Service.js`, validators, routes | ⬜ |
+| 7 | Payments — biggest, do last | `controllers/paymentController.js` (419 lines), `services/paymentService.js`, validators, routes | ⬜ |
 | 8 | User management + Role menus + Activity logs + Address | as above | ⬜ |
 | 9 | Cleanup | delete `src/auth.js`, remove `// eslint-disable-next-line` for `console`, add lint to CI | ⬜ |
 

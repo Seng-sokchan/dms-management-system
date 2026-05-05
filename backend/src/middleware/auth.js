@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
-require("dotenv").config();
 const { listMenuKeysForRoleName, getUserById } = require("../repositories");
+const { UnauthorizedError, ForbiddenError } = require("../errors");
+const { fail } = require("../utils/response");
 
 function getJwtSecret() {
   if (!process.env.JWT_SECRET) {
@@ -22,10 +23,7 @@ async function requireAuth(req, res, next) {
   const [, token] = header.split(" ");
 
   if (!token) {
-    return res.status(401).json({
-      success: false,
-      error: { code: "UNAUTHORIZED", message: "Missing bearer token" },
-    });
+    return fail(res, { status: 401, code: "UNAUTHORIZED", message: "Missing bearer token" });
   }
 
   try {
@@ -45,20 +43,14 @@ async function requireAuth(req, res, next) {
     };
     return next();
   } catch (_error) {
-    return res.status(401).json({
-      success: false,
-      error: { code: "UNAUTHORIZED", message: "Invalid token" },
-    });
+    return fail(res, { status: 401, code: "UNAUTHORIZED", message: "Invalid token" });
   }
 }
 
 function requireRoles(...roles) {
   return (req, res, next) => {
     if (!req.user || !roles.includes(req.user.role)) {
-      return res.status(401).json({
-        success: false,
-        error: { code: "UNAUTHORIZED", message: "Unauthorized for this role" },
-      });
+      return next(new ForbiddenError("Unauthorized for this role"));
     }
     return next();
   };
@@ -67,18 +59,12 @@ function requireRoles(...roles) {
 function requireMenuKey(menuKey) {
   return async (req, res, next) => {
     if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        error: { code: "UNAUTHORIZED", message: "Missing bearer token" },
-      });
+      return next(new UnauthorizedError("Missing bearer token"));
     }
     try {
       const allowed = await listMenuKeysForRoleName(req.user.role);
       if (!allowed.includes(menuKey)) {
-        return res.status(401).json({
-          success: false,
-          error: { code: "UNAUTHORIZED", message: "Unauthorized menu access" },
-        });
+        return next(new ForbiddenError("Unauthorized menu access"));
       }
       return next();
     } catch (error) {
