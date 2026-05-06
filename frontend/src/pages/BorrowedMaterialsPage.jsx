@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { usePagination } from "../hooks/usePagination";
 import { Button } from "../components/ui/Button";
 import { DataTable } from "../components/ui/DataTable";
 import { useConfirm } from "../components/ui/ConfirmProvider";
@@ -24,9 +25,6 @@ function formatInstallmentDueDisplay(value) {
   const y = d.getFullYear();
   const mo = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
-  const h = String(d.getHours()).padStart(2, "0");
-  const mi = String(d.getMinutes()).padStart(2, "0");
-  const sec = String(d.getSeconds()).padStart(2, "0");
   return `${y}-${mo}-${day}`;
 }
 
@@ -67,6 +65,8 @@ export function BorrowedMaterialsPage({
   const [showMonthlyModal, setShowMonthlyModal] = useState(false);
   const [scheduleInstallmentModal, setScheduleInstallmentModal] = useState(null);
   const [installmentStatusSavingId, setInstallmentStatusSavingId] = useState(null);
+  const [searchText, setSearchText] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
 
   const customerOrders = useMemo(() => {
     if (!newOrderLoan.customerId) return [];
@@ -88,6 +88,75 @@ export function BorrowedMaterialsPage({
   const [showBorrowModal, setShowBorrowModal] = useState(false);
   const [editingBorrow, setEditingBorrow] = useState(EMPTY_BORROW_EDIT);
   const isEditingBorrow = useMemo(() => Boolean(editingBorrow.id), [editingBorrow.id]);
+  const keyword = appliedSearch.trim().toLowerCase();
+  const filteredBorrowMaterials = useMemo(() => {
+    if (!keyword) return borrowMaterials;
+    return borrowMaterials.filter((row) =>
+      [row.id, row.name, row.unit, row.note]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(keyword)),
+    );
+  }, [borrowMaterials, keyword]);
+  const filteredCustomerBorrowedMaterials = useMemo(() => {
+    if (!keyword) return customerBorrowedMaterials;
+    return customerBorrowedMaterials.filter((row) =>
+      [row.customerName, row.materialName, row.qty, row.unit, row.note]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(keyword)),
+    );
+  }, [customerBorrowedMaterials, keyword]);
+  const filteredBorrowMaterialOrderLoans = useMemo(() => {
+    if (!keyword) return borrowMaterialOrderLoans;
+    return borrowMaterialOrderLoans.filter((row) =>
+      [row.customerName, row.materialName, row.orderId, row.orderedQty, row.fixedUnitPrice, row.computedLineTotal, row.currency]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(keyword)),
+    );
+  }, [borrowMaterialOrderLoans, keyword]);
+  const filteredBorrowMaterialMonthlySchedules = useMemo(() => {
+    if (!keyword) return borrowMaterialMonthlySchedules;
+    return borrowMaterialMonthlySchedules.filter((row) =>
+      [row.customerName, row.materialName, row.totalAmount, row.currency, row.totalPeriod, row.startDueDate]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(keyword)),
+    );
+  }, [borrowMaterialMonthlySchedules, keyword]);
+  const {
+    page: materialPage,
+    pageSize: materialPageSize,
+    paged: pagedBorrowMaterials,
+    setPage: setMaterialPage,
+    setPageSize: setMaterialPageSize,
+  } = usePagination(filteredBorrowMaterials, { resetKey: appliedSearch });
+  const {
+    page: borrowPage,
+    pageSize: borrowPageSize,
+    paged: pagedCustomerBorrowedMaterials,
+    setPage: setBorrowPage,
+    setPageSize: setBorrowPageSize,
+  } = usePagination(filteredCustomerBorrowedMaterials, { resetKey: appliedSearch });
+  const {
+    page: orderLoanPage,
+    pageSize: orderLoanPageSize,
+    paged: pagedBorrowMaterialOrderLoans,
+    setPage: setOrderLoanPage,
+    setPageSize: setOrderLoanPageSize,
+  } = usePagination(filteredBorrowMaterialOrderLoans, { resetKey: appliedSearch });
+  const {
+    page: monthlyPage,
+    pageSize: monthlyPageSize,
+    paged: pagedBorrowMaterialMonthlySchedules,
+    setPage: setMonthlyPage,
+    setPageSize: setMonthlyPageSize,
+  } = usePagination(filteredBorrowMaterialMonthlySchedules, { resetKey: appliedSearch });
+  const installmentRows = scheduleInstallmentModal?.installments ?? [];
+  const {
+    page: installmentPage,
+    pageSize: installmentPageSize,
+    paged: pagedInstallments,
+    setPage: setInstallmentPage,
+    setPageSize: setInstallmentPageSize,
+  } = usePagination(installmentRows, { resetKey: String(scheduleInstallmentModal?.schedule?.id ?? "") });
 
   function startEditMaterial(material) {
     setEditingMaterial({
@@ -310,7 +379,21 @@ export function BorrowedMaterialsPage({
             {t("borrowedMaterials.materialsEmpty", { defaultValue: "No borrow materials yet." })}
           </p>
         ) : (
-          <DataTable>
+          <DataTable
+            showSearch
+            searchValue={searchText}
+            onSearchValueChange={setSearchText}
+            onSearch={() => setAppliedSearch(searchText)}
+            searchPlaceholder={t("borrowedMaterials.searchPlaceholder", { defaultValue: "Search records..." })}
+            searchButtonLabel={t("common.search", { defaultValue: "Search" })}
+            pagination={{
+              page: materialPage,
+              pageSize: materialPageSize,
+              totalRows: filteredBorrowMaterials.length,
+              onPageChange: setMaterialPage,
+              onPageSizeChange: setMaterialPageSize,
+            }}
+          >
               <thead>
                 <tr>
                   <th>{t("borrowedMaterials.columnId", { defaultValue: "ID" })}</th>
@@ -323,7 +406,7 @@ export function BorrowedMaterialsPage({
                 </tr>
               </thead>
               <tbody>
-                {borrowMaterials.map((material) => (
+                {pagedBorrowMaterials.map((material) => (
                   <tr key={material.id}>
                     <td>{material.id}</td>
                     <td>{material.name}</td>
@@ -392,7 +475,21 @@ export function BorrowedMaterialsPage({
               {t("borrowedMaterials.borrowingsEmpty", { defaultValue: "No customer borrowings yet." })}
             </p>
           ) : (
-            <DataTable>
+            <DataTable
+              showSearch
+              searchValue={searchText}
+              onSearchValueChange={setSearchText}
+              onSearch={() => setAppliedSearch(searchText)}
+              searchPlaceholder={t("borrowedMaterials.searchPlaceholder", { defaultValue: "Search records..." })}
+              searchButtonLabel={t("common.search", { defaultValue: "Search" })}
+              pagination={{
+                page: borrowPage,
+                pageSize: borrowPageSize,
+                totalRows: filteredCustomerBorrowedMaterials.length,
+                onPageChange: setBorrowPage,
+                onPageSizeChange: setBorrowPageSize,
+              }}
+            >
                 <thead>
                   <tr>
                     <th>{t("borrowedMaterials.customer", { defaultValue: "Customer" })}</th>
@@ -404,7 +501,7 @@ export function BorrowedMaterialsPage({
                 </tr>
               </thead>
               <tbody>
-                {customerBorrowedMaterials.map((row) => (
+                {pagedCustomerBorrowedMaterials.map((row) => (
                     <tr key={row.id}>
                       <td>{row.customerName || row.customerId || "—"}</td>
                       <td>{row.materialName || row.materialId || "—"}</td>
@@ -466,7 +563,21 @@ export function BorrowedMaterialsPage({
               {t("borrowedMaterials.orderLoansEmpty", { defaultValue: "No order loans yet." })}
             </p>
           ) : (
-            <DataTable>
+            <DataTable
+              showSearch
+              searchValue={searchText}
+              onSearchValueChange={setSearchText}
+              onSearch={() => setAppliedSearch(searchText)}
+              searchPlaceholder={t("borrowedMaterials.searchPlaceholder", { defaultValue: "Search records..." })}
+              searchButtonLabel={t("common.search", { defaultValue: "Search" })}
+              pagination={{
+                page: orderLoanPage,
+                pageSize: orderLoanPageSize,
+                totalRows: filteredBorrowMaterialOrderLoans.length,
+                onPageChange: setOrderLoanPage,
+                onPageSizeChange: setOrderLoanPageSize,
+              }}
+            >
               <thead>
                 <tr>
                   <th>{t("borrowedMaterials.customer", { defaultValue: "Customer" })}</th>
@@ -480,7 +591,7 @@ export function BorrowedMaterialsPage({
                 </tr>
               </thead>
               <tbody>
-                {borrowMaterialOrderLoans.map((row) => (
+                {pagedBorrowMaterialOrderLoans.map((row) => (
                   <tr key={row.id}>
                     <td>{row.customerName || row.customerId}</td>
                     <td>{row.materialName || row.materialId}</td>
@@ -548,7 +659,21 @@ export function BorrowedMaterialsPage({
               {t("borrowedMaterials.monthlySchedulesEmpty", { defaultValue: "No schedules yet." })}
             </p>
           ) : (
-            <DataTable>
+            <DataTable
+              showSearch
+              searchValue={searchText}
+              onSearchValueChange={setSearchText}
+              onSearch={() => setAppliedSearch(searchText)}
+              searchPlaceholder={t("borrowedMaterials.searchPlaceholder", { defaultValue: "Search records..." })}
+              searchButtonLabel={t("common.search", { defaultValue: "Search" })}
+              pagination={{
+                page: monthlyPage,
+                pageSize: monthlyPageSize,
+                totalRows: filteredBorrowMaterialMonthlySchedules.length,
+                onPageChange: setMonthlyPage,
+                onPageSizeChange: setMonthlyPageSize,
+              }}
+            >
               <thead>
                 <tr>
                   <th>{t("borrowedMaterials.customer", { defaultValue: "Customer" })}</th>
@@ -560,7 +685,7 @@ export function BorrowedMaterialsPage({
                 </tr>
               </thead>
               <tbody>
-                {borrowMaterialMonthlySchedules.map((row) => (
+                {pagedBorrowMaterialMonthlySchedules.map((row) => (
                   <tr key={row.id}>
                     <td>{row.customerName || row.customerId}</td>
                     <td>{row.materialName || row.materialId}</td>
@@ -1104,7 +1229,15 @@ export function BorrowedMaterialsPage({
                 {t("borrowedMaterials.months", { defaultValue: "months" })}
               </p>
             ) : null}
-            <DataTable>
+            <DataTable
+              pagination={{
+                page: installmentPage,
+                pageSize: installmentPageSize,
+                totalRows: installmentRows.length,
+                onPageChange: setInstallmentPage,
+                onPageSizeChange: setInstallmentPageSize,
+              }}
+            >
               <thead>
                 <tr>
                   <th>{t("borrowedMaterials.periodNo", { defaultValue: "No." })}</th>
@@ -1115,7 +1248,7 @@ export function BorrowedMaterialsPage({
                 </tr>
               </thead>
               <tbody>
-                {(scheduleInstallmentModal.installments || []).map((ins) => (
+                {pagedInstallments.map((ins) => (
                   <tr key={ins.id}>
                     <td>{ins.periodNo}</td>
                     <td>{formatInstallmentDueDisplay(ins.dueDate)}</td>

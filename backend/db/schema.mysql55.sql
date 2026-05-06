@@ -5,7 +5,6 @@ DROP TABLE IF EXISTS borrow_material_monthly_installments;
 DROP TABLE IF EXISTS borrow_material_monthly_schedules;
 DROP TABLE IF EXISTS borrow_material_order_loans;
 DROP TABLE IF EXISTS order_status_history;
-DROP TABLE IF EXISTS user_activity_logs;
 DROP TABLE IF EXISTS payments;
 DROP TABLE IF EXISTS orders;
 DROP TABLE IF EXISTS payment_methods;
@@ -79,23 +78,6 @@ CREATE TABLE depots (
     ON UPDATE RESTRICT ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-CREATE TABLE user_activity_logs (
-  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  user_id INT UNSIGNED DEFAULT NULL,
-  username VARCHAR(60) DEFAULT NULL,
-  role VARCHAR(60) DEFAULT NULL,
-  method VARCHAR(10) NOT NULL,
-  path VARCHAR(255) NOT NULL,
-  status_code SMALLINT UNSIGNED NOT NULL,
-  message VARCHAR(255) DEFAULT '',
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (id),
-  KEY idx_user_activity_logs_user (user_id),
-  KEY idx_user_activity_logs_created_at (created_at),
-  CONSTRAINT fk_user_activity_logs_user FOREIGN KEY (user_id) REFERENCES users (id)
-    ON UPDATE RESTRICT ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
 CREATE TABLE producers (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   name VARCHAR(120) NOT NULL,
@@ -163,7 +145,6 @@ CREATE TABLE customers (
   address INT UNSIGNED NOT NULL,
   user_id INT UNSIGNED DEFAULT NULL,
   depot_id INT UNSIGNED DEFAULT NULL,
-  sub_address VARCHAR(255) NULL DEFAULT NULL,
   is_active TINYINT(1) NOT NULL DEFAULT 1,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NULL,
@@ -442,8 +423,6 @@ DROP PROCEDURE IF EXISTS sp_get_order_group_by_id;
 DROP PROCEDURE IF EXISTS sp_list_dashboard_status_summary;
 DROP PROCEDURE IF EXISTS sp_list_dashboard_payment_summary;
 DROP PROCEDURE IF EXISTS sp_dashboard_currency_totals;
-DROP PROCEDURE IF EXISTS sp_list_user_activity_logs;
-DROP PROCEDURE IF EXISTS sp_create_user_activity_log;
 DROP PROCEDURE IF EXISTS sp_create_producer;
 DROP PROCEDURE IF EXISTS sp_update_producer;
 DROP PROCEDURE IF EXISTS sp_delete_producer;
@@ -496,7 +475,7 @@ CREATE PROCEDURE sp_list_users()
 SELECT u.id, u.name, u.username, r.name AS role, u.is_active
 FROM users u
 INNER JOIN roles r ON r.id = u.role_id
-ORDER BY u.created_at DESC;
+ORDER BY u.id DESC;
 
 CREATE PROCEDURE sp_create_user(
   IN p_name VARCHAR(255),
@@ -548,7 +527,7 @@ CREATE PROCEDURE sp_list_producers()
 SELECT id, name, phone, capacity_note
 FROM producers
 WHERE is_active = 1
-ORDER BY created_at DESC;
+ORDER BY id DESC;
 
 CREATE PROCEDURE sp_get_delivery_agent_by_id(IN p_id INT UNSIGNED)
 SELECT id, name, phone, vehicle_type
@@ -560,7 +539,7 @@ CREATE PROCEDURE sp_list_delivery_agents()
 SELECT id, name, phone, vehicle_type
 FROM delivery_agents
 WHERE is_active = 1
-ORDER BY created_at DESC;
+ORDER BY id DESC;
 
 CREATE PROCEDURE sp_get_truck_by_id(IN p_id INT UNSIGNED)
 SELECT t.id, t.code, t.plate_no, t.capacity_note, t.delivery_agent_id, d.name AS delivery_agent_name
@@ -574,7 +553,7 @@ SELECT t.id, t.code, t.plate_no, t.capacity_note, t.delivery_agent_id, d.name AS
 FROM trucks t
 LEFT JOIN delivery_agents d ON d.id = t.delivery_agent_id
 WHERE t.is_active = 1
-ORDER BY t.created_at DESC;
+ORDER BY t.id DESC;
 
 CREATE PROCEDURE sp_get_depot_by_id(IN p_id INT UNSIGNED)
 SELECT d.id, d.name, d.phone, d.address, d.owner_user_id, ou.name AS owner_user_name, d.depot_user_id, du.name AS depot_user_name
@@ -599,7 +578,7 @@ FROM depots d
 INNER JOIN users ou ON ou.id = d.owner_user_id
 LEFT JOIN users du ON du.id = d.depot_user_id
 WHERE d.owner_user_id = p_owner_user_id AND d.is_active = 1
-ORDER BY d.created_at DESC;
+ORDER BY d.id DESC;
 
 CREATE PROCEDURE sp_get_depot_by_depot_user_id(IN p_depot_user_id INT UNSIGNED)
 SELECT d.id, d.name, d.phone, d.address, d.owner_user_id, ou.name AS owner_user_name, d.depot_user_id, du.name AS depot_user_name
@@ -615,10 +594,10 @@ FROM depots d
 INNER JOIN users ou ON ou.id = d.owner_user_id
 LEFT JOIN users du ON du.id = d.depot_user_id
 WHERE d.is_active = 1
-ORDER BY d.created_at DESC;
+ORDER BY d.id DESC;
 
 CREATE PROCEDURE sp_get_customer_by_id(IN p_id INT UNSIGNED)
-SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, c.user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.sub_address
+SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, c.user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name
 FROM customers c
 INNER JOIN addresses a ON a.id = c.address
 LEFT JOIN users u ON u.id = c.user_id
@@ -627,25 +606,25 @@ WHERE c.id = p_id AND c.is_active = 1
 LIMIT 1;
 
 CREATE PROCEDURE sp_list_customers()
-SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, c.user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.sub_address
+SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, c.user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name
 FROM customers c
 INNER JOIN addresses a ON a.id = c.address
 LEFT JOIN users u ON u.id = c.user_id
 LEFT JOIN depots d ON d.id = c.depot_id AND d.is_active = 1
 WHERE c.is_active = 1
-ORDER BY c.name ASC;
+ORDER BY c.id DESC;
 
 CREATE PROCEDURE sp_list_customers_by_depot_id(IN p_depot_id INT UNSIGNED)
-SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, c.user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.sub_address
+SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, c.user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name
 FROM customers c
 INNER JOIN addresses a ON a.id = c.address
 LEFT JOIN users u ON u.id = c.user_id
 INNER JOIN depots d ON d.id = c.depot_id
 WHERE c.is_active = 1 AND d.is_active = 1 AND c.depot_id = p_depot_id
-ORDER BY c.name ASC;
+ORDER BY c.id DESC;
 
 CREATE PROCEDURE sp_list_customers_by_owner_user_id(IN p_owner_user_id INT UNSIGNED)
-SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, c.user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.sub_address
+SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, c.user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name
 FROM customers c
 INNER JOIN addresses a ON a.id = c.address
 LEFT JOIN users u ON u.id = c.user_id
@@ -655,7 +634,7 @@ WHERE c.is_active = 1
     c.depot_id IS NULL
     OR d.owner_user_id = p_owner_user_id
   )
-ORDER BY c.name ASC;
+ORDER BY c.id DESC;
 
 CREATE PROCEDURE sp_get_catalog_by_id(IN p_id INT UNSIGNED)
 SELECT id, name, note
@@ -667,7 +646,7 @@ CREATE PROCEDURE sp_list_catalogs()
 SELECT id, name, note
 FROM catalogs
 WHERE is_active = 1
-ORDER BY name ASC;
+ORDER BY id DESC;
 
 CREATE PROCEDURE sp_get_item_by_id(IN p_id INT UNSIGNED)
 SELECT i.id, i.catalog_id, i.name, i.sku, i.default_unit_price_usd, i.default_unit_price_khr, c.name AS catalog_name
@@ -681,17 +660,17 @@ SELECT i.id, i.catalog_id, i.name, i.sku, i.default_unit_price_usd, i.default_un
 FROM items i
 INNER JOIN catalogs c ON c.id = i.catalog_id
 WHERE i.is_active = 1 AND c.is_active = 1
-ORDER BY c.name ASC, i.name ASC;
+ORDER BY i.id DESC;
 
 CREATE PROCEDURE sp_list_statuses()
 SELECT id, name
 FROM status
-ORDER BY id ASC;
+ORDER BY id DESC;
 
 CREATE PROCEDURE sp_list_addresses()
 SELECT a.id, a.name
 FROM addresses a
-ORDER BY a.name ASC;
+ORDER BY a.id DESC;
 
 CREATE PROCEDURE sp_get_status_id_by_name(IN p_name VARCHAR(30))
 SELECT id
@@ -701,7 +680,7 @@ LIMIT 1;
 
 CREATE PROCEDURE sp_get_order_by_id(IN p_id INT UNSIGNED)
 SELECT
-  o.id, c.name AS customer_name, o.address, oa.name AS order_address_name, c.address AS customer_address_id, ca.name AS customer_address_name, c.sub_address AS customer_sub_address, o.customer_id, o.order_group_id, og.name AS order_group_name, o.item_id, o.currency, o.ordered_qty, o.unit_price,
+  o.id, c.name AS customer_name, o.address, oa.name AS order_address_name, c.address AS customer_address_id, ca.name AS customer_address_name, o.customer_id, o.order_group_id, og.name AS order_group_name, o.item_id, o.currency, o.ordered_qty, o.unit_price,
   o.producer_id, o.truck_id, da.id AS delivery_agent_id, o.delivery_time,
   o.amount_total, s.name AS status, o.created_at, o.updated_at,
   c.phone AS customer_phone,
@@ -726,7 +705,7 @@ LIMIT 1;
 
 CREATE PROCEDURE sp_list_orders()
 SELECT
-  o.id, c.name AS customer_name, o.address, oa.name AS order_address_name, c.address AS customer_address_id, ca.name AS customer_address_name, c.sub_address AS customer_sub_address, o.customer_id, o.order_group_id, og.name AS order_group_name, o.item_id, o.currency, o.ordered_qty, o.unit_price,
+  o.id, c.name AS customer_name, o.address, oa.name AS order_address_name, c.address AS customer_address_id, ca.name AS customer_address_name, o.customer_id, o.order_group_id, og.name AS order_group_name, o.item_id, o.currency, o.ordered_qty, o.unit_price,
   o.producer_id, o.truck_id, da.id AS delivery_agent_id, o.delivery_time,
   o.amount_total, s.name AS status, o.created_at, o.updated_at,
   c.phone AS customer_phone,
@@ -746,7 +725,7 @@ LEFT JOIN producers p ON p.id = o.producer_id
 LEFT JOIN trucks t ON t.id = o.truck_id
 LEFT JOIN delivery_agents da ON da.id = t.delivery_agent_id
 LEFT JOIN order_groups og ON og.id = o.order_group_id
-ORDER BY o.created_at DESC;
+ORDER BY o.id DESC;
 
 CREATE PROCEDURE sp_create_order(
   IN p_customer_id INT UNSIGNED,
@@ -831,16 +810,16 @@ SELECT rm.menu_key
 FROM role_menus rm
 INNER JOIN roles r ON r.id = rm.role_id
 WHERE r.name = p_role_name
-ORDER BY rm.menu_key ASC;
+ORDER BY rm.menu_key DESC;
 
 CREATE PROCEDURE sp_list_roles()
-SELECT id, name FROM roles ORDER BY id ASC;
+SELECT id, name FROM roles ORDER BY id DESC;
 
 CREATE PROCEDURE sp_list_role_menus()
 SELECT r.name AS role_name, rm.menu_key
 FROM role_menus rm
 INNER JOIN roles r ON r.id = rm.role_id
-ORDER BY r.id ASC, rm.menu_key ASC;
+ORDER BY rm.role_id DESC, rm.menu_key DESC;
 
 CREATE PROCEDURE sp_delete_role_menus_by_role_id(IN p_role_id INT UNSIGNED)
 DELETE FROM role_menus WHERE role_id = p_role_id;
@@ -872,12 +851,11 @@ CREATE PROCEDURE sp_create_customer(
   IN p_address INT UNSIGNED,
   IN p_user_id INT UNSIGNED,
   IN p_depot_id INT UNSIGNED,
-  IN p_sub_address VARCHAR(255),
   IN p_updated_at DATETIME
 )
 BEGIN
-  INSERT INTO customers (name, phone, address, user_id, depot_id, sub_address, updated_at)
-  VALUES (p_name, p_phone, p_address, p_user_id, p_depot_id, p_sub_address, p_updated_at);
+  INSERT INTO customers (name, phone, address, user_id, depot_id, updated_at)
+  VALUES (p_name, p_phone, p_address, p_user_id, p_depot_id, p_updated_at);
   SELECT LAST_INSERT_ID() AS insertId;
 END;
 
@@ -888,12 +866,11 @@ CREATE PROCEDURE sp_update_customer(
   IN p_address INT UNSIGNED,
   IN p_user_id INT UNSIGNED,
   IN p_depot_id INT UNSIGNED,
-  IN p_sub_address VARCHAR(255),
   IN p_updated_at DATETIME
 )
 BEGIN
   UPDATE customers
-  SET name = p_name, phone = p_phone, address = p_address, user_id = p_user_id, depot_id = p_depot_id, sub_address = p_sub_address, updated_at = p_updated_at
+  SET name = p_name, phone = p_phone, address = p_address, user_id = p_user_id, depot_id = p_depot_id, updated_at = p_updated_at
   WHERE id = p_id AND is_active = 1;
   SELECT ROW_COUNT() AS affectedRows;
 END;
@@ -996,7 +973,7 @@ BEGIN
 END;
 
 CREATE PROCEDURE sp_list_order_groups()
-SELECT id, name FROM order_groups ORDER BY id ASC;
+SELECT id, name FROM order_groups ORDER BY id DESC;
 
 CREATE PROCEDURE sp_get_order_group_by_id(IN p_id INT UNSIGNED)
 SELECT id, name FROM order_groups WHERE id = p_id LIMIT 1;
@@ -1013,19 +990,6 @@ SELECT
   0 AS total_collected_khr
 FROM orders o
 INNER JOIN items i ON i.id = o.item_id;
-
-CREATE PROCEDURE sp_list_user_activity_logs(IN p_limit INT)
-SELECT id, user_id, username, role, method, path, status_code, message, created_at
-FROM user_activity_logs
-ORDER BY id DESC
-LIMIT p_limit;
-
-CREATE PROCEDURE sp_create_user_activity_log(
-  IN p_user_id INT UNSIGNED, IN p_username VARCHAR(60), IN p_role VARCHAR(60),
-  IN p_method VARCHAR(10), IN p_path VARCHAR(255), IN p_status_code SMALLINT, IN p_message VARCHAR(255)
-)
-INSERT INTO user_activity_logs (user_id, username, role, method, path, status_code, message)
-VALUES (p_user_id, p_username, p_role, p_method, p_path, p_status_code, p_message);
 
 CREATE PROCEDURE sp_create_producer(IN p_name VARCHAR(255), IN p_phone VARCHAR(30), IN p_capacity_note VARCHAR(255), IN p_updated_at DATETIME)
 BEGIN
@@ -1074,7 +1038,7 @@ CREATE PROCEDURE sp_list_borrow_materials()
 SELECT id, name, unit, note
 FROM borrow_materials
 WHERE is_active = 1
-ORDER BY name ASC;
+ORDER BY id DESC;
 
 CREATE PROCEDURE sp_get_borrow_material_by_id(IN p_id INT UNSIGNED)
 SELECT id, name, unit, note
@@ -1120,7 +1084,7 @@ FROM customer_borrowed_materials cbm
 INNER JOIN borrow_materials m ON m.id = cbm.material_id
 INNER JOIN customers c ON c.id = cbm.customer_id
 WHERE cbm.customer_id = p_customer_id AND m.is_active = 1 AND c.is_active = 1
-ORDER BY m.name ASC;
+ORDER BY cbm.id DESC;
 
 CREATE PROCEDURE sp_list_all_customer_borrowed_materials()
 SELECT cbm.id, cbm.customer_id, c.name AS customer_name, cbm.material_id, m.name AS material_name, m.unit, cbm.qty, cbm.note, cbm.created_at, cbm.updated_at
@@ -1128,7 +1092,7 @@ FROM customer_borrowed_materials cbm
 INNER JOIN borrow_materials m ON m.id = cbm.material_id
 INNER JOIN customers c ON c.id = cbm.customer_id
 WHERE m.is_active = 1 AND c.is_active = 1
-ORDER BY c.name ASC, m.name ASC;
+ORDER BY cbm.id DESC;
 
 CREATE PROCEDURE sp_upsert_customer_borrowed_material(
   IN p_customer_id INT UNSIGNED,
@@ -1161,7 +1125,7 @@ FROM borrow_material_order_loans l
 INNER JOIN customers c ON c.id = l.customer_id
 INNER JOIN borrow_materials m ON m.id = l.material_id
 WHERE c.is_active = 1 AND m.is_active = 1
-ORDER BY l.created_at DESC;
+ORDER BY l.id DESC;
 
 CREATE PROCEDURE sp_create_borrow_material_order_loan(
   IN p_customer_id INT UNSIGNED,
@@ -1208,7 +1172,7 @@ FROM borrow_material_monthly_schedules s
 INNER JOIN customers c ON c.id = s.customer_id
 INNER JOIN borrow_materials m ON m.id = s.material_id
 WHERE c.is_active = 1 AND m.is_active = 1
-ORDER BY s.created_at DESC;
+ORDER BY s.id DESC;
 
 CREATE PROCEDURE sp_get_borrow_material_monthly_schedule_by_id(
   IN p_schedule_id INT UNSIGNED,
@@ -1227,7 +1191,7 @@ CREATE PROCEDURE sp_list_borrow_material_monthly_installments(IN p_schedule_id I
 SELECT id, schedule_id, period_no, due_date, amount_due, status, paid_at, created_at, updated_at
 FROM borrow_material_monthly_installments
 WHERE schedule_id = p_schedule_id
-ORDER BY period_no ASC;
+ORDER BY id DESC;
 
 CREATE PROCEDURE sp_create_borrow_material_monthly_schedule(
   IN p_customer_id INT UNSIGNED,
@@ -1338,16 +1302,16 @@ DEALLOCATE PREPARE stmt_role_menus;
 
 INSERT INTO role_menus (role_id, menu_key) VALUES
 (1, 'overview'), (1, 'newOrder'), (1, 'catalogs'), (1, 'items'), (1, 'customers'), (1, 'depots'),
-(1, 'producers'), (1, 'deliveryAgents'), (1, 'trucks'), (1, 'orders'), (1, 'assignOrders'), (1, 'orderMovement'), (1, 'payments'),
-(1, 'users'), (1, 'activityLogs'),
+(1, 'addresses'), (1, 'producers'), (1, 'deliveryAgents'), (1, 'trucks'), (1, 'orders'), (1, 'assignOrders'), (1, 'orderMovement'), (1, 'payments'),
+(1, 'users'),
 (1, 'borrowedMaterials'),
 (2, 'overview'), (2, 'newOrder'), (2, 'catalogs'), (2, 'items'), (2, 'customers'), (2, 'depots'),
-(2, 'producers'), (2, 'deliveryAgents'), (2, 'trucks'), (2, 'orders'), (2, 'assignOrders'), (2, 'orderMovement'), (2, 'payments'),
+(2, 'addresses'), (2, 'producers'), (2, 'deliveryAgents'), (2, 'trucks'), (2, 'orders'), (2, 'assignOrders'), (2, 'orderMovement'), (2, 'payments'),
 (2, 'borrowedMaterials'),
 (3, 'overview'), (3, 'deliveryAgents'), (3, 'trucks'), (3, 'orders'),
 (4, 'overview'), (4, 'orders'),
 (5, 'overview'), (5, 'orders'),
-(6, 'overview'), (6, 'customers'), (6, 'orders'), (6, 'payments'), (6, 'borrowedMaterials')
+(6, 'overview'), (6, 'addresses'), (6, 'customers'), (6, 'orders'), (6, 'payments'), (6, 'borrowedMaterials')
 ON DUPLICATE KEY UPDATE menu_key = VALUES(menu_key);
 
 -- 2) Remove obsolete orders.producer_confirm_status if it still exists
@@ -1512,7 +1476,7 @@ PREPARE stmt_add_customers_user_id FROM @sql_add_customers_user_id;
 EXECUTE stmt_add_customers_user_id;
 DEALLOCATE PREPARE stmt_add_customers_user_id;
 
--- 7a) Customers: name, phone and sub_address nullable
+-- 7a) Customers: name and phone nullable
 SET @cust_name_not_null := (
   SELECT COUNT(*)
   FROM information_schema.columns
@@ -1547,25 +1511,23 @@ PREPARE stmt_cust_phone_null FROM @sql_cust_phone_null;
 EXECUTE stmt_cust_phone_null;
 DEALLOCATE PREPARE stmt_cust_phone_null;
 
-SET @cust_sub_not_null := (
+UPDATE customers SET phone = NULL WHERE phone = '';
+
+SET @has_customers_sub_address := (
   SELECT COUNT(*)
   FROM information_schema.columns
   WHERE table_schema = DATABASE()
     AND table_name = 'customers'
     AND column_name = 'sub_address'
-    AND is_nullable = 'NO'
 );
-SET @sql_cust_sub_null := IF(
-  @cust_sub_not_null > 0,
-  'ALTER TABLE customers MODIFY COLUMN sub_address VARCHAR(255) NULL DEFAULT NULL',
+SET @sql_drop_customers_sub_address := IF(
+  @has_customers_sub_address > 0,
+  'ALTER TABLE customers DROP COLUMN sub_address',
   'SELECT 1'
 );
-PREPARE stmt_cust_sub_null FROM @sql_cust_sub_null;
-EXECUTE stmt_cust_sub_null;
-DEALLOCATE PREPARE stmt_cust_sub_null;
-
-UPDATE customers SET phone = NULL WHERE phone = '';
-UPDATE customers SET sub_address = NULL WHERE sub_address = '';
+PREPARE stmt_drop_customers_sub_address FROM @sql_drop_customers_sub_address;
+EXECUTE stmt_drop_customers_sub_address;
+DEALLOCATE PREPARE stmt_drop_customers_sub_address;
 
 -- 8) Ensure dual-currency item prices exist for USD and KHR
 SET @has_items_price_usd := (
@@ -1839,7 +1801,7 @@ DEALLOCATE PREPARE stmt_drop_ord_da_col;
 
 CREATE PROCEDURE sp_get_order_by_id(IN p_id INT UNSIGNED)
 SELECT
-  o.id, c.name AS customer_name, o.address, oa.name AS order_address_name, c.address AS customer_address_id, ca.name AS customer_address_name, c.sub_address AS customer_sub_address, o.customer_id, o.order_group_id, og.name AS order_group_name, o.item_id, o.currency, o.ordered_qty, o.unit_price,
+  o.id, c.name AS customer_name, o.address, oa.name AS order_address_name, c.address AS customer_address_id, ca.name AS customer_address_name, o.customer_id, o.order_group_id, og.name AS order_group_name, o.item_id, o.currency, o.ordered_qty, o.unit_price,
   o.producer_id, o.truck_id, da.id AS delivery_agent_id, o.delivery_time,
   o.amount_total, s.name AS status, o.created_at, o.updated_at,
   c.phone AS customer_phone,
@@ -1864,7 +1826,7 @@ LIMIT 1;
 
 CREATE PROCEDURE sp_list_orders()
 SELECT
-  o.id, c.name AS customer_name, o.address, oa.name AS order_address_name, c.address AS customer_address_id, ca.name AS customer_address_name, c.sub_address AS customer_sub_address, o.customer_id, o.order_group_id, og.name AS order_group_name, o.item_id, o.currency, o.ordered_qty, o.unit_price,
+  o.id, c.name AS customer_name, o.address, oa.name AS order_address_name, c.address AS customer_address_id, ca.name AS customer_address_name, o.customer_id, o.order_group_id, og.name AS order_group_name, o.item_id, o.currency, o.ordered_qty, o.unit_price,
   o.producer_id, o.truck_id, da.id AS delivery_agent_id, o.delivery_time,
   o.amount_total, s.name AS status, o.created_at, o.updated_at,
   c.phone AS customer_phone,
@@ -1884,7 +1846,7 @@ LEFT JOIN producers p ON p.id = o.producer_id
 LEFT JOIN trucks t ON t.id = o.truck_id
 LEFT JOIN delivery_agents da ON da.id = t.delivery_agent_id
 LEFT JOIN order_groups og ON og.id = o.order_group_id
-ORDER BY o.created_at DESC;
+ORDER BY o.id DESC;
 
 CREATE PROCEDURE sp_create_order(
   IN p_customer_id INT UNSIGNED,
@@ -2081,7 +2043,7 @@ CREATE PROCEDURE sp_list_borrow_material_monthly_installments(IN p_schedule_id I
 SELECT id, schedule_id, period_no, due_date, amount_due, status, paid_at, created_at, updated_at
 FROM borrow_material_monthly_installments
 WHERE schedule_id = p_schedule_id
-ORDER BY period_no ASC;
+ORDER BY id DESC;
 
 CREATE PROCEDURE sp_create_borrow_material_monthly_schedule(
   IN p_customer_id INT UNSIGNED,

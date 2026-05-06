@@ -1,4 +1,10 @@
-const { listAddresses } = require("../addresses");
+const {
+  listAddresses,
+  getAddressById,
+  createAddress,
+  updateAddress,
+  deleteAddress,
+} = require("../addresses");
 const { listOrderGroups, getOrderGroupById } = require("../orderGroups");
 const { listOrderStatuses } = require("../lookups");
 const {
@@ -27,6 +33,10 @@ const { listTrucks, getTruckById, createTruck, updateTruck, deleteTruck } = requ
 
 module.exports = {
   listAddresses,
+  getAddressById,
+  createAddress,
+  updateAddress,
+  deleteAddress,
   listOrderGroups,
   getOrderGroupById,
   listOrderStatuses,

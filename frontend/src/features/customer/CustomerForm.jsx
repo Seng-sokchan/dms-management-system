@@ -4,6 +4,7 @@ import "./CustomerForm.css";
 
 export function CustomerForm({
   addresses = [],
+  depots = [],
   customerUsers = [],
   newCustomer,
   setNewCustomer,
@@ -69,15 +70,21 @@ export function CustomerForm({
       {customerUsers.length === 0 ? (
         <p className="form-help">{t("customers.noCustomerUsersHint")}</p>
       ) : null}
-      <label className="form-label" htmlFor="customer-sub-address">
-        {t("customers.subAddress")}
+      <label className="form-label" htmlFor="customer-depot">
+        {t("customers.depot", { defaultValue: "Depot" })}
       </label>
-      <input
-        id="customer-sub-address"
-        value={newCustomer.subAddress}
-        onChange={(event) => setNewCustomer({ ...newCustomer, subAddress: event.target.value })}
-        placeholder={t("customers.subAddress")}
-      />
+      <select
+        id="customer-depot"
+        value={newCustomer.depotId || ""}
+        onChange={(event) => setNewCustomer({ ...newCustomer, depotId: event.target.value })}
+      >
+        <option value="">{t("customers.selectDepot", { defaultValue: "— Select depot —" })}</option>
+        {depots.map((depot) => (
+          <option key={depot.id} value={depot.id}>
+            {depot.name}
+          </option>
+        ))}
+      </select>
       <Button variant="primary" type="submit">
         {t("customers.save")}
       </Button>

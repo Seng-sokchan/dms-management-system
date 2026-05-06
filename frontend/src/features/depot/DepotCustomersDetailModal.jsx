@@ -1,10 +1,30 @@
 import { useTranslation } from "react-i18next";
+import { useMemo, useState } from "react";
+import { usePagination } from "../../hooks/usePagination";
 import { Button } from "../../components/ui/Button";
 import { DataTable } from "../../components/ui/DataTable";
 import "./DepotCustomersDetailModal.css";
 
 export function DepotCustomersDetailModal({ depot, customers, onClose }) {
   const { t } = useTranslation();
+  const [searchText, setSearchText] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
+  const filteredCustomers = useMemo(() => {
+    const keyword = appliedSearch.trim().toLowerCase();
+    if (!keyword) return customers;
+    return customers.filter((entry) =>
+      [entry.id, entry.name, entry.phone, entry.userName, entry.userUsername]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(keyword)),
+    );
+  }, [customers, appliedSearch]);
+  const {
+    page,
+    pageSize,
+    paged: pagedCustomers,
+    setPage,
+    setPageSize,
+  } = usePagination(filteredCustomers, { resetKey: appliedSearch });
   if (!depot) return null;
 
   return (
@@ -25,7 +45,22 @@ export function DepotCustomersDetailModal({ depot, customers, onClose }) {
         {customers.length === 0 ? (
           <p className="entity-list-empty depot-customers-modal__empty">{t("depots.customersInDepotEmpty")}</p>
         ) : (
-          <DataTable className="depot-customers-modal__table-wrap">
+          <DataTable
+            className="depot-customers-modal__table-wrap"
+            showSearch
+            searchValue={searchText}
+            onSearchValueChange={setSearchText}
+            onSearch={() => setAppliedSearch(searchText)}
+            searchPlaceholder={t("depots.searchCustomersPlaceholder", { defaultValue: "Search customers..." })}
+            searchButtonLabel={t("common.search", { defaultValue: "Search" })}
+            pagination={{
+              page,
+              pageSize,
+              totalRows: filteredCustomers.length,
+              onPageChange: setPage,
+              onPageSizeChange: setPageSize,
+            }}
+          >
               <thead>
                 <tr>
                   <th>ID</th>
@@ -35,7 +70,7 @@ export function DepotCustomersDetailModal({ depot, customers, onClose }) {
                 </tr>
               </thead>
               <tbody>
-                {customers.map((c) => (
+                {pagedCustomers.map((c) => (
                   <tr key={c.id}>
                     <td>{c.id}</td>
                     <td>{c.name}</td>

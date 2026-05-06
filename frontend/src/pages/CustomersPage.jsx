@@ -1,16 +1,18 @@
 ﻿import { useTranslation } from "react-i18next";
 import { useMemo, useState } from "react";
+import { usePagination } from "../hooks/usePagination";
 import { CustomerForm } from "../features/customer/CustomerForm";
 import { Button } from "../components/ui/Button";
 import { DataTable } from "../components/ui/DataTable";
 import { useConfirm } from "../components/ui/ConfirmProvider";
 
-const EMPTY_EDIT = { id: "", name: "", phone: "", address: "", userId: "", subAddress: "" };
+const EMPTY_EDIT = { id: "", name: "", phone: "", address: "", userId: "", depotId: "" };
 
 export function CustomersPage({
   customers,
   customerUsers,
   addresses,
+  depots = [],
   newCustomer,
   setNewCustomer,
   onCreateCustomer,
@@ -21,7 +23,33 @@ export function CustomersPage({
   const { confirm } = useConfirm();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(EMPTY_EDIT);
+  const [searchText, setSearchText] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
   const isEditing = useMemo(() => Boolean(editingCustomer.id), [editingCustomer.id]);
+  const filteredCustomers = useMemo(() => {
+    const keyword = appliedSearch.trim().toLowerCase();
+    if (!keyword) return customers;
+    return customers.filter((customer) =>
+      [
+        customer.id,
+        customer.name,
+        customer.phone,
+        customer.userName,
+        customer.userUsername,
+        customer.depotName,
+        customer.addressName,
+      ]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(keyword)),
+    );
+  }, [customers, appliedSearch]);
+  const {
+    page: customerPage,
+    pageSize: customerPageSize,
+    paged: pagedCustomers,
+    setPage: setCustomerPage,
+    setPageSize: setCustomerPageSize,
+  } = usePagination(filteredCustomers, { resetKey: appliedSearch });
 
   function startEdit(customer) {
     setEditingCustomer({
@@ -30,7 +58,7 @@ export function CustomersPage({
       phone: customer.phone ?? "",
       address: customer.address || "",
       userId: customer.userId || "",
-      subAddress: customer.subAddress ?? "",
+      depotId: customer.depotId || "",
     });
   }
 
@@ -46,7 +74,7 @@ export function CustomersPage({
       phone: editingCustomer.phone,
       address: editingCustomer.address,
       userId: editingCustomer.userId,
-      subAddress: editingCustomer.subAddress,
+      depotId: editingCustomer.depotId,
     });
     setEditingCustomer(EMPTY_EDIT);
   }
@@ -91,20 +119,34 @@ export function CustomersPage({
         {customers.length === 0 ? (
           <p className="entity-list-empty">{t("customers.empty")}</p>
         ) : (
-          <DataTable>
+          <DataTable
+            showSearch
+            searchValue={searchText}
+            onSearchValueChange={setSearchText}
+            onSearch={() => setAppliedSearch(searchText)}
+            searchPlaceholder={t("customers.searchPlaceholder", { defaultValue: "Search customers..." })}
+            searchButtonLabel={t("common.search", { defaultValue: "Search" })}
+            pagination={{
+              page: customerPage,
+              pageSize: customerPageSize,
+              totalRows: filteredCustomers.length,
+              onPageChange: setCustomerPage,
+              onPageSizeChange: setCustomerPageSize,
+            }}
+          >
               <thead>
                 <tr>
                   <th>ID</th>
                   <th>{t("customers.name")}</th>
                   <th>{t("customers.phone")}</th>
                   <th>{t("customers.user")}</th>
+                  <th>{t("customers.depot", { defaultValue: "Depot" })}</th>
                   <th>{t("customers.address")}</th>
-                  <th>{t("customers.subAddress")}</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {customers.map((customer) => (
+                {pagedCustomers.map((customer) => (
                   <tr key={customer.id}>
                     <td>{customer.id}</td>
                     <td>{customer.name}</td>
@@ -112,8 +154,8 @@ export function CustomersPage({
                     <td>
                       {customer.userName ? `${customer.userName} (${customer.userUsername})` : "—"}
                     </td>
+                    <td>{customer.depotName || "—"}</td>
                     <td>{customer.addressName || "—"}</td>
-                    <td>{customer.subAddress ? customer.subAddress : "—"}</td>
                     <td>
                       <div className="row-actions">
                         <Button variant="ghost" tone="edit" onClick={() => startEdit(customer)}>
@@ -135,6 +177,7 @@ export function CustomersPage({
           <div className="modal-card">
             <CustomerForm
               addresses={addresses}
+              depots={depots}
               customerUsers={customerUsers}
               newCustomer={newCustomer}
               setNewCustomer={setNewCustomer}
@@ -205,14 +248,21 @@ export function CustomersPage({
                 </option>
               ))}
             </select>
-            <label className="form-label" htmlFor="customer-edit-sub-address">
-              {t("customers.subAddress")}
+            <label className="form-label" htmlFor="customer-edit-depot">
+              {t("customers.depot", { defaultValue: "Depot" })}
             </label>
-            <input
-              id="customer-edit-sub-address"
-              value={editingCustomer.subAddress}
-              onChange={(event) => setEditingCustomer({ ...editingCustomer, subAddress: event.target.value })}
-            />
+            <select
+              id="customer-edit-depot"
+              value={editingCustomer.depotId || ""}
+              onChange={(event) => setEditingCustomer({ ...editingCustomer, depotId: event.target.value })}
+            >
+              <option value="">{t("customers.selectDepot", { defaultValue: "— Select depot —" })}</option>
+              {depots.map((depot) => (
+                <option key={depot.id} value={depot.id}>
+                  {depot.name}
+                </option>
+              ))}
+            </select>
             <div className="row-actions">
               <Button variant="primary" type="submit">
                 {t("customers.update")}

@@ -67,7 +67,6 @@ backend/
     │
     ├── middleware/
     │   ├── auth.js            ← JWT verify + createToken
-    │   ├── activityLogger.js  ← audit trail
     │   ├── errorHandler.js    ← global error → JSON
     │   ├── notFound.js        ← 404 fallback
     │   ├── rateLimit.js       ← express-rate-limit configs

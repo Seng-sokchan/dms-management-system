@@ -7,6 +7,9 @@ import {
   deleteDeliveryAgent,
   deleteTruck,
   deleteCatalog,
+  createAddress,
+  updateAddress,
+  deleteAddress,
   createOrder,
   deleteOrder as deleteOrderRequest,
   createUser,
@@ -99,7 +102,6 @@ export function useAdminDashboard() {
   const [statuses, setStatuses] = useState([]);
   const [orders, setOrders] = useState([]);
   const [users, setUsers] = useState([]);
-  const [activityLogs, setActivityLogs] = useState([]);
   const [roleMenusByRole, setRoleMenusByRole] = useState(null);
   const [customers, setCustomers] = useState([]);
   const [depots, setDepots] = useState([]);
@@ -128,7 +130,7 @@ export function useAdminDashboard() {
     phone: "",
     address: "",
     userId: "",
-    subAddress: "",
+    depotId: "",
   });
   const [newDepot, setNewDepot] = useState({
     name: "",
@@ -138,6 +140,7 @@ export function useAdminDashboard() {
     depotUserId: "",
   });
   const [newCatalog, setNewCatalog] = useState({ name: "", note: "" });
+  const [newAddress, setNewAddress] = useState({ name: "" });
   const [newItem, setNewItem] = useState({
     catalogId: "",
     name: "",
@@ -187,7 +190,6 @@ export function useAdminDashboard() {
       setOrderGroups(Array.isArray(data.orderGroups) ? data.orderGroups : []);
       setUsers(Array.isArray(data.users) ? data.users : []);
       setRoleMenusByRole(data.roleMenusByRole && typeof data.roleMenusByRole === "object" ? data.roleMenusByRole : null);
-      setActivityLogs(Array.isArray(data.activityLogs) ? data.activityLogs : []);
       setBorrowMaterials(Array.isArray(data.borrowMaterials) ? data.borrowMaterials : []);
       setCustomerBorrowedMaterials(Array.isArray(data.customerBorrowedMaterials) ? data.customerBorrowedMaterials : []);
       setBorrowMaterialOrderLoans(
@@ -212,7 +214,6 @@ export function useAdminDashboard() {
         setStatuses([]);
         setOrders([]);
         setUsers([]);
-        setActivityLogs([]);
         setRoleMenusByRole(null);
         setCustomers([]);
         setDepots([]);
@@ -315,6 +316,38 @@ export function useAdminDashboard() {
     }
   }
 
+  async function submitAddress(event) {
+    event.preventDefault();
+    try {
+      await createAddress(token, newAddress);
+      setNewAddress({ name: "" });
+      await refresh();
+      await showSuccessPopup(i18n.t("success.addressAdded", { defaultValue: "Address added" }));
+    } catch (error) {
+      showError(getErrorMessage(error, "errors.createAddress"));
+    }
+  }
+
+  async function submitAddressUpdate(addressId, payload) {
+    try {
+      await updateAddress(token, addressId, payload);
+      await refresh();
+      await showSuccessPopup(i18n.t("success.addressUpdated", { defaultValue: "Address updated" }));
+    } catch (error) {
+      showError(getErrorMessage(error, "errors.updateAddress"));
+    }
+  }
+
+  async function submitAddressDelete(addressId) {
+    try {
+      await deleteAddress(token, addressId);
+      await refresh();
+      showSuccess(i18n.t("success.addressDeleted", { defaultValue: "Address deleted" }));
+    } catch (error) {
+      showError(getErrorMessage(error, "errors.deleteAddress"));
+    }
+  }
+
   async function submitItem(event) {
     event.preventDefault();
     try {
@@ -365,7 +398,7 @@ export function useAdminDashboard() {
     event.preventDefault();
     try {
       await createCustomer(token, newCustomer);
-      setNewCustomer({ name: "", phone: "", address: "", userId: "", subAddress: "" });
+      setNewCustomer({ name: "", phone: "", address: "", userId: "", depotId: "" });
       await refresh();
       await showSuccessPopup(i18n.t("success.customerAdded"));
     } catch (error) {
@@ -801,7 +834,6 @@ export function useAdminDashboard() {
     orders,
     users,
     roleMenusByRole,
-    activityLogs,
     customers,
     depots,
     customerUsers,
@@ -824,6 +856,7 @@ export function useAdminDashboard() {
     newCustomer,
     newDepot,
     newCatalog,
+    newAddress,
     newItem,
     newDelivery,
     newTruck,
@@ -840,6 +873,7 @@ export function useAdminDashboard() {
     setNewCustomer,
     setNewDepot,
     setNewCatalog,
+    setNewAddress,
     setNewItem,
     setNewDelivery,
     setNewTruck,
@@ -851,6 +885,9 @@ export function useAdminDashboard() {
     submitCatalog,
     submitCatalogUpdate,
     submitCatalogDelete,
+    submitAddress,
+    submitAddressUpdate,
+    submitAddressDelete,
     submitItem,
     submitItemUpdate,
     submitItemDelete,

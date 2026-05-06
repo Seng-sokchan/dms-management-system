@@ -43,14 +43,12 @@ async function createCustomer(payload) {
   const address = Number(payload.address);
   const userId = payload.userId ? Number(payload.userId) : null;
   const depotId = payload.depotId ? Number(payload.depotId) : null;
-  const subAddress = normalizeNullableString(payload.subAddress);
-  const [rowsRaw] = await getPool().query("CALL sp_create_customer(?, ?, ?, ?, ?, ?, ?)", [
+  const [rowsRaw] = await getPool().query("CALL sp_create_customer(?, ?, ?, ?, ?, ?)", [
     name,
     phone,
     address,
     userId,
     depotId,
-    subAddress,
     nowIso(),
   ]);
   const meta = getProcedureMeta(rowsRaw);
@@ -63,15 +61,13 @@ async function updateCustomer(id, payload) {
   const address = Number(payload.address);
   const userId = payload.userId ? Number(payload.userId) : null;
   const depotId = payload.depotId ? Number(payload.depotId) : null;
-  const subAddress = normalizeNullableString(payload.subAddress);
-  const [rowsRaw] = await getPool().query("CALL sp_update_customer(?, ?, ?, ?, ?, ?, ?, ?)", [
+  const [rowsRaw] = await getPool().query("CALL sp_update_customer(?, ?, ?, ?, ?, ?, ?)", [
     id,
     name,
     phone,
     address,
     userId,
     depotId,
-    subAddress,
     nowIso(),
   ]);
   const meta = getProcedureMeta(rowsRaw);

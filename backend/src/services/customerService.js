@@ -41,6 +41,7 @@ async function listCustomerUsers(user) {
 }
 
 async function validateCustomerUser(userId) {
+  if (!userId) return;
   const user = await getUserById(userId);
   if (!user || !user.isActive) throw new BadRequestError("Customer user not found");
   if (user.role !== "Customer") throw new BadRequestError("Selected user must have Customer role");

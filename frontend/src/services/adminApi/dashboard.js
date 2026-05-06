@@ -2,6 +2,7 @@ import { apiClient, authConfig, unwrapApiData } from "../apiClient";
 import { fetchOrderPaymentTotals } from "./orders";
 import { fetchBorrowMaterialOrderLoans } from "./borrowMaterialOrderLoans";
 import { fetchBorrowMaterialMonthlySchedules } from "./borrowMaterialMonthlySchedules";
+import { canAccessPath } from "../../constants/menus";
 
 /**
  * Route-aware dashboard load so each page requests only needed data.
@@ -11,13 +12,13 @@ const ROUTE_DATA_MAP = {
   "/create-order": ["customers", "customerUsers", "addresses", "producers", "trucks", "items"],
   "/catalogs": ["catalogs"],
   "/items": ["catalogs", "items"],
-  "/customers": ["customers", "customerUsers", "addresses"],
+  "/addresses": ["addresses"],
+  "/customers": ["customers", "customerUsers", "addresses", "depots"],
   "/depots": ["depots", "customers"],
   "/producers": ["producers"],
   "/delivery-agents": ["deliveryAgents"],
   "/trucks": ["trucks", "deliveryAgents"],
   "/users": ["users", "roleMenus"],
-  "/activity-logs": ["activityLogs"],
   "/orders": ["orders", "statuses"],
   "/assign-orders": ["orders", "trucks", "orderGroups"],
   "/order-movement": ["orders", "statuses"],
@@ -41,17 +42,14 @@ export async function fetchDashboardData(token, pathname = "/overview") {
   const profile = await apiClient.get("/users/me", config);
   const user = unwrapApiData(profile.data);
   const canManageCustomers = user?.role === "Admin" || user?.role === "Owner" || user?.role === "Depot";
-  const routeKeys = getKeysForRoute(pathname);
+  const safePathname = canAccessPath(user, pathname) ? pathname : "/overview";
+  const routeKeys = getKeysForRoute(safePathname);
   const requested = new Set(routeKeys);
 
   if (user?.role === "Admin" && user?.allowedMenus?.includes("users")) {
     requested.add("users");
     requested.add("roleMenus");
   }
-  if (user?.role === "Admin" && user?.allowedMenus?.includes("activityLogs")) {
-    requested.add("activityLogs");
-  }
-
   const data = {
     user,
     summary: null,
@@ -69,7 +67,6 @@ export async function fetchDashboardData(token, pathname = "/overview") {
     orderGroups: [],
     users: [],
     roleMenusByRole: null,
-    activityLogs: [],
     borrowMaterials: [],
     customerBorrowedMaterials: [],
     borrowMaterialOrderLoans: [],
@@ -157,11 +154,6 @@ export async function fetchDashboardData(token, pathname = "/overview") {
     const res = await apiClient.get("/role-menus", config);
     const payload = unwrapApiData(res.data);
     data.roleMenusByRole = payload && typeof payload === "object" ? payload : null;
-  });
-  queue("activityLogs", async () => {
-    const res = await apiClient.get("/activity-logs?limit=5000", config);
-    const rows = unwrapApiData(res.data);
-    data.activityLogs = Array.isArray(rows) ? rows : [];
   });
   queue("borrowMaterials", async () => {
     const res = await apiClient.get("/borrow-materials", config);

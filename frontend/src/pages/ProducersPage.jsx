@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { useMemo, useState } from "react";
+import { usePagination } from "../hooks/usePagination";
 import { ProducerForm } from "../features/producer/ProducerForm";
 import { Button } from "../components/ui/Button";
 import { DataTable } from "../components/ui/DataTable";
@@ -19,7 +20,25 @@ export function ProducersPage({
   const { confirm } = useConfirm();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingProducer, setEditingProducer] = useState(EMPTY_EDIT);
+  const [searchText, setSearchText] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
   const isEditing = useMemo(() => Boolean(editingProducer.id), [editingProducer.id]);
+  const filteredProducers = useMemo(() => {
+    const keyword = appliedSearch.trim().toLowerCase();
+    if (!keyword) return producers;
+    return producers.filter((producer) =>
+      [producer.id, producer.name, producer.phone, producer.capacityNote]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(keyword)),
+    );
+  }, [producers, appliedSearch]);
+  const {
+    page,
+    pageSize,
+    paged: pagedProducers,
+    setPage,
+    setPageSize,
+  } = usePagination(filteredProducers, { resetKey: appliedSearch });
 
   function startEdit(producer) {
     setEditingProducer({
@@ -85,7 +104,21 @@ export function ProducersPage({
         {producers.length === 0 ? (
           <p className="entity-list-empty">{t("producers.empty")}</p>
         ) : (
-          <DataTable>
+          <DataTable
+            showSearch
+            searchValue={searchText}
+            onSearchValueChange={setSearchText}
+            onSearch={() => setAppliedSearch(searchText)}
+            searchPlaceholder={t("producers.searchPlaceholder", { defaultValue: "Search producers..." })}
+            searchButtonLabel={t("common.search", { defaultValue: "Search" })}
+            pagination={{
+              page,
+              pageSize,
+              totalRows: filteredProducers.length,
+              onPageChange: setPage,
+              onPageSizeChange: setPageSize,
+            }}
+          >
               <thead>
                 <tr>
                   <th>ID</th>
@@ -96,7 +129,7 @@ export function ProducersPage({
                 </tr>
               </thead>
               <tbody>
-                {producers.map((p) => (
+                {pagedProducers.map((p) => (
                   <tr key={p.id}>
                     <td>{p.id}</td>
                     <td>{p.name}</td>

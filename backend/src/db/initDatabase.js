@@ -46,7 +46,6 @@ async function run() {
   await dbConn.query(schemaSql);
 
   await dbConn.query("DELETE FROM order_status_history");
-  await dbConn.query("DELETE FROM user_activity_logs");
   await dbConn.query("DELETE FROM borrow_material_monthly_schedules");
   await dbConn.query("DELETE FROM borrow_material_order_loans");
   await dbConn.query("DELETE FROM orders");
@@ -78,16 +77,16 @@ async function run() {
   await dbConn.query(
     `INSERT INTO role_menus (role_id, menu_key) VALUES
      (1, 'overview'), (1, 'newOrder'), (1, 'catalogs'), (1, 'items'), (1, 'customers'), (1, 'depots'),
-     (1, 'producers'), (1, 'deliveryAgents'), (1, 'trucks'), (1, 'orders'), (1, 'assignOrders'), (1, 'orderMovement'), (1, 'payments'),
-     (1, 'users'), (1, 'activityLogs'),
+     (1, 'addresses'), (1, 'producers'), (1, 'deliveryAgents'), (1, 'trucks'), (1, 'orders'), (1, 'assignOrders'), (1, 'orderMovement'), (1, 'payments'),
+     (1, 'users'),
      (1, 'borrowedMaterials'),
      (2, 'overview'), (2, 'newOrder'), (2, 'catalogs'), (2, 'items'), (2, 'customers'), (2, 'depots'),
-     (2, 'producers'), (2, 'deliveryAgents'), (2, 'trucks'), (2, 'orders'), (2, 'assignOrders'), (2, 'orderMovement'), (2, 'payments'),
+     (2, 'addresses'), (2, 'producers'), (2, 'deliveryAgents'), (2, 'trucks'), (2, 'orders'), (2, 'assignOrders'), (2, 'orderMovement'), (2, 'payments'),
      (2, 'borrowedMaterials'),
      (3, 'overview'), (3, 'deliveryAgents'), (3, 'trucks'), (3, 'orders'),
      (4, 'overview'), (4, 'orders'),
      (5, 'overview'), (5, 'orders'),
-     (6, 'overview'), (6, 'customers'), (6, 'orders'), (6, 'payments'), (6, 'borrowedMaterials')`,
+     (6, 'overview'), (6, 'addresses'), (6, 'customers'), (6, 'orders'), (6, 'payments'), (6, 'borrowedMaterials')`,
   );
 
   const adminHash = bcrypt.hashSync(getSeedPassword("SEED_ADMIN_PASSWORD", "admin123"), 10);

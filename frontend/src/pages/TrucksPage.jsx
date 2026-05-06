@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { usePagination } from "../hooks/usePagination";
 import { Button } from "../components/ui/Button";
 import { DataTable } from "../components/ui/DataTable";
 import { useConfirm } from "../components/ui/ConfirmProvider";
@@ -19,7 +20,25 @@ export function TrucksPage({
   const { confirm } = useConfirm();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingTruck, setEditingTruck] = useState(EMPTY_EDIT);
+  const [searchText, setSearchText] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
   const isEditing = useMemo(() => Boolean(editingTruck.id), [editingTruck.id]);
+  const filteredTrucks = useMemo(() => {
+    const keyword = appliedSearch.trim().toLowerCase();
+    if (!keyword) return trucks;
+    return trucks.filter((truck) =>
+      [truck.id, truck.code, truck.plateNo, truck.deliveryAgentName, truck.capacityNote]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(keyword)),
+    );
+  }, [trucks, appliedSearch]);
+  const {
+    page,
+    pageSize,
+    paged: pagedTrucks,
+    setPage,
+    setPageSize,
+  } = usePagination(filteredTrucks, { resetKey: appliedSearch });
 
   async function handleCreateTruck(event) {
     await onCreateTruck(event);
@@ -91,7 +110,21 @@ export function TrucksPage({
         {trucks.length === 0 ? (
           <p className="entity-list-empty">{t("trucks.empty")}</p>
         ) : (
-          <DataTable>
+          <DataTable
+            showSearch
+            searchValue={searchText}
+            onSearchValueChange={setSearchText}
+            onSearch={() => setAppliedSearch(searchText)}
+            searchPlaceholder={t("trucks.searchPlaceholder", { defaultValue: "Search trucks..." })}
+            searchButtonLabel={t("common.search", { defaultValue: "Search" })}
+            pagination={{
+              page,
+              pageSize,
+              totalRows: filteredTrucks.length,
+              onPageChange: setPage,
+              onPageSizeChange: setPageSize,
+            }}
+          >
               <thead>
                 <tr>
                   <th>ID</th>
@@ -103,7 +136,7 @@ export function TrucksPage({
                 </tr>
               </thead>
               <tbody>
-                {trucks.map((truck) => (
+                {pagedTrucks.map((truck) => (
                   <tr key={truck.id}>
                     <td>{truck.id}</td>
                     <td>{truck.code}</td>

@@ -16,6 +16,21 @@
     "km": "ខ្មែរ",
     "switchTo": "ប្ដូរទៅ {{name}}"
   },
+  "pagination": {
+    "showing": "បង្ហាញ {{from}}–{{to}} នៃ {{total}}",
+    "rowsPerPage": "ជួរក្នុងមួយទំព័រ",
+    "first": "ដំបូង",
+    "previous": "មុន",
+    "next": "បន្ទាប់",
+    "last": "ចុងក្រោយ",
+    "page": "ទំព័រ {{page}} នៃ {{total}}",
+    "empty": "គ្មានជួរ",
+    "navLabel": "ការបំបែកទំព័រតារាង",
+    "goToPage": "ទៅទំព័រ {{page}}"
+  },
+  "common": {
+    "search": "ស្វែងរក"
+  },
   "auth": {
     "eyebrow": "ការចូលដោយសុវត្ថិភាព",
     "title": "ផ្ទាំងគ្រប់គ្រង",
@@ -34,6 +49,8 @@
     "catalogsSub": "បង្កើត & បញ្ជី",
     "items": "ទំនិញ",
     "itemsSub": "ផលិតផល & តម្លៃ",
+    "addresses": "អាសយដ្ឋាន",
+    "addressesSub": "បញ្ជីអាសយដ្ឋានគោល",
     "customers": "អតិថិជន",
     "customersSub": "បញ្ជីអតិថិជន",
     "depots": "ឃ្លាំងចែកចាយ",
@@ -54,8 +71,6 @@
     "orderMovementSub": "ប្តូរស្ថានភាព",
     "payments": "ការទូទាត់",
     "paymentsSub": "សរុបតាមអតិថិជន និងឃ្លាំង",
-    "activityLogs": "កំណត់ហេតុសកម្មភាពអ្នកប្រើ",
-    "activityLogsSub": "តាមដានសកម្មភាពអ្នកប្រើ",
     "borrowedMaterials": "សម្ភារៈខ្ចី",
     "borrowedMaterialsSub": "សម្ភារៈដែលអតិថិជនកំពុងកាន់"
   },
@@ -64,6 +79,7 @@
     "newOrder": "ការកម្មង់ថ្មី",
     "catalogs": "កាតាឡុក",
     "items": "ទំនិញ",
+    "addresses": "អាសយដ្ឋាន",
     "customers": "អតិថិជន",
     "depots": "ឃ្លាំងចែកចាយ",
     "users": "អ្នកប្រើ",
@@ -74,13 +90,7 @@
     "assignOrders": "កំណត់ការកម្មង់",
     "orderMovement": "ផ្លាស់ទីការកម្មង់",
     "payments": "ការទូទាត់",
-    "activityLogs": "កំណត់ហេតុសកម្មភាពអ្នកប្រើ",
     "borrowedMaterials": "សម្ភារៈខ្ចី"
-  },
-  "activityLog": {
-    "title": "កំណត់ហេតុសកម្មភាពអ្នកប្រើ",
-    "lead": "តាមដានសកម្មភាពអ្នកប្រើទាំងអស់ក្នុងប្រព័ន្ធ។",
-    "totalRequestEndpointToday": "សរុបចំនួនសំណើ Endpoint ថ្ងៃនេះ"
   },
   "overview": {
     "title": "ទិដ្ឋភាពរួម",
@@ -133,11 +143,12 @@
     "name": "ឈ្មោះអតិថិជន",
     "phone": "ទូរស័ព្ទ",
     "user": "គណនីអតិថិជន",
+    "depot": "ឃ្លាំង",
     "address": "អាសយដ្ឋាន",
     "groupAddress": "អាសយដ្ឋានក្រុមមេ",
-    "subAddress": "អាសយដ្ឋានរង",
     "selectAddress": "— ជ្រើសរើសអាសយដ្ឋាន —",
     "selectUser": "— ជ្រើសរើសគណនីអតិថិជន —",
+    "selectDepot": "— ជ្រើសរើសឃ្លាំង —",
     "noCustomerUsersHint": "មិនមានគណនីអតិថិជនដែលសកម្មទេ។ សូមបង្កើតក្នុងទំព័រ Users ជាមុន។",
     "save": "រក្សាទុកអតិថិជន",
     "new": "បន្ថែមថ្មី",
@@ -148,6 +159,22 @@
     "confirmDelete": "តើអ្នកចង់លុបអតិថិជននេះមែនទេ?",
     "listTitle": "អតិថិជនដែលបានចុះឈ្មោះ",
     "empty": "មិនទាន់មានអតិថិជនទេ។"
+  },
+  "addresses": {
+    "title": "អាសយដ្ឋាន",
+    "lead": "គ្រប់គ្រងក្រុមអាសយដ្ឋានដែលប្រើដោយអតិថិជន និងការកម្មង់។",
+    "listTitle": "បញ្ជីអាសយដ្ឋាន",
+    "name": "ឈ្មោះ",
+    "empty": "មិនទាន់មានអាសយដ្ឋានទេ។",
+    "new": "បន្ថែមថ្មី",
+    "formTitle": "បន្ថែមអាសយដ្ឋាន",
+    "editTitle": "កែប្រែអាសយដ្ឋាន",
+    "save": "រក្សាទុកអាសយដ្ឋាន",
+    "update": "ធ្វើបច្ចុប្បន្នភាពអាសយដ្ឋាន",
+    "cancel": "បោះបង់",
+    "edit": "កែប្រែ",
+    "delete": "លុប",
+    "confirmDelete": "តើអ្នកចង់លុបអាសយដ្ឋាននេះមែនទេ?"
   },
   "depots": {
     "title": "ឃ្លាំងចែកចាយ",
@@ -594,6 +621,9 @@
     "createDepot": "បន្ថែមឃ្លាំងបរាជ័យ",
     "updateDepot": "កែប្រែឃ្លាំងបរាជ័យ",
     "deleteDepot": "លុបឃ្លាំងបរាជ័យ",
+    "createAddress": "បន្ថែមអាសយដ្ឋានបរាជ័យ",
+    "updateAddress": "កែប្រែអាសយដ្ឋានបរាជ័យ",
+    "deleteAddress": "លុបអាសយដ្ឋានបរាជ័យ",
     "createProducer": "បន្ថែមអ្នកផលិតបរាជ័យ",
     "updateProducer": "កែប្រែអ្នកផលិតបរាជ័យ",
     "deleteProducer": "លុបអ្នកផលិតបរាជ័យ",
@@ -647,6 +677,9 @@
     "depotAdded": "បានបន្ថែមឃ្លាំង",
     "depotUpdated": "បានកែប្រែឃ្លាំង",
     "depotDeleted": "បានលុបឃ្លាំង",
+    "addressAdded": "បានបន្ថែមអាសយដ្ឋាន",
+    "addressUpdated": "បានកែប្រែអាសយដ្ឋាន",
+    "addressDeleted": "បានលុបអាសយដ្ឋាន",
     "producerAdded": "បានបន្ថែមអ្នកផលិត",
     "producerUpdated": "បានកែប្រែអ្នកផលិត",
     "producerDeleted": "បានលុបអ្នកផលិត",

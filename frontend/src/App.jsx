@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { canAccessPath } from "./constants/menus";
+import { canAccessPath, MENU_ITEMS } from "./constants/menus";
 import { AdminLayout } from "./components/layout/AdminLayout";
 import { Button } from "./components/ui/Button";
 import { LoginForm } from "./features/auth/LoginForm";
@@ -15,12 +15,12 @@ import { PaymentsPage } from "./pages/PaymentsPage";
 import { OverviewPage } from "./pages/OverviewPage";
 import { CatalogsPage } from "./pages/CatalogsPage";
 import { ItemsPage } from "./pages/ItemsPage";
+import { AddressesPage } from "./pages/AddressesPage";
 import { ProducersPage } from "./pages/ProducersPage";
 import { CustomersPage } from "./pages/CustomersPage";
 import { DepotsPage } from "./pages/DepotsPage";
 import { BorrowedMaterialsPage } from "./pages/BorrowedMaterialsPage";
 import { UsersPage } from "./pages/UsersPage";
-import { UserActivityLogsPage } from "./pages/UserActivityLogsPage";
 import "./App.css";
 
 function App() {
@@ -54,6 +54,7 @@ function App() {
     newCustomer,
     newDepot,
     newCatalog,
+    newAddress,
     newItem,
     newDelivery,
     newTruck,
@@ -69,6 +70,7 @@ function App() {
     setNewCustomer,
     setNewDepot,
     setNewCatalog,
+    setNewAddress,
     setNewItem,
     setNewDelivery,
     setNewTruck,
@@ -79,6 +81,9 @@ function App() {
     submitCatalog,
     submitCatalogUpdate,
     submitCatalogDelete,
+    submitAddress,
+    submitAddressUpdate,
+    submitAddressDelete,
     submitItem,
     submitItemUpdate,
     submitItemDelete,
@@ -114,7 +119,6 @@ function App() {
     loadBorrowMaterialMonthlyScheduleDetail,
     submitBorrowMaterialMonthlyInstallmentStatusUpdate,
     users,
-    activityLogs,
     newUser,
     setNewUser,
     roleMenusByRole,
@@ -197,10 +201,55 @@ function App() {
     </AdminLayout>
   );
 
+  const firstAllowedPath = (() => {
+    if (user?.role === "Admin") return "/overview";
+    const allowed = user?.allowedMenus;
+    if (!Array.isArray(allowed)) return "/overview";
+    const first = MENU_ITEMS.find((item) => {
+      if (item.key === "orderMovement") {
+        return allowed.includes("orderMovement") || allowed.includes("orders");
+      }
+      return allowed.includes(item.key);
+    });
+    return first?.path || null;
+  })();
+
+  const renderDeniedRoute = () => {
+    if (firstAllowedPath) return <Navigate to={firstAllowedPath} replace />;
+    return (
+      <section className="panel">
+        <div className="panel-header">
+          <h3 style={{ margin: 0 }}>
+            {t("accessDenied.title", { defaultValue: "Access Restricted" })}
+          </h3>
+        </div>
+        <p style={{ margin: "0 0 16px", color: "var(--text-muted)" }}>
+          {t("accessDenied.message", {
+            defaultValue: "Your account role cannot access the Admin Panel. Please sign in with an Admin, Owner, or Depot account.",
+          })}
+        </p>
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <Button variant="primary" onClick={() => logout()}>
+            {t("accessDenied.ok", { defaultValue: "OK" })}
+          </Button>
+        </div>
+      </section>
+    );
+  };
+
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/overview" replace />} />
-      <Route path="/overview" element={withLayout(<OverviewPage summary={summary} statuses={statuses} />)} />
+      <Route path="/" element={<Navigate to={firstAllowedPath || "/overview"} replace />} />
+      <Route
+        path="/overview"
+        element={withLayout(
+          canAccessPath(user, "/overview") ? (
+            <OverviewPage summary={summary} statuses={statuses} />
+          ) : (
+            renderDeniedRoute()
+          ),
+        )}
+      />
       <Route
         path="/create-order"
         element={withLayout(
@@ -216,7 +265,7 @@ function App() {
               onCreateOrder={submitOrder}
             />
           ) : (
-            <Navigate to="/overview" replace />
+            renderDeniedRoute()
           ),
         )}
       />
@@ -233,7 +282,7 @@ function App() {
               catalogs={catalogs}
             />
           ) : (
-            <Navigate to="/overview" replace />
+            renderDeniedRoute()
           ),
         )}
       />
@@ -251,7 +300,24 @@ function App() {
               onDeleteItem={submitItemDelete}
             />
           ) : (
-            <Navigate to="/overview" replace />
+            renderDeniedRoute()
+          ),
+        )}
+      />
+      <Route
+        path="/addresses"
+        element={withLayout(
+          canAccessPath(user, "/addresses") ? (
+            <AddressesPage
+              addresses={addresses}
+              newAddress={newAddress}
+              setNewAddress={setNewAddress}
+              onCreateAddress={submitAddress}
+              onUpdateAddress={submitAddressUpdate}
+              onDeleteAddress={submitAddressDelete}
+            />
+          ) : (
+            renderDeniedRoute()
           ),
         )}
       />
@@ -263,6 +329,7 @@ function App() {
               customers={customers}
               customerUsers={customerUsers}
               addresses={addresses}
+              depots={depots}
               newCustomer={newCustomer}
               setNewCustomer={setNewCustomer}
               onCreateCustomer={submitCustomer}
@@ -270,7 +337,7 @@ function App() {
               onDeleteCustomer={submitCustomerDelete}
             />
           ) : (
-            <Navigate to="/overview" replace />
+            renderDeniedRoute()
           ),
         )}
       />
@@ -281,6 +348,7 @@ function App() {
             <DepotsPage
               depots={depots}
               customers={customers}
+              users={users}
               user={user}
               newDepot={newDepot}
               setNewDepot={setNewDepot}
@@ -289,7 +357,7 @@ function App() {
               onDeleteDepot={submitDepotDelete}
             />
           ) : (
-            <Navigate to="/overview" replace />
+            renderDeniedRoute()
           ),
         )}
       />
@@ -326,7 +394,7 @@ function App() {
               onUpdateBorrowMaterialMonthlyInstallmentStatus={submitBorrowMaterialMonthlyInstallmentStatusUpdate}
             />
           ) : (
-            <Navigate to="/overview" replace />
+            renderDeniedRoute()
           ),
         )}
       />
@@ -343,7 +411,7 @@ function App() {
               onDeleteProducer={submitProducerDelete}
             />
           ) : (
-            <Navigate to="/overview" replace />
+            renderDeniedRoute()
           ),
         )}
       />
@@ -360,7 +428,7 @@ function App() {
               onDeleteDelivery={submitDeliveryDelete}
             />
           ) : (
-            <Navigate to="/overview" replace />
+            renderDeniedRoute()
           ),
         )}
       />
@@ -378,7 +446,7 @@ function App() {
               onDeleteTruck={submitTruckDelete}
             />
           ) : (
-            <Navigate to="/overview" replace />
+            renderDeniedRoute()
           ),
         )}
       />
@@ -398,17 +466,7 @@ function App() {
               onSaveRoleMenus={submitRoleMenus}
             />
           ) : (
-            <Navigate to="/overview" replace />
-          ),
-        )}
-      />
-      <Route
-        path="/activity-logs"
-        element={withLayout(
-          user?.role === "Admin" && canAccessPath(user, "/activity-logs") ? (
-            <UserActivityLogsPage activityLogs={activityLogs} />
-          ) : (
-            <Navigate to="/overview" replace />
+            renderDeniedRoute()
           ),
         )}
       />
@@ -423,7 +481,7 @@ function App() {
               onConfirmDelivery={submitDeliveryConfirmation}
             />
           ) : (
-            <Navigate to="/overview" replace />
+            renderDeniedRoute()
           ),
         )}
       />
@@ -439,7 +497,7 @@ function App() {
               onAssignOrderGroup={submitOrderGroupAssignment}
             />
           ) : (
-            <Navigate to="/overview" replace />
+            renderDeniedRoute()
           ),
         )}
       />
@@ -453,7 +511,7 @@ function App() {
               onMoveStatus={submitOrderMovement}
             />
           ) : (
-            <Navigate to="/overview" replace />
+            renderDeniedRoute()
           ),
         )}
       />
@@ -463,12 +521,12 @@ function App() {
           canAccessPath(user, "/payments") ? (
             <PaymentsPage paymentTotals={paymentTotals} />
           ) : (
-            <Navigate to="/overview" replace />
+            renderDeniedRoute()
           ),
         )}
       />
       <Route path="/create" element={<Navigate to="/create-order" replace />} />
-      <Route path="*" element={<Navigate to="/overview" replace />} />
+      <Route path="*" element={<Navigate to={firstAllowedPath || "/overview"} replace />} />
     </Routes>
   );
 }

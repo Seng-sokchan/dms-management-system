@@ -1,5 +1,6 @@
 import { Fragment, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { usePagination } from "../hooks/usePagination";
 import { Button } from "../components/ui/Button";
 import { DataTable } from "../components/ui/DataTable";
 import { useConfirm } from "../components/ui/ConfirmProvider";
@@ -19,6 +20,7 @@ const EMPTY_EDIT = {
 export function DepotsPage({
   depots,
   customers = [],
+  users = [],
   user,
   newDepot,
   setNewDepot,
@@ -84,6 +86,10 @@ export function DepotsPage({
 
   const [customerDetailDepot, setCustomerDetailDepot] = useState(null);
   const [expandedDepotId, setExpandedDepotId] = useState(null);
+  const [depotSearchText, setDepotSearchText] = useState("");
+  const [depotAppliedSearch, setDepotAppliedSearch] = useState("");
+  const [summarySearchText, setSummarySearchText] = useState("");
+  const [summaryAppliedSearch, setSummaryAppliedSearch] = useState("");
 
   const customersForDetailModal = useMemo(() => {
     if (!customerDetailDepot?.id) return [];
@@ -94,6 +100,46 @@ export function DepotsPage({
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingDepot, setEditingDepot] = useState(EMPTY_EDIT);
   const isEditing = useMemo(() => Boolean(editingDepot.id), [editingDepot.id]);
+  const filteredDepots = useMemo(() => {
+    const keyword = depotAppliedSearch.trim().toLowerCase();
+    if (!keyword) return depots;
+    return depots.filter((depot) =>
+      [depot.id, depot.name, depot.phone, depot.address, depot.ownerUserName, depot.depotUserName]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(keyword)),
+    );
+  }, [depots, depotAppliedSearch]);
+  const filteredDepotCustomerSummary = useMemo(() => {
+    const keyword = summaryAppliedSearch.trim().toLowerCase();
+    if (!keyword) return depotCustomerSummary;
+    return depotCustomerSummary.filter((row) =>
+      [
+        row.depotId,
+        row.depotName,
+        row.depotUserId,
+        row.depotUserName,
+        row.customerCount,
+        row.customersWithPortalUser,
+        row.distinctLinkedCustomerUsers,
+      ]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(keyword)),
+    );
+  }, [depotCustomerSummary, summaryAppliedSearch]);
+  const {
+    page: depotListPage,
+    pageSize: depotListPageSize,
+    paged: pagedDepots,
+    setPage: setDepotListPage,
+    setPageSize: setDepotListPageSize,
+  } = usePagination(filteredDepots, { resetKey: depotAppliedSearch });
+  const {
+    page: summaryPage,
+    pageSize: summaryPageSize,
+    paged: pagedDepotCustomerSummary,
+    setPage: setSummaryPage,
+    setPageSize: setSummaryPageSize,
+  } = usePagination(filteredDepotCustomerSummary, { resetKey: summaryAppliedSearch });
 
   function startEdit(depot) {
     setEditingDepot({
@@ -174,7 +220,21 @@ export function DepotsPage({
         {depots.length === 0 ? (
           <p className="entity-list-empty">{t("depots.empty")}</p>
         ) : (
-          <DataTable>
+          <DataTable
+            showSearch
+            searchValue={depotSearchText}
+            onSearchValueChange={setDepotSearchText}
+            onSearch={() => setDepotAppliedSearch(depotSearchText)}
+            searchPlaceholder={t("depots.searchPlaceholder", { defaultValue: "Search depots..." })}
+            searchButtonLabel={t("common.search", { defaultValue: "Search" })}
+            pagination={{
+              page: depotListPage,
+              pageSize: depotListPageSize,
+              totalRows: filteredDepots.length,
+              onPageChange: setDepotListPage,
+              onPageSizeChange: setDepotListPageSize,
+            }}
+          >
               <thead>
                 <tr>
                   <th>ID</th>
@@ -187,7 +247,7 @@ export function DepotsPage({
                 </tr>
               </thead>
               <tbody>
-                {depots.map((depot) => (
+                {pagedDepots.map((depot) => (
                   <tr key={depot.id}>
                     <td>{depot.id}</td>
                     <td>{depot.name}</td>
@@ -222,7 +282,21 @@ export function DepotsPage({
         {depots.length === 0 ? (
           <p className="entity-list-empty">{t("depots.empty")}</p>
         ) : (
-          <DataTable>
+          <DataTable
+            showSearch
+            searchValue={summarySearchText}
+            onSearchValueChange={setSummarySearchText}
+            onSearch={() => setSummaryAppliedSearch(summarySearchText)}
+            searchPlaceholder={t("depots.summarySearchPlaceholder", { defaultValue: "Search depot summaries..." })}
+            searchButtonLabel={t("common.search", { defaultValue: "Search" })}
+            pagination={{
+              page: summaryPage,
+              pageSize: summaryPageSize,
+              totalRows: filteredDepotCustomerSummary.length,
+              onPageChange: setSummaryPage,
+              onPageSizeChange: setSummaryPageSize,
+            }}
+          >
               <thead>
                 <tr>
                   <th className="data-table__col-expand" aria-label={t("depots.expandColumnLabel")} />
@@ -236,7 +310,7 @@ export function DepotsPage({
                 </tr>
               </thead>
               <tbody>
-                {depotCustomerSummary.map((row) => {
+                {pagedDepotCustomerSummary.map((row) => {
                   const rowCustomers = customersByDepotId.get(row.depotId) ?? [];
                   const isExpanded = expandedDepotId === row.depotId;
                   return (
@@ -313,6 +387,7 @@ export function DepotsPage({
       <DepotCreatePopupForm
         open={showCreateModal}
         user={user}
+        users={users}
         newDepot={newDepot}
         setNewDepot={setNewDepot}
         onCreateDepot={onCreateDepot}
@@ -322,6 +397,7 @@ export function DepotsPage({
       <DepotEditPopupForm
         open={isEditing}
         user={user}
+        users={users}
         editingDepot={editingDepot}
         setEditingDepot={setEditingDepot}
         onSubmitEdit={submitEdit}

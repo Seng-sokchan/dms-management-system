@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { usePagination } from "../hooks/usePagination";
 import { DataTable } from "../components/ui/DataTable";
 import "./AssignOrdersPage.css";
 
@@ -14,11 +15,36 @@ export function AssignOrdersPage({ orders = [], trucks = [], orderGroups = [], o
   const { t } = useTranslation();
   const [busyTruckId, setBusyTruckId] = useState(null);
   const [busyGroupId, setBusyGroupId] = useState(null);
+  const [searchText, setSearchText] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
 
   const sortedOrders = useMemo(
     () => [...(orders || [])].sort((a, b) => Number(b.id) - Number(a.id)),
     [orders],
   );
+  const filteredOrders = useMemo(() => {
+    const keyword = appliedSearch.trim().toLowerCase();
+    if (!keyword) return sortedOrders;
+    return sortedOrders.filter((order) =>
+      [order.id, order.customerName, order.itemName, order.status, order.truckCode, order.truckPlateNo, order.orderGroupName]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(keyword)),
+    );
+  }, [sortedOrders, appliedSearch]);
+  const {
+    page: truckAssignPage,
+    pageSize: truckAssignPageSize,
+    paged: pagedOrdersForTruck,
+    setPage: setTruckAssignPage,
+    setPageSize: setTruckAssignPageSize,
+  } = usePagination(filteredOrders, { resetKey: appliedSearch });
+  const {
+    page: groupAssignPage,
+    pageSize: groupAssignPageSize,
+    paged: pagedOrdersForGroup,
+    setPage: setGroupAssignPage,
+    setPageSize: setGroupAssignPageSize,
+  } = usePagination(filteredOrders, { resetKey: appliedSearch });
 
   async function handleTruckChange(order, truckId) {
     const next = truckId || null;
@@ -64,7 +90,21 @@ export function AssignOrdersPage({ orders = [], trucks = [], orderGroups = [], o
           <p className="panel-meta">{rowMeta}</p>
         </div>
         <p className="form-hint">{t("assignOrders.truckPanelHint")}</p>
-        <DataTable>
+        <DataTable
+          showSearch
+          searchValue={searchText}
+          onSearchValueChange={setSearchText}
+          onSearch={() => setAppliedSearch(searchText)}
+          searchPlaceholder={t("assignOrders.searchPlaceholder", { defaultValue: "Search orders..." })}
+          searchButtonLabel={t("common.search", { defaultValue: "Search" })}
+          pagination={{
+            page: truckAssignPage,
+            pageSize: truckAssignPageSize,
+            totalRows: filteredOrders.length,
+            onPageChange: setTruckAssignPage,
+            onPageSizeChange: setTruckAssignPageSize,
+          }}
+        >
             <thead>
               <tr>
                 <th>{t("orders.customer")}</th>
@@ -75,7 +115,7 @@ export function AssignOrdersPage({ orders = [], trucks = [], orderGroups = [], o
               </tr>
             </thead>
             <tbody>
-              {sortedOrders.map((order) => (
+              {pagedOrdersForTruck.map((order) => (
                 <tr key={`truck-${order.id}`}>
                   <td>{order.customerName || t("orders.dash")}</td>
                   <td>{order.itemName ? `#${order.id} · ${order.itemName}` : `#${order.id}`}</td>
@@ -106,7 +146,15 @@ export function AssignOrdersPage({ orders = [], trucks = [], orderGroups = [], o
 
         <h3 className="assign-orders-subpanel-title">{t("assignOrders.groupPanelTitle")}</h3>
         <p className="form-hint">{t("assignOrders.groupPanelHint")}</p>
-        <DataTable>
+        <DataTable
+          pagination={{
+            page: groupAssignPage,
+            pageSize: groupAssignPageSize,
+            totalRows: filteredOrders.length,
+            onPageChange: setGroupAssignPage,
+            onPageSizeChange: setGroupAssignPageSize,
+          }}
+        >
             <thead>
               <tr>
                 <th>{t("orders.customer")}</th>
@@ -117,7 +165,7 @@ export function AssignOrdersPage({ orders = [], trucks = [], orderGroups = [], o
               </tr>
             </thead>
             <tbody>
-              {sortedOrders.map((order) => (
+              {pagedOrdersForGroup.map((order) => (
                 <tr key={`group-${order.id}`}>
                   <td>{order.customerName || t("orders.dash")}</td>
                   <td>{order.itemName ? `#${order.id} · ${order.itemName}` : `#${order.id}`}</td>

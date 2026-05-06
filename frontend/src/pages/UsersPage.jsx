@@ -1,5 +1,6 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { usePagination } from "../hooks/usePagination";
 import "./UsersPage.css";
 import { ROLES } from "../services/adminApi";
 import { ALL_MENU_KEYS, MENU_ITEMS } from "../constants/menus";
@@ -30,6 +31,24 @@ export function UsersPage({
   const [menuModalOpen, setMenuModalOpen] = useState(false);
   const [menuRole, setMenuRole] = useState("Owner");
   const [menuDraft, setMenuDraft] = useState(() => new Set(ALL_MENU_KEYS));
+  const [searchText, setSearchText] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
+  const filteredUsers = useMemo(() => {
+    const keyword = appliedSearch.trim().toLowerCase();
+    if (!keyword) return users;
+    return users.filter((entry) =>
+      [entry.id, entry.name, entry.username, entry.role, entry.isActive ? t("users.active") : t("users.inactive")]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(keyword)),
+    );
+  }, [users, appliedSearch, t]);
+  const {
+    page,
+    pageSize,
+    paged: pagedUsers,
+    setPage,
+    setPageSize,
+  } = usePagination(filteredUsers, { resetKey: appliedSearch });
   useEffect(() => {
     if (!roleMenusByRole) return;
     const keys = roleMenusByRole[menuRole];
@@ -165,7 +184,21 @@ export function UsersPage({
         {users.length === 0 ? (
           <p className="entity-list-empty">{t("users.empty")}</p>
         ) : (
-          <DataTable>
+          <DataTable
+            showSearch
+            searchValue={searchText}
+            onSearchValueChange={setSearchText}
+            onSearch={() => setAppliedSearch(searchText)}
+            searchPlaceholder={t("users.searchPlaceholder", { defaultValue: "Search users..." })}
+            searchButtonLabel={t("common.search", { defaultValue: "Search" })}
+            pagination={{
+              page,
+              pageSize,
+              totalRows: filteredUsers.length,
+              onPageChange: setPage,
+              onPageSizeChange: setPageSize,
+            }}
+          >
               <thead>
                 <tr>
                   <th>ID</th>
@@ -177,7 +210,7 @@ export function UsersPage({
                 </tr>
               </thead>
               <tbody>
-                {users.map((user) => (
+                {pagedUsers.map((user) => (
                   <tr key={user.id}>
                     <td>{user.id}</td>
                     <td>{user.name}</td>

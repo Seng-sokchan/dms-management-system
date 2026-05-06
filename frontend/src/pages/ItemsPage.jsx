@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { usePagination } from "../hooks/usePagination";
 import { ItemForm } from "../features/item/ItemForm";
 import { Button } from "../components/ui/Button";
 import { DataTable } from "../components/ui/DataTable";
@@ -35,7 +36,25 @@ export function ItemsPage({
   const hasCatalogs = catalogs.length > 0;
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingItem, setEditingItem] = useState(EMPTY_EDIT);
+  const [searchText, setSearchText] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
   const isEditing = useMemo(() => Boolean(editingItem.id), [editingItem.id]);
+  const filteredItems = useMemo(() => {
+    const keyword = appliedSearch.trim().toLowerCase();
+    if (!keyword) return items;
+    return items.filter((item) =>
+      [item.id, item.catalogName, item.name, item.sku, item.defaultUnitPriceUsd, item.defaultUnitPriceKhr]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(keyword)),
+    );
+  }, [items, appliedSearch]);
+  const {
+    page,
+    pageSize,
+    paged: pagedItems,
+    setPage,
+    setPageSize,
+  } = usePagination(filteredItems, { resetKey: appliedSearch });
 
   function startEdit(item) {
     setEditingItem({
@@ -118,7 +137,21 @@ export function ItemsPage({
           {items.length === 0 ? (
             <p className="entity-list-empty">{t("items.empty")}</p>
           ) : (
-            <DataTable>
+            <DataTable
+              showSearch
+              searchValue={searchText}
+              onSearchValueChange={setSearchText}
+              onSearch={() => setAppliedSearch(searchText)}
+              searchPlaceholder={t("items.searchPlaceholder", { defaultValue: "Search items..." })}
+              searchButtonLabel={t("common.search", { defaultValue: "Search" })}
+              pagination={{
+                page,
+                pageSize,
+                totalRows: filteredItems.length,
+                onPageChange: setPage,
+                onPageSizeChange: setPageSize,
+              }}
+            >
                 <thead>
                   <tr>
                     <th>ID</th>
@@ -131,7 +164,7 @@ export function ItemsPage({
                   </tr>
                 </thead>
                 <tbody>
-                  {items.map((it) => (
+                  {pagedItems.map((it) => (
                     <tr key={it.id}>
                       <td>{it.id}</td>
                       <td>{it.catalogName || "—"}</td>

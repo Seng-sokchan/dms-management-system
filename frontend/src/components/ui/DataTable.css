@@ -1,5 +1,36 @@
 /* Design system — scrollable table shell + sticky header + cell chips */
 
+.data-table-search {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.data-table-search input {
+  width: min(100%, 340px);
+  padding: 0.52rem 0.64rem;
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.data-table-search__button {
+  padding: 0.52rem 0.86rem;
+  border: 1px solid var(--brand-600, #2563eb);
+  border-radius: var(--radius-sm);
+  background: var(--brand-600, #2563eb);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.data-table-search__button:hover {
+  filter: brightness(0.95);
+}
+
 .table-wrap {
   width: 100%;
   overflow-x: auto;
@@ -112,10 +143,20 @@
 }
 
 @media (max-width: 768px) {
+  .data-table-search {
+    justify-content: stretch;
+  }
+  .data-table-search input {
+    width: 100%;
+  }
   .data-table { min-width: 820px; }
 }
 
 @media (max-width: 600px) {
+  .data-table-search {
+    flex-direction: column;
+    align-items: stretch;
+  }
   .data-table { min-width: 720px; }
   .data-table th, .data-table td { padding: 0.7rem 0.65rem; }
   .data-table select, .data-table input { font-size: 0.76rem; padding: 0.34rem 0.4rem; }

@@ -2,9 +2,19 @@ import { useTranslation } from "react-i18next";
 import { Button } from "../../components/ui/Button";
 import "./DepotForm.css";
 
-export function DepotCreatePopupForm({ open, user, newDepot, setNewDepot, onCreateDepot, onClose }) {
+function formatUserOptionLabel(u) {
+  const name = u?.name ? String(u.name) : "";
+  const username = u?.username ? String(u.username) : "";
+  if (name && username) return `${name} (${username})`;
+  return name || username || String(u?.id ?? "");
+}
+
+export function DepotCreatePopupForm({ open, user, users = [], newDepot, setNewDepot, onCreateDepot, onClose }) {
   const { t } = useTranslation();
   if (!open) return null;
+
+  const ownerUsers = users.filter((u) => u?.isActive !== false && u?.role === "Owner");
+  const depotUsers = users.filter((u) => u?.isActive !== false && u?.role === "Depot");
 
   return (
     <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="depot-create-title">
@@ -47,23 +57,36 @@ export function DepotCreatePopupForm({ open, user, newDepot, setNewDepot, onCrea
             <label className="form-label" htmlFor="depot-owner-user-id">
               {t("depots.ownerUserId")}
             </label>
-            <input
+            <select
               id="depot-owner-user-id"
               value={newDepot.ownerUserId}
               onChange={(event) => setNewDepot((prev) => ({ ...prev, ownerUserId: event.target.value }))}
               required
-            />
+            >
+              <option value="">{t("depots.selectUser", { defaultValue: "— Select customer user —" })}</option>
+              {ownerUsers.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {formatUserOptionLabel(u)}
+                </option>
+              ))}
+            </select>
           </>
         ) : null}
         <label className="form-label" htmlFor="depot-depot-user-id">
           {t("depots.depotUserId")}
         </label>
-        <input
+        <select
           id="depot-depot-user-id"
           value={newDepot.depotUserId}
           onChange={(event) => setNewDepot((prev) => ({ ...prev, depotUserId: event.target.value }))}
-          placeholder={t("depots.depotUserPlaceholder")}
-        />
+        >
+          <option value="">{t("depots.depotUserPlaceholder")}</option>
+          {depotUsers.map((u) => (
+            <option key={u.id} value={u.id}>
+              {formatUserOptionLabel(u)}
+            </option>
+          ))}
+        </select>
         <div className="row-actions">
           <Button variant="primary" type="submit">
             {t("depots.save")}
@@ -77,9 +100,12 @@ export function DepotCreatePopupForm({ open, user, newDepot, setNewDepot, onCrea
   );
 }
 
-export function DepotEditPopupForm({ open, user, editingDepot, setEditingDepot, onSubmitEdit, onClose }) {
+export function DepotEditPopupForm({ open, user, users = [], editingDepot, setEditingDepot, onSubmitEdit, onClose }) {
   const { t } = useTranslation();
   if (!open) return null;
+
+  const ownerUsers = users.filter((u) => u?.isActive !== false && u?.role === "Owner");
+  const depotUsers = users.filter((u) => u?.isActive !== false && u?.role === "Depot");
 
   return (
     <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="depot-edit-title">
@@ -116,22 +142,36 @@ export function DepotEditPopupForm({ open, user, editingDepot, setEditingDepot, 
             <label className="form-label" htmlFor="depot-edit-owner-user-id">
               {t("depots.ownerUserId")}
             </label>
-            <input
+            <select
               id="depot-edit-owner-user-id"
               value={editingDepot.ownerUserId}
               onChange={(event) => setEditingDepot((prev) => ({ ...prev, ownerUserId: event.target.value }))}
               required
-            />
+            >
+              <option value="">{t("depots.selectUser", { defaultValue: "— Select customer user —" })}</option>
+              {ownerUsers.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {formatUserOptionLabel(u)}
+                </option>
+              ))}
+            </select>
           </>
         ) : null}
         <label className="form-label" htmlFor="depot-edit-depot-user-id">
           {t("depots.depotUserId")}
         </label>
-        <input
+        <select
           id="depot-edit-depot-user-id"
           value={editingDepot.depotUserId}
           onChange={(event) => setEditingDepot((prev) => ({ ...prev, depotUserId: event.target.value }))}
-        />
+        >
+          <option value="">{t("depots.depotUserPlaceholder")}</option>
+          {depotUsers.map((u) => (
+            <option key={u.id} value={u.id}>
+              {formatUserOptionLabel(u)}
+            </option>
+          ))}
+        </select>
         <div className="row-actions">
           <Button variant="primary" type="submit">
             {t("depots.update")}

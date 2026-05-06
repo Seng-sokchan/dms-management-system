@@ -151,14 +151,13 @@ LEFT JOIN addresses a
 WHERE a.id IS NULL;
 
 -- 3) Insert customers (avoid exact duplicates by name+phone+address)
-INSERT INTO customers (name, phone, address, user_id, depot_id, sub_address, updated_at)
+INSERT INTO customers (name, phone, address, user_id, depot_id, updated_at)
 SELECT
   t.customer_name,
   t.phone,
   a.id AS address_id,
   NULL AS user_id,
   NULL AS depot_id,
-  NULL AS sub_address,
   NOW() AS updated_at
 FROM tmp_customer_seed t
 INNER JOIN addresses a

@@ -6,6 +6,7 @@ export const MENU_ITEMS = [
   { key: "newOrder", path: "/create-order", labelKey: "nav.newOrder", subKey: "nav.newOrderSub" },
   { key: "catalogs", path: "/catalogs", labelKey: "nav.catalogs", subKey: "nav.catalogsSub" },
   { key: "items", path: "/items", labelKey: "nav.items", subKey: "nav.itemsSub" },
+  { key: "addresses", path: "/addresses", labelKey: "nav.addresses", subKey: "nav.addressesSub" },
   { key: "customers", path: "/customers", labelKey: "nav.customers", subKey: "nav.customersSub" },
   { key: "borrowedMaterials", path: "/borrowed-materials", labelKey: "nav.borrowedMaterials", subKey: "nav.borrowedMaterialsSub" },
   { key: "depots", path: "/depots", labelKey: "nav.depots", subKey: "nav.depotsSub" },
@@ -17,7 +18,6 @@ export const MENU_ITEMS = [
   { key: "orderMovement", path: "/order-movement", labelKey: "nav.orderMovement", subKey: "nav.orderMovementSub" },
   { key: "payments", path: "/payments", labelKey: "nav.payments", subKey: "nav.paymentsSub" },
   { key: "users", path: "/users", labelKey: "nav.users", subKey: "nav.usersSub" },
-  { key: "activityLogs", path: "/activity-logs", labelKey: "nav.activityLogs", subKey: "nav.activityLogsSub" },
 ];
 
 const PATH_TO_MENU_KEY = MENU_ITEMS.reduce((acc, item) => {

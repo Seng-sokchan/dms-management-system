@@ -16,6 +16,21 @@
     "km": "ខ្មែរ",
     "switchTo": "Switch to {{name}}"
   },
+  "pagination": {
+    "showing": "Showing {{from}}–{{to}} of {{total}}",
+    "rowsPerPage": "Rows per page",
+    "first": "First",
+    "previous": "Previous",
+    "next": "Next",
+    "last": "Last",
+    "page": "Page {{page}} of {{total}}",
+    "empty": "No rows",
+    "navLabel": "Table pagination",
+    "goToPage": "Go to page {{page}}"
+  },
+  "common": {
+    "search": "Search"
+  },
   "auth": {
     "eyebrow": "Secure access",
     "title": "Admin Panel",
@@ -34,6 +49,8 @@
     "catalogsSub": "Create & list catalogs",
     "items": "Items",
     "itemsSub": "Products & default price",
+    "addresses": "Addresses",
+    "addressesSub": "Address master list",
     "customers": "Customers",
     "customersSub": "Customer directory",
     "depots": "Depots",
@@ -54,8 +71,6 @@
     "orderMovementSub": "Move status",
     "payments": "Payments",
     "paymentsSub": "Order totals by customer & depot",
-    "activityLogs": "User Activity Log",
-    "activityLogsSub": "Track user actions",
     "borrowedMaterials": "Borrowed materials",
     "borrowedMaterialsSub": "Customer-held assets"
   },
@@ -64,6 +79,7 @@
     "newOrder": "New order",
     "catalogs": "Catalogs",
     "items": "Items",
+    "addresses": "Addresses",
     "customers": "Customers",
     "depots": "Depots",
     "users": "Users",
@@ -74,13 +90,7 @@
     "assignOrders": "Assign orders",
     "orderMovement": "Order movement",
     "payments": "Payments",
-    "activityLogs": "User Activity Log",
     "borrowedMaterials": "Borrowed materials"
-  },
-  "activityLog": {
-    "title": "User Activity Log",
-    "lead": "Track user actions across the system.",
-    "totalRequestEndpointToday": "Total Request Endpoint Today"
   },
   "overview": {
     "title": "Overview",
@@ -133,11 +143,12 @@
     "name": "Customer name",
     "phone": "Phone",
     "user": "Customer user",
+    "depot": "Depot",
     "address": "Address",
     "groupAddress": "Main group address",
-    "subAddress": "Sub address",
     "selectAddress": "— Select address —",
     "selectUser": "— Select customer user —",
+    "selectDepot": "— Select depot —",
     "noCustomerUsersHint": "No active users with Customer role. Create one in Users page first.",
     "save": "Save customer",
     "new": "New",
@@ -148,6 +159,22 @@
     "confirmDelete": "Delete this customer?",
     "listTitle": "Registered customers",
     "empty": "No customers yet."
+  },
+  "addresses": {
+    "title": "Addresses",
+    "lead": "Manage address groups used by customers and orders.",
+    "listTitle": "Address list",
+    "name": "Name",
+    "empty": "No addresses found.",
+    "new": "New",
+    "formTitle": "Add address",
+    "editTitle": "Edit address",
+    "save": "Save address",
+    "update": "Update address",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "delete": "Delete",
+    "confirmDelete": "Delete this address?"
   },
   "depots": {
     "title": "Depots",
@@ -594,6 +621,9 @@
     "createDepot": "Create depot failed",
     "updateDepot": "Update depot failed",
     "deleteDepot": "Delete depot failed",
+    "createAddress": "Create address failed",
+    "updateAddress": "Update address failed",
+    "deleteAddress": "Delete address failed",
     "createProducer": "Create producer failed",
     "updateProducer": "Update producer failed",
     "deleteProducer": "Delete producer failed",
@@ -647,6 +677,9 @@
     "depotAdded": "Depot added",
     "depotUpdated": "Depot updated",
     "depotDeleted": "Depot deleted",
+    "addressAdded": "Address added",
+    "addressUpdated": "Address updated",
+    "addressDeleted": "Address deleted",
     "producerAdded": "Producer added",
     "producerUpdated": "Producer updated",
     "producerDeleted": "Producer deleted",

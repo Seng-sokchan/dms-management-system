@@ -4,6 +4,7 @@ const MENU_KEYS = [
   "newOrder",
   "catalogs",
   "items",
+  "addresses",
   "customers",
   "depots",
   "producers",
@@ -14,7 +15,6 @@ const MENU_KEYS = [
   "orderMovement",
   "payments",
   "users",
-  "activityLogs",
   "borrowedMaterials",
 ];
 
@@ -27,6 +27,7 @@ const DEFAULT_MENUS_BY_ROLE = {
     "newOrder",
     "catalogs",
     "items",
+    "addresses",
     "customers",
     "depots",
     "producers",
@@ -37,7 +38,6 @@ const DEFAULT_MENUS_BY_ROLE = {
     "orderMovement",
     "payments",
     "users",
-    "activityLogs",
     "borrowedMaterials",
   ],
   Owner: [
@@ -45,6 +45,7 @@ const DEFAULT_MENUS_BY_ROLE = {
     "newOrder",
     "catalogs",
     "items",
+    "addresses",
     "customers",
     "depots",
     "producers",
@@ -59,7 +60,7 @@ const DEFAULT_MENUS_BY_ROLE = {
   Logistics: ["overview", "deliveryAgents", "trucks", "orders"],
   Delivery: ["overview", "orders"],
   Customer: ["overview", "orders"],
-  Depot: ["overview", "customers", "orders", "payments", "borrowedMaterials"],
+  Depot: ["overview", "addresses", "customers", "orders", "payments", "borrowedMaterials"],
 };
 
 module.exports = {

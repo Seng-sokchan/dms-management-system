@@ -14,7 +14,6 @@ export * from "./producers";
 export * from "./deliveryAgents";
 export * from "./trucks";
 export * from "./users";
-export * from "./activityLogs";
 export * from "./roleMenus";
 export * from "./borrowMaterials";
 export * from "./customerBorrowedMaterials";

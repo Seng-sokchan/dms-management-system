@@ -130,4 +130,3 @@ Typical API:
   - unauthorized: `401`
   - forbidden: `403`
   - internal error: `500`
-- User actions are tracked by activity logging and visible in admin `User Activity Log`.

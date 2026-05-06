@@ -1,6 +1,5 @@
 function mapOrder(row) {
   const orderAddressName = row.order_address_name != null ? row.order_address_name : null;
-  const customerSubAddress = row.customer_sub_address != null ? row.customer_sub_address : null;
   return {
     id: String(row.id),
     customerName: orderAddressName || row.customer_name,
@@ -8,7 +7,6 @@ function mapOrder(row) {
     orderAddressName,
     customerAddressId: row.customer_address_id != null ? String(row.customer_address_id) : null,
     customerAddressName: row.customer_address_name != null ? row.customer_address_name : null,
-    customerSubAddress,
     customerId: row.customer_id != null ? String(row.customer_id) : null,
     orderGroupId: row.order_group_id != null ? String(row.order_group_id) : null,
     orderGroupName: row.order_group_name != null ? row.order_group_name : null,
@@ -75,10 +73,6 @@ function mapCustomer(row) {
     depotId: row.depot_id != null ? String(row.depot_id) : "",
     depotName: row.depot_name || "",
     addressName: row.address_name || "",
-    subAddress:
-      row.sub_address != null && String(row.sub_address).trim() !== ""
-        ? String(row.sub_address)
-        : null,
   };
 }
 

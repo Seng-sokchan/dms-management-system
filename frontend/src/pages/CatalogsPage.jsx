@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { usePagination } from "../hooks/usePagination";
 import { CatalogForm } from "../features/catalog/CatalogForm";
 import { Button } from "../components/ui/Button";
 import { DataTable } from "../components/ui/DataTable";
@@ -20,7 +21,25 @@ export function CatalogsPage({
   const { confirm } = useConfirm();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingCatalog, setEditingCatalog] = useState(EMPTY_EDIT);
+  const [searchText, setSearchText] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
   const isEditing = useMemo(() => Boolean(editingCatalog.id), [editingCatalog.id]);
+  const filteredCatalogs = useMemo(() => {
+    const keyword = appliedSearch.trim().toLowerCase();
+    if (!keyword) return catalogs;
+    return catalogs.filter((catalog) =>
+      [catalog.id, catalog.name, catalog.note]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(keyword)),
+    );
+  }, [catalogs, appliedSearch]);
+  const {
+    page,
+    pageSize,
+    paged: pagedCatalogs,
+    setPage,
+    setPageSize,
+  } = usePagination(filteredCatalogs, { resetKey: appliedSearch });
 
   function startEdit(catalog) {
     setEditingCatalog({ id: catalog.id, name: catalog.name || "", note: catalog.note || "" });
@@ -78,7 +97,21 @@ export function CatalogsPage({
         {catalogs.length === 0 ? (
           <p className="entity-list-empty">{t("catalogs.empty")}</p>
         ) : (
-          <DataTable>
+          <DataTable
+            showSearch
+            searchValue={searchText}
+            onSearchValueChange={setSearchText}
+            onSearch={() => setAppliedSearch(searchText)}
+            searchPlaceholder={t("catalogs.searchPlaceholder", { defaultValue: "Search catalogs..." })}
+            searchButtonLabel={t("common.search", { defaultValue: "Search" })}
+            pagination={{
+              page,
+              pageSize,
+              totalRows: filteredCatalogs.length,
+              onPageChange: setPage,
+              onPageSizeChange: setPageSize,
+            }}
+          >
               <thead>
                 <tr>
                   <th>ID</th>
@@ -88,7 +121,7 @@ export function CatalogsPage({
                 </tr>
               </thead>
               <tbody>
-                {catalogs.map((c) => (
+                {pagedCatalogs.map((c) => (
                   <tr key={c.id}>
                     <td>{c.id}</td>
                     <td>{c.name}</td>

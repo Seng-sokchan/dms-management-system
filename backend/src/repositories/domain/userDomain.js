@@ -7,7 +7,6 @@ const {
   deactivateUser,
 } = require("../users");
 const { listMenuKeysForRoleName, listRoleMenusMap, replaceRoleMenus } = require("../roleMenus");
-const { listUserActivityLogs, createUserActivityLog } = require("../activityLogs");
 
 module.exports = {
   listUsers,
@@ -19,6 +18,4 @@ module.exports = {
   listMenuKeysForRoleName,
   listRoleMenusMap,
   replaceRoleMenus,
-  listUserActivityLogs,
-  createUserActivityLog,
 };

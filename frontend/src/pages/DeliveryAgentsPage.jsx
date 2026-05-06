@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { useMemo, useState } from "react";
+import { usePagination } from "../hooks/usePagination";
 import { DeliveryAgentForm } from "../features/delivery/DeliveryAgentForm";
 import { Button } from "../components/ui/Button";
 import { DataTable } from "../components/ui/DataTable";
@@ -19,7 +20,25 @@ export function DeliveryAgentsPage({
   const { confirm } = useConfirm();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingDelivery, setEditingDelivery] = useState(EMPTY_EDIT);
+  const [searchText, setSearchText] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
   const isEditing = useMemo(() => Boolean(editingDelivery.id), [editingDelivery.id]);
+  const filteredDeliveryAgents = useMemo(() => {
+    const keyword = appliedSearch.trim().toLowerCase();
+    if (!keyword) return deliveryAgents;
+    return deliveryAgents.filter((delivery) =>
+      [delivery.id, delivery.name, delivery.phone, delivery.vehicleType]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(keyword)),
+    );
+  }, [deliveryAgents, appliedSearch]);
+  const {
+    page,
+    pageSize,
+    paged: pagedDeliveryAgents,
+    setPage,
+    setPageSize,
+  } = usePagination(filteredDeliveryAgents, { resetKey: appliedSearch });
 
   function startEdit(deliveryAgent) {
     setEditingDelivery({
@@ -85,7 +104,21 @@ export function DeliveryAgentsPage({
         {deliveryAgents.length === 0 ? (
           <p className="entity-list-empty">{t("deliveryAgents.empty")}</p>
         ) : (
-          <DataTable>
+          <DataTable
+            showSearch
+            searchValue={searchText}
+            onSearchValueChange={setSearchText}
+            onSearch={() => setAppliedSearch(searchText)}
+            searchPlaceholder={t("deliveryAgents.searchPlaceholder", { defaultValue: "Search delivery agents..." })}
+            searchButtonLabel={t("common.search", { defaultValue: "Search" })}
+            pagination={{
+              page,
+              pageSize,
+              totalRows: filteredDeliveryAgents.length,
+              onPageChange: setPage,
+              onPageSizeChange: setPageSize,
+            }}
+          >
               <thead>
                 <tr>
                   <th>ID</th>
@@ -96,7 +129,7 @@ export function DeliveryAgentsPage({
                 </tr>
               </thead>
               <tbody>
-                {deliveryAgents.map((d) => (
+                {pagedDeliveryAgents.map((d) => (
                   <tr key={d.id}>
                     <td>{d.id}</td>
                     <td>{d.name}</td>

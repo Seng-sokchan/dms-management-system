@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { usePagination } from "../hooks/usePagination";
 import { Button } from "../components/ui/Button";
 import { DataTable } from "../components/ui/DataTable";
 import "./OrdersPage.css";
@@ -17,6 +18,8 @@ function getTruckLabel(order) {
 export function OrdersPage({ orders }) {
   const { t } = useTranslation();
   const [activeGroup, setActiveGroup] = useState(null);
+  const [searchText, setSearchText] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
 
   const groupedOrders = useMemo(() => {
     const map = new Map();
@@ -42,6 +45,30 @@ export function OrdersPage({ orders }) {
       };
     });
   }, [orders, t]);
+  const filteredGroupedOrders = useMemo(() => {
+    const keyword = appliedSearch.trim().toLowerCase();
+    if (!keyword) return groupedOrders;
+    return groupedOrders.filter((group) =>
+      [group.groupAddress, group.truckLabel, group.qty, group.statusLabel]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(keyword)),
+    );
+  }, [groupedOrders, appliedSearch]);
+  const {
+    page: groupPage,
+    pageSize: groupPageSize,
+    paged: pagedGroupedOrders,
+    setPage: setGroupPage,
+    setPageSize: setGroupPageSize,
+  } = usePagination(filteredGroupedOrders, { resetKey: appliedSearch });
+  const orderModalRows = activeGroup?.rows ?? [];
+  const {
+    page: modalOrderPage,
+    pageSize: modalOrderPageSize,
+    paged: pagedModalOrders,
+    setPage: setModalOrderPage,
+    setPageSize: setModalOrderPageSize,
+  } = usePagination(orderModalRows, { resetKey: activeGroup?.groupAddress ?? "" });
 
   return (
     <section className="admin-page">
@@ -58,7 +85,21 @@ export function OrdersPage({ orders }) {
               : t("orders.rowMany", { n: groupedOrders.length })}
           </p>
         </div>
-        <DataTable>
+        <DataTable
+          showSearch
+          searchValue={searchText}
+          onSearchValueChange={setSearchText}
+          onSearch={() => setAppliedSearch(searchText)}
+          searchPlaceholder={t("orders.searchPlaceholder", { defaultValue: "Search grouped orders..." })}
+          searchButtonLabel={t("common.search", { defaultValue: "Search" })}
+          pagination={{
+            page: groupPage,
+            pageSize: groupPageSize,
+            totalRows: filteredGroupedOrders.length,
+            onPageChange: setGroupPage,
+            onPageSizeChange: setGroupPageSize,
+          }}
+        >
             <thead>
               <tr>
                 <th>{t("orders.groupMainAddress", { defaultValue: "Group main address" })}</th>
@@ -69,7 +110,7 @@ export function OrdersPage({ orders }) {
               </tr>
             </thead>
             <tbody>
-              {groupedOrders.map((group) => (
+              {pagedGroupedOrders.map((group) => (
                 <tr key={group.groupAddress}>
                   <td>{group.groupAddress}</td>
                   <td>{group.truckLabel}</td>
@@ -103,7 +144,15 @@ export function OrdersPage({ orders }) {
                 {t("customers.cancel")}
               </Button>
             </div>
-            <DataTable>
+            <DataTable
+              pagination={{
+                page: modalOrderPage,
+                pageSize: modalOrderPageSize,
+                totalRows: orderModalRows.length,
+                onPageChange: setModalOrderPage,
+                onPageSizeChange: setModalOrderPageSize,
+              }}
+            >
                 <thead>
                   <tr>
                     <th>{t("orders.customer")}</th>
@@ -114,7 +163,7 @@ export function OrdersPage({ orders }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {activeGroup.rows.map((row) => (
+                  {pagedModalOrders.map((row) => (
                     <tr key={row.id}>
                       <td>{row.customerName || t("orders.dash")}</td>
                       <td>

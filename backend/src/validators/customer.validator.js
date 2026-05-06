@@ -11,9 +11,8 @@ const createCustomerSchema = z.object({
   name: z.string().trim().min(2),
   phone: nullableTrimmed(30).optional(),
   address: z.string().min(1),
-  userId: z.string().min(1),
+  userId: nullableTrimmed(30).optional(),
   depotId: z.string().min(1).optional(),
-  subAddress: nullableTrimmed(255).optional(),
 });
 
 const updateCustomerSchema = createCustomerSchema;

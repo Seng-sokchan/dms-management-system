@@ -13,6 +13,7 @@ const PAGE_PATH_MAP = {
   "/create-order":    "newOrder",
   "/catalogs":        "catalogs",
   "/items":           "items",
+  "/addresses":       "addresses",
   "/customers":       "customers",
   "/borrowed-materials": "borrowedMaterials",
   "/depots":          "depots",
@@ -24,7 +25,6 @@ const PAGE_PATH_MAP = {
   "/order-movement":  "orderMovement",
   "/payments":        "payments",
   "/users":           "users",
-  "/activity-logs":   "activityLogs",
 };
 
 /* ── SVG icons keyed by menu key ── */
@@ -54,6 +54,12 @@ const NAV_ICONS = {
       <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" />
       <polyline points="3.29 7 12 12 20.71 7" />
       <line x1="12" y1="22" x2="12" y2="12" />
+    </svg>
+  ),
+  addresses: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 21s-7-6.2-7-11a7 7 0 1114 0c0 4.8-7 11-7 11z" />
+      <circle cx="12" cy="10" r="2.5" />
     </svg>
   ),
   customers: (
@@ -135,11 +141,6 @@ const NAV_ICONS = {
       <path d="M4 20c0-4 3.582-7 8-7s8 3 8 7" />
     </svg>
   ),
-  activityLogs: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-    </svg>
-  ),
 };
 
 /* ── Logo mark ── */
@@ -167,7 +168,7 @@ const NAV_GROUPS = [
   {
     labelKey: "nav.sectionOrders",
     defaultLabel: "Orders",
-    keys: ["newOrder", "catalogs", "items", "customers", "borrowedMaterials", "depots", "producers", "orders", "assignOrders", "orderMovement", "payments"],
+    keys: ["newOrder", "catalogs", "items", "addresses", "customers", "borrowedMaterials", "depots", "producers", "orders", "assignOrders", "orderMovement", "payments"],
   },
   {
     labelKey: "nav.sectionFulfillment",
@@ -177,7 +178,7 @@ const NAV_GROUPS = [
   {
     labelKey: "nav.sectionAdmin",
     defaultLabel: "Admin",
-    keys: ["users", "activityLogs"],
+    keys: ["users"],
   },
 ];
 
