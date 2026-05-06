@@ -150,19 +150,15 @@ CREATE TABLE order_groups (
 CREATE TABLE addresses (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   name VARCHAR(255) NOT NULL,
-  order_group_id INT UNSIGNED NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NULL,
   PRIMARY KEY (id),
-  KEY idx_addresses_name (name),
-  KEY idx_addresses_order_group_id (order_group_id),
-  CONSTRAINT fk_addresses_order_group FOREIGN KEY (order_group_id) REFERENCES order_groups (id)
-    ON UPDATE RESTRICT ON DELETE RESTRICT
+  KEY idx_addresses_name (name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE customers (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  name VARCHAR(120) NOT NULL,
+  name VARCHAR(120) NULL DEFAULT NULL,
   phone VARCHAR(30) NULL DEFAULT NULL,
   address INT UNSIGNED NOT NULL,
   user_id INT UNSIGNED DEFAULT NULL,
@@ -1371,7 +1367,7 @@ PREPARE stmt_drop_producer_confirm_status FROM @sql_drop_producer_confirm_status
 EXECUTE stmt_drop_producer_confirm_status;
 DEALLOCATE PREPARE stmt_drop_producer_confirm_status;
 
--- 3) Ensure order_groups and addresses(order_group_id) exist (legacy compatibility)
+-- 3) Ensure order_groups exists (legacy compatibility)
 SET @has_order_groups := (
   SELECT COUNT(*)
   FROM information_schema.tables
@@ -1394,6 +1390,38 @@ PREPARE stmt_create_order_groups FROM @sql_create_order_groups;
 EXECUTE stmt_create_order_groups;
 DEALLOCATE PREPARE stmt_create_order_groups;
 
+SET @has_addresses_order_group_fk := (
+  SELECT COUNT(*)
+  FROM information_schema.table_constraints
+  WHERE table_schema = DATABASE()
+    AND table_name = 'addresses'
+    AND constraint_name = 'fk_addresses_order_group'
+);
+SET @sql_drop_addresses_order_group_fk := IF(
+  @has_addresses_order_group_fk > 0,
+  'ALTER TABLE addresses DROP FOREIGN KEY fk_addresses_order_group',
+  'SELECT 1'
+);
+PREPARE stmt_drop_addresses_order_group_fk FROM @sql_drop_addresses_order_group_fk;
+EXECUTE stmt_drop_addresses_order_group_fk;
+DEALLOCATE PREPARE stmt_drop_addresses_order_group_fk;
+
+SET @has_addresses_order_group_idx := (
+  SELECT COUNT(*)
+  FROM information_schema.statistics
+  WHERE table_schema = DATABASE()
+    AND table_name = 'addresses'
+    AND index_name = 'idx_addresses_order_group_id'
+);
+SET @sql_drop_addresses_order_group_idx := IF(
+  @has_addresses_order_group_idx > 0,
+  'ALTER TABLE addresses DROP INDEX idx_addresses_order_group_id',
+  'SELECT 1'
+);
+PREPARE stmt_drop_addresses_order_group_idx FROM @sql_drop_addresses_order_group_idx;
+EXECUTE stmt_drop_addresses_order_group_idx;
+DEALLOCATE PREPARE stmt_drop_addresses_order_group_idx;
+
 SET @has_addresses_order_group_id_col := (
   SELECT COUNT(*)
   FROM information_schema.columns
@@ -1401,30 +1429,14 @@ SET @has_addresses_order_group_id_col := (
     AND table_name = 'addresses'
     AND column_name = 'order_group_id'
 );
-SET @sql_add_addresses_order_group_id_col := IF(
-  @has_addresses_order_group_id_col = 0,
-  'ALTER TABLE addresses ADD COLUMN order_group_id INT UNSIGNED NULL',
+SET @sql_drop_addresses_order_group_id_col := IF(
+  @has_addresses_order_group_id_col > 0,
+  'ALTER TABLE addresses DROP COLUMN order_group_id',
   'SELECT 1'
 );
-PREPARE stmt_add_addresses_order_group_id_col FROM @sql_add_addresses_order_group_id_col;
-EXECUTE stmt_add_addresses_order_group_id_col;
-DEALLOCATE PREPARE stmt_add_addresses_order_group_id_col;
-
-SET @has_addresses_group_id_col := (
-  SELECT COUNT(*)
-  FROM information_schema.columns
-  WHERE table_schema = DATABASE()
-    AND table_name = 'addresses'
-    AND column_name = 'group_id'
-);
-SET @sql_backfill_order_group_id := IF(
-  @has_addresses_group_id_col > 0,
-  'UPDATE addresses SET order_group_id = group_id WHERE order_group_id IS NULL',
-  'SELECT 1'
-);
-PREPARE stmt_backfill_order_group_id FROM @sql_backfill_order_group_id;
-EXECUTE stmt_backfill_order_group_id;
-DEALLOCATE PREPARE stmt_backfill_order_group_id;
+PREPARE stmt_drop_addresses_order_group_id_col FROM @sql_drop_addresses_order_group_id_col;
+EXECUTE stmt_drop_addresses_order_group_id_col;
+DEALLOCATE PREPARE stmt_drop_addresses_order_group_id_col;
 
 -- 4) Keep customers.address as INT relation to addresses
 SET @has_customers_address_int := (
@@ -1500,23 +1512,23 @@ PREPARE stmt_add_customers_user_id FROM @sql_add_customers_user_id;
 EXECUTE stmt_add_customers_user_id;
 DEALLOCATE PREPARE stmt_add_customers_user_id;
 
--- 7a) Customers: name NOT NULL; phone and sub_address nullable
-SET @cust_name_nullable := (
+-- 7a) Customers: name, phone and sub_address nullable
+SET @cust_name_not_null := (
   SELECT COUNT(*)
   FROM information_schema.columns
   WHERE table_schema = DATABASE()
     AND table_name = 'customers'
     AND column_name = 'name'
-    AND is_nullable = 'YES'
+    AND is_nullable = 'NO'
 );
-SET @sql_cust_name_nn := IF(
-  @cust_name_nullable > 0,
-  'ALTER TABLE customers MODIFY COLUMN name VARCHAR(120) NOT NULL',
+SET @sql_cust_name_null := IF(
+  @cust_name_not_null > 0,
+  'ALTER TABLE customers MODIFY COLUMN name VARCHAR(120) NULL DEFAULT NULL',
   'SELECT 1'
 );
-PREPARE stmt_cust_name_nn FROM @sql_cust_name_nn;
-EXECUTE stmt_cust_name_nn;
-DEALLOCATE PREPARE stmt_cust_name_nn;
+PREPARE stmt_cust_name_null FROM @sql_cust_name_null;
+EXECUTE stmt_cust_name_null;
+DEALLOCATE PREPARE stmt_cust_name_null;
 
 SET @cust_phone_not_null := (
   SELECT COUNT(*)
