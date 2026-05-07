@@ -66,7 +66,7 @@ function getErrorMessage(error, errorKey) {
 export function useAdminDashboard() {
   const location = useLocation();
   const { alert } = useConfirm();
-  const [auth, setAuth] = useState({ username: "admin", password: "admin123" });
+  const [auth, setAuth] = useState({ username: "", password: "" });
   const [token, setTokenState] = useState(getStoredToken);
   const [flash, setFlash] = useState(null);
 

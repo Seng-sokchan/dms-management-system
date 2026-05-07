@@ -15,7 +15,6 @@ export function LoginForm({ auth, setAuth, onSubmit, message, messageVariant = "
         <h1 id="auth-heading" className="auth-title">
           {t("auth.title")}
         </h1>
-        <p className="muted">{t("auth.blurb")}</p>
         <form className="form login-form" onSubmit={onSubmit}>
           <label className="form-label" htmlFor="login-username">
             {t("auth.username")}
@@ -25,7 +24,7 @@ export function LoginForm({ auth, setAuth, onSubmit, message, messageVariant = "
             value={auth.username}
             onChange={(event) => setAuth({ ...auth, username: event.target.value })}
             placeholder={t("auth.username")}
-            autoComplete="username"
+            autoComplete=""
             aria-label={t("auth.username")}
           />
           <label className="form-label" htmlFor="login-password">
