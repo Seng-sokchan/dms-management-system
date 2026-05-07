@@ -7,7 +7,7 @@ import { useConfirm } from "../../components/ui/ConfirmProvider";
 
 const ORDER_STATUS_FALLBACK = [
   "New_Order",
-  "Owner Preparing",
+  "Owner_Preparing",
   "Ready_For_Delivery",
   "Recieve_By_Customer",
 ];

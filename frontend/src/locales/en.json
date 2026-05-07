@@ -562,7 +562,7 @@
   "enums": {
     "orderStatus": {
       "New_Order": "New order",
-      "Owner Preparing": "Owner preparing",
+      "Owner_Preparing": "Owner preparing",
       "Ready_For_Delivery": "Ready for delivery",
       "Recieve_By_Customer": "Received by customer"
     },

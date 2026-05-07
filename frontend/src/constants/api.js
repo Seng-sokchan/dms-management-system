@@ -5,7 +5,7 @@
 
 export const ORDER_STATUS = [
   "New_Order",
-  "Owner Preparing",
+  "Owner_Preparing",
   "Ready_For_Delivery",
   "Recieve_By_Customer",
 ];

@@ -25,7 +25,7 @@ const DEFAULT_NEW_ORDER_PRODUCER_ID = "1";
 
 const STATUS_UPDATE_ROLES = new Set(["Admin", "Owner", "Logistics", "Delivery"]);
 const STATUS_OWNER_BY_TARGET = {
-  "Owner Preparing": new Set(["Admin", "Owner"]),
+  Owner_Preparing: new Set(["Admin", "Owner"]),
   Ready_For_Delivery: new Set(["Admin", "Owner", "Logistics", "Delivery"]),
   Recieve_By_Customer: new Set(["Admin", "Delivery"]),
 };

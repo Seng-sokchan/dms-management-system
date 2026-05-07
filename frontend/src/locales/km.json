@@ -562,7 +562,7 @@
   "enums": {
     "orderStatus": {
       "New_Order": "ការកម្មង់ថ្មី",
-      "Owner Preparing": "ម្ចាស់កំពុងរៀបចំ",
+      "Owner_Preparing": "ម្ចាស់កំពុងរៀបចំ",
       "Ready_For_Delivery": "រួចរាល់សម្រាប់ដឹកជញ្ជូន",
       "Recieve_By_Customer": "អតិថិជនបានទទួល"
     },

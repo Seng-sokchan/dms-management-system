@@ -59,10 +59,10 @@ async function updateOrderAssignment(id, payload) {
   if (!order) return null;
   let nextStatus = order.status;
   if (payload.producerId !== undefined && payload.producerId !== null) {
-    nextStatus = "Owner Preparing";
+    nextStatus = "Owner_Preparing";
   }
   if (payload.truckId !== undefined && payload.truckId !== null) {
-    nextStatus = "Owner Preparing";
+    nextStatus = "Owner_Preparing";
   }
   const statusId = await getStatusIdByName(nextStatus);
   await getPool().query("CALL sp_update_order_assignment(?, ?, ?, ?, ?, ?, ?)", [

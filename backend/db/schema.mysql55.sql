@@ -245,7 +245,7 @@ CREATE TABLE status (
 
 INSERT INTO status (id, name) VALUES
   (1, 'New_Order'),
-  (2, 'Owner Preparing'),
+  (2, 'Owner_Preparing'),
   (3, 'Ready_For_Delivery'),
   (4, 'Recieve_By_Customer');
 
