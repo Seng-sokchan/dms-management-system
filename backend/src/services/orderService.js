@@ -13,6 +13,7 @@ const orderRepository = require("../repositories/orders");
 const orderGroupRepository = require("../repositories/orderGroups");
 const customerRepository = require("../repositories/customers");
 const itemRepository = require("../repositories/items");
+const customerItemPriceRepository = require("../repositories/customerItemPrices");
 const truckRepository = require("../repositories/trucks");
 const producerRepository = require("../repositories/producers");
 const lookupRepository = require("../repositories/lookups");
@@ -85,7 +86,7 @@ async function getDashboardSummary() {
 
 /**
  * Create an order. Validates referenced entities exist and resolves the
- * unit price from the catalog when not provided.
+ * unit price from customer-item mapping when not provided.
  */
 async function create(payload) {
   const customer = await customerRepository.getCustomerById(payload.customerId);
@@ -97,8 +98,16 @@ async function create(payload) {
   const producer = await producerRepository.getProducerById(DEFAULT_NEW_ORDER_PRODUCER_ID);
   if (!producer) throw new BadRequestError("Default producer not found");
 
-  const unitPrice = payload.unitPrice ?? item.defaultUnitPriceUsd;
   const currency = String(payload.currency || "KHR").toUpperCase() === "USD" ? "USD" : "KHR";
+  const mappedPrice = await customerItemPriceRepository.getCustomerItemPrice(
+    payload.customerId,
+    payload.itemId,
+    currency,
+  );
+  const unitPrice = payload.unitPrice ?? mappedPrice?.unitPrice;
+  if (unitPrice == null) {
+    throw new BadRequestError("Customer item price not found");
+  }
 
   return orderRepository.createOrder({
     customerId: payload.customerId,

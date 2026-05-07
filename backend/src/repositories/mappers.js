@@ -105,23 +105,27 @@ function mapCatalog(row) {
 }
 
 function mapItem(row) {
-  const defaultUnitPriceUsd =
-    row.default_unit_price_usd != null
-      ? Number(row.default_unit_price_usd)
-      : Number(row.default_unit_price);
-  const defaultUnitPriceKhr =
-    row.default_unit_price_khr != null
-      ? Number(row.default_unit_price_khr)
-      : Number(row.default_unit_price) * 4100;
   return {
     id: String(row.id),
     catalogId: String(row.catalog_id),
     catalogName: row.catalog_name != null ? row.catalog_name : null,
     name: row.name,
     sku: row.sku || "",
-    defaultUnitPrice: defaultUnitPriceUsd,
-    defaultUnitPriceUsd,
-    defaultUnitPriceKhr,
+  };
+}
+
+function mapCustomerItemPrice(row) {
+  return {
+    id: String(row.id),
+    customerId: row.customer_id != null ? String(row.customer_id) : "",
+    customerName: row.customer_name || "",
+    itemId: row.item_id != null ? String(row.item_id) : "",
+    itemName: row.item_name || "",
+    itemSku: row.item_sku || "",
+    currency: row.currency || "KHR",
+    unitPrice: Number(row.unit_price),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   };
 }
 
@@ -219,6 +223,7 @@ module.exports = {
   mapDepot,
   mapCatalog,
   mapItem,
+  mapCustomerItemPrice,
   mapAddress,
   mapUser,
   mapBorrowMaterial,

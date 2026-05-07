@@ -48,6 +48,8 @@ import {
   fetchBorrowMaterialMonthlyScheduleDetail,
   updateBorrowMaterialMonthlyInstallmentStatus,
   deleteBorrowMaterialMonthlySchedule,
+  upsertCustomerItemPrice,
+  deleteCustomerItemPrice,
 } from "../services/adminApi";
 import {
   getStoredToken,
@@ -117,6 +119,7 @@ export function useAdminDashboard() {
   const [customerBorrowedMaterials, setCustomerBorrowedMaterials] = useState([]);
   const [borrowMaterialOrderLoans, setBorrowMaterialOrderLoans] = useState([]);
   const [borrowMaterialMonthlySchedules, setBorrowMaterialMonthlySchedules] = useState([]);
+  const [customerItemPrices, setCustomerItemPrices] = useState([]);
   const [paymentTotals, setPaymentTotals] = useState({ byCustomer: [], byDepot: [] });
 
   const [newOrder, setNewOrder] = useState({
@@ -145,8 +148,6 @@ export function useAdminDashboard() {
     catalogId: "",
     name: "",
     sku: "",
-    defaultUnitPriceUsd: 1,
-    defaultUnitPriceKhr: 4100,
   });
   const [newDelivery, setNewDelivery] = useState({ name: "", phone: "", vehicleType: "" });
   const [newTruck, setNewTruck] = useState({ code: "", plateNo: "", deliveryAgentId: "", capacityNote: "" });
@@ -198,6 +199,7 @@ export function useAdminDashboard() {
       setBorrowMaterialMonthlySchedules(
         Array.isArray(data.borrowMaterialMonthlySchedules) ? data.borrowMaterialMonthlySchedules : [],
       );
+      setCustomerItemPrices(Array.isArray(data.customerItemPrices) ? data.customerItemPrices : []);
       setPaymentTotals(
         data.paymentTotals && typeof data.paymentTotals === "object"
           ? {
@@ -229,6 +231,7 @@ export function useAdminDashboard() {
         setCustomerBorrowedMaterials([]);
         setBorrowMaterialOrderLoans([]);
         setBorrowMaterialMonthlySchedules([]);
+        setCustomerItemPrices([]);
         setPaymentTotals({ byCustomer: [], byDepot: [] });
         showError(i18n.t("errors.sessionExpired"));
         return;
@@ -354,15 +357,11 @@ export function useAdminDashboard() {
       await createItem(token, {
         ...newItem,
         catalogId: newItem.catalogId,
-        defaultUnitPriceUsd: Number(newItem.defaultUnitPriceUsd),
-        defaultUnitPriceKhr: Number(newItem.defaultUnitPriceKhr),
       });
       setNewItem((prev) => ({
         catalogId: prev.catalogId,
         name: "",
         sku: "",
-        defaultUnitPriceUsd: 1,
-        defaultUnitPriceKhr: 4100,
       }));
       await refresh();
       await showSuccessPopup(i18n.t("success.itemAdded"));
@@ -819,6 +818,32 @@ export function useAdminDashboard() {
     }
   }
 
+  async function submitCustomerItemPrice(eventOrPayload) {
+    const isEvent = eventOrPayload && typeof eventOrPayload.preventDefault === "function";
+    if (isEvent) eventOrPayload.preventDefault();
+    const payload = !isEvent && eventOrPayload && typeof eventOrPayload === "object" ? eventOrPayload : null;
+    if (!payload) return;
+    try {
+      await upsertCustomerItemPrice(token, payload);
+      await refresh();
+      await showSuccessPopup(
+        i18n.t("success.customerItemPriceSaved", { defaultValue: "Customer item price saved" }),
+      );
+    } catch (error) {
+      showError(getErrorMessage(error, "errors.saveCustomerItemPrice"));
+    }
+  }
+
+  async function submitCustomerItemPriceDelete(id) {
+    try {
+      await deleteCustomerItemPrice(token, id);
+      await refresh();
+      showSuccess(i18n.t("success.customerItemPriceDeleted", { defaultValue: "Customer item price deleted" }));
+    } catch (error) {
+      showError(getErrorMessage(error, "errors.deleteCustomerItemPrice"));
+    }
+  }
+
   function logout() {
     setToken("");
     setUser(null);
@@ -848,6 +873,7 @@ export function useAdminDashboard() {
     customerBorrowedMaterials,
     borrowMaterialOrderLoans,
     borrowMaterialMonthlySchedules,
+    customerItemPrices,
     paymentTotals,
     flash,
     dismissFlash,
@@ -927,6 +953,8 @@ export function useAdminDashboard() {
     submitBorrowMaterialMonthlyScheduleDelete,
     loadBorrowMaterialMonthlyScheduleDetail,
     submitBorrowMaterialMonthlyInstallmentStatusUpdate,
+    submitCustomerItemPrice,
+    submitCustomerItemPriceDelete,
     refresh,
     logout,
   };

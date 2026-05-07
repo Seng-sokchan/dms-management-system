@@ -2,6 +2,7 @@ import { apiClient, authConfig, unwrapApiData } from "../apiClient";
 import { fetchOrderPaymentTotals } from "./orders";
 import { fetchBorrowMaterialOrderLoans } from "./borrowMaterialOrderLoans";
 import { fetchBorrowMaterialMonthlySchedules } from "./borrowMaterialMonthlySchedules";
+import { fetchCustomerItemPrices } from "./customerItemPrices";
 import { canAccessPath } from "../../constants/menus";
 
 /**
@@ -12,6 +13,7 @@ const ROUTE_DATA_MAP = {
   "/create-order": ["customers", "customerUsers", "addresses", "producers", "trucks", "items"],
   "/catalogs": ["catalogs"],
   "/items": ["catalogs", "items"],
+  "/customer-item-prices": ["customers", "items", "customerItemPrices"],
   "/addresses": ["addresses"],
   "/customers": ["customers", "customerUsers", "addresses", "depots"],
   "/depots": ["depots", "customers"],
@@ -72,6 +74,7 @@ export async function fetchDashboardData(token, pathname = "/overview") {
     borrowMaterialOrderLoans: [],
     borrowMaterialMonthlySchedules: [],
     paymentTotals: { byCustomer: [], byDepot: [] },
+    customerItemPrices: [],
   };
 
   const tasks = [];
@@ -177,6 +180,11 @@ export async function fetchDashboardData(token, pathname = "/overview") {
   });
   queue("paymentTotals", async () => {
     data.paymentTotals = await fetchOrderPaymentTotals(token);
+  });
+  queue("customerItemPrices", async () => {
+    const res = await fetchCustomerItemPrices(token);
+    const rows = unwrapApiData(res.data);
+    data.customerItemPrices = Array.isArray(rows) ? rows : [];
   });
 
   await Promise.all(tasks);

@@ -49,6 +49,8 @@
     "catalogsSub": "Create & list catalogs",
     "items": "Items",
     "itemsSub": "Products & default price",
+    "customerItemPrices": "Customer item prices",
+    "customerItemPricesSub": "Price by customer + item",
     "addresses": "Addresses",
     "addressesSub": "Address master list",
     "customers": "Customers",
@@ -79,6 +81,7 @@
     "newOrder": "New order",
     "catalogs": "Catalogs",
     "items": "Items",
+    "customerItemPrices": "Customer item prices",
     "addresses": "Addresses",
     "customers": "Customers",
     "depots": "Depots",
@@ -149,7 +152,7 @@
     "selectAddress": "— Select address —",
     "selectUser": "— Select customer user —",
     "selectDepot": "— Select depot —",
-    "noCustomerUsersHint": "No active users with Customer role. Create one in Users page first.",
+    "noCustomerUsersHint": "Optional: create a Customer-role user in Users first if you want a portal login for this customer.",
     "save": "Save customer",
     "new": "New",
     "update": "Update customer",
@@ -310,10 +313,10 @@
   "items": {
     "title": "Item catalog",
     "pageTitle": "Items",
-    "pageLead": "Add products to an existing catalog. Each item has a default unit price for new orders.",
-    "lead": "Add products to an existing catalog. Each has a default unit price for new orders.",
+    "pageLead": "Add products to an existing catalog.",
+    "lead": "Add products to an existing catalog.",
     "formTitle": "Add item",
-    "formBlurb": "Pick which catalog the product belongs to, then name and default unit price.",
+    "formBlurb": "Pick which catalog the product belongs to, then name and SKU.",
     "labelCatalog": "Which catalog is this item in?",
     "catalogSelectHint": "Select the catalog for this product. Create more catalogs on the Catalogs page if needed.",
     "needCatalogFirst": "No catalogs yet. Create a catalog first, then return here to add items.",
@@ -335,10 +338,28 @@
     "edit": "Edit",
     "delete": "Delete",
     "confirmDelete": "Delete this item?",
-    "listTitle": "Catalog (name, SKU, default price)",
+    "listTitle": "Catalog items (name, SKU)",
     "rowSku": "SKU {{sku}}",
     "rowDefaultUnitPrices": "Default price USD {{usd}} / KHR {{khr}}",
-    "empty": "No catalog items yet—add a product and its default unit price above."
+    "empty": "No catalog items yet—add a product above."
+  },
+  "customerItemPrices": {
+    "title": "Customer item prices",
+    "lead": "Set default item prices per customer and currency.",
+    "formTitle": "Set customer item price",
+    "customer": "Customer",
+    "item": "Item",
+    "currency": "Currency",
+    "unitPrice": "Unit price",
+    "selectCustomer": "— Select customer —",
+    "selectItem": "— Select item —",
+    "save": "Save price",
+    "listTitle": "Configured prices",
+    "empty": "No customer-specific item prices yet.",
+    "searchPlaceholder": "Search customer/item price...",
+    "actions": "Actions",
+    "delete": "Delete",
+    "confirmDelete": "Delete this customer item price?"
   },
   "deliveryAgents": {
     "title": "Delivery agents",
@@ -655,6 +676,8 @@
     "saveBorrowMonthlySchedule": "Create monthly schedule failed",
     "deleteBorrowMonthlySchedule": "Remove schedule failed",
     "updateBorrowMonthlyInstallmentStatus": "Could not update installment status",
+    "saveCustomerItemPrice": "Save customer item price failed",
+    "deleteCustomerItemPrice": "Delete customer item price failed",
     "sessionExpired": "Session expired. Please sign in again."
   },
   "accessDenied": {
@@ -706,6 +729,8 @@
     "borrowOrderLoanSaved": "Order loan saved",
     "borrowOrderLoanDeleted": "Order loan removed",
     "borrowMonthlyScheduleSaved": "Monthly schedule created",
-    "borrowMonthlyScheduleDeleted": "Schedule removed"
+    "borrowMonthlyScheduleDeleted": "Schedule removed",
+    "customerItemPriceSaved": "Customer item price saved",
+    "customerItemPriceDeleted": "Customer item price deleted"
   }
 }

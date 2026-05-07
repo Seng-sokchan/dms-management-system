@@ -207,8 +207,6 @@ CREATE TABLE items (
   catalog_id INT UNSIGNED NOT NULL,
   name VARCHAR(120) NOT NULL,
   sku VARCHAR(40) DEFAULT '',
-  default_unit_price_usd DECIMAL(14,2) NOT NULL,
-  default_unit_price_khr DECIMAL(14,2) NOT NULL,
   is_active TINYINT(1) NOT NULL DEFAULT 1,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NULL,
@@ -218,6 +216,24 @@ CREATE TABLE items (
   KEY idx_items_catalog (catalog_id),
   CONSTRAINT fk_items_catalog FOREIGN KEY (catalog_id) REFERENCES catalogs (id)
     ON UPDATE RESTRICT ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE customer_item_prices (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  customer_id INT UNSIGNED NOT NULL,
+  item_id INT UNSIGNED NOT NULL,
+  currency VARCHAR(10) NOT NULL DEFAULT 'KHR',
+  unit_price DECIMAL(14,2) NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_customer_item_currency (customer_id, item_id, currency),
+  KEY idx_customer_item_prices_customer (customer_id),
+  KEY idx_customer_item_prices_item (item_id),
+  CONSTRAINT fk_customer_item_prices_customer FOREIGN KEY (customer_id) REFERENCES customers (id)
+    ON UPDATE RESTRICT ON DELETE CASCADE,
+  CONSTRAINT fk_customer_item_prices_item FOREIGN KEY (item_id) REFERENCES items (id)
+    ON UPDATE RESTRICT ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE status (
@@ -441,6 +457,10 @@ DROP PROCEDURE IF EXISTS sp_list_customer_borrowed_materials;
 DROP PROCEDURE IF EXISTS sp_list_all_customer_borrowed_materials;
 DROP PROCEDURE IF EXISTS sp_upsert_customer_borrowed_material;
 DROP PROCEDURE IF EXISTS sp_delete_customer_borrowed_material;
+DROP PROCEDURE IF EXISTS sp_list_customer_item_prices;
+DROP PROCEDURE IF EXISTS sp_get_customer_item_price;
+DROP PROCEDURE IF EXISTS sp_upsert_customer_item_price;
+DROP PROCEDURE IF EXISTS sp_delete_customer_item_price;
 DROP PROCEDURE IF EXISTS sp_list_all_borrow_material_order_loans;
 DROP PROCEDURE IF EXISTS sp_create_borrow_material_order_loan;
 DROP PROCEDURE IF EXISTS sp_delete_borrow_material_order_loan;
@@ -649,18 +669,81 @@ WHERE is_active = 1
 ORDER BY id DESC;
 
 CREATE PROCEDURE sp_get_item_by_id(IN p_id INT UNSIGNED)
-SELECT i.id, i.catalog_id, i.name, i.sku, i.default_unit_price_usd, i.default_unit_price_khr, c.name AS catalog_name
+SELECT i.id, i.catalog_id, i.name, i.sku, c.name AS catalog_name
 FROM items i
 INNER JOIN catalogs c ON c.id = i.catalog_id
 WHERE i.id = p_id AND i.is_active = 1 AND c.is_active = 1
 LIMIT 1;
 
 CREATE PROCEDURE sp_list_items()
-SELECT i.id, i.catalog_id, i.name, i.sku, i.default_unit_price_usd, i.default_unit_price_khr, c.name AS catalog_name
+SELECT i.id, i.catalog_id, i.name, i.sku, c.name AS catalog_name
 FROM items i
 INNER JOIN catalogs c ON c.id = i.catalog_id
 WHERE i.is_active = 1 AND c.is_active = 1
 ORDER BY i.id DESC;
+
+CREATE PROCEDURE sp_list_customer_item_prices()
+SELECT
+  cip.id,
+  cip.customer_id,
+  c.name AS customer_name,
+  cip.item_id,
+  i.name AS item_name,
+  i.sku AS item_sku,
+  cip.currency,
+  cip.unit_price,
+  cip.created_at,
+  cip.updated_at
+FROM customer_item_prices cip
+INNER JOIN customers c ON c.id = cip.customer_id AND c.is_active = 1
+INNER JOIN items i ON i.id = cip.item_id AND i.is_active = 1
+ORDER BY cip.id DESC;
+
+CREATE PROCEDURE sp_get_customer_item_price(
+  IN p_customer_id INT UNSIGNED,
+  IN p_item_id INT UNSIGNED,
+  IN p_currency VARCHAR(10)
+)
+SELECT
+  cip.id,
+  cip.customer_id,
+  c.name AS customer_name,
+  cip.item_id,
+  i.name AS item_name,
+  i.sku AS item_sku,
+  cip.currency,
+  cip.unit_price,
+  cip.created_at,
+  cip.updated_at
+FROM customer_item_prices cip
+INNER JOIN customers c ON c.id = cip.customer_id AND c.is_active = 1
+INNER JOIN items i ON i.id = cip.item_id AND i.is_active = 1
+WHERE cip.customer_id = p_customer_id
+  AND cip.item_id = p_item_id
+  AND cip.currency = p_currency
+LIMIT 1;
+
+CREATE PROCEDURE sp_upsert_customer_item_price(
+  IN p_customer_id INT UNSIGNED,
+  IN p_item_id INT UNSIGNED,
+  IN p_currency VARCHAR(10),
+  IN p_unit_price DECIMAL(14,2),
+  IN p_updated_at DATETIME
+)
+BEGIN
+  INSERT INTO customer_item_prices (customer_id, item_id, currency, unit_price, updated_at)
+  VALUES (p_customer_id, p_item_id, p_currency, p_unit_price, p_updated_at)
+  ON DUPLICATE KEY UPDATE
+    unit_price = VALUES(unit_price),
+    updated_at = VALUES(updated_at);
+  SELECT LAST_INSERT_ID() AS insertId;
+END;
+
+CREATE PROCEDURE sp_delete_customer_item_price(IN p_id INT UNSIGNED)
+BEGIN
+  DELETE FROM customer_item_prices WHERE id = p_id;
+  SELECT ROW_COUNT() AS affectedRows;
+END;
 
 CREATE PROCEDURE sp_list_statuses()
 SELECT id, name
@@ -948,20 +1031,20 @@ BEGIN
 END;
 
 CREATE PROCEDURE sp_create_item(
-  IN p_catalog_id INT UNSIGNED, IN p_name VARCHAR(255), IN p_sku VARCHAR(80), IN p_usd DECIMAL(12,2), IN p_khr DECIMAL(18,2), IN p_updated_at DATETIME
+  IN p_catalog_id INT UNSIGNED, IN p_name VARCHAR(255), IN p_sku VARCHAR(80), IN p_updated_at DATETIME
 )
 BEGIN
-  INSERT INTO items (catalog_id, name, sku, default_unit_price_usd, default_unit_price_khr, updated_at)
-  VALUES (p_catalog_id, p_name, p_sku, p_usd, p_khr, p_updated_at);
+  INSERT INTO items (catalog_id, name, sku, updated_at)
+  VALUES (p_catalog_id, p_name, p_sku, p_updated_at);
   SELECT LAST_INSERT_ID() AS insertId;
 END;
 
 CREATE PROCEDURE sp_update_item(
-  IN p_id INT UNSIGNED, IN p_catalog_id INT UNSIGNED, IN p_name VARCHAR(255), IN p_sku VARCHAR(80), IN p_usd DECIMAL(12,2), IN p_khr DECIMAL(18,2), IN p_updated_at DATETIME
+  IN p_id INT UNSIGNED, IN p_catalog_id INT UNSIGNED, IN p_name VARCHAR(255), IN p_sku VARCHAR(80), IN p_updated_at DATETIME
 )
 BEGIN
   UPDATE items
-  SET catalog_id = p_catalog_id, name = p_name, sku = p_sku, default_unit_price_usd = p_usd, default_unit_price_khr = p_khr, updated_at = p_updated_at
+  SET catalog_id = p_catalog_id, name = p_name, sku = p_sku, updated_at = p_updated_at
   WHERE id = p_id AND is_active = 1;
   SELECT ROW_COUNT() AS affectedRows;
 END;
@@ -986,10 +1069,10 @@ GROUP BY s.name;
 
 CREATE PROCEDURE sp_dashboard_currency_totals()
 SELECT
-  COALESCE(SUM(o.ordered_qty * i.default_unit_price_khr), 0) AS total_revenue_khr,
+  COALESCE(SUM(o.amount_total), 0) AS total_revenue_khr,
   0 AS total_collected_khr
 FROM orders o
-INNER JOIN items i ON i.id = o.item_id;
+;
 
 CREATE PROCEDURE sp_create_producer(IN p_name VARCHAR(255), IN p_phone VARCHAR(30), IN p_capacity_note VARCHAR(255), IN p_updated_at DATETIME)
 BEGIN
@@ -1301,17 +1384,17 @@ EXECUTE stmt_role_menus;
 DEALLOCATE PREPARE stmt_role_menus;
 
 INSERT INTO role_menus (role_id, menu_key) VALUES
-(1, 'overview'), (1, 'newOrder'), (1, 'catalogs'), (1, 'items'), (1, 'customers'), (1, 'depots'),
+(1, 'overview'), (1, 'newOrder'), (1, 'catalogs'), (1, 'items'), (1, 'customerItemPrices'), (1, 'customers'), (1, 'depots'),
 (1, 'addresses'), (1, 'producers'), (1, 'deliveryAgents'), (1, 'trucks'), (1, 'orders'), (1, 'assignOrders'), (1, 'orderMovement'), (1, 'payments'),
 (1, 'users'),
 (1, 'borrowedMaterials'),
-(2, 'overview'), (2, 'newOrder'), (2, 'catalogs'), (2, 'items'), (2, 'customers'), (2, 'depots'),
+(2, 'overview'), (2, 'newOrder'), (2, 'catalogs'), (2, 'items'), (2, 'customerItemPrices'), (2, 'customers'), (2, 'depots'),
 (2, 'addresses'), (2, 'producers'), (2, 'deliveryAgents'), (2, 'trucks'), (2, 'orders'), (2, 'assignOrders'), (2, 'orderMovement'), (2, 'payments'),
 (2, 'borrowedMaterials'),
 (3, 'overview'), (3, 'deliveryAgents'), (3, 'trucks'), (3, 'orders'),
 (4, 'overview'), (4, 'orders'),
 (5, 'overview'), (5, 'orders'),
-(6, 'overview'), (6, 'addresses'), (6, 'customers'), (6, 'orders'), (6, 'payments'), (6, 'borrowedMaterials')
+(6, 'overview'), (6, 'addresses'), (6, 'customers'), (6, 'customerItemPrices'), (6, 'orders'), (6, 'payments'), (6, 'borrowedMaterials')
 ON DUPLICATE KEY UPDATE menu_key = VALUES(menu_key);
 
 -- 2) Remove obsolete orders.producer_confirm_status if it still exists
@@ -1529,7 +1612,7 @@ PREPARE stmt_drop_customers_sub_address FROM @sql_drop_customers_sub_address;
 EXECUTE stmt_drop_customers_sub_address;
 DEALLOCATE PREPARE stmt_drop_customers_sub_address;
 
--- 8) Ensure dual-currency item prices exist for USD and KHR
+-- 8) Drop default item prices (pricing now managed by customer_item_prices)
 SET @has_items_price_usd := (
   SELECT COUNT(*)
   FROM information_schema.columns
@@ -1552,59 +1635,32 @@ SET @has_items_legacy_price := (
     AND column_name = 'default_unit_price'
 );
 
-SET @sql_add_items_price_usd := IF(
-  @has_items_price_usd = 0,
-  'ALTER TABLE items ADD COLUMN default_unit_price_usd DECIMAL(14,2) NULL',
+SET @sql_drop_items_price_usd := IF(
+  @has_items_price_usd > 0,
+  'ALTER TABLE items DROP COLUMN default_unit_price_usd',
   'SELECT 1'
 );
-PREPARE stmt_add_items_price_usd FROM @sql_add_items_price_usd;
-EXECUTE stmt_add_items_price_usd;
-DEALLOCATE PREPARE stmt_add_items_price_usd;
+PREPARE stmt_drop_items_price_usd FROM @sql_drop_items_price_usd;
+EXECUTE stmt_drop_items_price_usd;
+DEALLOCATE PREPARE stmt_drop_items_price_usd;
 
-SET @sql_add_items_price_khr := IF(
-  @has_items_price_khr = 0,
-  'ALTER TABLE items ADD COLUMN default_unit_price_khr DECIMAL(14,2) NULL',
+SET @sql_drop_items_price_khr := IF(
+  @has_items_price_khr > 0,
+  'ALTER TABLE items DROP COLUMN default_unit_price_khr',
   'SELECT 1'
 );
-PREPARE stmt_add_items_price_khr FROM @sql_add_items_price_khr;
-EXECUTE stmt_add_items_price_khr;
-DEALLOCATE PREPARE stmt_add_items_price_khr;
+PREPARE stmt_drop_items_price_khr FROM @sql_drop_items_price_khr;
+EXECUTE stmt_drop_items_price_khr;
+DEALLOCATE PREPARE stmt_drop_items_price_khr;
 
-SET @sql_backfill_items_price_usd := IF(
+SET @sql_drop_items_legacy_price := IF(
   @has_items_legacy_price > 0,
-  'UPDATE items SET default_unit_price_usd = default_unit_price WHERE default_unit_price_usd IS NULL',
+  'ALTER TABLE items DROP COLUMN default_unit_price',
   'SELECT 1'
 );
-PREPARE stmt_backfill_items_price_usd FROM @sql_backfill_items_price_usd;
-EXECUTE stmt_backfill_items_price_usd;
-DEALLOCATE PREPARE stmt_backfill_items_price_usd;
-
-SET @sql_backfill_items_price_khr := IF(
-  @has_items_legacy_price > 0,
-  'UPDATE items SET default_unit_price_khr = ROUND(default_unit_price * 4100, 2) WHERE default_unit_price_khr IS NULL',
-  'SELECT 1'
-);
-PREPARE stmt_backfill_items_price_khr FROM @sql_backfill_items_price_khr;
-EXECUTE stmt_backfill_items_price_khr;
-DEALLOCATE PREPARE stmt_backfill_items_price_khr;
-
-SET @sql_set_items_price_usd_not_null := IF(
-  @has_items_price_usd = 0,
-  'ALTER TABLE items MODIFY COLUMN default_unit_price_usd DECIMAL(14,2) NOT NULL',
-  'SELECT 1'
-);
-PREPARE stmt_set_items_price_usd_not_null FROM @sql_set_items_price_usd_not_null;
-EXECUTE stmt_set_items_price_usd_not_null;
-DEALLOCATE PREPARE stmt_set_items_price_usd_not_null;
-
-SET @sql_set_items_price_khr_not_null := IF(
-  @has_items_price_khr = 0,
-  'ALTER TABLE items MODIFY COLUMN default_unit_price_khr DECIMAL(14,2) NOT NULL',
-  'SELECT 1'
-);
-PREPARE stmt_set_items_price_khr_not_null FROM @sql_set_items_price_khr_not_null;
-EXECUTE stmt_set_items_price_khr_not_null;
-DEALLOCATE PREPARE stmt_set_items_price_khr_not_null;
+PREPARE stmt_drop_items_legacy_price FROM @sql_drop_items_legacy_price;
+EXECUTE stmt_drop_items_legacy_price;
+DEALLOCATE PREPARE stmt_drop_items_legacy_price;
 
 -- 9) Drop items.customer_id if present (items are catalog-wide)
 SET @has_items_customer_col := (
@@ -1904,6 +1960,12 @@ FROM roles r
 WHERE r.name IN ('Admin', 'Owner', 'Depot')
 ON DUPLICATE KEY UPDATE menu_key = VALUES(menu_key);
 
+INSERT INTO role_menus (role_id, menu_key)
+SELECT r.id, 'customerItemPrices'
+FROM roles r
+WHERE r.name IN ('Admin', 'Owner', 'Depot')
+ON DUPLICATE KEY UPDATE menu_key = VALUES(menu_key);
+
 -- 19) Borrow material order loans + monthly payment schedules (idempotent)
 SET @has_bmol := (
   SELECT COUNT(*) FROM information_schema.tables
@@ -2104,6 +2166,104 @@ BEGIN
     i.paid_at = IF(p_status = 1, p_updated_at, NULL),
     i.updated_at = p_updated_at
   WHERE i.id = p_installment_id AND i.schedule_id = p_schedule_id;
+  SELECT ROW_COUNT() AS affectedRows;
+END;
+
+-- 21) Customer-specific item pricing (idempotent)
+SET @has_customer_item_prices := (
+  SELECT COUNT(*) FROM information_schema.tables
+  WHERE table_schema = DATABASE() AND table_name = 'customer_item_prices'
+);
+SET @sql_create_customer_item_prices := IF(
+  @has_customer_item_prices = 0,
+  'CREATE TABLE customer_item_prices (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    customer_id INT UNSIGNED NOT NULL,
+    item_id INT UNSIGNED NOT NULL,
+    currency VARCHAR(10) NOT NULL DEFAULT ''KHR'',
+    unit_price DECIMAL(14,2) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_customer_item_currency (customer_id, item_id, currency),
+    KEY idx_customer_item_prices_customer (customer_id),
+    KEY idx_customer_item_prices_item (item_id),
+    CONSTRAINT fk_customer_item_prices_customer FOREIGN KEY (customer_id) REFERENCES customers (id)
+      ON UPDATE RESTRICT ON DELETE CASCADE,
+    CONSTRAINT fk_customer_item_prices_item FOREIGN KEY (item_id) REFERENCES items (id)
+      ON UPDATE RESTRICT ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8',
+  'SELECT 1'
+);
+PREPARE stmt_create_customer_item_prices FROM @sql_create_customer_item_prices;
+EXECUTE stmt_create_customer_item_prices;
+DEALLOCATE PREPARE stmt_create_customer_item_prices;
+
+DROP PROCEDURE IF EXISTS sp_list_customer_item_prices;
+DROP PROCEDURE IF EXISTS sp_get_customer_item_price;
+DROP PROCEDURE IF EXISTS sp_upsert_customer_item_price;
+DROP PROCEDURE IF EXISTS sp_delete_customer_item_price;
+
+CREATE PROCEDURE sp_list_customer_item_prices()
+SELECT
+  cip.id,
+  cip.customer_id,
+  c.name AS customer_name,
+  cip.item_id,
+  i.name AS item_name,
+  i.sku AS item_sku,
+  cip.currency,
+  cip.unit_price,
+  cip.created_at,
+  cip.updated_at
+FROM customer_item_prices cip
+INNER JOIN customers c ON c.id = cip.customer_id AND c.is_active = 1
+INNER JOIN items i ON i.id = cip.item_id AND i.is_active = 1
+ORDER BY cip.id DESC;
+
+CREATE PROCEDURE sp_get_customer_item_price(
+  IN p_customer_id INT UNSIGNED,
+  IN p_item_id INT UNSIGNED,
+  IN p_currency VARCHAR(10)
+)
+SELECT
+  cip.id,
+  cip.customer_id,
+  c.name AS customer_name,
+  cip.item_id,
+  i.name AS item_name,
+  i.sku AS item_sku,
+  cip.currency,
+  cip.unit_price,
+  cip.created_at,
+  cip.updated_at
+FROM customer_item_prices cip
+INNER JOIN customers c ON c.id = cip.customer_id AND c.is_active = 1
+INNER JOIN items i ON i.id = cip.item_id AND i.is_active = 1
+WHERE cip.customer_id = p_customer_id
+  AND cip.item_id = p_item_id
+  AND cip.currency = p_currency
+LIMIT 1;
+
+CREATE PROCEDURE sp_upsert_customer_item_price(
+  IN p_customer_id INT UNSIGNED,
+  IN p_item_id INT UNSIGNED,
+  IN p_currency VARCHAR(10),
+  IN p_unit_price DECIMAL(14,2),
+  IN p_updated_at DATETIME
+)
+BEGIN
+  INSERT INTO customer_item_prices (customer_id, item_id, currency, unit_price, updated_at)
+  VALUES (p_customer_id, p_item_id, p_currency, p_unit_price, p_updated_at)
+  ON DUPLICATE KEY UPDATE
+    unit_price = VALUES(unit_price),
+    updated_at = VALUES(updated_at);
+  SELECT LAST_INSERT_ID() AS insertId;
+END;
+
+CREATE PROCEDURE sp_delete_customer_item_price(IN p_id INT UNSIGNED)
+BEGIN
+  DELETE FROM customer_item_prices WHERE id = p_id;
   SELECT ROW_COUNT() AS affectedRows;
 END;
 

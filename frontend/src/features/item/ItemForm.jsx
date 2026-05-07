@@ -48,32 +48,6 @@ export function ItemForm({ catalogs = [], newItem, setNewItem, onCreateItem }) {
         onChange={(event) => setNewItem({ ...newItem, sku: event.target.value })}
         placeholder={t("items.skuPh")}
       />
-      <label className="form-label" htmlFor="item-default-price-usd">
-        {t("items.labelDefaultPriceUsd")}
-      </label>
-      <input
-        id="item-default-price-usd"
-        type="number"
-        value={newItem.defaultUnitPriceUsd}
-        onChange={(event) => setNewItem({ ...newItem, defaultUnitPriceUsd: event.target.value })}
-        min="0"
-        step="0.01"
-        placeholder={t("items.defaultPricePh")}
-        required
-      />
-      <label className="form-label" htmlFor="item-default-price-khr">
-        {t("items.labelDefaultPriceKhr")}
-      </label>
-      <input
-        id="item-default-price-khr"
-        type="number"
-        value={newItem.defaultUnitPriceKhr}
-        onChange={(event) => setNewItem({ ...newItem, defaultUnitPriceKhr: event.target.value })}
-        min="0"
-        step="1"
-        placeholder={t("items.defaultPriceKhrPh")}
-        required
-      />
       <Button variant="primary" type="submit">
         {t("items.save")}
       </Button>

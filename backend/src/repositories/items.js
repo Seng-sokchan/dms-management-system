@@ -18,12 +18,10 @@ async function createItem(payload) {
   const name = String(payload.name || "").trim();
   const sku = (payload.sku && String(payload.sku).trim()) || "";
   const catalogId = Number(payload.catalogId);
-  const [rowsRaw] = await getPool().query("CALL sp_create_item(?, ?, ?, ?, ?, ?)", [
+  const [rowsRaw] = await getPool().query("CALL sp_create_item(?, ?, ?, ?)", [
     catalogId,
     name,
     sku,
-    Number(payload.defaultUnitPriceUsd),
-    Number(payload.defaultUnitPriceKhr),
     nowIso(),
   ]);
   const meta = getProcedureMeta(rowsRaw);
@@ -34,15 +32,11 @@ async function updateItem(id, payload) {
   const name = String(payload.name || "").trim();
   const sku = (payload.sku && String(payload.sku).trim()) || "";
   const catalogId = String(payload.catalogId || "").trim();
-  const defaultUnitPriceUsd = Number(payload.defaultUnitPriceUsd);
-  const defaultUnitPriceKhr = Number(payload.defaultUnitPriceKhr);
-  const [rowsRaw] = await getPool().query("CALL sp_update_item(?, ?, ?, ?, ?, ?, ?)", [
+  const [rowsRaw] = await getPool().query("CALL sp_update_item(?, ?, ?, ?, ?)", [
     id,
     catalogId,
     name,
     sku,
-    defaultUnitPriceUsd,
-    defaultUnitPriceKhr,
     nowIso(),
   ]);
   const meta = getProcedureMeta(rowsRaw);

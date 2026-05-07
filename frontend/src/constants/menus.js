@@ -6,6 +6,7 @@ export const MENU_ITEMS = [
   { key: "newOrder", path: "/create-order", labelKey: "nav.newOrder", subKey: "nav.newOrderSub" },
   { key: "catalogs", path: "/catalogs", labelKey: "nav.catalogs", subKey: "nav.catalogsSub" },
   { key: "items", path: "/items", labelKey: "nav.items", subKey: "nav.itemsSub" },
+  { key: "customerItemPrices", path: "/customer-item-prices", labelKey: "nav.customerItemPrices", subKey: "nav.customerItemPricesSub" },
   { key: "addresses", path: "/addresses", labelKey: "nav.addresses", subKey: "nav.addressesSub" },
   { key: "customers", path: "/customers", labelKey: "nav.customers", subKey: "nav.customersSub" },
   { key: "borrowedMaterials", path: "/borrowed-materials", labelKey: "nav.borrowedMaterials", subKey: "nav.borrowedMaterialsSub" },

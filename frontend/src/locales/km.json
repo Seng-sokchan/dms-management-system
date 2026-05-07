@@ -49,6 +49,8 @@
     "catalogsSub": "បង្កើត & បញ្ជី",
     "items": "ទំនិញ",
     "itemsSub": "ផលិតផល & តម្លៃ",
+    "customerItemPrices": "តម្លៃទំនិញតាមអតិថិជន",
+    "customerItemPricesSub": "តម្លៃតាមអតិថិជន + ទំនិញ",
     "addresses": "អាសយដ្ឋាន",
     "addressesSub": "បញ្ជីអាសយដ្ឋានគោល",
     "customers": "អតិថិជន",
@@ -79,6 +81,7 @@
     "newOrder": "ការកម្មង់ថ្មី",
     "catalogs": "កាតាឡុក",
     "items": "ទំនិញ",
+    "customerItemPrices": "តម្លៃទំនិញតាមអតិថិជន",
     "addresses": "អាសយដ្ឋាន",
     "customers": "អតិថិជន",
     "depots": "ឃ្លាំងចែកចាយ",
@@ -149,7 +152,7 @@
     "selectAddress": "— ជ្រើសរើសអាសយដ្ឋាន —",
     "selectUser": "— ជ្រើសរើសគណនីអតិថិជន —",
     "selectDepot": "— ជ្រើសរើសឃ្លាំង —",
-    "noCustomerUsersHint": "មិនមានគណនីអតិថិជនដែលសកម្មទេ។ សូមបង្កើតក្នុងទំព័រ Users ជាមុន។",
+    "noCustomerUsersHint": "ស្រេចចិត្ត៖ បង្កើតអ្នកប្រើតួនាទី Customer ក្នុងទំព័រ Users មុន បើចង់ភ្ជាប់ចូលគណនី portal។",
     "save": "រក្សាទុកអតិថិជន",
     "new": "បន្ថែមថ្មី",
     "update": "ធ្វើបច្ចុប្បន្នភាពអតិថិជន",
@@ -310,10 +313,10 @@
   "items": {
     "title": "កាតាឡុកទំនិញ",
     "pageTitle": "ទំនិញ",
-    "pageLead": "បន្ថែមផលិតផលទៅកាតាឡុកដែលមានរួច។ មានតម្លៃឯកតាលំនាំសម្រាប់ការកម្មង់។",
-    "lead": "បន្ថែមផលិតផលទៅកាតាឡុក (មានតម្លៃឯកតាលំនាំ)។",
+    "pageLead": "បន្ថែមផលិតផលទៅកាតាឡុកដែលមានរួច។",
+    "lead": "បន្ថែមផលិតផលទៅកាតាឡុក។",
     "formTitle": "បន្ថែមទំនិញ",
-    "formBlurb": "ជ្រើសកាតាឡុក ឈ្មោះ និងតម្លៃឯកតាលំនាំ។",
+    "formBlurb": "ជ្រើសកាតាឡុក បញ្ចូលឈ្មោះ និង SKU។",
     "labelCatalog": "ទំនិញនេះនៅក្នុងកាតាឡុកណា?",
     "catalogSelectHint": "ជ្រើសកាតាឡុកសម្រាប់ផលិតផល។ បង្កើតកាតាឡុកបន្ថែមក្នុងទំព័រកាតាឡុក។",
     "catalogPlaceholder": "— ជ្រើសកាតាឡុកសម្រាប់ទំនិញនេះ —",
@@ -335,10 +338,28 @@
     "edit": "កែប្រែ",
     "delete": "លុប",
     "confirmDelete": "តើអ្នកចង់លុបទំនិញនេះមែនទេ?",
-    "listTitle": "កាតាឡុក (ឈ្មោះ, SKU, តម្លៃឯកតា)",
+    "listTitle": "បញ្ជីទំនិញ (ឈ្មោះ, SKU)",
     "rowSku": "SKU {{sku}}",
     "rowDefaultUnitPrices": "តម្លៃលំនាំ USD {{usd}} / KHR {{khr}}",
-    "empty": "មិនទាន់មានទំនិញ—បន្ថែមផលិតផល និងតម្លៃឯកតាលំនាំខាងលើ។"
+    "empty": "មិនទាន់មានទំនិញ—សូមបន្ថែមផលិតផលខាងលើ។"
+  },
+  "customerItemPrices": {
+    "title": "តម្លៃទំនិញតាមអតិថិជន",
+    "lead": "កំណត់តម្លៃឯកតាលំនាំតាមអតិថិជន ទំនិញ និងរូបិយប័ណ្ណ។",
+    "formTitle": "កំណត់តម្លៃទំនិញ",
+    "customer": "អតិថិជន",
+    "item": "ទំនិញ",
+    "currency": "រូបិយប័ណ្ណ",
+    "unitPrice": "តម្លៃឯកតា",
+    "selectCustomer": "— ជ្រើសរើសអតិថិជន —",
+    "selectItem": "— ជ្រើសរើសទំនិញ —",
+    "save": "រក្សាទុកតម្លៃ",
+    "listTitle": "តម្លៃដែលបានកំណត់",
+    "empty": "មិនទាន់មានតម្លៃទំនិញតាមអតិថិជនទេ។",
+    "searchPlaceholder": "ស្វែងរកតម្លៃអតិថិជន/ទំនិញ...",
+    "actions": "សកម្មភាព",
+    "delete": "លុប",
+    "confirmDelete": "តើអ្នកចង់លុបតម្លៃនេះមែនទេ?"
   },
   "deliveryAgents": {
     "title": "ភ្នាក់ងារដឹកជញ្ជូន",
@@ -655,6 +676,8 @@
     "saveBorrowMonthlySchedule": "បង្កើតកាលវិភាគប្រចាំខែបរាជ័យ",
     "deleteBorrowMonthlySchedule": "លុបកាលវិភាគបរាជ័យ",
     "updateBorrowMonthlyInstallmentStatus": "មិនអាចធ្វើបច្ចុប្បន្នភាពស្ថានភាពការបង់បានទេ",
+    "saveCustomerItemPrice": "រក្សាទុកតម្លៃទំនិញតាមអតិថិជនបរាជ័យ",
+    "deleteCustomerItemPrice": "លុបតម្លៃទំនិញតាមអតិថិជនបរាជ័យ",
     "sessionExpired": "សម័យផុតកំណត់។ សូមចូលម្តងទៀត។"
   },
   "accessDenied": {
@@ -706,6 +729,8 @@
     "borrowOrderLoanSaved": "បានរក្សាទុកកម្ចីតាមការកម្មង់",
     "borrowOrderLoanDeleted": "បានដកកម្ចីតាមការកម្មង់",
     "borrowMonthlyScheduleSaved": "បានបង្កើតកាលវិភាគប្រចាំខែ",
-    "borrowMonthlyScheduleDeleted": "បានលុបកាលវិភាគ"
+    "borrowMonthlyScheduleDeleted": "បានលុបកាលវិភាគ",
+    "customerItemPriceSaved": "បានរក្សាទុកតម្លៃទំនិញតាមអតិថិជន",
+    "customerItemPriceDeleted": "បានលុបតម្លៃទំនិញតាមអតិថិជន"
   }
 }

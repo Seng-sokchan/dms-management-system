@@ -13,6 +13,7 @@ const PAGE_PATH_MAP = {
   "/create-order":    "newOrder",
   "/catalogs":        "catalogs",
   "/items":           "items",
+  "/customer-item-prices": "customerItemPrices",
   "/addresses":       "addresses",
   "/customers":       "customers",
   "/borrowed-materials": "borrowedMaterials",
@@ -168,7 +169,7 @@ const NAV_GROUPS = [
   {
     labelKey: "nav.sectionOrders",
     defaultLabel: "Orders",
-    keys: ["newOrder", "catalogs", "items", "addresses", "customers", "borrowedMaterials", "depots", "producers", "orders", "assignOrders", "orderMovement", "payments"],
+    keys: ["newOrder", "catalogs", "items", "customerItemPrices", "addresses", "customers", "borrowedMaterials", "depots", "producers", "orders", "assignOrders", "orderMovement", "payments"],
   },
   {
     labelKey: "nav.sectionFulfillment",

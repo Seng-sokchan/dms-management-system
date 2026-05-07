@@ -26,17 +26,15 @@ ON DUPLICATE KEY UPDATE
   updated_at = VALUES(updated_at);
 
 -- 0b) Ice items under catalog_id 1 (matches initDatabase)
-INSERT INTO items (id, catalog_id, name, sku, default_unit_price_usd, default_unit_price_khr, is_active, updated_at) VALUES
-  (1, 1, 'ប្លាស្ទិច គ្រាប់តូច ( 16kg )', 'ICE-PLA-S-16', 0.50, 2050.00, 1, NOW()),
-  (2, 1, 'ប្លាស្ទិច គ្រាប់ធំ ( 16kg )', 'ICE-PLA-L-16', 0.35, 1435.00, 1, NOW()),
-  (3, 1, 'បេ ស គ្រាប់តូច ( 20kg )', 'ICE-BS-S-20', 1.20, 4920.00, 1, NOW()),
-  (4, 1, 'បេ ស គ្រាប់ធំ ( 20kg )', 'ICE-BS-L-20', 1.50, 6150.00, 1, NOW())
+INSERT INTO items (id, catalog_id, name, sku, is_active, updated_at) VALUES
+  (1, 1, 'ប្លាស្ទិច គ្រាប់តូច ( 16kg )', 'ICE-PLA-S-16', 1, NOW()),
+  (2, 1, 'ប្លាស្ទិច គ្រាប់ធំ ( 16kg )', 'ICE-PLA-L-16', 1, NOW()),
+  (3, 1, 'បេ ស គ្រាប់តូច ( 20kg )', 'ICE-BS-S-20', 1, NOW()),
+  (4, 1, 'បេ ស គ្រាប់ធំ ( 20kg )', 'ICE-BS-L-20', 1, NOW())
 ON DUPLICATE KEY UPDATE
   catalog_id = VALUES(catalog_id),
   name = VALUES(name),
   sku = VALUES(sku),
-  default_unit_price_usd = VALUES(default_unit_price_usd),
-  default_unit_price_khr = VALUES(default_unit_price_khr),
   is_active = VALUES(is_active),
   updated_at = VALUES(updated_at);
 

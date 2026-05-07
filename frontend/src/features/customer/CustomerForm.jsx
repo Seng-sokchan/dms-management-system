@@ -52,13 +52,12 @@ export function CustomerForm({
         ))}
       </select>
       <label className="form-label" htmlFor="customer-user">
-        {t("customers.user")}
+        {t("customers.user")} <span className="form-optional">({t("createOrder.optional")})</span>
       </label>
       <select
         id="customer-user"
         value={newCustomer.userId}
         onChange={(event) => setNewCustomer({ ...newCustomer, userId: event.target.value })}
-        required
       >
         <option value="">{t("customers.selectUser")}</option>
         {customerUsers.map((user) => (
@@ -71,7 +70,8 @@ export function CustomerForm({
         <p className="form-help">{t("customers.noCustomerUsersHint")}</p>
       ) : null}
       <label className="form-label" htmlFor="customer-depot">
-        {t("customers.depot", { defaultValue: "Depot" })}
+        {t("customers.depot", { defaultValue: "Depot" })}{" "}
+        <span className="form-optional">({t("createOrder.optional")})</span>
       </label>
       <select
         id="customer-depot"

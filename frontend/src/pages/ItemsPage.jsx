@@ -7,19 +7,11 @@ import { Button } from "../components/ui/Button";
 import { DataTable } from "../components/ui/DataTable";
 import { useConfirm } from "../components/ui/ConfirmProvider";
 
-function formatUnitPrice(value) {
-  const n = Number(value);
-  if (Number.isNaN(n)) return "—";
-  return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
 const EMPTY_EDIT = {
   id: "",
   catalogId: "",
   name: "",
   sku: "",
-  defaultUnitPriceUsd: 1,
-  defaultUnitPriceKhr: 4100,
 };
 
 export function ItemsPage({
@@ -43,7 +35,7 @@ export function ItemsPage({
     const keyword = appliedSearch.trim().toLowerCase();
     if (!keyword) return items;
     return items.filter((item) =>
-      [item.id, item.catalogName, item.name, item.sku, item.defaultUnitPriceUsd, item.defaultUnitPriceKhr]
+      [item.id, item.catalogName, item.name, item.sku]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(keyword)),
     );
@@ -62,8 +54,6 @@ export function ItemsPage({
       catalogId: item.catalogId || "",
       name: item.name || "",
       sku: item.sku || "",
-      defaultUnitPriceUsd: Number(item.defaultUnitPriceUsd) || 0,
-      defaultUnitPriceKhr: Number(item.defaultUnitPriceKhr) || 0,
     });
   }
 
@@ -78,8 +68,6 @@ export function ItemsPage({
       catalogId: editingItem.catalogId,
       name: editingItem.name,
       sku: editingItem.sku,
-      defaultUnitPriceUsd: Number(editingItem.defaultUnitPriceUsd),
-      defaultUnitPriceKhr: Number(editingItem.defaultUnitPriceKhr),
     });
     setEditingItem(EMPTY_EDIT);
   }
@@ -158,8 +146,6 @@ export function ItemsPage({
                     <th>{t("items.labelCatalog")}</th>
                     <th>{t("items.labelName")}</th>
                     <th>{t("items.labelSku")}</th>
-                    <th>{t("items.labelDefaultPriceUsd")}</th>
-                    <th>{t("items.labelDefaultPriceKhr")}</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -170,8 +156,6 @@ export function ItemsPage({
                       <td>{it.catalogName || "—"}</td>
                       <td>{it.name}</td>
                       <td>{it.sku || "—"}</td>
-                      <td>{formatUnitPrice(it.defaultUnitPriceUsd)}</td>
-                      <td>{formatUnitPrice(it.defaultUnitPriceKhr)}</td>
                       <td>
                         <div className="row-actions">
                           <Button variant="ghost" tone="edit" onClick={() => startEdit(it)}>
@@ -246,30 +230,6 @@ export function ItemsPage({
               id="item-edit-sku"
               value={editingItem.sku}
               onChange={(event) => setEditingItem({ ...editingItem, sku: event.target.value })}
-            />
-            <label className="form-label" htmlFor="item-edit-default-price-usd">
-              {t("items.labelDefaultPriceUsd")}
-            </label>
-            <input
-              id="item-edit-default-price-usd"
-              type="number"
-              min="0"
-              step="0.01"
-              value={editingItem.defaultUnitPriceUsd}
-              onChange={(event) => setEditingItem({ ...editingItem, defaultUnitPriceUsd: event.target.value })}
-              required
-            />
-            <label className="form-label" htmlFor="item-edit-default-price-khr">
-              {t("items.labelDefaultPriceKhr")}
-            </label>
-            <input
-              id="item-edit-default-price-khr"
-              type="number"
-              min="0"
-              step="1"
-              value={editingItem.defaultUnitPriceKhr}
-              onChange={(event) => setEditingItem({ ...editingItem, defaultUnitPriceKhr: event.target.value })}
-              required
             />
             <div className="row-actions">
               <Button variant="primary" type="submit">

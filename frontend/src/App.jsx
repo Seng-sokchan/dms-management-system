@@ -15,6 +15,7 @@ import { PaymentsPage } from "./pages/PaymentsPage";
 import { OverviewPage } from "./pages/OverviewPage";
 import { CatalogsPage } from "./pages/CatalogsPage";
 import { ItemsPage } from "./pages/ItemsPage";
+import { CustomerItemPricesPage } from "./pages/CustomerItemPricesPage";
 import { AddressesPage } from "./pages/AddressesPage";
 import { ProducersPage } from "./pages/ProducersPage";
 import { CustomersPage } from "./pages/CustomersPage";
@@ -42,6 +43,7 @@ function App() {
     orderGroups,
     catalogs,
     items,
+    customerItemPrices,
     borrowMaterials,
     customerBorrowedMaterials,
     borrowMaterialOrderLoans,
@@ -87,6 +89,8 @@ function App() {
     submitItem,
     submitItemUpdate,
     submitItemDelete,
+    submitCustomerItemPrice,
+    submitCustomerItemPriceDelete,
     submitProducer,
     submitProducerUpdate,
     submitProducerDelete,
@@ -298,6 +302,22 @@ function App() {
               onCreateItem={submitItem}
               onUpdateItem={submitItemUpdate}
               onDeleteItem={submitItemDelete}
+            />
+          ) : (
+            renderDeniedRoute()
+          ),
+        )}
+      />
+      <Route
+        path="/customer-item-prices"
+        element={withLayout(
+          canAccessPath(user, "/customer-item-prices") ? (
+            <CustomerItemPricesPage
+              customers={customers}
+              items={items}
+              customerItemPrices={customerItemPrices}
+              onSave={submitCustomerItemPrice}
+              onDelete={submitCustomerItemPriceDelete}
             />
           ) : (
             renderDeniedRoute()

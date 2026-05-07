@@ -233,13 +233,12 @@ export function CustomersPage({
               ))}
             </select>
             <label className="form-label" htmlFor="customer-edit-user">
-              {t("customers.user")}
+              {t("customers.user")} <span className="form-optional">({t("createOrder.optional")})</span>
             </label>
             <select
               id="customer-edit-user"
               value={editingCustomer.userId}
               onChange={(event) => setEditingCustomer({ ...editingCustomer, userId: event.target.value })}
-              required
             >
               <option value="">{t("customers.selectUser")}</option>
               {customerUsers.map((user) => (
@@ -249,7 +248,8 @@ export function CustomersPage({
               ))}
             </select>
             <label className="form-label" htmlFor="customer-edit-depot">
-              {t("customers.depot", { defaultValue: "Depot" })}
+              {t("customers.depot", { defaultValue: "Depot" })}{" "}
+              <span className="form-optional">({t("createOrder.optional")})</span>
             </label>
             <select
               id="customer-edit-depot"
