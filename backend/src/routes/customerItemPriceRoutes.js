@@ -4,7 +4,7 @@ const {
   upsertCustomerItemPrice,
   deleteCustomerItemPrice,
 } = require("../controllers/customerItemPriceController");
-const { requireAuth, requireRoles } = require("../middleware/auth");
+const { requireAuth } = require("../middleware/auth");
 const { validate } = require("../validators/validate");
 const {
   customerItemPriceSchema,
@@ -16,20 +16,17 @@ const router = express.Router();
 router.get(
   "/customer-item-prices",
   requireAuth,
-  requireRoles("Admin", "Owner", "Depot"),
   listCustomerItemPrices,
 );
 router.post(
   "/customer-item-prices",
   requireAuth,
-  requireRoles("Admin", "Owner", "Depot"),
   validate({ body: customerItemPriceSchema }),
   upsertCustomerItemPrice,
 );
 router.delete(
   "/customer-item-prices/:id",
   requireAuth,
-  requireRoles("Admin", "Owner", "Depot"),
   validate({ params: customerItemPriceIdParamsSchema }),
   deleteCustomerItemPrice,
 );

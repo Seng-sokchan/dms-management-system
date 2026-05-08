@@ -49,7 +49,7 @@ export async function fetchDashboardData(token, pathname = "/overview") {
   const routeKeys = getKeysForRoute(safePathname);
   const requested = new Set(routeKeys);
 
-  if (user?.role === "Admin" && user?.allowedMenus?.includes("users")) {
+  if (canAccessPath(user, "/users")) {
     requested.add("users");
     requested.add("roleMenus");
   }

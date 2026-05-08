@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "../ui/LanguageSwitcher";
 import { useConfirm } from "../ui/ConfirmProvider";
 import { Button } from "../ui/Button";
-import { MENU_ITEMS } from "../../constants/menus";
+import { canAccessMenuKey, MENU_ITEMS } from "../../constants/menus";
 import "./AdminLayout.css";
 
 /* ── Page title map ── */
@@ -204,17 +204,8 @@ export function AdminLayout({ user, onLogout, flash, onFlashDismiss, children = 
   }, [location.pathname, t]);
 
   const visibleNav = useMemo(() => {
-    if (user?.role === "Admin") return MENU_ITEMS;
-    const allowed = user?.allowedMenus;
-    if (!Array.isArray(allowed)) return MENU_ITEMS;
-    if (allowed.length === 0) return [];
-    return MENU_ITEMS.filter((item) => {
-      if (item.key === "orderMovement") {
-        return allowed.includes("orderMovement") || allowed.includes("orders");
-      }
-      return allowed.includes(item.key);
-    });
-  }, [user?.role, user?.allowedMenus]);
+    return MENU_ITEMS.filter((item) => canAccessMenuKey(user, item.key));
+  }, [user]);
 
   const visibleKeySet = useMemo(
     () => new Set(visibleNav.map((i) => i.key)),

@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { canAccessPath, MENU_ITEMS } from "./constants/menus";
+import { canAccessMenuKey, canAccessPath, MENU_ITEMS } from "./constants/menus";
 import { AdminLayout } from "./components/layout/AdminLayout";
 import { Button } from "./components/ui/Button";
 import { LoginForm } from "./features/auth/LoginForm";
@@ -212,15 +212,7 @@ function App() {
   );
 
   const firstAllowedPath = (() => {
-    if (user?.role === "Admin") return "/overview";
-    const allowed = user?.allowedMenus;
-    if (!Array.isArray(allowed)) return "/overview";
-    const first = MENU_ITEMS.find((item) => {
-      if (item.key === "orderMovement") {
-        return allowed.includes("orderMovement") || allowed.includes("orders");
-      }
-      return allowed.includes(item.key);
-    });
+    const first = MENU_ITEMS.find((item) => canAccessMenuKey(user, item.key));
     return first?.path || null;
   })();
 

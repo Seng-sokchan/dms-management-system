@@ -37,9 +37,7 @@ CREATE TABLE role_menus (
   role_id INT UNSIGNED NOT NULL,
   menu_key VARCHAR(40) NOT NULL,
   PRIMARY KEY (role_id, menu_key),
-  KEY idx_role_menus_key (menu_key),
-  CONSTRAINT fk_role_menus_role FOREIGN KEY (role_id) REFERENCES roles (id)
-    ON UPDATE CASCADE ON DELETE CASCADE
+  KEY idx_role_menus_key (menu_key)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE users (
@@ -53,9 +51,7 @@ CREATE TABLE users (
   updated_at DATETIME NULL,
   PRIMARY KEY (id),
   UNIQUE KEY uq_users_username (username),
-  KEY idx_users_role_id (role_id),
-  CONSTRAINT fk_users_role FOREIGN KEY (role_id) REFERENCES roles (id)
-    ON UPDATE RESTRICT ON DELETE RESTRICT
+  KEY idx_users_role_id (role_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE depots (
@@ -71,11 +67,7 @@ CREATE TABLE depots (
   PRIMARY KEY (id),
   UNIQUE KEY uq_depots_depot_user_id (depot_user_id),
   KEY idx_depots_name (name),
-  KEY idx_depots_owner_user_id (owner_user_id),
-  CONSTRAINT fk_depots_owner_user FOREIGN KEY (owner_user_id) REFERENCES users (id)
-    ON UPDATE RESTRICT ON DELETE RESTRICT,
-  CONSTRAINT fk_depots_depot_user FOREIGN KEY (depot_user_id) REFERENCES users (id)
-    ON UPDATE RESTRICT ON DELETE SET NULL
+  KEY idx_depots_owner_user_id (owner_user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE producers (
@@ -115,9 +107,7 @@ CREATE TABLE trucks (
   UNIQUE KEY uq_trucks_code (code),
   UNIQUE KEY uq_trucks_plate_no (plate_no),
   KEY idx_trucks_code (code),
-  KEY idx_trucks_delivery_agent (delivery_agent_id),
-  CONSTRAINT fk_trucks_delivery_agent FOREIGN KEY (delivery_agent_id) REFERENCES delivery_agents (id)
-    ON UPDATE RESTRICT ON DELETE SET NULL
+  KEY idx_trucks_delivery_agent (delivery_agent_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE order_groups (
@@ -152,13 +142,7 @@ CREATE TABLE customers (
   KEY idx_customers_name (name),
   KEY idx_customers_address (address),
   KEY idx_customers_user_id (user_id),
-  KEY idx_customers_depot_id (depot_id),
-  CONSTRAINT fk_customers_address FOREIGN KEY (address) REFERENCES addresses (id)
-    ON UPDATE RESTRICT ON DELETE RESTRICT,
-  CONSTRAINT fk_customers_user FOREIGN KEY (user_id) REFERENCES users (id)
-    ON UPDATE RESTRICT ON DELETE SET NULL,
-  CONSTRAINT fk_customers_depot FOREIGN KEY (depot_id) REFERENCES depots (id)
-    ON UPDATE RESTRICT ON DELETE SET NULL
+  KEY idx_customers_depot_id (depot_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE borrow_materials (
@@ -184,11 +168,7 @@ CREATE TABLE customer_borrowed_materials (
   PRIMARY KEY (id),
   UNIQUE KEY uq_cbm_customer_material (customer_id, material_id),
   KEY idx_cbm_customer (customer_id),
-  KEY idx_cbm_material (material_id),
-  CONSTRAINT fk_cbm_customer FOREIGN KEY (customer_id) REFERENCES customers (id)
-    ON UPDATE RESTRICT ON DELETE CASCADE,
-  CONSTRAINT fk_cbm_material FOREIGN KEY (material_id) REFERENCES borrow_materials (id)
-    ON UPDATE RESTRICT ON DELETE RESTRICT
+  KEY idx_cbm_material (material_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE catalogs (
@@ -213,9 +193,7 @@ CREATE TABLE items (
   PRIMARY KEY (id),
   KEY idx_items_name (name),
   KEY idx_items_sku (sku),
-  KEY idx_items_catalog (catalog_id),
-  CONSTRAINT fk_items_catalog FOREIGN KEY (catalog_id) REFERENCES catalogs (id)
-    ON UPDATE RESTRICT ON DELETE RESTRICT
+  KEY idx_items_catalog (catalog_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE customer_item_prices (
@@ -229,11 +207,7 @@ CREATE TABLE customer_item_prices (
   PRIMARY KEY (id),
   UNIQUE KEY uq_customer_item_currency (customer_id, item_id, currency),
   KEY idx_customer_item_prices_customer (customer_id),
-  KEY idx_customer_item_prices_item (item_id),
-  CONSTRAINT fk_customer_item_prices_customer FOREIGN KEY (customer_id) REFERENCES customers (id)
-    ON UPDATE RESTRICT ON DELETE CASCADE,
-  CONSTRAINT fk_customer_item_prices_item FOREIGN KEY (item_id) REFERENCES items (id)
-    ON UPDATE RESTRICT ON DELETE CASCADE
+  KEY idx_customer_item_prices_item (item_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE status (
@@ -273,21 +247,7 @@ CREATE TABLE orders (
   KEY idx_orders_customer_id (customer_id),
   KEY idx_orders_address (address),
   KEY idx_orders_order_group_id (order_group_id),
-  KEY idx_orders_item_id (item_id),
-  CONSTRAINT fk_orders_producer FOREIGN KEY (producer_id) REFERENCES producers (id)
-    ON UPDATE RESTRICT ON DELETE SET NULL,
-  CONSTRAINT fk_orders_truck FOREIGN KEY (truck_id) REFERENCES trucks (id)
-    ON UPDATE RESTRICT ON DELETE SET NULL,
-  CONSTRAINT fk_orders_customer FOREIGN KEY (customer_id) REFERENCES customers (id)
-    ON UPDATE RESTRICT ON DELETE RESTRICT,
-  CONSTRAINT fk_orders_address FOREIGN KEY (address) REFERENCES addresses (id)
-    ON UPDATE RESTRICT ON DELETE RESTRICT,
-  CONSTRAINT fk_orders_order_group FOREIGN KEY (order_group_id) REFERENCES order_groups (id)
-    ON UPDATE RESTRICT ON DELETE SET NULL,
-  CONSTRAINT fk_orders_item FOREIGN KEY (item_id) REFERENCES items (id)
-    ON UPDATE RESTRICT ON DELETE RESTRICT,
-  CONSTRAINT fk_orders_status FOREIGN KEY (status) REFERENCES status (id)
-    ON UPDATE RESTRICT ON DELETE RESTRICT
+  KEY idx_orders_item_id (item_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE borrow_material_order_loans (
@@ -305,13 +265,7 @@ CREATE TABLE borrow_material_order_loans (
   PRIMARY KEY (id),
   UNIQUE KEY uq_bmol_order (order_id),
   KEY idx_bmol_customer (customer_id),
-  KEY idx_bmol_material (material_id),
-  CONSTRAINT fk_bmol_customer FOREIGN KEY (customer_id) REFERENCES customers (id)
-    ON UPDATE RESTRICT ON DELETE CASCADE,
-  CONSTRAINT fk_bmol_material FOREIGN KEY (material_id) REFERENCES borrow_materials (id)
-    ON UPDATE RESTRICT ON DELETE RESTRICT,
-  CONSTRAINT fk_bmol_order FOREIGN KEY (order_id) REFERENCES orders (id)
-    ON UPDATE RESTRICT ON DELETE CASCADE
+  KEY idx_bmol_material (material_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE borrow_material_monthly_schedules (
@@ -327,11 +281,7 @@ CREATE TABLE borrow_material_monthly_schedules (
   updated_at DATETIME NULL,
   PRIMARY KEY (id),
   KEY idx_bmms_customer (customer_id),
-  KEY idx_bmms_material (material_id),
-  CONSTRAINT fk_bmms_customer FOREIGN KEY (customer_id) REFERENCES customers (id)
-    ON UPDATE RESTRICT ON DELETE CASCADE,
-  CONSTRAINT fk_bmms_material FOREIGN KEY (material_id) REFERENCES borrow_materials (id)
-    ON UPDATE RESTRICT ON DELETE RESTRICT
+  KEY idx_bmms_material (material_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE borrow_material_monthly_installments (
@@ -346,9 +296,7 @@ CREATE TABLE borrow_material_monthly_installments (
   updated_at DATETIME NULL,
   PRIMARY KEY (id),
   UNIQUE KEY uq_bmmsi_schedule_period (schedule_id, period_no),
-  KEY idx_bmmsi_schedule (schedule_id),
-  CONSTRAINT fk_bmmsi_schedule FOREIGN KEY (schedule_id) REFERENCES borrow_material_monthly_schedules (id)
-    ON UPDATE RESTRICT ON DELETE CASCADE
+  KEY idx_bmmsi_schedule (schedule_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE order_status_history (
@@ -363,15 +311,7 @@ CREATE TABLE order_status_history (
   KEY idx_order_status_history_order (order_id, changed_at),
   KEY idx_order_status_history_from_status (from_status),
   KEY idx_order_status_history_to_status (to_status),
-  KEY idx_order_status_history_user (changed_by_user_id),
-  CONSTRAINT fk_order_status_history_order FOREIGN KEY (order_id) REFERENCES orders (id)
-    ON UPDATE RESTRICT ON DELETE SET NULL,
-  CONSTRAINT fk_order_status_history_from_status FOREIGN KEY (from_status) REFERENCES status (id)
-    ON UPDATE RESTRICT ON DELETE RESTRICT,
-  CONSTRAINT fk_order_status_history_to_status FOREIGN KEY (to_status) REFERENCES status (id)
-    ON UPDATE RESTRICT ON DELETE RESTRICT,
-  CONSTRAINT fk_order_status_history_user FOREIGN KEY (changed_by_user_id) REFERENCES users (id)
-    ON UPDATE RESTRICT ON DELETE SET NULL
+  KEY idx_order_status_history_user (changed_by_user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 DROP PROCEDURE IF EXISTS sp_list_orders;
@@ -1395,9 +1335,7 @@ SET @sql_role_menus := IF(
     role_id INT UNSIGNED NOT NULL,
     menu_key VARCHAR(40) NOT NULL,
     PRIMARY KEY (role_id, menu_key),
-    KEY idx_role_menus_key (menu_key),
-    CONSTRAINT fk_role_menus_role FOREIGN KEY (role_id) REFERENCES roles (id)
-      ON UPDATE CASCADE ON DELETE CASCADE
+    KEY idx_role_menus_key (menu_key)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8',
   'SELECT 1'
 );
@@ -1819,11 +1757,7 @@ SET @sql_create_customer_borrowed_materials := IF(
     PRIMARY KEY (id),
     UNIQUE KEY uq_cbm_customer_material (customer_id, material_id),
     KEY idx_cbm_customer (customer_id),
-    KEY idx_cbm_material (material_id),
-    CONSTRAINT fk_cbm_customer FOREIGN KEY (customer_id) REFERENCES customers (id)
-      ON UPDATE RESTRICT ON DELETE CASCADE,
-    CONSTRAINT fk_cbm_material FOREIGN KEY (material_id) REFERENCES borrow_materials (id)
-      ON UPDATE RESTRICT ON DELETE RESTRICT
+    KEY idx_cbm_material (material_id)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8',
   'SELECT 1'
 );
@@ -2010,13 +1944,7 @@ SET @sql_create_bmol := IF(
     PRIMARY KEY (id),
     UNIQUE KEY uq_bmol_order (order_id),
     KEY idx_bmol_customer (customer_id),
-    KEY idx_bmol_material (material_id),
-    CONSTRAINT fk_bmol_customer FOREIGN KEY (customer_id) REFERENCES customers (id)
-      ON UPDATE RESTRICT ON DELETE CASCADE,
-    CONSTRAINT fk_bmol_material FOREIGN KEY (material_id) REFERENCES borrow_materials (id)
-      ON UPDATE RESTRICT ON DELETE RESTRICT,
-    CONSTRAINT fk_bmol_order FOREIGN KEY (order_id) REFERENCES orders (id)
-      ON UPDATE RESTRICT ON DELETE CASCADE
+    KEY idx_bmol_material (material_id)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8',
   'SELECT 1'
 );
@@ -2043,11 +1971,7 @@ SET @sql_create_bmms := IF(
     updated_at DATETIME NULL,
     PRIMARY KEY (id),
     KEY idx_bmms_customer (customer_id),
-    KEY idx_bmms_material (material_id),
-    CONSTRAINT fk_bmms_customer FOREIGN KEY (customer_id) REFERENCES customers (id)
-      ON UPDATE RESTRICT ON DELETE CASCADE,
-    CONSTRAINT fk_bmms_material FOREIGN KEY (material_id) REFERENCES borrow_materials (id)
-      ON UPDATE RESTRICT ON DELETE RESTRICT
+    KEY idx_bmms_material (material_id)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8',
   'SELECT 1'
 );
@@ -2073,9 +1997,7 @@ SET @sql_create_bmmsi := IF(
     updated_at DATETIME NULL,
     PRIMARY KEY (id),
     UNIQUE KEY uq_bmmsi_schedule_period (schedule_id, period_no),
-    KEY idx_bmmsi_schedule (schedule_id),
-    CONSTRAINT fk_bmmsi_schedule FOREIGN KEY (schedule_id) REFERENCES borrow_material_monthly_schedules (id)
-      ON UPDATE RESTRICT ON DELETE CASCADE
+    KEY idx_bmmsi_schedule (schedule_id)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8',
   'SELECT 1'
 );
@@ -2209,11 +2131,7 @@ SET @sql_create_customer_item_prices := IF(
     PRIMARY KEY (id),
     UNIQUE KEY uq_customer_item_currency (customer_id, item_id, currency),
     KEY idx_customer_item_prices_customer (customer_id),
-    KEY idx_customer_item_prices_item (item_id),
-    CONSTRAINT fk_customer_item_prices_customer FOREIGN KEY (customer_id) REFERENCES customers (id)
-      ON UPDATE RESTRICT ON DELETE CASCADE,
-    CONSTRAINT fk_customer_item_prices_item FOREIGN KEY (item_id) REFERENCES items (id)
-      ON UPDATE RESTRICT ON DELETE CASCADE
+    KEY idx_customer_item_prices_item (item_id)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8',
   'SELECT 1'
 );

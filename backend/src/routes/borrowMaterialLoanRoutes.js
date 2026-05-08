@@ -9,7 +9,7 @@ const {
   deleteMonthlySchedule,
   updateMonthlyInstallmentStatus,
 } = require("../controllers/borrowMaterialLoansController");
-const { requireAuth, requireRoles } = require("../middleware/auth");
+const { requireAuth } = require("../middleware/auth");
 const { validate } = require("../validators/validate");
 const {
   createBorrowMaterialOrderLoanBodySchema,
@@ -30,13 +30,11 @@ const router = express.Router();
 router.get(
   "/customer-borrow-material-order-loans",
   requireAuth,
-  requireRoles("Admin", "Owner", "Depot"),
   listAllOrderLoans,
 );
 router.post(
   "/customers/:customerId/borrow-material-order-loans",
   requireAuth,
-  requireRoles("Admin", "Owner", "Depot"),
   validate({
     params: customerBorrowOrderLoanParamsSchema,
     body: createBorrowMaterialOrderLoanBodySchema,
@@ -46,7 +44,6 @@ router.post(
 router.delete(
   "/customers/:customerId/borrow-material-order-loans/:id",
   requireAuth,
-  requireRoles("Admin", "Owner", "Depot"),
   validate({ params: customerBorrowOrderLoanDeleteParamsSchema }),
   deleteOrderLoan,
 );
@@ -54,13 +51,11 @@ router.delete(
 router.get(
   "/customer-borrow-material-monthly-schedules",
   requireAuth,
-  requireRoles("Admin", "Owner", "Depot"),
   listAllMonthlySchedules,
 );
 router.post(
   "/customers/:customerId/borrow-material-monthly-schedules",
   requireAuth,
-  requireRoles("Admin", "Owner", "Depot"),
   validate({
     params: customerBorrowMonthlyScheduleParamsSchema,
     body: createBorrowMaterialMonthlyScheduleBodySchema,
@@ -70,14 +65,12 @@ router.post(
 router.get(
   "/customers/:customerId/borrow-material-monthly-schedules/:scheduleId",
   requireAuth,
-  requireRoles("Admin", "Owner", "Depot"),
   validate({ params: customerBorrowMonthlyScheduleDetailParamsSchema }),
   getMonthlyScheduleDetail,
 );
 router.patch(
   "/customers/:customerId/borrow-material-monthly-schedules/:scheduleId/installments/:installmentId",
   requireAuth,
-  requireRoles("Admin", "Owner", "Depot"),
   validate({
     params: customerBorrowMonthlyInstallmentStatusParamsSchema,
     body: updateBorrowMaterialMonthlyInstallmentStatusBodySchema,
@@ -87,7 +80,6 @@ router.patch(
 router.delete(
   "/customers/:customerId/borrow-material-monthly-schedules/:id",
   requireAuth,
-  requireRoles("Admin", "Owner", "Depot"),
   validate({ params: customerBorrowMonthlyScheduleDeleteParamsSchema }),
   deleteMonthlySchedule,
 );

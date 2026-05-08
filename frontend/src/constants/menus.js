@@ -36,20 +36,32 @@ export function menuKeyForPathname(pathname) {
 }
 
 /**
+ * @param {{ role?: string, allowedMenus?: string[] }|null|undefined} user
+ * @param {string} menuKey
+ */
+export function canAccessMenuKey(user, menuKey) {
+  if (!menuKey) return false;
+  if (!user) return false;
+  if (user.role === "Admin") return true;
+  if (menuKey === "users") return false;
+
+  const allowed = user.allowedMenus;
+  if (!Array.isArray(allowed) || allowed.length === 0) return false;
+
+  if (menuKey === "orderMovement") {
+    return allowed.includes("orderMovement") || allowed.includes("orders");
+  }
+  return allowed.includes(menuKey);
+}
+
+/**
  * @param {{ allowedMenus?: string[] }|null|undefined} user
  * @param {string} pathname
  */
 export function canAccessPath(user, pathname) {
-  if (user?.role === "Admin") {
-    return true;
-  }
   const key = menuKeyForPathname(pathname);
   if (!key) return true;
-  const m = user?.allowedMenus;
-  if (m == null) return true;
-  if (m.length === 0) return false;
-  if (key === "orderMovement") return m.includes("orderMovement") || m.includes("orders");
-  return m.includes(key);
+  return canAccessMenuKey(user, key);
 }
 
 export const ALL_MENU_KEYS = MENU_ITEMS.map((i) => i.key);

@@ -2,7 +2,7 @@
  * Order routes.
  *
  * Standard ordering of middleware on every route:
- *   requireAuth -> requireRoles -> validate -> controller
+ *   requireAuth -> validate -> controller
  *
  * Specific paths must come before more general ones (e.g.
  * `/orders/:id/status` before `/orders/:id`).
@@ -26,7 +26,7 @@ const {
   mobileListOrders,
   mobileUpdateStatus,
 } = require("../controllers/orderController");
-const { requireAuth, requireRoles } = require("../middleware/auth");
+const { requireAuth } = require("../middleware/auth");
 const { validate } = require("../validators/validate");
 const {
   createOrderSchema,
@@ -48,14 +48,12 @@ router.get("/orders", requireAuth, listOrders);
 router.get(
   "/orders/payment-totals",
   requireAuth,
-  requireRoles("Admin", "Owner", "Depot"),
   listOrderPaymentTotals,
 );
 
 router.post(
   "/order-groups",
   requireAuth,
-  requireRoles("Admin", "Owner"),
   validate({ body: orderGroupBodySchema }),
   createOrderGroup,
 );
@@ -63,7 +61,6 @@ router.post(
 router.post(
   "/order-groups/:id",
   requireAuth,
-  requireRoles("Admin", "Owner"),
   validate({ params: orderGroupIdParamsSchema, body: orderGroupBodySchema }),
   updateOrderGroup,
 );
@@ -71,7 +68,6 @@ router.post(
 router.delete(
   "/order-groups/:id",
   requireAuth,
-  requireRoles("Admin", "Owner"),
   validate({ params: orderGroupIdParamsSchema }),
   deleteOrderGroup,
 );
@@ -79,7 +75,6 @@ router.delete(
 router.post(
   "/orders",
   requireAuth,
-  requireRoles("Admin", "Owner", "Customer"),
   validate({ body: createOrderSchema }),
   createOrder,
 );
@@ -87,7 +82,6 @@ router.post(
 router.post(
   "/orders/:id/delivery-confirmation",
   requireAuth,
-  requireRoles("Admin", "Logistics", "Delivery"),
   validate({ params: orderIdParamsSchema, body: confirmDeliverySchema }),
   confirmDelivery,
 );
@@ -95,7 +89,6 @@ router.post(
 router.post(
   "/orders/:id/status",
   requireAuth,
-  requireRoles("Admin", "Owner", "Logistics", "Delivery"),
   validate({ params: orderIdParamsSchema, body: updateOrderStatusSchema }),
   updateOrderStatus,
 );
@@ -103,7 +96,6 @@ router.post(
 router.post(
   "/orders/:id/move-status",
   requireAuth,
-  requireRoles("Admin", "Owner", "Logistics", "Delivery"),
   validate({ params: orderIdParamsSchema, body: updateOrderStatusSchema }),
   moveOrderStatus,
 );
@@ -111,7 +103,6 @@ router.post(
 router.post(
   "/orders/:id",
   requireAuth,
-  requireRoles("Admin", "Owner"),
   validate({ params: orderIdParamsSchema, body: assignOrderSchema }),
   assignOrder,
 );
@@ -119,7 +110,6 @@ router.post(
 router.delete(
   "/orders/:id",
   requireAuth,
-  requireRoles("Admin", "Owner"),
   validate({ params: orderIdParamsSchema }),
   deleteOrder,
 );
@@ -130,7 +120,6 @@ router.get("/mobile/orders", requireAuth, mobileListOrders);
 router.post(
   "/mobile/orders/:id/status",
   requireAuth,
-  requireRoles("Admin", "Owner", "Logistics", "Delivery"),
   validate({ params: orderIdParamsSchema, body: updateOrderStatusSchema }),
   mobileUpdateStatus,
 );
