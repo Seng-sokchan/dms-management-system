@@ -22,6 +22,7 @@ import { CustomersPage } from "./pages/CustomersPage";
 import { DepotsPage } from "./pages/DepotsPage";
 import { BorrowedMaterialsPage } from "./pages/BorrowedMaterialsPage";
 import { UsersPage } from "./pages/UsersPage";
+import { OrderGroupsPage } from "./pages/OrderGroupsPage";
 import "./App.css";
 
 function App() {
@@ -56,6 +57,7 @@ function App() {
     newCustomer,
     newDepot,
     newCatalog,
+    newOrderGroup,
     newAddress,
     newItem,
     newDelivery,
@@ -72,6 +74,7 @@ function App() {
     setNewCustomer,
     setNewDepot,
     setNewCatalog,
+    setNewOrderGroup,
     setNewAddress,
     setNewItem,
     setNewDelivery,
@@ -83,6 +86,9 @@ function App() {
     submitCatalog,
     submitCatalogUpdate,
     submitCatalogDelete,
+    submitOrderGroupCreate,
+    submitOrderGroupUpdate,
+    submitOrderGroupDelete,
     submitAddress,
     submitAddressUpdate,
     submitAddressDelete,
@@ -499,6 +505,23 @@ function App() {
               statuses={statuses}
               onUpdateStatus={submitOrderStatus}
               onConfirmDelivery={submitDeliveryConfirmation}
+            />
+          ) : (
+            renderDeniedRoute()
+          ),
+        )}
+      />
+      <Route
+        path="/order-groups"
+        element={withLayout(
+          canAccessPath(user, "/order-groups") ? (
+            <OrderGroupsPage
+              orderGroups={orderGroups}
+              newOrderGroup={newOrderGroup}
+              setNewOrderGroup={setNewOrderGroup}
+              onCreateOrderGroup={submitOrderGroupCreate}
+              onUpdateOrderGroup={submitOrderGroupUpdate}
+              onDeleteOrderGroup={submitOrderGroupDelete}
             />
           ) : (
             renderDeniedRoute()

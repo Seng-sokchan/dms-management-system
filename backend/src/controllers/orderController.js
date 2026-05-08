@@ -11,7 +11,7 @@
  */
 const orderService = require("../services/orderService");
 const paymentTotalsService = require("../services/paymentTotalsService");
-const { success, created } = require("../utils/response");
+const { success, created, noContent } = require("../utils/response");
 const { asyncHandler } = require("../errors");
 
 // Listing -------------------------------------------------------------------
@@ -46,6 +46,21 @@ const dashboardSummary = asyncHandler(async (_req, res) => {
 const createOrder = asyncHandler(async (req, res) => {
   const order = await orderService.create(req.body);
   return created(res, order);
+});
+
+const createOrderGroup = asyncHandler(async (req, res) => {
+  const row = await orderService.createOrderGroup(req.body);
+  return created(res, row);
+});
+
+const updateOrderGroup = asyncHandler(async (req, res) => {
+  const row = await orderService.updateOrderGroup(req.params.id, req.body);
+  return success(res, row);
+});
+
+const deleteOrderGroup = asyncHandler(async (req, res) => {
+  await orderService.deleteOrderGroup(req.params.id);
+  return noContent(res);
 });
 
 const assignOrder = asyncHandler(async (req, res) => {
@@ -98,6 +113,9 @@ module.exports = {
   listOrders,
   listOrderPaymentTotals,
   createOrder,
+  createOrderGroup,
+  updateOrderGroup,
+  deleteOrderGroup,
   assignOrder,
   updateOrderStatus,
   moveOrderStatus,

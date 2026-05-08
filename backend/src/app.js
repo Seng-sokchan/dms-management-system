@@ -6,7 +6,6 @@ const apiRoutes = require("./routes");
 const { notFound } = require("./middleware/notFound");
 const { responsePolicy } = require("./middleware/responsePolicy");
 const { errorHandler } = require("./middleware/errorHandler");
-const { apiRateLimit } = require("./middleware/rateLimit");
 
 const app = express();
 
@@ -23,8 +22,8 @@ app.use(morgan("dev"));
 app.use(responsePolicy);
 
 // Keep legacy '/api' routes and expose versioned '/api/v1' routes.
-app.use("/api", apiRateLimit, apiRoutes);
-app.use("/api/v1", apiRateLimit, apiRoutes);
+app.use("/api", apiRoutes);
+app.use("/api/v1", apiRoutes);
 app.use(notFound);
 
 // Global error handler (must be last)

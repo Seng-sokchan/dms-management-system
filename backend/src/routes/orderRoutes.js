@@ -14,6 +14,9 @@ const {
   listOrders,
   listOrderPaymentTotals,
   createOrder,
+  createOrderGroup,
+  updateOrderGroup,
+  deleteOrderGroup,
   assignOrder,
   updateOrderStatus,
   moveOrderStatus,
@@ -32,6 +35,10 @@ const {
   confirmDeliverySchema,
   orderIdParamsSchema,
 } = require("../validators/order.validator");
+const {
+  orderGroupBodySchema,
+  orderGroupIdParamsSchema,
+} = require("../validators/orderGroup.validator");
 
 const router = express.Router();
 
@@ -43,6 +50,30 @@ router.get(
   requireAuth,
   requireRoles("Admin", "Owner", "Depot"),
   listOrderPaymentTotals,
+);
+
+router.post(
+  "/order-groups",
+  requireAuth,
+  requireRoles("Admin", "Owner"),
+  validate({ body: orderGroupBodySchema }),
+  createOrderGroup,
+);
+
+router.post(
+  "/order-groups/:id",
+  requireAuth,
+  requireRoles("Admin", "Owner"),
+  validate({ params: orderGroupIdParamsSchema, body: orderGroupBodySchema }),
+  updateOrderGroup,
+);
+
+router.delete(
+  "/order-groups/:id",
+  requireAuth,
+  requireRoles("Admin", "Owner"),
+  validate({ params: orderGroupIdParamsSchema }),
+  deleteOrderGroup,
 );
 
 router.post(

@@ -17,6 +17,7 @@ import {
   deleteItem,
   deleteUser,
   createCatalog,
+  createOrderGroup,
   createCustomer,
   createDepot,
   deleteCustomer,
@@ -32,6 +33,7 @@ import {
   updateTruck,
   updateItem,
   updateOrderAssignment,
+  updateOrderGroup,
   updateOrderStatus,
   moveOrderStatus as moveOrderStatusRequest,
   updateProducer,
@@ -50,6 +52,7 @@ import {
   deleteBorrowMaterialMonthlySchedule,
   upsertCustomerItemPrice,
   deleteCustomerItemPrice,
+  deleteOrderGroup,
 } from "../services/adminApi";
 import {
   getStoredToken,
@@ -143,6 +146,7 @@ export function useAdminDashboard() {
     depotUserId: "",
   });
   const [newCatalog, setNewCatalog] = useState({ name: "", note: "" });
+  const [newOrderGroup, setNewOrderGroup] = useState({ name: "" });
   const [newAddress, setNewAddress] = useState({ name: "" });
   const [newItem, setNewItem] = useState({
     catalogId: "",
@@ -316,6 +320,38 @@ export function useAdminDashboard() {
       showSuccess(i18n.t("success.catalogDeleted"));
     } catch (error) {
       showError(getErrorMessage(error, "errors.deleteCatalog"));
+    }
+  }
+
+  async function submitOrderGroupCreate(event) {
+    event.preventDefault();
+    try {
+      await createOrderGroup(token, newOrderGroup);
+      setNewOrderGroup({ name: "" });
+      await refresh();
+      await showSuccessPopup(i18n.t("success.orderGroupCreated", { defaultValue: "Order group created" }));
+    } catch (error) {
+      showError(getErrorMessage(error, "errors.createOrderGroup"));
+    }
+  }
+
+  async function submitOrderGroupUpdate(orderGroupId, payload) {
+    try {
+      await updateOrderGroup(token, orderGroupId, payload);
+      await refresh();
+      await showSuccessPopup(i18n.t("success.orderGroupUpdated", { defaultValue: "Order group updated" }));
+    } catch (error) {
+      showError(getErrorMessage(error, "errors.updateOrderGroup"));
+    }
+  }
+
+  async function submitOrderGroupDelete(orderGroupId) {
+    try {
+      await deleteOrderGroup(token, orderGroupId);
+      await refresh();
+      showSuccess(i18n.t("success.orderGroupDeleted", { defaultValue: "Order group deleted" }));
+    } catch (error) {
+      showError(getErrorMessage(error, "errors.deleteOrderGroup"));
     }
   }
 
@@ -882,6 +918,7 @@ export function useAdminDashboard() {
     newCustomer,
     newDepot,
     newCatalog,
+    newOrderGroup,
     newAddress,
     newItem,
     newDelivery,
@@ -899,6 +936,7 @@ export function useAdminDashboard() {
     setNewCustomer,
     setNewDepot,
     setNewCatalog,
+    setNewOrderGroup,
     setNewAddress,
     setNewItem,
     setNewDelivery,
@@ -911,6 +949,9 @@ export function useAdminDashboard() {
     submitCatalog,
     submitCatalogUpdate,
     submitCatalogDelete,
+    submitOrderGroupCreate,
+    submitOrderGroupUpdate,
+    submitOrderGroupDelete,
     submitAddress,
     submitAddressUpdate,
     submitAddressDelete,

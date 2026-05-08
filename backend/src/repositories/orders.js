@@ -37,7 +37,7 @@ async function createOrder(payload) {
   if (!statusId) {
     throw new Error("Status not found");
   }
-  const [rowsRaw] = await getPool().query("CALL sp_create_order(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [
+  const [rowsRaw] = await getPool().query("CALL sp_create_order(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [
     customerId,
     addressId,
     itemId,

@@ -436,6 +436,9 @@ DROP PROCEDURE IF EXISTS sp_update_item;
 DROP PROCEDURE IF EXISTS sp_delete_item;
 DROP PROCEDURE IF EXISTS sp_list_order_groups;
 DROP PROCEDURE IF EXISTS sp_get_order_group_by_id;
+DROP PROCEDURE IF EXISTS sp_create_order_group;
+DROP PROCEDURE IF EXISTS sp_update_order_group;
+DROP PROCEDURE IF EXISTS sp_delete_order_group;
 DROP PROCEDURE IF EXISTS sp_list_dashboard_status_summary;
 DROP PROCEDURE IF EXISTS sp_list_dashboard_payment_summary;
 DROP PROCEDURE IF EXISTS sp_dashboard_currency_totals;
@@ -1061,6 +1064,25 @@ SELECT id, name FROM order_groups ORDER BY id DESC;
 CREATE PROCEDURE sp_get_order_group_by_id(IN p_id INT UNSIGNED)
 SELECT id, name FROM order_groups WHERE id = p_id LIMIT 1;
 
+CREATE PROCEDURE sp_create_order_group(IN p_name VARCHAR(255), IN p_updated_at DATETIME)
+BEGIN
+  INSERT INTO order_groups (name, updated_at) VALUES (p_name, p_updated_at);
+  SELECT LAST_INSERT_ID() AS insertId;
+END;
+
+CREATE PROCEDURE sp_update_order_group(IN p_id INT UNSIGNED, IN p_name VARCHAR(255), IN p_updated_at DATETIME)
+BEGIN
+  UPDATE order_groups SET name = p_name, updated_at = p_updated_at WHERE id = p_id;
+  SELECT ROW_COUNT() AS affectedRows;
+END;
+
+CREATE PROCEDURE sp_delete_order_group(IN p_id INT UNSIGNED, IN p_updated_at DATETIME)
+BEGIN
+  UPDATE order_groups SET updated_at = p_updated_at WHERE id = p_id;
+  DELETE FROM order_groups WHERE id = p_id;
+  SELECT ROW_COUNT() AS affectedRows;
+END;
+
 CREATE PROCEDURE sp_list_dashboard_status_summary()
 SELECT s.name AS status, COUNT(*) AS total
 FROM orders o
@@ -1385,11 +1407,11 @@ DEALLOCATE PREPARE stmt_role_menus;
 
 INSERT INTO role_menus (role_id, menu_key) VALUES
 (1, 'overview'), (1, 'newOrder'), (1, 'catalogs'), (1, 'items'), (1, 'customerItemPrices'), (1, 'customers'), (1, 'depots'),
-(1, 'addresses'), (1, 'producers'), (1, 'deliveryAgents'), (1, 'trucks'), (1, 'orders'), (1, 'assignOrders'), (1, 'orderMovement'), (1, 'payments'),
+(1, 'addresses'), (1, 'producers'), (1, 'deliveryAgents'), (1, 'trucks'), (1, 'orders'), (1, 'orderGroups'), (1, 'assignOrders'), (1, 'orderMovement'), (1, 'payments'),
 (1, 'users'),
 (1, 'borrowedMaterials'),
 (2, 'overview'), (2, 'newOrder'), (2, 'catalogs'), (2, 'items'), (2, 'customerItemPrices'), (2, 'customers'), (2, 'depots'),
-(2, 'addresses'), (2, 'producers'), (2, 'deliveryAgents'), (2, 'trucks'), (2, 'orders'), (2, 'assignOrders'), (2, 'orderMovement'), (2, 'payments'),
+(2, 'addresses'), (2, 'producers'), (2, 'deliveryAgents'), (2, 'trucks'), (2, 'orders'), (2, 'orderGroups'), (2, 'assignOrders'), (2, 'orderMovement'), (2, 'payments'),
 (2, 'borrowedMaterials'),
 (3, 'overview'), (3, 'deliveryAgents'), (3, 'trucks'), (3, 'orders'),
 (4, 'overview'), (4, 'orders'),

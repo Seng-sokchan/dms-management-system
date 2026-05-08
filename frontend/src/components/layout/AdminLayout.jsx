@@ -22,6 +22,7 @@ const PAGE_PATH_MAP = {
   "/delivery-agents": "deliveryAgents",
   "/trucks":          "trucks",
   "/orders":          "orders",
+  "/order-groups":    "orderGroups",
   "/assign-orders":   "assignOrders",
   "/order-movement":  "orderMovement",
   "/payments":        "payments",
@@ -110,6 +111,14 @@ const NAV_ICONS = {
       <line x1="9"  y1="16" x2="13" y2="16" />
     </svg>
   ),
+  orderGroups: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="5" width="7" height="6" rx="1.2" />
+      <rect x="14" y="5" width="7" height="6" rx="1.2" />
+      <rect x="8.5" y="13" width="7" height="6" rx="1.2" />
+      <path d="M10 8h4M12 11v2" />
+    </svg>
+  ),
   assignOrders: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h3" />
@@ -169,7 +178,7 @@ const NAV_GROUPS = [
   {
     labelKey: "nav.sectionOrders",
     defaultLabel: "Orders",
-    keys: ["newOrder", "catalogs", "items", "customerItemPrices", "addresses", "customers", "borrowedMaterials", "depots", "producers", "orders", "assignOrders", "orderMovement", "payments"],
+    keys: ["newOrder", "catalogs", "items", "customerItemPrices", "addresses", "customers", "borrowedMaterials", "depots", "producers", "orders", "orderGroups", "assignOrders", "orderMovement", "payments"],
   },
   {
     labelKey: "nav.sectionFulfillment",

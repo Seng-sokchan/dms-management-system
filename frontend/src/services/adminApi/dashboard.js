@@ -22,6 +22,7 @@ const ROUTE_DATA_MAP = {
   "/trucks": ["trucks", "deliveryAgents"],
   "/users": ["users", "roleMenus"],
   "/orders": ["orders", "statuses"],
+  "/order-groups": ["orderGroups"],
   "/assign-orders": ["orders", "trucks", "orderGroups"],
   "/order-movement": ["orders", "statuses"],
   "/payments": ["paymentTotals"],

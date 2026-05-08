@@ -72,6 +72,21 @@ async function listGroups() {
   return orderGroupRepository.listOrderGroups();
 }
 
+async function createOrderGroup(payload) {
+  return orderGroupRepository.createOrderGroup(payload);
+}
+
+async function updateOrderGroup(orderGroupId, payload) {
+  const row = await orderGroupRepository.updateOrderGroup(orderGroupId, payload);
+  if (!row) throw new NotFoundError("Order group not found");
+  return row;
+}
+
+async function deleteOrderGroup(orderGroupId) {
+  const deleted = await orderGroupRepository.deleteOrderGroup(orderGroupId);
+  if (!deleted) throw new NotFoundError("Order group not found");
+}
+
 async function listStatuses() {
   return lookupRepository.listOrderStatuses();
 }
@@ -224,6 +239,9 @@ module.exports = {
   // queries
   list,
   listGroups,
+  createOrderGroup,
+  updateOrderGroup,
+  deleteOrderGroup,
   listStatuses,
   getDashboardSummary,
   listForMobile,

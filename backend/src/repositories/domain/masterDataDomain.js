@@ -5,7 +5,13 @@ const {
   updateAddress,
   deleteAddress,
 } = require("../addresses");
-const { listOrderGroups, getOrderGroupById } = require("../orderGroups");
+const {
+  listOrderGroups,
+  getOrderGroupById,
+  createOrderGroup,
+  updateOrderGroup,
+  deleteOrderGroup,
+} = require("../orderGroups");
 const { listOrderStatuses } = require("../lookups");
 const {
   listCatalogs,
@@ -39,6 +45,9 @@ module.exports = {
   deleteAddress,
   listOrderGroups,
   getOrderGroupById,
+  createOrderGroup,
+  updateOrderGroup,
+  deleteOrderGroup,
   listOrderStatuses,
   listCatalogs,
   getCatalogById,
