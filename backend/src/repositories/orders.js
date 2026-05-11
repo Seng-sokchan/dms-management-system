@@ -32,12 +32,11 @@ async function createOrder(payload) {
   const customerId = Number(order.customerId);
   const addressId = Number(order.addressId);
   const producerId = order.producerId ? Number(order.producerId) : null;
-  const truckId = order.truckId ? Number(order.truckId) : null;
   const statusId = await getStatusIdByName(order.status);
   if (!statusId) {
     throw new Error("Status not found");
   }
-  const [rowsRaw] = await getPool().query("CALL sp_create_order(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [
+  const [rowsRaw] = await getPool().query("CALL sp_create_order(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [
     customerId,
     addressId,
     itemId,
@@ -45,7 +44,6 @@ async function createOrder(payload) {
     order.unitPrice,
     order.currency || "KHR",
     producerId,
-    truckId,
     order.amountTotal,
     statusId,
     order.updatedAt,
@@ -54,24 +52,48 @@ async function createOrder(payload) {
   return getOrderById(meta.insertId);
 }
 
+function toSqlIntOrNull(v) {
+  if (v === null || v === undefined || v === "") return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
 async function updateOrderAssignment(id, payload) {
   const order = await getOrderById(id);
   if (!order) return null;
+
+  let mergedProducerId = payload.producerId !== undefined ? payload.producerId : order.producerId;
+  let mergedOrderGroupId = payload.orderGroupId !== undefined ? payload.orderGroupId : order.orderGroupId;
+  let mergedDeliveryTime = payload.deliveryTime !== undefined ? payload.deliveryTime : order.deliveryTime;
+  let mergedDeliveryAgentId =
+    payload.deliveryAgentId !== undefined ? payload.deliveryAgentId : order.deliveryAgentId;
+
+  if (payload.deliveryAgentId !== undefined) {
+    const raw = payload.deliveryAgentId;
+    mergedDeliveryAgentId =
+      raw !== null && raw !== undefined && String(raw).trim() !== "" ? raw : null;
+  }
+
   let nextStatus = order.status;
-  if (payload.producerId !== undefined && payload.producerId !== null) {
+  if (payload.producerId !== undefined && payload.producerId !== null && String(payload.producerId).trim() !== "") {
     nextStatus = "Owner_Preparing";
   }
-  if (payload.truckId !== undefined && payload.truckId !== null) {
+  if (payload.deliveryAgentId !== undefined && mergedDeliveryAgentId !== null) {
     nextStatus = "Owner_Preparing";
   }
+
   const statusId = await getStatusIdByName(nextStatus);
+  if (!statusId) {
+    throw new Error("Status not found");
+  }
+
   await getPool().query("CALL sp_update_order_assignment(?, ?, ?, ?, ?, ?, ?)", [
     id,
-    payload.producerId ?? null,
-    payload.truckId ?? null,
-    payload.orderGroupId ?? null,
-    payload.deliveryTime ?? null,
-    statusId ?? null,
+    toSqlIntOrNull(mergedProducerId),
+    toSqlIntOrNull(mergedOrderGroupId),
+    mergedDeliveryTime ?? null,
+    toSqlIntOrNull(mergedDeliveryAgentId),
+    statusId,
     nowIso(),
   ]);
   return getOrderById(id);

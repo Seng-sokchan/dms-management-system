@@ -4,16 +4,27 @@ import { usePagination } from "../hooks/usePagination";
 import { DataTable } from "../components/ui/DataTable";
 import "./AssignOrdersPage.css";
 
-function currentTruckLabel(order, t) {
-  if (order.truckCode) {
-    return `${order.truckCode}${order.truckPlateNo ? ` (${order.truckPlateNo})` : ""}`;
+function currentDeliveryLabel(order, t) {
+  if (order.deliveryAgentName) {
+    return order.deliveryAgentName;
   }
   return t("orders.dash");
 }
 
-export function AssignOrdersPage({ orders = [], trucks = [], orderGroups = [], onAssignTruck, onAssignOrderGroup }) {
+function deliveryAgentOptionLabel(agent) {
+  const phone = agent.phone?.trim();
+  return phone ? `${agent.name} (${phone})` : agent.name;
+}
+
+export function AssignOrdersPage({
+  orders = [],
+  deliveryAgents = [],
+  orderGroups = [],
+  onAssignDelivery,
+  onAssignOrderGroup,
+}) {
   const { t } = useTranslation();
-  const [busyTruckId, setBusyTruckId] = useState(null);
+  const [busyDeliveryId, setBusyDeliveryId] = useState(null);
   const [busyGroupId, setBusyGroupId] = useState(null);
   const [searchText, setSearchText] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
@@ -26,17 +37,24 @@ export function AssignOrdersPage({ orders = [], trucks = [], orderGroups = [], o
     const keyword = appliedSearch.trim().toLowerCase();
     if (!keyword) return sortedOrders;
     return sortedOrders.filter((order) =>
-      [order.id, order.customerName, order.itemName, order.status, order.truckCode, order.truckPlateNo, order.orderGroupName]
+      [
+        order.id,
+        order.customerName,
+        order.itemName,
+        order.status,
+        order.deliveryAgentName,
+        order.orderGroupName,
+      ]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(keyword)),
     );
   }, [sortedOrders, appliedSearch]);
   const {
-    page: truckAssignPage,
-    pageSize: truckAssignPageSize,
-    paged: pagedOrdersForTruck,
-    setPage: setTruckAssignPage,
-    setPageSize: setTruckAssignPageSize,
+    page: deliveryAssignPage,
+    pageSize: deliveryAssignPageSize,
+    paged: pagedOrdersForDelivery,
+    setPage: setDeliveryAssignPage,
+    setPageSize: setDeliveryAssignPageSize,
   } = usePagination(filteredOrders, { resetKey: appliedSearch });
   const {
     page: groupAssignPage,
@@ -46,22 +64,26 @@ export function AssignOrdersPage({ orders = [], trucks = [], orderGroups = [], o
     setPageSize: setGroupAssignPageSize,
   } = usePagination(filteredOrders, { resetKey: appliedSearch });
 
-  async function handleTruckChange(order, truckId) {
-    const next = truckId || null;
-    const cur = order.truckId != null && order.truckId !== "" ? String(order.truckId) : "";
+  async function handleDeliveryChange(order, deliveryAgentId) {
+    const next = deliveryAgentId || null;
+    const cur =
+      order.deliveryAgentId != null && order.deliveryAgentId !== ""
+        ? String(order.deliveryAgentId)
+        : "";
     if ((next || "") === cur) return;
     if (!next) return;
-    setBusyTruckId(order.id);
+    setBusyDeliveryId(order.id);
     try {
-      await onAssignTruck(order.id, next);
+      await onAssignDelivery(order.id, next);
     } finally {
-      setBusyTruckId(null);
+      setBusyDeliveryId(null);
     }
   }
 
   async function handleGroupChange(order, orderGroupId) {
     const next = orderGroupId || null;
-    const cur = order.orderGroupId != null && order.orderGroupId !== "" ? String(order.orderGroupId) : "";
+    const cur =
+      order.orderGroupId != null && order.orderGroupId !== "" ? String(order.orderGroupId) : "";
     if ((next || "") === cur) return;
     if (!next) return;
     setBusyGroupId(order.id);
@@ -86,10 +108,10 @@ export function AssignOrdersPage({ orders = [], trucks = [], orderGroups = [], o
 
       <section className="panel">
         <div className="panel-header">
-          <h3>{t("assignOrders.truckPanelTitle")}</h3>
+          <h3>{t("assignOrders.deliveryPanelTitle")}</h3>
           <p className="panel-meta">{rowMeta}</p>
         </div>
-        <p className="form-hint">{t("assignOrders.truckPanelHint")}</p>
+        <p className="form-hint">{t("assignOrders.deliveryPanelHint")}</p>
         <DataTable
           showSearch
           searchValue={searchText}
@@ -98,50 +120,53 @@ export function AssignOrdersPage({ orders = [], trucks = [], orderGroups = [], o
           searchPlaceholder={t("assignOrders.searchPlaceholder", { defaultValue: "Search orders..." })}
           searchButtonLabel={t("common.search", { defaultValue: "Search" })}
           pagination={{
-            page: truckAssignPage,
-            pageSize: truckAssignPageSize,
+            page: deliveryAssignPage,
+            pageSize: deliveryAssignPageSize,
             totalRows: filteredOrders.length,
-            onPageChange: setTruckAssignPage,
-            onPageSizeChange: setTruckAssignPageSize,
+            onPageChange: setDeliveryAssignPage,
+            onPageSizeChange: setDeliveryAssignPageSize,
           }}
         >
-            <thead>
-              <tr>
-                <th>{t("orders.customer")}</th>
-                <th>{t("orders.item")}</th>
-                <th>{t("orders.status")}</th>
-                <th>{t("assignOrders.currentTruck")}</th>
-                <th>{t("assignOrders.assignTruck")}</th>
+          <thead>
+            <tr>
+              <th>{t("orders.customer")}</th>
+              <th>{t("orders.item")}</th>
+              <th>{t("orders.status")}</th>
+              <th>{t("assignOrders.currentDelivery")}</th>
+              <th>{t("assignOrders.assignDelivery")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pagedOrdersForDelivery.map((order) => (
+              <tr key={`delivery-${order.id}`}>
+                <td>{order.customerName || t("orders.dash")}</td>
+                <td>{order.itemName ? `#${order.id} · ${order.itemName}` : `#${order.id}`}</td>
+                <td>
+                  <span className="status-chip">{order.status}</span>
+                </td>
+                <td>{currentDeliveryLabel(order, t)}</td>
+                <td>
+                  <select
+                    aria-label={t("assignOrders.assignDelivery")}
+                    value={
+                      order.deliveryAgentId != null && order.deliveryAgentId !== ""
+                        ? String(order.deliveryAgentId)
+                        : ""
+                    }
+                    disabled={busyDeliveryId === order.id}
+                    onChange={(event) => void handleDeliveryChange(order, event.target.value)}
+                  >
+                    <option value="">{t("assignOrders.selectDeliveryPlaceholder")}</option>
+                    {deliveryAgents.map((agent) => (
+                      <option key={agent.id} value={agent.id}>
+                        {deliveryAgentOptionLabel(agent)}
+                      </option>
+                    ))}
+                  </select>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {pagedOrdersForTruck.map((order) => (
-                <tr key={`truck-${order.id}`}>
-                  <td>{order.customerName || t("orders.dash")}</td>
-                  <td>{order.itemName ? `#${order.id} · ${order.itemName}` : `#${order.id}`}</td>
-                  <td>
-                    <span className="status-chip">{order.status}</span>
-                  </td>
-                  <td>{currentTruckLabel(order, t)}</td>
-                  <td>
-                    <select
-                      aria-label={t("assignOrders.assignTruck")}
-                      value={order.truckId != null && order.truckId !== "" ? String(order.truckId) : ""}
-                      disabled={busyTruckId === order.id}
-                      onChange={(event) => void handleTruckChange(order, event.target.value)}
-                    >
-                      <option value="">{t("assignOrders.selectTruckPlaceholder")}</option>
-                      {trucks.map((truck) => (
-                        <option key={truck.id} value={truck.id}>
-                          {truck.code}
-                          {truck.plateNo ? ` (${truck.plateNo})` : ""}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
+            ))}
+          </tbody>
         </DataTable>
 
         <h3 className="assign-orders-subpanel-title">{t("assignOrders.groupPanelTitle")}</h3>
@@ -155,42 +180,46 @@ export function AssignOrdersPage({ orders = [], trucks = [], orderGroups = [], o
             onPageSizeChange: setGroupAssignPageSize,
           }}
         >
-            <thead>
-              <tr>
-                <th>{t("orders.customer")}</th>
-                <th>{t("orders.item")}</th>
-                <th>{t("orders.status")}</th>
-                <th>{t("assignOrders.currentGroup")}</th>
-                <th>{t("assignOrders.assignGroup")}</th>
+          <thead>
+            <tr>
+              <th>{t("orders.customer")}</th>
+              <th>{t("orders.item")}</th>
+              <th>{t("orders.status")}</th>
+              <th>{t("assignOrders.currentGroup")}</th>
+              <th>{t("assignOrders.assignGroup")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pagedOrdersForGroup.map((order) => (
+              <tr key={`group-${order.id}`}>
+                <td>{order.customerName || t("orders.dash")}</td>
+                <td>{order.itemName ? `#${order.id} · ${order.itemName}` : `#${order.id}`}</td>
+                <td>
+                  <span className="status-chip">{order.status}</span>
+                </td>
+                <td>{order.orderGroupName || t("orders.dash")}</td>
+                <td>
+                  <select
+                    aria-label={t("assignOrders.assignGroup")}
+                    value={
+                      order.orderGroupId != null && order.orderGroupId !== ""
+                        ? String(order.orderGroupId)
+                        : ""
+                    }
+                    disabled={busyGroupId === order.id}
+                    onChange={(event) => void handleGroupChange(order, event.target.value)}
+                  >
+                    <option value="">{t("assignOrders.selectGroupPlaceholder")}</option>
+                    {orderGroups.map((group) => (
+                      <option key={group.id} value={group.id}>
+                        {group.name}
+                      </option>
+                    ))}
+                  </select>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {pagedOrdersForGroup.map((order) => (
-                <tr key={`group-${order.id}`}>
-                  <td>{order.customerName || t("orders.dash")}</td>
-                  <td>{order.itemName ? `#${order.id} · ${order.itemName}` : `#${order.id}`}</td>
-                  <td>
-                    <span className="status-chip">{order.status}</span>
-                  </td>
-                  <td>{order.orderGroupName || t("orders.dash")}</td>
-                  <td>
-                    <select
-                      aria-label={t("assignOrders.assignGroup")}
-                      value={order.orderGroupId != null && order.orderGroupId !== "" ? String(order.orderGroupId) : ""}
-                      disabled={busyGroupId === order.id}
-                      onChange={(event) => void handleGroupChange(order, event.target.value)}
-                    >
-                      <option value="">{t("assignOrders.selectGroupPlaceholder")}</option>
-                      {orderGroups.map((group) => (
-                        <option key={group.id} value={group.id}>
-                          {group.name}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
+            ))}
+          </tbody>
         </DataTable>
       </section>
     </section>

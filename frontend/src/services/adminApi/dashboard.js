@@ -10,20 +10,20 @@ import { canAccessPath } from "../../constants/menus";
  */
 const ROUTE_DATA_MAP = {
   "/overview": ["summary", "statuses"],
-  "/create-order": ["customers", "customerUsers", "addresses", "producers", "trucks", "items"],
+  "/create-order": ["customers", "customerUsers", "addresses", "producers", "items"],
   "/catalogs": ["catalogs"],
   "/items": ["catalogs", "items"],
   "/customer-item-prices": ["customers", "items", "customerItemPrices"],
   "/addresses": ["addresses"],
   "/customers": ["customers", "customerUsers", "addresses", "depots"],
-  "/depots": ["depots", "customers"],
+  "/depots": ["depots"],
+  "/customers-by-depot": ["depots", "customers"],
   "/producers": ["producers"],
   "/delivery-agents": ["deliveryAgents"],
-  "/trucks": ["trucks", "deliveryAgents"],
   "/users": ["users", "roleMenus"],
-  "/orders": ["orders", "statuses"],
+  "/orders": ["orders", "statuses", "deliveryAgents"],
   "/order-groups": ["orderGroups"],
-  "/assign-orders": ["orders", "trucks", "orderGroups"],
+  "/assign-orders": ["orders", "deliveryAgents", "orderGroups"],
   "/order-movement": ["orders", "statuses"],
   "/payments": ["paymentTotals"],
   "/borrowed-materials": [
@@ -64,7 +64,6 @@ export async function fetchDashboardData(token, pathname = "/overview") {
     addresses: [],
     producers: [],
     deliveryAgents: [],
-    trucks: [],
     catalogs: [],
     items: [],
     orderGroups: [],
@@ -128,11 +127,6 @@ export async function fetchDashboardData(token, pathname = "/overview") {
     const res = await apiClient.get("/delivery-agents", config);
     const rows = unwrapApiData(res.data);
     data.deliveryAgents = Array.isArray(rows) ? rows : [];
-  });
-  queue("trucks", async () => {
-    const res = await apiClient.get("/trucks", config);
-    const rows = unwrapApiData(res.data);
-    data.trucks = Array.isArray(rows) ? rows : [];
   });
   queue("catalogs", async () => {
     const res = await apiClient.get("/catalogs", config);

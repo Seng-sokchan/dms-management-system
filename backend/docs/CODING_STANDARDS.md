@@ -199,7 +199,7 @@ Services hold the domain logic. They know nothing about Express.
 const orderRepository = require("../repositories/orders");
 const customerRepository = require("../repositories/customers");
 const itemRepository = require("../repositories/items");
-const truckRepository = require("../repositories/trucks");
+const deliveryAgentRepository = require("../repositories/deliveryAgents");
 const {
   NotFoundError,
   BadRequestError,
@@ -222,9 +222,9 @@ async function create(payload, { user }) {
   const item = await itemRepository.getById(payload.itemId);
   if (!item) throw new BadRequestError("Item not found");
 
-  if (payload.truckId) {
-    const truck = await truckRepository.getById(payload.truckId);
-    if (!truck) throw new BadRequestError("Truck not found");
+  if (payload.deliveryAgentId) {
+    const agent = await deliveryAgentRepository.getDeliveryAgentById(payload.deliveryAgentId);
+    if (!agent) throw new BadRequestError("Delivery agent not found");
   }
 
   return orderRepository.create({
@@ -232,7 +232,7 @@ async function create(payload, { user }) {
     addressId: customer.address,
     unitPrice: payload.unitPrice ?? item.defaultUnitPriceUsd,
     producerId: payload.producerId ?? null,
-    truckId: payload.truckId ?? null,
+    deliveryAgentId: payload.deliveryAgentId ?? null,
   });
 }
 
@@ -309,7 +309,7 @@ const createOrderSchema = z.object({
   orderedQty: z.number().int().positive(),
   unitPrice: z.number().nonnegative().optional(),
   producerId: idString.nullable().optional(),
-  truckId: idString.nullable().optional(),
+  deliveryAgentId: idString.nullable().optional(),
 });
 
 const updateOrderStatusSchema = z.object({

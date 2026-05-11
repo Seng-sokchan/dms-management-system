@@ -3,9 +3,7 @@ import { useLocation } from "react-router-dom";
 import {
   confirmDelivery as confirmDeliveryRequest,
   createDeliveryAgent,
-  createTruck,
   deleteDeliveryAgent,
-  deleteTruck,
   deleteCatalog,
   createAddress,
   updateAddress,
@@ -30,7 +28,6 @@ import {
   updateCustomer,
   updateDepot,
   updateDeliveryAgent,
-  updateTruck,
   updateItem,
   updateOrderAssignment,
   updateOrderGroup,
@@ -114,7 +111,6 @@ export function useAdminDashboard() {
   const [addresses, setAddresses] = useState([]);
   const [producers, setProducers] = useState([]);
   const [deliveryAgents, setDeliveryAgents] = useState([]);
-  const [trucks, setTrucks] = useState([]);
   const [catalogs, setCatalogs] = useState([]);
   const [items, setItems] = useState([]);
   const [orderGroups, setOrderGroups] = useState([]);
@@ -154,7 +150,6 @@ export function useAdminDashboard() {
     sku: "",
   });
   const [newDelivery, setNewDelivery] = useState({ name: "", phone: "", vehicleType: "" });
-  const [newTruck, setNewTruck] = useState({ code: "", plateNo: "", deliveryAgentId: "", capacityNote: "" });
   const [newUser, setNewUser] = useState({ name: "", username: "", password: "", role: "Owner" });
   const [newBorrowMaterial, setNewBorrowMaterial] = useState({ name: "", unit: "", note: "" });
   const [newCustomerBorrow, setNewCustomerBorrow] = useState({ customerId: "", materialId: "", qty: 1, note: "" });
@@ -189,7 +184,6 @@ export function useAdminDashboard() {
       setAddresses(Array.isArray(data.addresses) ? data.addresses : []);
       setProducers(Array.isArray(data.producers) ? data.producers : []);
       setDeliveryAgents(Array.isArray(data.deliveryAgents) ? data.deliveryAgents : []);
-      setTrucks(Array.isArray(data.trucks) ? data.trucks : []);
       setCatalogs(Array.isArray(data.catalogs) ? data.catalogs : []);
       setItems(Array.isArray(data.items) ? data.items : []);
       setOrderGroups(Array.isArray(data.orderGroups) ? data.orderGroups : []);
@@ -227,7 +221,6 @@ export function useAdminDashboard() {
         setAddresses([]);
         setProducers([]);
         setDeliveryAgents([]);
-        setTrucks([]);
         setCatalogs([]);
         setItems([]);
         setOrderGroups([]);
@@ -270,7 +263,6 @@ export function useAdminDashboard() {
         orderedQty: Number(newOrder.orderedQty),
       };
       delete body.producerId;
-      delete body.truckId;
       if (!body.itemId) {
         delete body.itemId;
       }
@@ -564,38 +556,6 @@ export function useAdminDashboard() {
     }
   }
 
-  async function submitTruck(event) {
-    event.preventDefault();
-    try {
-      await createTruck(token, newTruck);
-      setNewTruck({ code: "", plateNo: "", deliveryAgentId: "", capacityNote: "" });
-      await refresh();
-      await showSuccessPopup(i18n.t("success.truckAdded"));
-    } catch (error) {
-      showError(getErrorMessage(error, "errors.createTruck"));
-    }
-  }
-
-  async function submitTruckUpdate(truckId, payload) {
-    try {
-      await updateTruck(token, truckId, payload);
-      await refresh();
-      await showSuccessPopup(i18n.t("success.truckUpdated"));
-    } catch (error) {
-      showError(getErrorMessage(error, "errors.updateTruck"));
-    }
-  }
-
-  async function submitTruckDelete(truckId) {
-    try {
-      await deleteTruck(token, truckId);
-      await refresh();
-      showSuccess(i18n.t("success.truckDeleted"));
-    } catch (error) {
-      showError(getErrorMessage(error, "errors.deleteTruck"));
-    }
-  }
-
   async function submitDeliveryConfirmation(orderId) {
     try {
       await confirmDeliveryRequest(token, orderId, {});
@@ -636,13 +596,13 @@ export function useAdminDashboard() {
     }
   }
 
-  async function submitOrderTruckAssignment(orderId, truckId) {
+  async function submitOrderDeliveryAssignment(orderId, deliveryAgentId) {
     try {
-      await updateOrderAssignment(token, orderId, { truckId: truckId || null });
+      await updateOrderAssignment(token, orderId, { deliveryAgentId: deliveryAgentId || null });
       await refresh();
-      await showSuccessPopup(i18n.t("success.truckAssigned", { defaultValue: "Truck assignment saved" }));
+      await showSuccessPopup(i18n.t("success.deliveryAssigned", { defaultValue: "Delivery assignment saved" }));
     } catch (error) {
-      showError(getErrorMessage(error, "errors.updateTruckAssignment"));
+      showError(getErrorMessage(error, "errors.updateDeliveryAssignment"));
     }
   }
 
@@ -901,7 +861,6 @@ export function useAdminDashboard() {
     addresses,
     producers,
     deliveryAgents,
-    trucks,
     catalogs,
     items,
     orderGroups,
@@ -922,7 +881,6 @@ export function useAdminDashboard() {
     newAddress,
     newItem,
     newDelivery,
-    newTruck,
     newUser,
     newBorrowMaterial,
     newCustomerBorrow,
@@ -940,7 +898,6 @@ export function useAdminDashboard() {
     setNewAddress,
     setNewItem,
     setNewDelivery,
-    setNewTruck,
     setNewUser,
     setNewBorrowMaterial,
     setNewCustomerBorrow,
@@ -970,14 +927,11 @@ export function useAdminDashboard() {
     submitDelivery,
     submitDeliveryUpdate,
     submitDeliveryDelete,
-    submitTruck,
-    submitTruckUpdate,
-    submitTruckDelete,
     submitDeliveryConfirmation,
     submitOrderStatus,
     submitOrderMovement,
     submitOrderGroupAssignment,
-    submitOrderTruckAssignment,
+    submitOrderDeliveryAssignment,
     submitOrderDelete,
     submitUser,
     submitUserUpdate,

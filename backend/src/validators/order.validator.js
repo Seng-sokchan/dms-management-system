@@ -22,12 +22,11 @@ const createOrderSchema = z.object({
   unitPrice: z.number().nonnegative().optional(),
   currency: z.enum(["USD", "KHR"]).optional().default("KHR"),
   producerId: idString.nullable().optional(),
-  truckId: idString.nullable().optional(),
 });
 
 const assignOrderSchema = z.object({
   producerId: idString.nullable().optional(),
-  truckId: idString.nullable().optional(),
+  deliveryAgentId: idString.nullable().optional(),
   orderGroupId: idString.nullable().optional(),
   deliveryTime: z.string().datetime().optional(),
 });

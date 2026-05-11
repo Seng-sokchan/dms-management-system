@@ -12,7 +12,6 @@ export * from "./depots";
 export * from "./addresses";
 export * from "./producers";
 export * from "./deliveryAgents";
-export * from "./trucks";
 export * from "./users";
 export * from "./roleMenus";
 export * from "./borrowMaterials";

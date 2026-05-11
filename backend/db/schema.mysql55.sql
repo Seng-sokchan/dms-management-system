@@ -10,6 +10,7 @@ DROP TABLE IF EXISTS orders;
 DROP TABLE IF EXISTS payment_methods;
 DROP TABLE IF EXISTS payment_statuses;
 DROP TABLE IF EXISTS status;
+DROP TABLE IF EXISTS customer_item_prices;
 DROP TABLE IF EXISTS items;
 DROP TABLE IF EXISTS catalogs;
 DROP TABLE IF EXISTS addresses;
@@ -92,22 +93,6 @@ CREATE TABLE delivery_agents (
   updated_at DATETIME NULL,
   PRIMARY KEY (id),
   KEY idx_delivery_agents_name (name)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
-CREATE TABLE trucks (
-  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  code VARCHAR(40) NOT NULL,
-  plate_no VARCHAR(40) NOT NULL,
-  delivery_agent_id INT UNSIGNED DEFAULT NULL,
-  capacity_note VARCHAR(255) DEFAULT '',
-  is_active TINYINT(1) NOT NULL DEFAULT 1,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME NULL,
-  PRIMARY KEY (id),
-  UNIQUE KEY uq_trucks_code (code),
-  UNIQUE KEY uq_trucks_plate_no (plate_no),
-  KEY idx_trucks_code (code),
-  KEY idx_trucks_delivery_agent (delivery_agent_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE order_groups (
@@ -233,7 +218,7 @@ CREATE TABLE orders (
   ordered_qty INT UNSIGNED NOT NULL,
   unit_price DECIMAL(14,2) NOT NULL,
   producer_id INT UNSIGNED DEFAULT NULL,
-  truck_id INT UNSIGNED DEFAULT NULL,
+  delivery_agent_id INT UNSIGNED DEFAULT NULL,
   delivery_time DATETIME NULL,
   amount_total DECIMAL(14,2) NOT NULL,
   status TINYINT UNSIGNED NOT NULL DEFAULT 1,
@@ -243,11 +228,12 @@ CREATE TABLE orders (
   KEY idx_orders_status (status),
   KEY idx_orders_created_at (created_at),
   KEY idx_orders_producer_id (producer_id),
-  KEY idx_orders_truck_id (truck_id),
+  KEY idx_orders_delivery_agent (delivery_agent_id),
   KEY idx_orders_customer_id (customer_id),
   KEY idx_orders_address (address),
   KEY idx_orders_order_group_id (order_group_id),
-  KEY idx_orders_item_id (item_id)
+  KEY idx_orders_item_id (item_id),
+  CONSTRAINT fk_orders_delivery_agent FOREIGN KEY (delivery_agent_id) REFERENCES delivery_agents (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE borrow_material_order_loans (
@@ -327,11 +313,9 @@ DROP PROCEDURE IF EXISTS sp_list_producers;
 DROP PROCEDURE IF EXISTS sp_get_producer_by_id;
 DROP PROCEDURE IF EXISTS sp_list_delivery_agents;
 DROP PROCEDURE IF EXISTS sp_get_delivery_agent_by_id;
-DROP PROCEDURE IF EXISTS sp_get_truck_by_id;
 DROP PROCEDURE IF EXISTS sp_list_customers;
 DROP PROCEDURE IF EXISTS sp_list_customers_by_depot_id;
 DROP PROCEDURE IF EXISTS sp_list_customers_by_owner_user_id;
-DROP PROCEDURE IF EXISTS sp_list_trucks;
 DROP PROCEDURE IF EXISTS sp_get_customer_by_id;
 DROP PROCEDURE IF EXISTS sp_list_depots;
 DROP PROCEDURE IF EXISTS sp_get_depot_by_id;
@@ -385,9 +369,6 @@ DROP PROCEDURE IF EXISTS sp_dashboard_currency_totals;
 DROP PROCEDURE IF EXISTS sp_create_producer;
 DROP PROCEDURE IF EXISTS sp_update_producer;
 DROP PROCEDURE IF EXISTS sp_delete_producer;
-DROP PROCEDURE IF EXISTS sp_create_truck;
-DROP PROCEDURE IF EXISTS sp_update_truck;
-DROP PROCEDURE IF EXISTS sp_delete_truck;
 DROP PROCEDURE IF EXISTS sp_create_depot;
 DROP PROCEDURE IF EXISTS sp_update_depot;
 DROP PROCEDURE IF EXISTS sp_delete_depot;
@@ -503,20 +484,6 @@ SELECT id, name, phone, vehicle_type
 FROM delivery_agents
 WHERE is_active = 1
 ORDER BY id DESC;
-
-CREATE PROCEDURE sp_get_truck_by_id(IN p_id INT UNSIGNED)
-SELECT t.id, t.code, t.plate_no, t.capacity_note, t.delivery_agent_id, d.name AS delivery_agent_name
-FROM trucks t
-LEFT JOIN delivery_agents d ON d.id = t.delivery_agent_id
-WHERE t.id = p_id AND t.is_active = 1
-LIMIT 1;
-
-CREATE PROCEDURE sp_list_trucks()
-SELECT t.id, t.code, t.plate_no, t.capacity_note, t.delivery_agent_id, d.name AS delivery_agent_name
-FROM trucks t
-LEFT JOIN delivery_agents d ON d.id = t.delivery_agent_id
-WHERE t.is_active = 1
-ORDER BY t.id DESC;
 
 CREATE PROCEDURE sp_get_depot_by_id(IN p_id INT UNSIGNED)
 SELECT d.id, d.name, d.phone, d.address, d.owner_user_id, ou.name AS owner_user_name, d.depot_user_id, du.name AS depot_user_name
@@ -707,12 +674,10 @@ LIMIT 1;
 CREATE PROCEDURE sp_get_order_by_id(IN p_id INT UNSIGNED)
 SELECT
   o.id, c.name AS customer_name, o.address, oa.name AS order_address_name, c.address AS customer_address_id, ca.name AS customer_address_name, o.customer_id, o.order_group_id, og.name AS order_group_name, o.item_id, o.currency, o.ordered_qty, o.unit_price,
-  o.producer_id, o.truck_id, da.id AS delivery_agent_id, o.delivery_time,
+  o.producer_id, o.delivery_agent_id, o.delivery_time,
   o.amount_total, s.name AS status, o.created_at, o.updated_at,
   c.phone AS customer_phone,
   p.name AS producer_name,
-  t.code AS truck_code,
-  t.plate_no AS truck_plate_no,
   da.name AS delivery_agent_name,
   it.name AS item_name,
   it.sku AS item_sku
@@ -723,8 +688,7 @@ INNER JOIN addresses ca ON ca.id = c.address
 INNER JOIN items it ON it.id = o.item_id
 INNER JOIN status s ON s.id = o.status
 LEFT JOIN producers p ON p.id = o.producer_id
-LEFT JOIN trucks t ON t.id = o.truck_id
-LEFT JOIN delivery_agents da ON da.id = t.delivery_agent_id
+LEFT JOIN delivery_agents da ON da.id = o.delivery_agent_id
 LEFT JOIN order_groups og ON og.id = o.order_group_id
 WHERE o.id = p_id
 LIMIT 1;
@@ -732,12 +696,10 @@ LIMIT 1;
 CREATE PROCEDURE sp_list_orders()
 SELECT
   o.id, c.name AS customer_name, o.address, oa.name AS order_address_name, c.address AS customer_address_id, ca.name AS customer_address_name, o.customer_id, o.order_group_id, og.name AS order_group_name, o.item_id, o.currency, o.ordered_qty, o.unit_price,
-  o.producer_id, o.truck_id, da.id AS delivery_agent_id, o.delivery_time,
+  o.producer_id, o.delivery_agent_id, o.delivery_time,
   o.amount_total, s.name AS status, o.created_at, o.updated_at,
   c.phone AS customer_phone,
   p.name AS producer_name,
-  t.code AS truck_code,
-  t.plate_no AS truck_plate_no,
   da.name AS delivery_agent_name,
   it.name AS item_name,
   it.sku AS item_sku
@@ -748,8 +710,7 @@ INNER JOIN addresses ca ON ca.id = c.address
 INNER JOIN items it ON it.id = o.item_id
 INNER JOIN status s ON s.id = o.status
 LEFT JOIN producers p ON p.id = o.producer_id
-LEFT JOIN trucks t ON t.id = o.truck_id
-LEFT JOIN delivery_agents da ON da.id = t.delivery_agent_id
+LEFT JOIN delivery_agents da ON da.id = o.delivery_agent_id
 LEFT JOIN order_groups og ON og.id = o.order_group_id
 ORDER BY o.id DESC;
 
@@ -761,18 +722,17 @@ CREATE PROCEDURE sp_create_order(
   IN p_unit_price DECIMAL(12,2),
   IN p_currency VARCHAR(10),
   IN p_producer_id INT UNSIGNED,
-  IN p_truck_id INT UNSIGNED,
   IN p_amount_total DECIMAL(12,2),
   IN p_status TINYINT UNSIGNED,
   IN p_updated_at DATETIME
 )
 BEGIN
   INSERT INTO orders (
-    customer_id, address, order_group_id, item_id, currency, ordered_qty, unit_price, producer_id, truck_id, delivery_time,
+    customer_id, address, order_group_id, item_id, currency, ordered_qty, unit_price, producer_id, delivery_agent_id, delivery_time,
     amount_total, status, updated_at
   )
   VALUES (
-    p_customer_id, p_address, NULL, p_item_id, p_currency, p_ordered_qty, p_unit_price, p_producer_id, p_truck_id, NULL,
+    p_customer_id, p_address, NULL, p_item_id, p_currency, p_ordered_qty, p_unit_price, p_producer_id, NULL, NULL,
     p_amount_total, p_status, p_updated_at
   );
   SELECT LAST_INSERT_ID() AS insertId;
@@ -781,18 +741,18 @@ END;
 CREATE PROCEDURE sp_update_order_assignment(
   IN p_id INT UNSIGNED,
   IN p_producer_id INT UNSIGNED,
-  IN p_truck_id INT UNSIGNED,
   IN p_order_group_id INT UNSIGNED,
   IN p_delivery_time DATETIME,
+  IN p_delivery_agent_id INT UNSIGNED,
   IN p_status TINYINT UNSIGNED,
   IN p_updated_at DATETIME
 )
 UPDATE orders
-SET producer_id = COALESCE(p_producer_id, producer_id),
-    truck_id = COALESCE(p_truck_id, truck_id),
-    order_group_id = COALESCE(p_order_group_id, order_group_id),
-    delivery_time = COALESCE(p_delivery_time, delivery_time),
-    status = COALESCE(p_status, status),
+SET producer_id = p_producer_id,
+    order_group_id = p_order_group_id,
+    delivery_time = p_delivery_time,
+    delivery_agent_id = p_delivery_agent_id,
+    status = p_status,
     updated_at = p_updated_at
 WHERE id = p_id;
 
@@ -1051,31 +1011,6 @@ END;
 CREATE PROCEDURE sp_delete_producer(IN p_id INT UNSIGNED, IN p_updated_at DATETIME)
 BEGIN
   UPDATE producers SET is_active = 0, updated_at = p_updated_at WHERE id = p_id AND is_active = 1;
-  SELECT ROW_COUNT() AS affectedRows;
-END;
-
-CREATE PROCEDURE sp_create_truck(
-  IN p_code VARCHAR(80), IN p_plate_no VARCHAR(30), IN p_delivery_agent_id INT UNSIGNED, IN p_capacity_note VARCHAR(255), IN p_updated_at DATETIME
-)
-BEGIN
-  INSERT INTO trucks (code, plate_no, delivery_agent_id, capacity_note, updated_at)
-  VALUES (p_code, p_plate_no, p_delivery_agent_id, p_capacity_note, p_updated_at);
-  SELECT LAST_INSERT_ID() AS insertId;
-END;
-
-CREATE PROCEDURE sp_update_truck(
-  IN p_id INT UNSIGNED, IN p_code VARCHAR(80), IN p_plate_no VARCHAR(30), IN p_delivery_agent_id INT UNSIGNED, IN p_capacity_note VARCHAR(255), IN p_updated_at DATETIME
-)
-BEGIN
-  UPDATE trucks
-  SET code = p_code, plate_no = p_plate_no, delivery_agent_id = p_delivery_agent_id, capacity_note = p_capacity_note, updated_at = p_updated_at
-  WHERE id = p_id AND is_active = 1;
-  SELECT ROW_COUNT() AS affectedRows;
-END;
-
-CREATE PROCEDURE sp_delete_truck(IN p_id INT UNSIGNED, IN p_updated_at DATETIME)
-BEGIN
-  UPDATE trucks SET is_active = 0, updated_at = p_updated_at WHERE id = p_id AND is_active = 1;
   SELECT ROW_COUNT() AS affectedRows;
 END;
 
@@ -1344,17 +1279,17 @@ EXECUTE stmt_role_menus;
 DEALLOCATE PREPARE stmt_role_menus;
 
 INSERT INTO role_menus (role_id, menu_key) VALUES
-(1, 'overview'), (1, 'newOrder'), (1, 'catalogs'), (1, 'items'), (1, 'customerItemPrices'), (1, 'customers'), (1, 'depots'),
-(1, 'addresses'), (1, 'producers'), (1, 'deliveryAgents'), (1, 'trucks'), (1, 'orders'), (1, 'orderGroups'), (1, 'assignOrders'), (1, 'orderMovement'), (1, 'payments'),
+(1, 'overview'), (1, 'newOrder'), (1, 'catalogs'), (1, 'items'), (1, 'customerItemPrices'), (1, 'customers'), (1, 'depots'), (1, 'customersByDepot'),
+(1, 'addresses'), (1, 'producers'), (1, 'deliveryAgents'), (1, 'orders'), (1, 'orderGroups'), (1, 'assignOrders'), (1, 'orderMovement'), (1, 'payments'),
 (1, 'users'),
 (1, 'borrowedMaterials'),
-(2, 'overview'), (2, 'newOrder'), (2, 'catalogs'), (2, 'items'), (2, 'customerItemPrices'), (2, 'customers'), (2, 'depots'),
-(2, 'addresses'), (2, 'producers'), (2, 'deliveryAgents'), (2, 'trucks'), (2, 'orders'), (2, 'orderGroups'), (2, 'assignOrders'), (2, 'orderMovement'), (2, 'payments'),
+(2, 'overview'), (2, 'newOrder'), (2, 'catalogs'), (2, 'items'), (2, 'customerItemPrices'), (2, 'customers'), (2, 'depots'), (2, 'customersByDepot'),
+(2, 'addresses'), (2, 'producers'), (2, 'deliveryAgents'), (2, 'orders'), (2, 'orderGroups'), (2, 'assignOrders'), (2, 'orderMovement'), (2, 'payments'),
 (2, 'borrowedMaterials'),
-(3, 'overview'), (3, 'deliveryAgents'), (3, 'trucks'), (3, 'orders'),
+(3, 'overview'), (3, 'deliveryAgents'), (3, 'orders'),
 (4, 'overview'), (4, 'orders'),
 (5, 'overview'), (5, 'orders'),
-(6, 'overview'), (6, 'addresses'), (6, 'customers'), (6, 'customerItemPrices'), (6, 'orders'), (6, 'payments'), (6, 'borrowedMaterials')
+(6, 'overview'), (6, 'addresses'), (6, 'customers'), (6, 'customersByDepot'), (6, 'customerItemPrices'), (6, 'orders'), (6, 'payments'), (6, 'borrowedMaterials')
 ON DUPLICATE KEY UPDATE menu_key = VALUES(menu_key);
 
 -- 2) Remove obsolete orders.producer_confirm_status if it still exists
@@ -1779,130 +1714,6 @@ FROM roles r
 WHERE r.name IN ('Admin', 'Owner')
 ON DUPLICATE KEY UPDATE menu_key = VALUES(menu_key);
 
--- 17) Drop orders.delivery_agent_id; refresh order procedures (delivery agent via truck join)
-DROP PROCEDURE IF EXISTS sp_get_order_by_id;
-DROP PROCEDURE IF EXISTS sp_list_orders;
-DROP PROCEDURE IF EXISTS sp_create_order;
-DROP PROCEDURE IF EXISTS sp_update_order_assignment;
-
-SET @has_ord_da_fk := (
-  SELECT COUNT(*) FROM information_schema.table_constraints
-  WHERE table_schema = DATABASE() AND table_name = 'orders' AND constraint_name = 'fk_orders_delivery_agent'
-);
-SET @sql_drop_ord_da_fk := IF(
-  @has_ord_da_fk > 0,
-  'ALTER TABLE orders DROP FOREIGN KEY fk_orders_delivery_agent',
-  'SELECT 1'
-);
-PREPARE stmt_drop_ord_da_fk FROM @sql_drop_ord_da_fk;
-EXECUTE stmt_drop_ord_da_fk;
-DEALLOCATE PREPARE stmt_drop_ord_da_fk;
-
-SET @has_ord_da_col := (
-  SELECT COUNT(*) FROM information_schema.columns
-  WHERE table_schema = DATABASE() AND table_name = 'orders' AND column_name = 'delivery_agent_id'
-);
-SET @sql_drop_ord_da_col := IF(
-  @has_ord_da_col > 0,
-  'ALTER TABLE orders DROP COLUMN delivery_agent_id',
-  'SELECT 1'
-);
-PREPARE stmt_drop_ord_da_col FROM @sql_drop_ord_da_col;
-EXECUTE stmt_drop_ord_da_col;
-DEALLOCATE PREPARE stmt_drop_ord_da_col;
-
-CREATE PROCEDURE sp_get_order_by_id(IN p_id INT UNSIGNED)
-SELECT
-  o.id, c.name AS customer_name, o.address, oa.name AS order_address_name, c.address AS customer_address_id, ca.name AS customer_address_name, o.customer_id, o.order_group_id, og.name AS order_group_name, o.item_id, o.currency, o.ordered_qty, o.unit_price,
-  o.producer_id, o.truck_id, da.id AS delivery_agent_id, o.delivery_time,
-  o.amount_total, s.name AS status, o.created_at, o.updated_at,
-  c.phone AS customer_phone,
-  p.name AS producer_name,
-  t.code AS truck_code,
-  t.plate_no AS truck_plate_no,
-  da.name AS delivery_agent_name,
-  it.name AS item_name,
-  it.sku AS item_sku
-FROM orders o
-INNER JOIN customers c ON c.id = o.customer_id
-INNER JOIN addresses oa ON oa.id = o.address
-INNER JOIN addresses ca ON ca.id = c.address
-INNER JOIN items it ON it.id = o.item_id
-INNER JOIN status s ON s.id = o.status
-LEFT JOIN producers p ON p.id = o.producer_id
-LEFT JOIN trucks t ON t.id = o.truck_id
-LEFT JOIN delivery_agents da ON da.id = t.delivery_agent_id
-LEFT JOIN order_groups og ON og.id = o.order_group_id
-WHERE o.id = p_id
-LIMIT 1;
-
-CREATE PROCEDURE sp_list_orders()
-SELECT
-  o.id, c.name AS customer_name, o.address, oa.name AS order_address_name, c.address AS customer_address_id, ca.name AS customer_address_name, o.customer_id, o.order_group_id, og.name AS order_group_name, o.item_id, o.currency, o.ordered_qty, o.unit_price,
-  o.producer_id, o.truck_id, da.id AS delivery_agent_id, o.delivery_time,
-  o.amount_total, s.name AS status, o.created_at, o.updated_at,
-  c.phone AS customer_phone,
-  p.name AS producer_name,
-  t.code AS truck_code,
-  t.plate_no AS truck_plate_no,
-  da.name AS delivery_agent_name,
-  it.name AS item_name,
-  it.sku AS item_sku
-FROM orders o
-INNER JOIN customers c ON c.id = o.customer_id
-INNER JOIN addresses oa ON oa.id = o.address
-INNER JOIN addresses ca ON ca.id = c.address
-INNER JOIN items it ON it.id = o.item_id
-INNER JOIN status s ON s.id = o.status
-LEFT JOIN producers p ON p.id = o.producer_id
-LEFT JOIN trucks t ON t.id = o.truck_id
-LEFT JOIN delivery_agents da ON da.id = t.delivery_agent_id
-LEFT JOIN order_groups og ON og.id = o.order_group_id
-ORDER BY o.id DESC;
-
-CREATE PROCEDURE sp_create_order(
-  IN p_customer_id INT UNSIGNED,
-  IN p_address INT UNSIGNED,
-  IN p_item_id INT UNSIGNED,
-  IN p_ordered_qty DECIMAL(12,2),
-  IN p_unit_price DECIMAL(12,2),
-  IN p_currency VARCHAR(10),
-  IN p_producer_id INT UNSIGNED,
-  IN p_truck_id INT UNSIGNED,
-  IN p_amount_total DECIMAL(12,2),
-  IN p_status TINYINT UNSIGNED,
-  IN p_updated_at DATETIME
-)
-BEGIN
-  INSERT INTO orders (
-    customer_id, address, order_group_id, item_id, currency, ordered_qty, unit_price, producer_id, truck_id, delivery_time,
-    amount_total, status, updated_at
-  )
-  VALUES (
-    p_customer_id, p_address, NULL, p_item_id, p_currency, p_ordered_qty, p_unit_price, p_producer_id, p_truck_id, NULL,
-    p_amount_total, p_status, p_updated_at
-  );
-  SELECT LAST_INSERT_ID() AS insertId;
-END;
-
-CREATE PROCEDURE sp_update_order_assignment(
-  IN p_id INT UNSIGNED,
-  IN p_producer_id INT UNSIGNED,
-  IN p_truck_id INT UNSIGNED,
-  IN p_order_group_id INT UNSIGNED,
-  IN p_delivery_time DATETIME,
-  IN p_status TINYINT UNSIGNED,
-  IN p_updated_at DATETIME
-)
-UPDATE orders
-SET producer_id = COALESCE(p_producer_id, producer_id),
-    truck_id = COALESCE(p_truck_id, truck_id),
-    order_group_id = COALESCE(p_order_group_id, order_group_id),
-    delivery_time = COALESCE(p_delivery_time, delivery_time),
-    status = COALESCE(p_status, status),
-    updated_at = p_updated_at
-WHERE id = p_id;
-
 -- 18) Order movement + Payments menu for existing installs (idempotent)
 INSERT INTO role_menus (role_id, menu_key)
 SELECT r.id, 'orderMovement'
@@ -1918,6 +1729,13 @@ ON DUPLICATE KEY UPDATE menu_key = VALUES(menu_key);
 
 INSERT INTO role_menus (role_id, menu_key)
 SELECT r.id, 'customerItemPrices'
+FROM roles r
+WHERE r.name IN ('Admin', 'Owner', 'Depot')
+ON DUPLICATE KEY UPDATE menu_key = VALUES(menu_key);
+
+-- 18b) Customers by depot menu (Admin, Owner, Depot; idempotent)
+INSERT INTO role_menus (role_id, menu_key)
+SELECT r.id, 'customersByDepot'
 FROM roles r
 WHERE r.name IN ('Admin', 'Owner', 'Depot')
 ON DUPLICATE KEY UPDATE menu_key = VALUES(menu_key);
@@ -2206,5 +2024,155 @@ BEGIN
   DELETE FROM customer_item_prices WHERE id = p_id;
   SELECT ROW_COUNT() AS affectedRows;
 END;
+
+-- 19) Ensure orders.delivery_agent_id exists; refresh order procedures for direct delivery-agent assignment
+SET @has_ord_da_col19 := (
+  SELECT COUNT(*)
+  FROM information_schema.columns
+  WHERE table_schema = DATABASE()
+    AND table_name = 'orders'
+    AND column_name = 'delivery_agent_id'
+);
+SET @sql_add_ord_da_col19 := IF(
+  @has_ord_da_col19 = 0,
+  'ALTER TABLE orders ADD COLUMN delivery_agent_id INT UNSIGNED NULL AFTER producer_id, ADD KEY idx_orders_delivery_agent (delivery_agent_id)',
+  'SELECT 1'
+);
+PREPARE stmt_add_ord_da_col19 FROM @sql_add_ord_da_col19;
+EXECUTE stmt_add_ord_da_col19;
+DEALLOCATE PREPARE stmt_add_ord_da_col19;
+
+SET @has_ord_da_fk19 := (
+  SELECT COUNT(*)
+  FROM information_schema.table_constraints
+  WHERE table_schema = DATABASE()
+    AND table_name = 'orders'
+    AND constraint_name = 'fk_orders_delivery_agent'
+);
+SET @sql_add_ord_da_fk19 := IF(
+  @has_ord_da_fk19 = 0,
+  'ALTER TABLE orders ADD CONSTRAINT fk_orders_delivery_agent FOREIGN KEY (delivery_agent_id) REFERENCES delivery_agents (id)',
+  'SELECT 1'
+);
+PREPARE stmt_add_ord_da_fk19 FROM @sql_add_ord_da_fk19;
+EXECUTE stmt_add_ord_da_fk19;
+DEALLOCATE PREPARE stmt_add_ord_da_fk19;
+
+DROP PROCEDURE IF EXISTS sp_get_order_by_id;
+DROP PROCEDURE IF EXISTS sp_list_orders;
+DROP PROCEDURE IF EXISTS sp_create_order;
+DROP PROCEDURE IF EXISTS sp_update_order_assignment;
+
+CREATE PROCEDURE sp_get_order_by_id(IN p_id INT UNSIGNED)
+SELECT
+  o.id, c.name AS customer_name, o.address, oa.name AS order_address_name, c.address AS customer_address_id, ca.name AS customer_address_name, o.customer_id, o.order_group_id, og.name AS order_group_name, o.item_id, o.currency, o.ordered_qty, o.unit_price,
+  o.producer_id, o.delivery_agent_id, o.delivery_time,
+  o.amount_total, s.name AS status, o.created_at, o.updated_at,
+  c.phone AS customer_phone,
+  p.name AS producer_name,
+  da.name AS delivery_agent_name,
+  it.name AS item_name,
+  it.sku AS item_sku
+FROM orders o
+INNER JOIN customers c ON c.id = o.customer_id
+INNER JOIN addresses oa ON oa.id = o.address
+INNER JOIN addresses ca ON ca.id = c.address
+INNER JOIN items it ON it.id = o.item_id
+INNER JOIN status s ON s.id = o.status
+LEFT JOIN producers p ON p.id = o.producer_id
+LEFT JOIN delivery_agents da ON da.id = o.delivery_agent_id
+LEFT JOIN order_groups og ON og.id = o.order_group_id
+WHERE o.id = p_id
+LIMIT 1;
+
+CREATE PROCEDURE sp_list_orders()
+SELECT
+  o.id, c.name AS customer_name, o.address, oa.name AS order_address_name, c.address AS customer_address_id, ca.name AS customer_address_name, o.customer_id, o.order_group_id, og.name AS order_group_name, o.item_id, o.currency, o.ordered_qty, o.unit_price,
+  o.producer_id, o.delivery_agent_id, o.delivery_time,
+  o.amount_total, s.name AS status, o.created_at, o.updated_at,
+  c.phone AS customer_phone,
+  p.name AS producer_name,
+  da.name AS delivery_agent_name,
+  it.name AS item_name,
+  it.sku AS item_sku
+FROM orders o
+INNER JOIN customers c ON c.id = o.customer_id
+INNER JOIN addresses oa ON oa.id = o.address
+INNER JOIN addresses ca ON ca.id = c.address
+INNER JOIN items it ON it.id = o.item_id
+INNER JOIN status s ON s.id = o.status
+LEFT JOIN producers p ON p.id = o.producer_id
+LEFT JOIN delivery_agents da ON da.id = o.delivery_agent_id
+LEFT JOIN order_groups og ON og.id = o.order_group_id
+ORDER BY o.id DESC;
+
+CREATE PROCEDURE sp_create_order(
+  IN p_customer_id INT UNSIGNED,
+  IN p_address INT UNSIGNED,
+  IN p_item_id INT UNSIGNED,
+  IN p_ordered_qty DECIMAL(12,2),
+  IN p_unit_price DECIMAL(12,2),
+  IN p_currency VARCHAR(10),
+  IN p_producer_id INT UNSIGNED,
+  IN p_amount_total DECIMAL(12,2),
+  IN p_status TINYINT UNSIGNED,
+  IN p_updated_at DATETIME
+)
+BEGIN
+  INSERT INTO orders (
+    customer_id, address, order_group_id, item_id, currency, ordered_qty, unit_price, producer_id, delivery_agent_id, delivery_time,
+    amount_total, status, updated_at
+  )
+  VALUES (
+    p_customer_id, p_address, NULL, p_item_id, p_currency, p_ordered_qty, p_unit_price, p_producer_id, NULL, NULL,
+    p_amount_total, p_status, p_updated_at
+  );
+  SELECT LAST_INSERT_ID() AS insertId;
+END;
+
+CREATE PROCEDURE sp_update_order_assignment(
+  IN p_id INT UNSIGNED,
+  IN p_producer_id INT UNSIGNED,
+  IN p_order_group_id INT UNSIGNED,
+  IN p_delivery_time DATETIME,
+  IN p_delivery_agent_id INT UNSIGNED,
+  IN p_status TINYINT UNSIGNED,
+  IN p_updated_at DATETIME
+)
+UPDATE orders
+SET producer_id = p_producer_id,
+    order_group_id = p_order_group_id,
+    delivery_time = p_delivery_time,
+    delivery_agent_id = p_delivery_agent_id,
+    status = p_status,
+    updated_at = p_updated_at
+WHERE id = p_id;
+
+-- 20) Legacy cleanup: drop orders.truck_id, truck stored procedures, and trucks table if present
+SET @has_orders_truck_id := (
+  SELECT COUNT(*)
+  FROM information_schema.columns
+  WHERE table_schema = DATABASE()
+    AND table_name = 'orders'
+    AND column_name = 'truck_id'
+);
+SET @sql_drop_orders_truck_id := IF(
+  @has_orders_truck_id > 0,
+  'ALTER TABLE orders DROP COLUMN truck_id',
+  'SELECT 1'
+);
+PREPARE stmt_drop_orders_truck_id FROM @sql_drop_orders_truck_id;
+EXECUTE stmt_drop_orders_truck_id;
+DEALLOCATE PREPARE stmt_drop_orders_truck_id;
+
+DROP PROCEDURE IF EXISTS sp_get_truck_by_id;
+DROP PROCEDURE IF EXISTS sp_list_trucks;
+DROP PROCEDURE IF EXISTS sp_create_truck;
+DROP PROCEDURE IF EXISTS sp_update_truck;
+DROP PROCEDURE IF EXISTS sp_delete_truck;
+
+DROP TABLE IF EXISTS trucks;
+
+DELETE FROM role_menus WHERE menu_key = 'trucks';
 
 SET FOREIGN_KEY_CHECKS = 1;

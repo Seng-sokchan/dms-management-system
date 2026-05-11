@@ -18,9 +18,9 @@ const PAGE_PATH_MAP = {
   "/customers":       "customers",
   "/borrowed-materials": "borrowedMaterials",
   "/depots":          "depots",
+  "/customers-by-depot": "customersByDepot",
   "/producers":       "producers",
   "/delivery-agents": "deliveryAgents",
-  "/trucks":          "trucks",
   "/orders":          "orders",
   "/order-groups":    "orderGroups",
   "/assign-orders":   "assignOrders",
@@ -84,6 +84,13 @@ const NAV_ICONS = {
       <path d="M9 20v-6h6v6" />
     </svg>
   ),
+  customersByDepot: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 10l9-7 9 7v9a2 2 0 01-2 2H5a2 2 0 01-2-2v-9z" />
+      <circle cx="9" cy="12" r="1.75" />
+      <circle cx="15" cy="12" r="1.75" />
+    </svg>
+  ),
   producers: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 21h18M3 7v1a3 3 0 006 0V7m0 1a3 3 0 006 0V7m0 1a3 3 0 006 0V7H3l2-4h14l2 4" />
@@ -93,14 +100,6 @@ const NAV_ICONS = {
   deliveryAgents: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5" />
-    </svg>
-  ),
-  trucks: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="1" y="3" width="15" height="13" rx="1.5" />
-      <path d="M16 8h4l3 5v3h-7V8z" />
-      <circle cx="5.5"  cy="18.5" r="2.5" />
-      <circle cx="18.5" cy="18.5" r="2.5" />
     </svg>
   ),
   orders: (
@@ -178,12 +177,28 @@ const NAV_GROUPS = [
   {
     labelKey: "nav.sectionOrders",
     defaultLabel: "Orders",
-    keys: ["newOrder", "catalogs", "items", "customerItemPrices", "addresses", "customers", "borrowedMaterials", "depots", "producers", "orders", "orderGroups", "assignOrders", "orderMovement", "payments"],
+    keys: [
+      "newOrder",
+      "catalogs",
+      "items",
+      "customerItemPrices",
+      "addresses",
+      "customers",
+      "borrowedMaterials",
+      "depots",
+      "customersByDepot",
+      "producers",
+      "orders",
+      "orderGroups",
+      "assignOrders",
+      "orderMovement",
+      "payments",
+    ],
   },
   {
     labelKey: "nav.sectionFulfillment",
     defaultLabel: "Fulfillment",
-    keys: ["deliveryAgents", "trucks"],
+    keys: ["deliveryAgents"],
   },
   {
     labelKey: "nav.sectionAdmin",

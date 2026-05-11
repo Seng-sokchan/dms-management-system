@@ -35,8 +35,6 @@ const {
   updateDeliveryAgent,
   deleteDeliveryAgent,
 } = require("../deliveryAgents");
-const { listTrucks, getTruckById, createTruck, updateTruck, deleteTruck } = require("../trucks");
-
 module.exports = {
   listAddresses,
   getAddressById,
@@ -69,9 +67,4 @@ module.exports = {
   createDeliveryAgent,
   updateDeliveryAgent,
   deleteDeliveryAgent,
-  listTrucks,
-  getTruckById,
-  createTruck,
-  updateTruck,
-  deleteTruck,
 };

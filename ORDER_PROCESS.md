@@ -27,12 +27,12 @@ Typical API:
 
 ---
 
-### Step 2 - Owner Prepares and Assigns Truck
+### Step 2 - Owner Prepares and Assigns Delivery
 
-- Action: owner prepares the order and assigns truck/producer information
+- Action: owner prepares the order and assigns delivery agent / producer information
 - Data saved:
   - `producer_id`
-  - `truck_id` (when known)
+  - `delivery_agent_id` (when known)
 - Status after assign:
   - `OWNER_PREPARING`
 
@@ -51,7 +51,7 @@ Typical API:
 
 ### Step 4 - Send Out For Delivery
 
-- Action: logistics confirms handover and starts truck delivery.
+- Action: logistics confirms handover and starts delivery.
 - Status moves to:
   - `OUT_FOR_DELIVERY`
 
@@ -60,9 +60,9 @@ Typical API:
 
 ---
 
-### Step 5 - Truck Delivers to Customer
+### Step 5 - Delivery to Customer
 
-- Action: truck reaches customer and final delivery confirmation is prepared.
+- Action: delivery reaches the customer and final delivery confirmation is prepared.
 
 ---
 

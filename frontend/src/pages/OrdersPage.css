@@ -1,3 +1,14 @@
 /* Orders page — group modal */
 
+.orders-page-panels .panel + .panel {
+  margin-top: 1.5rem;
+}
+
+.orders-truck-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
 .modal-card--orders-group { width: min(1140px, 98vw); }

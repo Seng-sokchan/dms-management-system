@@ -14,13 +14,13 @@ const orderGroupRepository = require("../repositories/orderGroups");
 const customerRepository = require("../repositories/customers");
 const itemRepository = require("../repositories/items");
 const customerItemPriceRepository = require("../repositories/customerItemPrices");
-const truckRepository = require("../repositories/trucks");
+const deliveryAgentRepository = require("../repositories/deliveryAgents");
 const producerRepository = require("../repositories/producers");
 const lookupRepository = require("../repositories/lookups");
 const overviewRepository = require("../repositories/overview");
 const { BadRequestError, NotFoundError, ForbiddenError } = require("../errors");
 
-/** New orders always use this producer; truck/agent are set later via assign. */
+/** New orders always use this producer; delivery agent is set later via assign. */
 const DEFAULT_NEW_ORDER_PRODUCER_ID = "1";
 
 const STATUS_UPDATE_ROLES = new Set(["Admin", "Owner", "Logistics", "Delivery"]);
@@ -132,20 +132,19 @@ async function create(payload) {
     unitPrice,
     currency,
     producerId: DEFAULT_NEW_ORDER_PRODUCER_ID,
-    truckId: null,
   });
 }
 
 /**
- * Assign an order to a producer/truck/group. Validates targets exist.
+ * Assign an order to a producer/delivery agent/group. Validates targets exist.
  */
 async function assign(orderId, payload) {
   const order = await orderRepository.getOrderById(orderId);
   if (!order) throw new NotFoundError("Order not found");
 
-  if (payload.truckId) {
-    const truck = await truckRepository.getTruckById(payload.truckId);
-    if (!truck) throw new BadRequestError("Truck not found");
+  if (payload.deliveryAgentId) {
+    const agent = await deliveryAgentRepository.getDeliveryAgentById(payload.deliveryAgentId);
+    if (!agent) throw new BadRequestError("Delivery agent not found");
   }
   if (payload.orderGroupId) {
     const orderGroup = await orderGroupRepository.getOrderGroupById(payload.orderGroupId);

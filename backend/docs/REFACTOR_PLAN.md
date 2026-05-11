@@ -36,7 +36,7 @@ After reviewing every file in `src/`, these are the concrete issues:
 |---|---|---|
 | Inline Zod schemas | `controllers/*.js` (orderController, authController, customerController, paymentController, …) | `z.object({...}).safeParse(req.body)` redefined inside almost every handler. Validation logic duplicated and untestable. |
 | `validators/` folder is dead | `validators/order.validator.js`, `validators/auth.validator.js` | Schemas exist but no route imports them. `validate()` middleware never runs. |
-| Controllers contain domain logic | `orderController.createOrder` looks up customer/item/truck and derives unit price | Should be in `orderService.create()`. Controllers should be 5–10 lines. |
+| Controllers contain domain logic | `orderController.createOrder` looks up customer/item and derives unit price | Should be in `orderService.create()`. Controllers should be 5–10 lines. |
 | Controllers don't use `asyncHandler` | Every controller | Some `try/catch`, some not. Inconsistent error propagation. |
 | Inconsistent response shape | `res.json(data)` vs `{data, count}` (mobile) vs `{ok: true, id}` (delete) | Frontend has to know which endpoint returns which envelope. |
 | `utils/response.js` unused | `success`, `created`, `paginated` exist but no controller calls them | Dead helpers. |
@@ -102,7 +102,7 @@ focused day per item.
 | 2 | Auth | `controllers/authController.js`, `services/authService.js` (new), `validators/auth.validator.js`, `routes/authRoutes.js` | ⬜ |
 | 3 | Customers | `controllers/customerController.js`, `services/customerService.js` (new), `validators/customer.validator.js`, `routes/customerRoutes.js` | ⬜ |
 | 4 | Items + Catalog | `controllers/{item,catalog}Controller.js`, `services/{item,catalog}Service.js` (new), validators, routes | ⬜ |
-| 5 | Trucks + Delivery | as above | ⬜ |
+| 5 | Delivery agents + orders | as above | ⬜ |
 | 6 | Producers | as above | ⬜ |
 | 7 | Payments — biggest, do last | `controllers/paymentController.js` (419 lines), `services/paymentService.js`, validators, routes | ⬜ |
 | 8 | User management + Role menus + Activity logs + Address | as above | ⬜ |

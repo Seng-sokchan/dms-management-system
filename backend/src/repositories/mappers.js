@@ -2,6 +2,7 @@ function mapOrder(row) {
   const orderAddressName = row.order_address_name != null ? row.order_address_name : null;
   return {
     id: String(row.id),
+    customerDirectoryName: row.customer_name != null ? row.customer_name : null,
     customerName: orderAddressName || row.customer_name,
     addressId: row.address != null ? String(row.address) : null,
     orderAddressName,
@@ -18,12 +19,9 @@ function mapOrder(row) {
     orderedQty: row.ordered_qty,
     unitPrice: Number(row.unit_price),
     producerId: row.producer_id != null ? String(row.producer_id) : null,
-    truckId: row.truck_id != null ? String(row.truck_id) : null,
     deliveryAgentId: row.delivery_agent_id != null ? String(row.delivery_agent_id) : null,
     deliveryTime: row.delivery_time,
     producerName: row.producer_name != null ? row.producer_name : null,
-    truckCode: row.truck_code != null ? row.truck_code : null,
-    truckPlateNo: row.truck_plate_no != null ? row.truck_plate_no : null,
     deliveryAgentName: row.delivery_agent_name != null ? row.delivery_agent_name : null,
     amountTotal: Number(row.amount_total),
     status: row.status,
@@ -47,17 +45,6 @@ function mapDelivery(row) {
     name: row.name,
     phone: row.phone,
     vehicleType: row.vehicle_type,
-  };
-}
-
-function mapTruck(row) {
-  return {
-    id: String(row.id),
-    code: row.code,
-    plateNo: row.plate_no,
-    deliveryAgentId: row.delivery_agent_id != null ? String(row.delivery_agent_id) : "",
-    deliveryAgentName: row.delivery_agent_name != null ? row.delivery_agent_name : null,
-    capacityNote: row.capacity_note || "",
   };
 }
 
@@ -218,7 +205,6 @@ module.exports = {
   mapOrder,
   mapProducer,
   mapDelivery,
-  mapTruck,
   mapCustomer,
   mapDepot,
   mapCatalog,

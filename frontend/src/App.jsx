@@ -7,7 +7,6 @@ import { LoginForm } from "./features/auth/LoginForm";
 import { useAdminDashboard } from "./hooks/useAdminDashboard";
 import { CreateOrderPage } from "./pages/CreateOrderPage";
 import { DeliveryAgentsPage } from "./pages/DeliveryAgentsPage";
-import { TrucksPage } from "./pages/TrucksPage";
 import { OrdersPage } from "./pages/OrdersPage";
 import { AssignOrdersPage } from "./pages/AssignOrdersPage";
 import { OrderMovementPage } from "./pages/OrderMovementPage";
@@ -19,6 +18,7 @@ import { CustomerItemPricesPage } from "./pages/CustomerItemPricesPage";
 import { AddressesPage } from "./pages/AddressesPage";
 import { ProducersPage } from "./pages/ProducersPage";
 import { CustomersPage } from "./pages/CustomersPage";
+import { CustomersByDepotPage } from "./pages/CustomersByDepotPage";
 import { DepotsPage } from "./pages/DepotsPage";
 import { BorrowedMaterialsPage } from "./pages/BorrowedMaterialsPage";
 import { UsersPage } from "./pages/UsersPage";
@@ -40,7 +40,6 @@ function App() {
     addresses,
     producers,
     deliveryAgents,
-    trucks,
     orderGroups,
     catalogs,
     items,
@@ -61,7 +60,6 @@ function App() {
     newAddress,
     newItem,
     newDelivery,
-    newTruck,
     newBorrowMaterial,
     newCustomerBorrow,
     newOrderLoan,
@@ -78,7 +76,6 @@ function App() {
     setNewAddress,
     setNewItem,
     setNewDelivery,
-    setNewTruck,
     setNewBorrowMaterial,
     setNewCustomerBorrow,
     login,
@@ -109,13 +106,10 @@ function App() {
     submitDelivery,
     submitDeliveryUpdate,
     submitDeliveryDelete,
-    submitTruck,
-    submitTruckUpdate,
-    submitTruckDelete,
     submitDeliveryConfirmation,
     submitOrderStatus,
     submitOrderMovement,
-    submitOrderTruckAssignment,
+    submitOrderDeliveryAssignment,
     submitOrderGroupAssignment,
     submitBorrowMaterial,
     submitBorrowMaterialUpdate,
@@ -365,7 +359,6 @@ function App() {
           canAccessPath(user, "/depots") ? (
             <DepotsPage
               depots={depots}
-              customers={customers}
               users={users}
               user={user}
               newDepot={newDepot}
@@ -374,6 +367,16 @@ function App() {
               onUpdateDepot={submitDepotUpdate}
               onDeleteDepot={submitDepotDelete}
             />
+          ) : (
+            renderDeniedRoute()
+          ),
+        )}
+      />
+      <Route
+        path="/customers-by-depot"
+        element={withLayout(
+          canAccessPath(user, "/customers-by-depot") ? (
+            <CustomersByDepotPage depots={depots} customers={customers} />
           ) : (
             renderDeniedRoute()
           ),
@@ -451,24 +454,6 @@ function App() {
         )}
       />
       <Route
-        path="/trucks"
-        element={withLayout(
-          canAccessPath(user, "/trucks") ? (
-            <TrucksPage
-              trucks={trucks}
-              deliveryAgents={deliveryAgents}
-              newTruck={newTruck}
-              setNewTruck={setNewTruck}
-              onCreateTruck={submitTruck}
-              onUpdateTruck={submitTruckUpdate}
-              onDeleteTruck={submitTruckDelete}
-            />
-          ) : (
-            renderDeniedRoute()
-          ),
-        )}
-      />
-      <Route
         path="/users"
         element={withLayout(
           user?.role === "Admin" && canAccessPath(user, "/users") ? (
@@ -492,12 +477,7 @@ function App() {
         path="/orders"
         element={withLayout(
           canAccessPath(user, "/orders") ? (
-            <OrdersPage
-              orders={orders}
-              statuses={statuses}
-              onUpdateStatus={submitOrderStatus}
-              onConfirmDelivery={submitDeliveryConfirmation}
-            />
+            <OrdersPage orders={orders} deliveryAgents={deliveryAgents} />
           ) : (
             renderDeniedRoute()
           ),
@@ -526,9 +506,9 @@ function App() {
           (user?.role === "Admin" || user?.role === "Owner") && canAccessPath(user, "/assign-orders") ? (
             <AssignOrdersPage
               orders={orders}
-              trucks={trucks}
+              deliveryAgents={deliveryAgents}
               orderGroups={orderGroups}
-              onAssignTruck={submitOrderTruckAssignment}
+              onAssignDelivery={submitOrderDeliveryAssignment}
               onAssignOrderGroup={submitOrderGroupAssignment}
             />
           ) : (

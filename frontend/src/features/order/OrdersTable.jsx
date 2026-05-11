@@ -47,8 +47,6 @@ export function OrdersTable({ orders, statuses, onUpdateStatus, onConfirmDeliver
         order.customerName,
         order.itemName,
         order.producerName,
-        order.truckCode,
-        order.truckPlateNo,
         order.deliveryAgentName,
         order.orderedQty,
         order.status,
@@ -92,7 +90,6 @@ export function OrdersTable({ orders, statuses, onUpdateStatus, onConfirmDeliver
               <th>{t("orders.customer")}</th>
               <th>{t("orders.item")}</th>
               <th>{t("orders.producer")}</th>
-              <th>{t("orders.truck")}</th>
               <th>{t("orders.delivery")}</th>
               <th>{t("orders.qty")}</th>
               <th>{t("orders.status")}</th>
@@ -109,7 +106,6 @@ export function OrdersTable({ orders, statuses, onUpdateStatus, onConfirmDeliver
                   <td>{order.customerName}</td>
                   <td>{order.itemName}</td>
                   <td>{order.producerName || t("orders.dash")}</td>
-                  <td>{order.truckCode ? `${order.truckCode}${order.truckPlateNo ? ` (${order.truckPlateNo})` : ""}` : t("orders.dash")}</td>
                   <td>{order.deliveryAgentName || t("orders.dash")}</td>
                   <td>
                     <span className="qty-chip">{order.orderedQty}</span>
