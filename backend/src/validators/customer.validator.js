@@ -14,13 +14,34 @@ const optionalIdString = z.preprocess((val) => {
   return s === "" ? undefined : s;
 }, z.string().min(1).optional());
 
-const createCustomerSchema = z.object({
-  name: z.string().trim().min(2),
-  phone: nullableTrimmed(30).optional(),
-  address: z.string().min(1),
-  userId: nullableTrimmed(30).optional(),
-  depotId: optionalIdString,
-});
+const optionalLatitude = z.preprocess((val) => {
+  if (val === null || val === undefined || val === "") return undefined;
+  const n = typeof val === "number" ? val : Number(String(val).trim());
+  return Number.isFinite(n) ? n : NaN;
+}, z.number().min(-90).max(90).optional());
+
+const optionalLongitude = z.preprocess((val) => {
+  if (val === null || val === undefined || val === "") return undefined;
+  const n = typeof val === "number" ? val : Number(String(val).trim());
+  return Number.isFinite(n) ? n : NaN;
+}, z.number().min(-180).max(180).optional());
+
+const createCustomerSchema = z
+  .object({
+    name: z.string().trim().min(2),
+    phone: nullableTrimmed(30).optional(),
+    address: z.string().min(1),
+    userId: nullableTrimmed(30).optional(),
+    depotId: optionalIdString,
+    latitude: optionalLatitude,
+    longitude: optionalLongitude,
+  })
+  .refine(
+    (data) =>
+      (data.latitude === undefined && data.longitude === undefined) ||
+      (data.latitude !== undefined && data.longitude !== undefined),
+    { message: "Latitude and longitude must both be provided or both omitted", path: ["longitude"] },
+  );
 
 const updateCustomerSchema = createCustomerSchema;
 

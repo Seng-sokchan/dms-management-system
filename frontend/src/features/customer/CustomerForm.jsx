@@ -51,6 +51,28 @@ export function CustomerForm({
           </option>
         ))}
       </select>
+      <label className="form-label" htmlFor="customer-latitude">
+        {t("customers.latitude")}
+      </label>
+      <input
+        id="customer-latitude"
+        type="number"
+        step="any"
+        value={newCustomer.latitude}
+        onChange={(event) => setNewCustomer({ ...newCustomer, latitude: event.target.value })}
+        placeholder={t("customers.latitudePlaceholder")}
+      />
+      <label className="form-label" htmlFor="customer-longitude">
+        {t("customers.longitude")}
+      </label>
+      <input
+        id="customer-longitude"
+        type="number"
+        step="any"
+        value={newCustomer.longitude}
+        onChange={(event) => setNewCustomer({ ...newCustomer, longitude: event.target.value })}
+        placeholder={t("customers.longitudePlaceholder")}
+      />
       <label className="form-label" htmlFor="customer-user">
         {t("customers.user")} <span className="form-optional">({t("createOrder.optional")})</span>
       </label>
@@ -66,9 +88,6 @@ export function CustomerForm({
           </option>
         ))}
       </select>
-      {customerUsers.length === 0 ? (
-        <p className="form-help">{t("customers.noCustomerUsersHint")}</p>
-      ) : null}
       <label className="form-label" htmlFor="customer-depot">
         {t("customers.depot", { defaultValue: "Depot" })}{" "}
         <span className="form-optional">({t("createOrder.optional")})</span>

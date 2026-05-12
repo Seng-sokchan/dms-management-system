@@ -37,18 +37,29 @@ function normalizeNullableString(value) {
   return s === "" ? null : s;
 }
 
+/** After validation: both coordinates present or both absent; returns [lat, lng] for SQL NULL or DECIMAL. */
+function customerLatLngForDb(payload) {
+  if (payload.latitude === undefined && payload.longitude === undefined) {
+    return [null, null];
+  }
+  return [Number(payload.latitude), Number(payload.longitude)];
+}
+
 async function createCustomer(payload) {
   const name = String(payload.name || "").trim();
   const phone = normalizeNullableString(payload.phone);
   const address = Number(payload.address);
   const userId = payload.userId ? Number(payload.userId) : null;
   const depotId = payload.depotId ? Number(payload.depotId) : null;
-  const [rowsRaw] = await getPool().query("CALL sp_create_customer(?, ?, ?, ?, ?, ?)", [
+  const [latitude, longitude] = customerLatLngForDb(payload);
+  const [rowsRaw] = await getPool().query("CALL sp_create_customer(?, ?, ?, ?, ?, ?, ?, ?)", [
     name,
     phone,
     address,
     userId,
     depotId,
+    latitude,
+    longitude,
     nowIso(),
   ]);
   const meta = getProcedureMeta(rowsRaw);
@@ -61,13 +72,16 @@ async function updateCustomer(id, payload) {
   const address = Number(payload.address);
   const userId = payload.userId ? Number(payload.userId) : null;
   const depotId = payload.depotId ? Number(payload.depotId) : null;
-  const [rowsRaw] = await getPool().query("CALL sp_update_customer(?, ?, ?, ?, ?, ?, ?)", [
+  const [latitude, longitude] = customerLatLngForDb(payload);
+  const [rowsRaw] = await getPool().query("CALL sp_update_customer(?, ?, ?, ?, ?, ?, ?, ?, ?)", [
     id,
     name,
     phone,
     address,
     userId,
     depotId,
+    latitude,
+    longitude,
     nowIso(),
   ]);
   const meta = getProcedureMeta(rowsRaw);

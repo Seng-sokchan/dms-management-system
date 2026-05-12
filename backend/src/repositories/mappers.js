@@ -48,6 +48,12 @@ function mapDelivery(row) {
   };
 }
 
+function parseCustomerCoord(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
 function mapCustomer(row) {
   return {
     id: String(row.id),
@@ -60,6 +66,8 @@ function mapCustomer(row) {
     depotId: row.depot_id != null ? String(row.depot_id) : "",
     depotName: row.depot_name || "",
     addressName: row.address_name || "",
+    latitude: parseCustomerCoord(row.latitude),
+    longitude: parseCustomerCoord(row.longitude),
   };
 }
 

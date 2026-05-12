@@ -6,7 +6,24 @@ import { Button } from "../components/ui/Button";
 import { DataTable } from "../components/ui/DataTable";
 import { useConfirm } from "../components/ui/ConfirmProvider";
 
-const EMPTY_EDIT = { id: "", name: "", phone: "", address: "", userId: "", depotId: "" };
+const EMPTY_EDIT = { id: "", name: "", phone: "", address: "", latitude: "", longitude: "", userId: "", depotId: "" };
+
+function buildCustomerSavePayload(editing) {
+  const payload = {
+    name: editing.name,
+    phone: editing.phone,
+    address: editing.address,
+    userId: editing.userId,
+    depotId: editing.depotId,
+  };
+  const lat = String(editing.latitude ?? "").trim();
+  const lng = String(editing.longitude ?? "").trim();
+  if (lat && lng) {
+    payload.latitude = lat;
+    payload.longitude = lng;
+  }
+  return payload;
+}
 
 export function CustomersPage({
   customers,
@@ -38,6 +55,8 @@ export function CustomersPage({
         customer.userUsername,
         customer.depotName,
         customer.addressName,
+        customer.latitude,
+        customer.longitude,
       ]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(keyword)),
@@ -57,6 +76,8 @@ export function CustomersPage({
       name: customer.name || "",
       phone: customer.phone ?? "",
       address: customer.address || "",
+      latitude: customer.latitude != null ? String(customer.latitude) : "",
+      longitude: customer.longitude != null ? String(customer.longitude) : "",
       userId: customer.userId || "",
       depotId: customer.depotId || "",
     });
@@ -69,13 +90,7 @@ export function CustomersPage({
   async function submitEdit(event) {
     event.preventDefault();
     if (!editingCustomer.id) return;
-    await onUpdateCustomer(editingCustomer.id, {
-      name: editingCustomer.name,
-      phone: editingCustomer.phone,
-      address: editingCustomer.address,
-      userId: editingCustomer.userId,
-      depotId: editingCustomer.depotId,
-    });
+    await onUpdateCustomer(editingCustomer.id, buildCustomerSavePayload(editingCustomer));
     setEditingCustomer(EMPTY_EDIT);
   }
 
@@ -142,6 +157,9 @@ export function CustomersPage({
                   <th>{t("customers.user")}</th>
                   <th>{t("customers.depot", { defaultValue: "Depot" })}</th>
                   <th>{t("customers.address")}</th>
+                  <th>{t("customers.latitude")}</th>
+                  <th>{t("customers.longitude")}</th>
+                  <th>{t("customers.mapsLink")}</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -156,6 +174,21 @@ export function CustomersPage({
                     </td>
                     <td>{customer.depotName || "—"}</td>
                     <td>{customer.addressName || "—"}</td>
+                    <td>{customer.latitude != null ? customer.latitude : "—"}</td>
+                    <td>{customer.longitude != null ? customer.longitude : "—"}</td>
+                    <td>
+                      {customer.latitude != null && customer.longitude != null ? (
+                        <a
+                          href={`https://www.google.com/maps?q=${encodeURIComponent(`${customer.latitude},${customer.longitude}`)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {t("customers.mapsLink")}
+                        </a>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
                     <td>
                       <div className="row-actions">
                         <Button variant="ghost" tone="edit" onClick={() => startEdit(customer)}>
@@ -232,6 +265,28 @@ export function CustomersPage({
                 </option>
               ))}
             </select>
+            <label className="form-label" htmlFor="customer-edit-latitude">
+              {t("customers.latitude")}
+            </label>
+            <input
+              id="customer-edit-latitude"
+              type="number"
+              step="any"
+              value={editingCustomer.latitude}
+              onChange={(event) => setEditingCustomer({ ...editingCustomer, latitude: event.target.value })}
+              placeholder={t("customers.latitudePlaceholder")}
+            />
+            <label className="form-label" htmlFor="customer-edit-longitude">
+              {t("customers.longitude")}
+            </label>
+            <input
+              id="customer-edit-longitude"
+              type="number"
+              step="any"
+              value={editingCustomer.longitude}
+              onChange={(event) => setEditingCustomer({ ...editingCustomer, longitude: event.target.value })}
+              placeholder={t("customers.longitudePlaceholder")}
+            />
             <label className="form-label" htmlFor="customer-edit-user">
               {t("customers.user")} <span className="form-optional">({t("createOrder.optional")})</span>
             </label>

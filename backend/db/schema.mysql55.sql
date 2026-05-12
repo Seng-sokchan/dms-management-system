@@ -120,6 +120,8 @@ CREATE TABLE customers (
   address INT UNSIGNED NOT NULL,
   user_id INT UNSIGNED DEFAULT NULL,
   depot_id INT UNSIGNED DEFAULT NULL,
+  latitude DECIMAL(10,7) NULL DEFAULT NULL,
+  longitude DECIMAL(10,7) NULL DEFAULT NULL,
   is_active TINYINT(1) NOT NULL DEFAULT 1,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NULL,
@@ -527,7 +529,7 @@ WHERE d.is_active = 1
 ORDER BY d.id DESC;
 
 CREATE PROCEDURE sp_get_customer_by_id(IN p_id INT UNSIGNED)
-SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, c.user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name
+SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, c.user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.latitude, c.longitude
 FROM customers c
 INNER JOIN addresses a ON a.id = c.address
 LEFT JOIN users u ON u.id = c.user_id
@@ -536,7 +538,7 @@ WHERE c.id = p_id AND c.is_active = 1
 LIMIT 1;
 
 CREATE PROCEDURE sp_list_customers()
-SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, c.user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name
+SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, c.user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.latitude, c.longitude
 FROM customers c
 INNER JOIN addresses a ON a.id = c.address
 LEFT JOIN users u ON u.id = c.user_id
@@ -545,7 +547,7 @@ WHERE c.is_active = 1
 ORDER BY c.id DESC;
 
 CREATE PROCEDURE sp_list_customers_by_depot_id(IN p_depot_id INT UNSIGNED)
-SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, c.user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name
+SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, c.user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.latitude, c.longitude
 FROM customers c
 INNER JOIN addresses a ON a.id = c.address
 LEFT JOIN users u ON u.id = c.user_id
@@ -554,7 +556,7 @@ WHERE c.is_active = 1 AND d.is_active = 1 AND c.depot_id = p_depot_id
 ORDER BY c.id DESC;
 
 CREATE PROCEDURE sp_list_customers_by_owner_user_id(IN p_owner_user_id INT UNSIGNED)
-SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, c.user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name
+SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, c.user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.latitude, c.longitude
 FROM customers c
 INNER JOIN addresses a ON a.id = c.address
 LEFT JOIN users u ON u.id = c.user_id
@@ -837,11 +839,13 @@ CREATE PROCEDURE sp_create_customer(
   IN p_address INT UNSIGNED,
   IN p_user_id INT UNSIGNED,
   IN p_depot_id INT UNSIGNED,
+  IN p_latitude DECIMAL(10,7),
+  IN p_longitude DECIMAL(10,7),
   IN p_updated_at DATETIME
 )
 BEGIN
-  INSERT INTO customers (name, phone, address, user_id, depot_id, updated_at)
-  VALUES (p_name, p_phone, p_address, p_user_id, p_depot_id, p_updated_at);
+  INSERT INTO customers (name, phone, address, user_id, depot_id, latitude, longitude, updated_at)
+  VALUES (p_name, p_phone, p_address, p_user_id, p_depot_id, p_latitude, p_longitude, p_updated_at);
   SELECT LAST_INSERT_ID() AS insertId;
 END;
 
@@ -852,11 +856,13 @@ CREATE PROCEDURE sp_update_customer(
   IN p_address INT UNSIGNED,
   IN p_user_id INT UNSIGNED,
   IN p_depot_id INT UNSIGNED,
+  IN p_latitude DECIMAL(10,7),
+  IN p_longitude DECIMAL(10,7),
   IN p_updated_at DATETIME
 )
 BEGIN
   UPDATE customers
-  SET name = p_name, phone = p_phone, address = p_address, user_id = p_user_id, depot_id = p_depot_id, updated_at = p_updated_at
+  SET name = p_name, phone = p_phone, address = p_address, user_id = p_user_id, depot_id = p_depot_id, latitude = p_latitude, longitude = p_longitude, updated_at = p_updated_at
   WHERE id = p_id AND is_active = 1;
   SELECT ROW_COUNT() AS affectedRows;
 END;
@@ -1279,17 +1285,17 @@ EXECUTE stmt_role_menus;
 DEALLOCATE PREPARE stmt_role_menus;
 
 INSERT INTO role_menus (role_id, menu_key) VALUES
-(1, 'overview'), (1, 'newOrder'), (1, 'catalogs'), (1, 'items'), (1, 'customerItemPrices'), (1, 'customers'), (1, 'depots'), (1, 'customersByDepot'),
+(1, 'overview'), (1, 'newOrder'), (1, 'catalogs'), (1, 'items'), (1, 'customerItemPrices'), (1, 'customers'), (1, 'trackingCustomerLocation'), (1, 'depots'), (1, 'customersByDepot'),
 (1, 'addresses'), (1, 'producers'), (1, 'deliveryAgents'), (1, 'orders'), (1, 'orderGroups'), (1, 'assignOrders'), (1, 'orderMovement'), (1, 'payments'),
 (1, 'users'),
 (1, 'borrowedMaterials'),
-(2, 'overview'), (2, 'newOrder'), (2, 'catalogs'), (2, 'items'), (2, 'customerItemPrices'), (2, 'customers'), (2, 'depots'), (2, 'customersByDepot'),
+(2, 'overview'), (2, 'newOrder'), (2, 'catalogs'), (2, 'items'), (2, 'customerItemPrices'), (2, 'customers'), (2, 'trackingCustomerLocation'), (2, 'depots'), (2, 'customersByDepot'),
 (2, 'addresses'), (2, 'producers'), (2, 'deliveryAgents'), (2, 'orders'), (2, 'orderGroups'), (2, 'assignOrders'), (2, 'orderMovement'), (2, 'payments'),
 (2, 'borrowedMaterials'),
 (3, 'overview'), (3, 'deliveryAgents'), (3, 'orders'),
 (4, 'overview'), (4, 'orders'),
 (5, 'overview'), (5, 'orders'),
-(6, 'overview'), (6, 'addresses'), (6, 'customers'), (6, 'customersByDepot'), (6, 'customerItemPrices'), (6, 'orders'), (6, 'payments'), (6, 'borrowedMaterials')
+(6, 'overview'), (6, 'addresses'), (6, 'customers'), (6, 'trackingCustomerLocation'), (6, 'customersByDepot'), (6, 'customerItemPrices'), (6, 'orders'), (6, 'payments'), (6, 'borrowedMaterials')
 ON DUPLICATE KEY UPDATE menu_key = VALUES(menu_key);
 
 -- 2) Remove obsolete orders.producer_confirm_status if it still exists
@@ -1506,6 +1512,39 @@ SET @sql_drop_customers_sub_address := IF(
 PREPARE stmt_drop_customers_sub_address FROM @sql_drop_customers_sub_address;
 EXECUTE stmt_drop_customers_sub_address;
 DEALLOCATE PREPARE stmt_drop_customers_sub_address;
+
+-- 7b) Customers: optional map coordinates (Google Maps)
+SET @has_customers_latitude := (
+  SELECT COUNT(*)
+  FROM information_schema.columns
+  WHERE table_schema = DATABASE()
+    AND table_name = 'customers'
+    AND column_name = 'latitude'
+);
+SET @sql_add_customers_latitude := IF(
+  @has_customers_latitude = 0,
+  'ALTER TABLE customers ADD COLUMN latitude DECIMAL(10,7) NULL DEFAULT NULL AFTER depot_id',
+  'SELECT 1'
+);
+PREPARE stmt_add_customers_latitude FROM @sql_add_customers_latitude;
+EXECUTE stmt_add_customers_latitude;
+DEALLOCATE PREPARE stmt_add_customers_latitude;
+
+SET @has_customers_longitude := (
+  SELECT COUNT(*)
+  FROM information_schema.columns
+  WHERE table_schema = DATABASE()
+    AND table_name = 'customers'
+    AND column_name = 'longitude'
+);
+SET @sql_add_customers_longitude := IF(
+  @has_customers_longitude = 0,
+  'ALTER TABLE customers ADD COLUMN longitude DECIMAL(10,7) NULL DEFAULT NULL AFTER latitude',
+  'SELECT 1'
+);
+PREPARE stmt_add_customers_longitude FROM @sql_add_customers_longitude;
+EXECUTE stmt_add_customers_longitude;
+DEALLOCATE PREPARE stmt_add_customers_longitude;
 
 -- 8) Drop default item prices (pricing now managed by customer_item_prices)
 SET @has_items_price_usd := (

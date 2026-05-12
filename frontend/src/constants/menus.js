@@ -9,6 +9,12 @@ export const MENU_ITEMS = [
   { key: "customerItemPrices", path: "/customer-item-prices", labelKey: "nav.customerItemPrices", subKey: "nav.customerItemPricesSub" },
   { key: "addresses", path: "/addresses", labelKey: "nav.addresses", subKey: "nav.addressesSub" },
   { key: "customers", path: "/customers", labelKey: "nav.customers", subKey: "nav.customersSub" },
+  {
+    key: "trackingCustomerLocation",
+    path: "/tracking-customer-location",
+    labelKey: "nav.trackingCustomerLocation",
+    subKey: "nav.trackingCustomerLocationSub",
+  },
   { key: "borrowedMaterials", path: "/borrowed-materials", labelKey: "nav.borrowedMaterials", subKey: "nav.borrowedMaterialsSub" },
   { key: "depots", path: "/depots", labelKey: "nav.depots", subKey: "nav.depotsSub" },
   {

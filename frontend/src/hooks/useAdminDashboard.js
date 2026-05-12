@@ -131,6 +131,8 @@ export function useAdminDashboard() {
     name: "",
     phone: "",
     address: "",
+    latitude: "",
+    longitude: "",
     userId: "",
     depotId: "",
   });
@@ -425,7 +427,7 @@ export function useAdminDashboard() {
     event.preventDefault();
     try {
       await createCustomer(token, newCustomer);
-      setNewCustomer({ name: "", phone: "", address: "", userId: "", depotId: "" });
+      setNewCustomer({ name: "", phone: "", address: "", latitude: "", longitude: "", userId: "", depotId: "" });
       await refresh();
       await showSuccessPopup(i18n.t("success.customerAdded"));
     } catch (error) {

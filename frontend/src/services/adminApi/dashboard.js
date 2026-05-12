@@ -16,6 +16,7 @@ const ROUTE_DATA_MAP = {
   "/customer-item-prices": ["customers", "items", "customerItemPrices"],
   "/addresses": ["addresses"],
   "/customers": ["customers", "customerUsers", "addresses", "depots"],
+  "/tracking-customer-location": ["customers"],
   "/depots": ["depots"],
   "/customers-by-depot": ["depots", "customers"],
   "/producers": ["producers"],

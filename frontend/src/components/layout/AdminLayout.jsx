@@ -16,6 +16,7 @@ const PAGE_PATH_MAP = {
   "/customer-item-prices": "customerItemPrices",
   "/addresses":       "addresses",
   "/customers":       "customers",
+  "/tracking-customer-location": "trackingCustomerLocation",
   "/borrowed-materials": "borrowedMaterials",
   "/depots":          "depots",
   "/customers-by-depot": "customersByDepot",
@@ -69,6 +70,16 @@ const NAV_ICONS = {
       <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
       <circle cx="9" cy="7" r="4" />
       <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
+    </svg>
+  ),
+  trackingCustomerLocation: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="8" />
+      <circle cx="12" cy="12" r="2.5" />
+      <line x1="12" y1="2" x2="12" y2="5" />
+      <line x1="12" y1="19" x2="12" y2="22" />
+      <line x1="2" y1="12" x2="5" y2="12" />
+      <line x1="19" y1="12" x2="22" y2="12" />
     </svg>
   ),
   borrowedMaterials: (
@@ -184,6 +195,7 @@ const NAV_GROUPS = [
       "customerItemPrices",
       "addresses",
       "customers",
+      "trackingCustomerLocation",
       "borrowedMaterials",
       "depots",
       "customersByDepot",

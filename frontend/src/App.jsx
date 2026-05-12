@@ -19,6 +19,7 @@ import { AddressesPage } from "./pages/AddressesPage";
 import { ProducersPage } from "./pages/ProducersPage";
 import { CustomersPage } from "./pages/CustomersPage";
 import { CustomersByDepotPage } from "./pages/CustomersByDepotPage";
+import { TrackingCustomerLocationPage } from "./pages/TrackingCustomerLocationPage";
 import { DepotsPage } from "./pages/DepotsPage";
 import { BorrowedMaterialsPage } from "./pages/BorrowedMaterialsPage";
 import { UsersPage } from "./pages/UsersPage";
@@ -348,6 +349,16 @@ function App() {
               onUpdateCustomer={submitCustomerUpdate}
               onDeleteCustomer={submitCustomerDelete}
             />
+          ) : (
+            renderDeniedRoute()
+          ),
+        )}
+      />
+      <Route
+        path="/tracking-customer-location"
+        element={withLayout(
+          canAccessPath(user, "/tracking-customer-location") ? (
+            <TrackingCustomerLocationPage customers={customers} />
           ) : (
             renderDeniedRoute()
           ),
