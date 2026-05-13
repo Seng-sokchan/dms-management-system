@@ -20,7 +20,10 @@ function formatMoney(amount, currency, locale) {
 export function PaymentsPage({ paymentTotals }) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language === "km" ? "km-KH" : "en-US";
-  const byCustomer = useMemo(() => paymentTotals?.byCustomer ?? [], [paymentTotals]);
+  const byCustomer = useMemo(
+    () => (paymentTotals?.byCustomer ?? []).filter((row) => row.depotId == null),
+    [paymentTotals],
+  );
   const byDepot = useMemo(() => paymentTotals?.byDepot ?? [], [paymentTotals]);
   const [customerSearchText, setCustomerSearchText] = useState("");
   const [customerAppliedSearch, setCustomerAppliedSearch] = useState("");

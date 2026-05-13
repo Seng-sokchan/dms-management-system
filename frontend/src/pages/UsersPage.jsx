@@ -8,12 +8,49 @@ import { Button } from "../components/ui/Button";
 import { DataTable } from "../components/ui/DataTable";
 import { useConfirm } from "../components/ui/ConfirmProvider";
 
-const EMPTY_EDIT = { id: "", name: "", username: "", password: "", role: "Owner", isActive: true };
+function linkedCustomerLabel(customers, customerId) {
+  if (customerId == null || String(customerId).trim() === "") return "—";
+  const c = customers.find((row) => String(row.id) === String(customerId));
+  if (!c) return `#${customerId}`;
+  const name = (c.name && String(c.name).trim()) || "";
+  return name ? `${name} (#${c.id})` : `Customer #${c.id}`;
+}
 
-const EMPTY_NEW = { name: "", username: "", password: "", role: "Owner" };
+function linkedDeliveryAgentLabel(deliveryAgents, deliveryAgentId) {
+  if (deliveryAgentId == null || String(deliveryAgentId).trim() === "") return "—";
+  const a = deliveryAgents.find((row) => String(row.id) === String(deliveryAgentId));
+  if (!a) return `#${deliveryAgentId}`;
+  const name = (a.name && String(a.name).trim()) || "";
+  return name ? `${name} (#${a.id})` : `Agent #${a.id}`;
+}
+
+const EMPTY_EDIT = {
+  id: "",
+  name: "",
+  username: "",
+  password: "",
+  role: "Owner",
+  isActive: true,
+  customerId: "",
+  deliveryAgentId: "",
+  initialRole: "Owner",
+  initialCustomerId: "",
+  initialDeliveryAgentId: "",
+};
+
+const EMPTY_NEW = {
+  name: "",
+  username: "",
+  password: "",
+  role: "Owner",
+  customerId: "",
+  deliveryAgentId: "",
+};
 
 export function UsersPage({
   users = [],
+  customers = [],
+  deliveryAgents = [],
   currentUser,
   newUser,
   setNewUser,
@@ -37,11 +74,21 @@ export function UsersPage({
     const keyword = appliedSearch.trim().toLowerCase();
     if (!keyword) return users;
     return users.filter((entry) =>
-      [entry.id, entry.name, entry.username, entry.role, entry.isActive ? t("users.active") : t("users.inactive")]
+      [
+        entry.id,
+        entry.name,
+        entry.username,
+        entry.role,
+        entry.customerId,
+        linkedCustomerLabel(customers, entry.customerId),
+        entry.deliveryAgentId,
+        linkedDeliveryAgentLabel(deliveryAgents, entry.deliveryAgentId),
+        entry.isActive ? t("users.active") : t("users.inactive"),
+      ]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(keyword)),
     );
-  }, [users, appliedSearch, t]);
+  }, [users, customers, deliveryAgents, appliedSearch, t]);
   const {
     page,
     pageSize,
@@ -115,13 +162,19 @@ export function UsersPage({
   }
 
   function startEdit(user) {
+    const role = user.role || "Owner";
     setEditingUser({
       id: user.id,
       name: user.name || "",
       username: user.username || "",
       password: "",
-      role: user.role || "Owner",
+      role,
       isActive: user.isActive !== false,
+      customerId: user.customerId || "",
+      deliveryAgentId: user.deliveryAgentId || "",
+      initialRole: role,
+      initialCustomerId: user.customerId || "",
+      initialDeliveryAgentId: user.deliveryAgentId || "",
     });
   }
 
@@ -139,6 +192,23 @@ export function UsersPage({
     };
     if (editingUser.password) {
       payload.password = editingUser.password;
+    }
+    if (editingUser.role === "Customer") {
+      payload.customerId = editingUser.customerId.trim() === "" ? null : editingUser.customerId.trim();
+    } else if (
+      editingUser.initialRole === "Customer" &&
+      String(editingUser.initialCustomerId || "").trim() !== ""
+    ) {
+      payload.customerId = null;
+    }
+    if (editingUser.role === "Delivery") {
+      payload.deliveryAgentId =
+        editingUser.deliveryAgentId.trim() === "" ? null : editingUser.deliveryAgentId.trim();
+    } else if (
+      editingUser.initialRole === "Delivery" &&
+      String(editingUser.initialDeliveryAgentId || "").trim() !== ""
+    ) {
+      payload.deliveryAgentId = null;
     }
     await onUpdateUser(editingUser.id, payload);
     setEditingUser(EMPTY_EDIT);
@@ -205,6 +275,8 @@ export function UsersPage({
                   <th>{t("users.name")}</th>
                   <th>{t("users.username")}</th>
                   <th>{t("users.role")}</th>
+                  <th>{t("users.linkedCustomer")}</th>
+                  <th>{t("users.linkedDeliveryAgent")}</th>
                   <th>{t("users.active")}/{t("users.inactive")}</th>
                   <th>Actions</th>
                 </tr>
@@ -216,6 +288,8 @@ export function UsersPage({
                     <td>{user.name}</td>
                     <td>@{user.username}</td>
                     <td>{t(`roles.${user.role}`, { defaultValue: user.role })}</td>
+                    <td>{linkedCustomerLabel(customers, user.customerId)}</td>
+                    <td>{linkedDeliveryAgentLabel(deliveryAgents, user.deliveryAgentId)}</td>
                     <td>{user.isActive ? t("users.active") : t("users.inactive")}</td>
                     <td>
                       <div className="row-actions">
@@ -264,11 +338,62 @@ export function UsersPage({
             <input id="user-password" type="password" value={newUser.password} onChange={(event) => setNewUser({ ...newUser, password: event.target.value })} required minLength={6} />
 
             <label className="form-label" htmlFor="user-role">{t("users.role")}</label>
-            <select id="user-role" value={newUser.role} onChange={(event) => setNewUser({ ...newUser, role: event.target.value })} required>
+            <select
+              id="user-role"
+              value={newUser.role}
+              onChange={(event) => {
+                const role = event.target.value;
+                setNewUser((prev) => ({
+                  ...prev,
+                  role,
+                  ...(role !== "Customer" ? { customerId: "" } : {}),
+                  ...(role !== "Delivery" ? { deliveryAgentId: "" } : {}),
+                }));
+              }}
+              required
+            >
               {ROLES.map((role) => (
                 <option key={role} value={role}>{t(`roles.${role}`, { defaultValue: role })}</option>
               ))}
             </select>
+
+            <label className="form-label" htmlFor="user-create-customer">{t("users.linkedCustomer")}</label>
+            <select
+              id="user-create-customer"
+              value={newUser.customerId || ""}
+              disabled={newUser.role !== "Customer"}
+              onChange={(event) => setNewUser({ ...newUser, customerId: event.target.value })}
+            >
+              <option value="">{t("users.selectCustomer")}</option>
+              {customers.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {(c.name && String(c.name).trim()) || `Customer #${c.id}`} (#{c.id})
+                </option>
+              ))}
+            </select>
+            <p className="section-lead" style={{ marginTop: 8, fontSize: "0.9rem" }}>
+              {newUser.role === "Customer" ? t("users.customerLinkHint") : t("users.linkedCustomerRoleHint")}
+            </p>
+
+            <label className="form-label" htmlFor="user-create-delivery-agent">
+              {t("users.linkedDeliveryAgent")}
+            </label>
+            <select
+              id="user-create-delivery-agent"
+              value={newUser.deliveryAgentId || ""}
+              disabled={newUser.role !== "Delivery"}
+              onChange={(event) => setNewUser({ ...newUser, deliveryAgentId: event.target.value })}
+            >
+              <option value="">{t("users.selectDeliveryAgent")}</option>
+              {deliveryAgents.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {(a.name && String(a.name).trim()) || `Agent #${a.id}`} (#{a.id})
+                </option>
+              ))}
+            </select>
+            <p className="section-lead" style={{ marginTop: 8, fontSize: "0.9rem" }}>
+              {newUser.role === "Delivery" ? t("users.deliveryLinkHint") : t("users.linkedDeliveryAgentRoleHint")}
+            </p>
 
             <div className="row-actions">
               <Button variant="primary" type="submit">{t("users.save")}</Button>
@@ -388,11 +513,62 @@ export function UsersPage({
             <input id="user-edit-password" type="password" value={editingUser.password} onChange={(event) => setEditingUser({ ...editingUser, password: event.target.value })} minLength={6} />
 
             <label className="form-label" htmlFor="user-edit-role">{t("users.role")}</label>
-            <select id="user-edit-role" value={editingUser.role} onChange={(event) => setEditingUser({ ...editingUser, role: event.target.value })} required>
+            <select
+              id="user-edit-role"
+              value={editingUser.role}
+              onChange={(event) => {
+                const role = event.target.value;
+                setEditingUser((prev) => ({
+                  ...prev,
+                  role,
+                  ...(role !== "Customer" ? { customerId: "" } : {}),
+                  ...(role !== "Delivery" ? { deliveryAgentId: "" } : {}),
+                }));
+              }}
+              required
+            >
               {ROLES.map((role) => (
                 <option key={role} value={role}>{t(`roles.${role}`, { defaultValue: role })}</option>
               ))}
             </select>
+
+            <label className="form-label" htmlFor="user-edit-customer">{t("users.linkedCustomer")}</label>
+            <select
+              id="user-edit-customer"
+              value={editingUser.customerId || ""}
+              disabled={editingUser.role !== "Customer"}
+              onChange={(event) => setEditingUser({ ...editingUser, customerId: event.target.value })}
+            >
+              <option value="">{t("users.selectCustomer")}</option>
+              {customers.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {(c.name && String(c.name).trim()) || `Customer #${c.id}`} (#{c.id})
+                </option>
+              ))}
+            </select>
+            <p className="section-lead" style={{ marginTop: 8, fontSize: "0.9rem" }}>
+              {editingUser.role === "Customer" ? t("users.customerLinkHint") : t("users.linkedCustomerRoleHint")}
+            </p>
+
+            <label className="form-label" htmlFor="user-edit-delivery-agent">
+              {t("users.linkedDeliveryAgent")}
+            </label>
+            <select
+              id="user-edit-delivery-agent"
+              value={editingUser.deliveryAgentId || ""}
+              disabled={editingUser.role !== "Delivery"}
+              onChange={(event) => setEditingUser({ ...editingUser, deliveryAgentId: event.target.value })}
+            >
+              <option value="">{t("users.selectDeliveryAgent")}</option>
+              {deliveryAgents.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {(a.name && String(a.name).trim()) || `Agent #${a.id}`} (#{a.id})
+                </option>
+              ))}
+            </select>
+            <p className="section-lead" style={{ marginTop: 8, fontSize: "0.9rem" }}>
+              {editingUser.role === "Delivery" ? t("users.deliveryLinkHint") : t("users.linkedDeliveryAgentRoleHint")}
+            </p>
 
             <div className="row-actions">
               <Button variant="primary" type="submit">{t("users.update")}</Button>

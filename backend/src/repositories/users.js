@@ -4,6 +4,10 @@ const { mapUser } = require("./mappers");
 const { unwrapProcedureRows, getProcedureMeta } = require("./unwrap");
 const { getRoleIdByName } = require("./roleMenus");
 
+function resolveExecutor(executor) {
+  return executor || getPool();
+}
+
 async function listUsers() {
   const [rows] = await getPool().query("CALL sp_list_users()");
   return unwrapProcedureRows(rows).map(mapUser);
@@ -13,12 +17,17 @@ async function getUserByUsername(username) {
   const [rows] = await getPool().query("CALL sp_get_user_by_username(?)", [username]);
   const resultRows = unwrapProcedureRows(rows);
   if (!resultRows[0]) return null;
+  const row = resultRows[0];
   return {
-    id: String(resultRows[0].id),
-    name: resultRows[0].name,
-    username: resultRows[0].username,
-    password: resultRows[0].password_hash,
-    role: resultRows[0].role,
+    id: String(row.id),
+    name: row.name,
+    username: row.username,
+    password: row.password_hash,
+    role: row.role,
+    deliveryAgentId:
+      row.delivery_agent_id != null && String(row.delivery_agent_id).trim() !== ""
+        ? String(row.delivery_agent_id)
+        : "",
   };
 }
 
@@ -83,6 +92,20 @@ async function deactivateUser(id) {
   return Number(meta.affectedRows || 0) > 0;
 }
 
+/**
+ * Maintains users.delivery_agent_id via sp_set_delivery_agent_user_link.
+ * @param {object|null} executor — connection or pool
+ * @param {number|string|null} deliveryAgentId — agent to unlink all users from when userId is null
+ * @param {number|string|null} userId — user to unlink when deliveryAgentId is null; or user to link when both set
+ */
+async function setDeliveryAgentUserLink(executor, deliveryAgentId, userId) {
+  const db = resolveExecutor(executor);
+  const aid =
+    deliveryAgentId != null && String(deliveryAgentId).trim() !== "" ? Number(deliveryAgentId) : null;
+  const uid = userId != null && String(userId).trim() !== "" ? Number(userId) : null;
+  await db.query("CALL sp_set_delivery_agent_user_link(?, ?)", [aid, uid]);
+}
+
 module.exports = {
   listUsers,
   getUserByUsername,
@@ -90,4 +113,5 @@ module.exports = {
   createUser,
   updateUser,
   deactivateUser,
+  setDeliveryAgentUserLink,
 };

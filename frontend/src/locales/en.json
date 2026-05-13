@@ -146,6 +146,7 @@
   "customers": {
     "title": "Customers",
     "lead": "Manage customer information used when creating new orders.",
+    "linkLoginLead": "To assign a Customer login to a customer record, open Users, edit the account, and set Linked customer. The link is stored on the user (not edited on this page).",
     "formTitle": "Add customer",
     "editTitle": "Edit customer",
     "name": "Customer name",
@@ -456,7 +457,15 @@
     "roleMenusSaved": "Menu access updated",
     "roleMenusSectionLabel": "Visible areas",
     "roleMenusRequiredBadge": "Required",
-    "renewTokenSuccess": "Bakong token has been renewed"
+    "renewTokenSuccess": "Bakong token has been renewed",
+    "linkedCustomer": "Linked customer",
+    "selectCustomer": "— Unassigned —",
+    "customerLinkHint": "Only for the Customer role: ties this login to a customer record (e.g. new orders). Change role first if this account should not place orders as a customer.",
+    "linkedCustomerRoleHint": "Set role to «Customer» above, then choose the customer record to link to this login.",
+    "linkedDeliveryAgent": "Linked delivery agent",
+    "selectDeliveryAgent": "— Unassigned —",
+    "deliveryLinkHint": "Only for the Delivery role: ties this login to a delivery agent so the mobile app lists that agent’s assigned orders.",
+    "linkedDeliveryAgentRoleHint": "Set role to «Delivery» above, then choose the delivery agent to link."
   },
   "orders": {
     "title": "Orders",
@@ -496,6 +505,8 @@
   "assignOrders": {
     "title": "Assign orders",
     "lead": "Set the delivery agent and order group for each line, then submit Owner Preparing orders to factory.",
+    "assignPanelTitle": "Assign delivery & order group",
+    "assignPanelHint": "Pick a delivery agent and order group for each Owner_Preparing order.",
     "deliveryPanelTitle": "Assign delivery",
     "deliveryPanelHint": "Pick a delivery agent for each order.",
     "groupPanelTitle": "Assign order group",
@@ -722,7 +733,7 @@
   },
   "accessDenied": {
     "title": "Access Restricted",
-    "message": "Your account role cannot access the Admin Panel. Please sign in with an Admin, Owner, or Depot account.",
+    "message": "Only Admin or Owner accounts can access the Admin Panel. Depot users, please use the mobile app.",
     "ok": "OK"
   },
   "success": {

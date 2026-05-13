@@ -211,11 +211,20 @@ function attachDeliveryLocationSocket(httpServer) {
         if (typeof ack === "function") ack({ ok: false, error: "Forbidden" });
         return;
       }
+      const agentId =
+        user.deliveryAgentId != null && String(user.deliveryAgentId).trim() !== ""
+          ? String(user.deliveryAgentId)
+          : "";
+      if (!agentId) {
+        if (typeof ack === "function") {
+          ack({ ok: false, error: "Delivery account is not linked to a delivery agent" });
+        }
+        return;
+      }
       const allOrders = await orderRepository.listOrders();
       const hasActiveDeliveryOrder = allOrders.some(
         (order) =>
-          String(order.deliveryAgentId || "") === String(user.sub || "") &&
-          order.status === "Ready_For_Delivery",
+          String(order.deliveryAgentId || "") === agentId && order.status === "Ready_For_Delivery",
       );
       if (!hasActiveDeliveryOrder) {
         if (typeof ack === "function") {
@@ -240,7 +249,7 @@ function attachDeliveryLocationSocket(httpServer) {
       };
       if (redis && redis.status === "ready") {
         try {
-          const key = `dms:delivery:location:${user.sub}`;
+          const key = `dms:delivery:location:${agentId}`;
           await redis.set(key, JSON.stringify(body), "EX", DELIVERY_LOCATION_TTL_SEC);
         } catch (err) {
           if (!isOptionalRedisPersistenceNoise(err)) {
@@ -252,7 +261,7 @@ function attachDeliveryLocationSocket(httpServer) {
         }
       }
       io.to(DELIVERY_WATCHERS_ROOM).emit("delivery:location", body);
-      io.to(getDeliveryAgentRoom(user.sub)).emit("delivery:location", body);
+      io.to(getDeliveryAgentRoom(agentId)).emit("delivery:location", body);
       if (typeof ack === "function") ack({ ok: true });
     });
 

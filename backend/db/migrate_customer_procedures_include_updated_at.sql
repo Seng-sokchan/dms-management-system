@@ -1,42 +1,42 @@
 -- Idempotent: safe to run multiple times.
--- Customer list/get procedures now return c.updated_at for map "last seen" (saved coordinates).
+-- Customer list/get procedures: updated_at + join users via users.customer_id (not customers.user_id).
 
 DROP PROCEDURE IF EXISTS sp_get_customer_by_id;
 CREATE PROCEDURE sp_get_customer_by_id(IN p_id INT UNSIGNED)
-SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, c.user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.latitude, c.longitude, c.updated_at
+SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, u.id AS user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.latitude, c.longitude, c.updated_at
 FROM customers c
 INNER JOIN addresses a ON a.id = c.address
-LEFT JOIN users u ON u.id = c.user_id
+LEFT JOIN users u ON u.customer_id = c.id
 LEFT JOIN depots d ON d.id = c.depot_id AND d.is_active = 1
 WHERE c.id = p_id AND c.is_active = 1
 LIMIT 1;
 
 DROP PROCEDURE IF EXISTS sp_list_customers;
 CREATE PROCEDURE sp_list_customers()
-SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, c.user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.latitude, c.longitude, c.updated_at
+SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, u.id AS user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.latitude, c.longitude, c.updated_at
 FROM customers c
 INNER JOIN addresses a ON a.id = c.address
-LEFT JOIN users u ON u.id = c.user_id
+LEFT JOIN users u ON u.customer_id = c.id
 LEFT JOIN depots d ON d.id = c.depot_id AND d.is_active = 1
 WHERE c.is_active = 1
 ORDER BY c.id DESC;
 
 DROP PROCEDURE IF EXISTS sp_list_customers_by_depot_id;
 CREATE PROCEDURE sp_list_customers_by_depot_id(IN p_depot_id INT UNSIGNED)
-SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, c.user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.latitude, c.longitude, c.updated_at
+SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, u.id AS user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.latitude, c.longitude, c.updated_at
 FROM customers c
 INNER JOIN addresses a ON a.id = c.address
-LEFT JOIN users u ON u.id = c.user_id
+LEFT JOIN users u ON u.customer_id = c.id
 INNER JOIN depots d ON d.id = c.depot_id
 WHERE c.is_active = 1 AND d.is_active = 1 AND c.depot_id = p_depot_id
 ORDER BY c.id DESC;
 
 DROP PROCEDURE IF EXISTS sp_list_customers_by_owner_user_id;
 CREATE PROCEDURE sp_list_customers_by_owner_user_id(IN p_owner_user_id INT UNSIGNED)
-SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, c.user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.latitude, c.longitude, c.updated_at
+SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, u.id AS user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.latitude, c.longitude, c.updated_at
 FROM customers c
 INNER JOIN addresses a ON a.id = c.address
-LEFT JOIN users u ON u.id = c.user_id
+LEFT JOIN users u ON u.customer_id = c.id
 LEFT JOIN depots d ON d.id = c.depot_id AND d.is_active = 1
 WHERE c.is_active = 1
   AND (

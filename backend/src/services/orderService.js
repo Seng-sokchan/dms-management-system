@@ -12,6 +12,7 @@ const { NEXT_STATUS, ORDER_STATUS } = require("../constants");
 const orderRepository = require("../repositories/orders");
 const orderGroupRepository = require("../repositories/orderGroups");
 const customerRepository = require("../repositories/customers");
+const depotRepository = require("../repositories/depots");
 const itemRepository = require("../repositories/items");
 const customerItemPriceRepository = require("../repositories/customerItemPrices");
 const deliveryAgentRepository = require("../repositories/deliveryAgents");
@@ -211,6 +212,105 @@ async function createBatch({ customerId, lines }) {
 }
 
 /**
+ * Create orders across multiple customers in a single transaction.
+ *
+ * Intended for the Depot mobile flow: a Depot user prepares a batch that
+ * contains lines for any number of customers belonging to their depot. The
+ * service forces depot scoping for Depot callers (every customerId in the
+ * payload must belong to the caller's depot). Admin/Owner callers may target
+ * any customer. Each customer must still satisfy `assertNoNonTerminalOrdersForCustomer`.
+ */
+async function createDepotBatch({ user, lines }) {
+  if (!Array.isArray(lines) || lines.length === 0) {
+    throw new BadRequestError("At least one line is required");
+  }
+
+  const role = user?.role;
+  if (role !== "Depot" && role !== "Admin" && role !== "Owner") {
+    throw new ForbiddenError("Forbidden for this role");
+  }
+
+  let depot = null;
+  if (role === "Depot") {
+    depot = await depotRepository.getDepotByDepotUserId(user.sub);
+    if (!depot) {
+      throw new ForbiddenError("Your account is not linked to a depot");
+    }
+  }
+
+  const producer = await producerRepository.getProducerById(DEFAULT_NEW_ORDER_PRODUCER_ID);
+  if (!producer) throw new BadRequestError("Default producer not found");
+
+  // Resolve every customer once.
+  const uniqueCustomerIds = [...new Set(lines.map((l) => String(l.customerId)))];
+  const customersById = new Map();
+  for (const customerId of uniqueCustomerIds) {
+    const customer = await customerRepository.getCustomerById(customerId);
+    if (!customer) {
+      throw new BadRequestError(`Customer ${customerId} not found`);
+    }
+    if (role === "Depot" && String(customer.depotId || "") !== String(depot.id)) {
+      throw new ForbiddenError(
+        `Customer ${customerId} does not belong to your depot`,
+      );
+    }
+    customersById.set(String(customerId), customer);
+  }
+
+  // Resolve every line (item exists, price known) before opening a transaction.
+  const rowsToInsert = [];
+  for (const line of lines) {
+    const customer = customersById.get(String(line.customerId));
+    const item = await itemRepository.getItemById(line.itemId);
+    if (!item) throw new BadRequestError(`Item ${line.itemId} not found`);
+
+    const currency = String(line.currency || "KHR").toUpperCase() === "USD" ? "USD" : "KHR";
+    const mappedPrice = await customerItemPriceRepository.getCustomerItemPrice(
+      line.customerId,
+      line.itemId,
+      currency,
+    );
+    const unitPrice = line.unitPrice ?? mappedPrice?.unitPrice;
+    if (unitPrice == null) {
+      throw new BadRequestError(
+        `Customer item price not found for customer ${line.customerId} and item ${line.itemId}`,
+      );
+    }
+
+    rowsToInsert.push({
+      customerId: String(line.customerId),
+      addressId: customer.address,
+      itemId: line.itemId,
+      orderedQty: line.orderedQty,
+      unitPrice,
+      currency,
+      producerId: DEFAULT_NEW_ORDER_PRODUCER_ID,
+    });
+  }
+
+  const pool = getPool();
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    for (const customerId of uniqueCustomerIds) {
+      await assertNoNonTerminalOrdersForCustomer(customerId, conn);
+    }
+
+    const orders = [];
+    for (const row of rowsToInsert) {
+      orders.push(await orderRepository.createOrder(row, conn));
+    }
+    await conn.commit();
+    return orders;
+  } catch (err) {
+    await conn.rollback().catch(() => {});
+    throw err;
+  } finally {
+    conn.release();
+  }
+}
+
+/**
  * Assign an order to a producer/delivery agent/group. Validates targets exist.
  */
 async function assign(orderId, payload) {
@@ -238,6 +338,16 @@ async function updateStatus(orderId, nextStatus, { user, allowReverse = false } 
 
   if (!STATUS_UPDATE_ROLES.has(user?.role)) {
     throw new ForbiddenError("Forbidden for this role");
+  }
+
+  if (user?.role === "Delivery") {
+    const agentId = user.deliveryAgentId != null && String(user.deliveryAgentId).trim() !== "" ? String(user.deliveryAgentId) : "";
+    if (!agentId) {
+      throw new ForbiddenError("Delivery account is not linked to a delivery agent");
+    }
+    if (String(order.deliveryAgentId || "") !== agentId) {
+      throw new ForbiddenError("Forbidden for this order");
+    }
   }
 
   const validStatuses = await getStatusNames();
@@ -299,9 +409,28 @@ async function remove(orderId) {
 // ---------------------------------------------------------------------------
 
 async function listForMobile({ user } = {}) {
+  const role = user?.role;
   const rows = await list();
-  if (user?.role !== "Delivery") return rows;
-  return rows.filter((row) => String(row.deliveryAgentId || "") === String(user.sub || ""));
+
+  if (role === "Delivery") {
+    const agentId =
+      user.deliveryAgentId != null && String(user.deliveryAgentId).trim() !== ""
+        ? String(user.deliveryAgentId)
+        : "";
+    if (!agentId) return [];
+    return rows.filter((row) => String(row.deliveryAgentId || "") === agentId);
+  }
+
+  if (role === "Depot") {
+    const depot = await depotRepository.getDepotByDepotUserId(user.sub);
+    if (!depot) return [];
+    // Restrict to customers in this depot.
+    const customers = await customerRepository.listCustomersByDepotId(depot.id);
+    const allowedCustomerIds = new Set(customers.map((c) => String(c.id)));
+    return rows.filter((row) => allowedCustomerIds.has(String(row.customerId)));
+  }
+
+  return rows;
 }
 
 async function updateStatusForMobile(orderId, nextStatus, { user }) {
@@ -324,6 +453,7 @@ module.exports = {
   // mutations
   create,
   createBatch,
+  createDepotBatch,
   assign,
   updateStatus,
   confirmDelivery,

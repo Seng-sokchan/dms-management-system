@@ -1,3 +1,4 @@
+const { getPool } = require("../db/pool");
 const {
   listCustomers: listCustomersDb,
   listCustomersByDepotId,
@@ -9,6 +10,8 @@ const {
   getUserById,
   getDepotById,
   getDepotByDepotUserId,
+  getCustomerById,
+  setCustomerUserLink,
 } = require("../repositories");
 const { BadRequestError, NotFoundError } = require("../errors");
 
@@ -32,19 +35,19 @@ async function listCustomerUsers(user) {
   let customerUsers = users.filter((row) => row.role === "Customer" && row.isActive);
   if (user.role === "Depot") {
     const scopedCustomers = await getAllowedCustomers(user);
-    const assignedUserIds = new Set(
-      scopedCustomers.map((customer) => customer.userId).filter(Boolean),
+    const scopedCustomerIds = new Set(scopedCustomers.map((c) => String(c.id)));
+    customerUsers = customerUsers.filter(
+      (row) => !row.customerId || !scopedCustomerIds.has(String(row.customerId)),
     );
-    customerUsers = customerUsers.filter((row) => !assignedUserIds.has(row.id));
   }
   return customerUsers;
 }
 
 async function validateCustomerUser(userId) {
   if (!userId) return;
-  const user = await getUserById(userId);
-  if (!user || !user.isActive) throw new BadRequestError("Customer user not found");
-  if (user.role !== "Customer") throw new BadRequestError("Selected user must have Customer role");
+  const u = await getUserById(userId);
+  if (!u || !u.isActive) throw new BadRequestError("Customer user not found");
+  if (u.role !== "Customer") throw new BadRequestError("Selected user must have Customer role");
 }
 
 async function assertDepotAccess(user, depotId) {
@@ -73,7 +76,24 @@ async function createCustomer(user, payload) {
     nextPayload.depotId = depot.id;
   }
   await assertDepotAccess(user, nextPayload.depotId);
-  return createCustomerDb(nextPayload);
+
+  const { userId, ...customerPayload } = nextPayload;
+  const pool = getPool();
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    const created = await createCustomerDb(customerPayload, conn);
+    if (userId) {
+      await setCustomerUserLink(conn, Number(created.id), Number(userId));
+    }
+    await conn.commit();
+    return getCustomerById(created.id);
+  } catch (err) {
+    await conn.rollback().catch(() => {});
+    throw err;
+  } finally {
+    conn.release();
+  }
 }
 
 async function updateCustomer(user, customerId, payload) {
@@ -88,9 +108,32 @@ async function updateCustomer(user, customerId, payload) {
     nextPayload.depotId = depot.id;
   }
   await assertDepotAccess(user, nextPayload.depotId);
-  const customer = await updateCustomerDb(customerId, nextPayload);
-  if (!customer) throw new NotFoundError("Customer not found");
-  return customer;
+
+  const { userId, ...customerPayload } = nextPayload;
+  const pool = getPool();
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    const customer = await updateCustomerDb(customerId, customerPayload, conn);
+    if (!customer) {
+      await conn.rollback();
+      throw new NotFoundError("Customer not found");
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, "userId")) {
+      if (userId) {
+        await setCustomerUserLink(conn, Number(customerId), Number(userId));
+      } else {
+        await setCustomerUserLink(conn, Number(customerId), null);
+      }
+    }
+    await conn.commit();
+    return getCustomerById(customerId);
+  } catch (err) {
+    await conn.rollback().catch(() => {});
+    throw err;
+  } finally {
+    conn.release();
+  }
 }
 
 async function deleteCustomer(user, customerId) {

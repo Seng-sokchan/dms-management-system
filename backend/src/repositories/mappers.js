@@ -132,6 +132,8 @@ function mapUser(row) {
     username: row.username,
     role: row.role,
     isActive: Boolean(row.is_active),
+    customerId: row.customer_id != null ? String(row.customer_id) : "",
+    deliveryAgentId: row.delivery_agent_id != null ? String(row.delivery_agent_id) : "",
   };
 }
 

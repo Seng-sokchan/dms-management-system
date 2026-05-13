@@ -67,7 +67,9 @@ export default function LoginScreen() {
             style={styles.passwordField}
             error={errors.password}
           />
-          <Text style={styles.helper}>Use your Customer or Delivery account to continue</Text>
+          <Text style={styles.helper}>
+            Use your Customer, Delivery, or Depot account to continue
+          </Text>
           <PrimaryButton
             title="Sign In"
             onPress={handleLogin}

@@ -107,7 +107,6 @@ export function useAdminDashboard() {
   const [roleMenusByRole, setRoleMenusByRole] = useState(null);
   const [customers, setCustomers] = useState([]);
   const [depots, setDepots] = useState([]);
-  const [customerUsers, setCustomerUsers] = useState([]);
   const [addresses, setAddresses] = useState([]);
   const [producers, setProducers] = useState([]);
   const [deliveryAgents, setDeliveryAgents] = useState([]);
@@ -133,7 +132,6 @@ export function useAdminDashboard() {
     address: "",
     latitude: "",
     longitude: "",
-    userId: "",
     depotId: "",
   });
   const [newDepot, setNewDepot] = useState({
@@ -152,7 +150,14 @@ export function useAdminDashboard() {
     sku: "",
   });
   const [newDelivery, setNewDelivery] = useState({ name: "", phone: "", vehicleType: "" });
-  const [newUser, setNewUser] = useState({ name: "", username: "", password: "", role: "Owner" });
+  const [newUser, setNewUser] = useState({
+    name: "",
+    username: "",
+    password: "",
+    role: "Owner",
+    customerId: "",
+    deliveryAgentId: "",
+  });
   const [newBorrowMaterial, setNewBorrowMaterial] = useState({ name: "", unit: "", note: "" });
   const [newCustomerBorrow, setNewCustomerBorrow] = useState({ customerId: "", materialId: "", qty: 1, note: "" });
   const [newOrderLoan, setNewOrderLoan] = useState({
@@ -182,7 +187,6 @@ export function useAdminDashboard() {
       setOrders(data.orders);
       setCustomers(Array.isArray(data.customers) ? data.customers : []);
       setDepots(Array.isArray(data.depots) ? data.depots : []);
-      setCustomerUsers(Array.isArray(data.customerUsers) ? data.customerUsers : []);
       setAddresses(Array.isArray(data.addresses) ? data.addresses : []);
       setProducers(Array.isArray(data.producers) ? data.producers : []);
       setDeliveryAgents(Array.isArray(data.deliveryAgents) ? data.deliveryAgents : []);
@@ -219,7 +223,6 @@ export function useAdminDashboard() {
         setRoleMenusByRole(null);
         setCustomers([]);
         setDepots([]);
-        setCustomerUsers([]);
         setAddresses([]);
         setProducers([]);
         setDeliveryAgents([]);
@@ -249,7 +252,7 @@ export function useAdminDashboard() {
   async function login(event) {
     event.preventDefault();
     try {
-      const data = await loginRequest(auth);
+      const data = await loginRequest({ ...auth, client: "admin" });
       setToken(data.token);
       showSuccess(i18n.t("success.welcome", { name: data.user.name }));
     } catch (error) {
@@ -427,7 +430,7 @@ export function useAdminDashboard() {
     event.preventDefault();
     try {
       await createCustomer(token, newCustomer);
-      setNewCustomer({ name: "", phone: "", address: "", latitude: "", longitude: "", userId: "", depotId: "" });
+      setNewCustomer({ name: "", phone: "", address: "", latitude: "", longitude: "", depotId: "" });
       await refresh();
       await showSuccessPopup(i18n.t("success.customerAdded"));
     } catch (error) {
@@ -632,9 +635,33 @@ export function useAdminDashboard() {
 
   async function submitUser(event) {
     event.preventDefault();
+    const raw = newUser || {};
+    const customerIdToLink = String(raw.customerId || "").trim();
+    const createPayload = {
+      name: raw.name,
+      username: raw.username,
+      password: raw.password,
+      role: raw.role,
+    };
+    const deliveryAgentIdToLink = String(raw.deliveryAgentId || "").trim();
+    if (raw.role === "Delivery" && deliveryAgentIdToLink) {
+      createPayload.deliveryAgentId = deliveryAgentIdToLink;
+    }
     try {
-      await createUser(token, newUser);
-      setNewUser({ name: "", username: "", password: "", role: "Owner" });
+      const res = await createUser(token, createPayload);
+      const created = unwrapApiData(res.data);
+      const newId = created?.id;
+      if (newId && createPayload.role === "Customer" && customerIdToLink) {
+        await updateUser(token, newId, { customerId: customerIdToLink });
+      }
+      setNewUser({
+        name: "",
+        username: "",
+        password: "",
+        role: "Owner",
+        customerId: "",
+        deliveryAgentId: "",
+      });
       await refresh();
       await showSuccessPopup(i18n.t("success.userAdded"));
       return true;
@@ -871,7 +898,6 @@ export function useAdminDashboard() {
     roleMenusByRole,
     customers,
     depots,
-    customerUsers,
     addresses,
     producers,
     deliveryAgents,

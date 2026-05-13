@@ -15,6 +15,7 @@ const {
   listOrderPaymentTotals,
   createOrder,
   createOrderBatch,
+  createDepotBatch,
   createOrderGroup,
   updateOrderGroup,
   deleteOrderGroup,
@@ -27,11 +28,12 @@ const {
   mobileListOrders,
   mobileUpdateStatus,
 } = require("../controllers/orderController");
-const { requireAuth } = require("../middleware/auth");
+const { requireAuth, requireRoles } = require("../middleware/auth");
 const { validate } = require("../validators/validate");
 const {
   createOrderSchema,
   createOrderBatchSchema,
+  createDepotBatchSchema,
   assignOrderSchema,
   updateOrderStatusSchema,
   confirmDeliverySchema,
@@ -79,6 +81,14 @@ router.post(
   requireAuth,
   validate({ body: createOrderBatchSchema }),
   createOrderBatch,
+);
+
+router.post(
+  "/orders/depot-batch",
+  requireAuth,
+  requireRoles("Depot", "Admin", "Owner"),
+  validate({ body: createDepotBatchSchema }),
+  createDepotBatch,
 );
 
 router.post(

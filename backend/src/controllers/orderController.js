@@ -53,6 +53,14 @@ const createOrderBatch = asyncHandler(async (req, res) => {
   return created(res, orders);
 });
 
+const createDepotBatch = asyncHandler(async (req, res) => {
+  const orders = await orderService.createDepotBatch({
+    user: req.user,
+    lines: req.body.lines,
+  });
+  return created(res, orders);
+});
+
 const createOrderGroup = asyncHandler(async (req, res) => {
   const row = await orderService.createOrderGroup(req.body);
   return created(res, row);
@@ -119,6 +127,7 @@ module.exports = {
   listOrderPaymentTotals,
   createOrder,
   createOrderBatch,
+  createDepotBatch,
   createOrderGroup,
   updateOrderGroup,
   deleteOrderGroup,

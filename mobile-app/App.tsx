@@ -9,6 +9,7 @@ import { CartProvider } from "./src/context/CartContext";
 import LoginScreen from "./src/screens/LoginScreen";
 import AuthenticatedTabs from "./src/navigation/AuthenticatedTabs";
 import DeliveryNavigator from "./src/navigation/DeliveryNavigator";
+import DepotNavigator from "./src/navigation/DepotNavigator";
 import { colors, typography } from "./src/theme";
 
 const Stack = createNativeStackNavigator();
@@ -74,6 +75,12 @@ function AppNavigator() {
           <Stack.Screen
             name="DeliveryMain"
             component={DeliveryNavigator}
+            options={{ headerShown: false }}
+          />
+        ) : user?.role === "Depot" ? (
+          <Stack.Screen
+            name="DepotMain"
+            component={DepotNavigator}
             options={{ headerShown: false }}
           />
         ) : (

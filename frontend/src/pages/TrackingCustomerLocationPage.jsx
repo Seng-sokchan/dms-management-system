@@ -7,7 +7,7 @@ import { getSocketBaseUrl } from "../services/socketBaseUrl";
 const DEFAULT_CENTER = { lat: 11.5564, lng: 104.9282 };
 const MAP_CONTAINER_STYLE = { width: "100%", height: 520 };
 
-const WATCHER_ROLES = new Set(["Admin", "Owner", "Logistics", "Depot"]);
+const WATCHER_ROLES = new Set(["Admin", "Owner", "Logistics"]);
 
 const CUSTOMER_MARKER_ICON = "https://maps.google.com/mapfiles/ms/icons/red-dot.png";
 const DELIVERY_MARKER_ICON = "https://maps.google.com/mapfiles/ms/icons/blue-dot.png";

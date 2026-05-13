@@ -6,14 +6,13 @@ import { Button } from "../components/ui/Button";
 import { DataTable } from "../components/ui/DataTable";
 import { useConfirm } from "../components/ui/ConfirmProvider";
 
-const EMPTY_EDIT = { id: "", name: "", phone: "", address: "", latitude: "", longitude: "", userId: "", depotId: "" };
+const EMPTY_EDIT = { id: "", name: "", phone: "", address: "", latitude: "", longitude: "", depotId: "" };
 
 function buildCustomerSavePayload(editing) {
   const payload = {
     name: editing.name,
     phone: editing.phone,
     address: editing.address,
-    userId: editing.userId,
     depotId: editing.depotId,
   };
   const lat = String(editing.latitude ?? "").trim();
@@ -27,7 +26,6 @@ function buildCustomerSavePayload(editing) {
 
 export function CustomersPage({
   customers,
-  customerUsers,
   addresses,
   depots = [],
   newCustomer,
@@ -78,7 +76,6 @@ export function CustomersPage({
       address: customer.address || "",
       latitude: customer.latitude != null ? String(customer.latitude) : "",
       longitude: customer.longitude != null ? String(customer.longitude) : "",
-      userId: customer.userId || "",
       depotId: customer.depotId || "",
     });
   }
@@ -123,6 +120,9 @@ export function CustomersPage({
       <div className="section-heading">
         <h2>{t("customers.title")}</h2>
         <p className="section-lead">{t("customers.lead")}</p>
+        <p className="section-lead" style={{ marginTop: 8 }}>
+          {t("customers.linkLoginLead")}
+        </p>
       </div>
       <section className="panel entity-list">
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
@@ -211,7 +211,6 @@ export function CustomersPage({
             <CustomerForm
               addresses={addresses}
               depots={depots}
-              customerUsers={customerUsers}
               newCustomer={newCustomer}
               setNewCustomer={setNewCustomer}
               onCreateCustomer={async (event) => {
@@ -287,21 +286,6 @@ export function CustomersPage({
               onChange={(event) => setEditingCustomer({ ...editingCustomer, longitude: event.target.value })}
               placeholder={t("customers.longitudePlaceholder")}
             />
-            <label className="form-label" htmlFor="customer-edit-user">
-              {t("customers.user")} <span className="form-optional">({t("createOrder.optional")})</span>
-            </label>
-            <select
-              id="customer-edit-user"
-              value={editingCustomer.userId}
-              onChange={(event) => setEditingCustomer({ ...editingCustomer, userId: event.target.value })}
-            >
-              <option value="">{t("customers.selectUser")}</option>
-              {customerUsers.map((user) => (
-                <option key={user.id} value={user.id}>
-                  {user.name} ({user.username})
-                </option>
-              ))}
-            </select>
             <label className="form-label" htmlFor="customer-edit-depot">
               {t("customers.depot", { defaultValue: "Depot" })}{" "}
               <span className="form-optional">({t("createOrder.optional")})</span>

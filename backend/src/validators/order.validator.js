@@ -36,6 +36,18 @@ const createOrderBatchSchema = z.object({
   lines: z.array(createOrderBatchLineSchema).min(1).max(50),
 });
 
+const depotBatchLineSchema = z.object({
+  customerId: idString,
+  itemId: idString,
+  orderedQty: z.number().int().positive(),
+  unitPrice: z.number().nonnegative().optional(),
+  currency: z.enum(["USD", "KHR"]).optional().default("KHR"),
+});
+
+const createDepotBatchSchema = z.object({
+  lines: z.array(depotBatchLineSchema).min(1).max(100),
+});
+
 const assignOrderSchema = z.object({
   producerId: idString.nullable().optional(),
   deliveryAgentId: idString.nullable().optional(),
@@ -65,6 +77,7 @@ const listOrdersQuerySchema = z.object({
 module.exports = {
   createOrderSchema,
   createOrderBatchSchema,
+  createDepotBatchSchema,
   assignOrderSchema,
   updateOrderStatusSchema,
   confirmDeliverySchema,

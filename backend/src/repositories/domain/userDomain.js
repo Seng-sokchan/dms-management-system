@@ -5,6 +5,7 @@ const {
   createUser,
   updateUser,
   deactivateUser,
+  setDeliveryAgentUserLink,
 } = require("../users");
 const { listMenuKeysForRoleName, listRoleMenusMap, replaceRoleMenus } = require("../roleMenus");
 
@@ -15,6 +16,7 @@ module.exports = {
   createUser,
   updateUser,
   deactivateUser,
+  setDeliveryAgentUserLink,
   listMenuKeysForRoleName,
   listRoleMenusMap,
   replaceRoleMenus,

@@ -3,6 +3,10 @@ const { nowIso } = require("../utils");
 const { mapCustomer } = require("./mappers");
 const { unwrapProcedureRows, getProcedureMeta } = require("./unwrap");
 
+function resolveExecutor(executor) {
+  return executor || getPool();
+}
+
 async function listCustomers() {
   const [rows] = await getPool().query("CALL sp_list_customers()");
   return unwrapProcedureRows(rows).map(mapCustomer);
@@ -18,17 +22,30 @@ async function listCustomersByOwnerUserId(ownerUserId) {
   return unwrapProcedureRows(rows).map(mapCustomer);
 }
 
-async function getCustomerById(id) {
-  const [rows] = await getPool().query("CALL sp_get_customer_by_id(?)", [id]);
+async function getCustomerById(id, executor) {
+  const db = resolveExecutor(executor);
+  const [rows] = await db.query("CALL sp_get_customer_by_id(?)", [id]);
   const resultRows = unwrapProcedureRows(rows);
   return resultRows[0] ? mapCustomer(resultRows[0]) : null;
 }
 
 async function getCustomerByUserId(userId) {
-  const [rows] = await getPool().query("CALL sp_list_customers()");
+  const [rows] = await getPool().query("CALL sp_get_customer_by_user_id(?)", [userId]);
   const resultRows = unwrapProcedureRows(rows);
-  const row = resultRows.find((item) => String(item.user_id || "") === String(userId));
-  return row ? mapCustomer(row) : null;
+  return resultRows[0] ? mapCustomer(resultRows[0]) : null;
+}
+
+/**
+ * Maintains users.customer_id via sp_set_customer_user_link.
+ * @param {object|null} executor — connection or pool
+ * @param {number|string|null} customerId — customer to unlink all users from when userId is null
+ * @param {number|string|null} userId — user to unlink when customerId is null; or user to link when both set
+ */
+async function setCustomerUserLink(executor, customerId, userId) {
+  const db = resolveExecutor(executor);
+  const cid = customerId != null && String(customerId).trim() !== "" ? Number(customerId) : null;
+  const uid = userId != null && String(userId).trim() !== "" ? Number(userId) : null;
+  await db.query("CALL sp_set_customer_user_link(?, ?)", [cid, uid]);
 }
 
 function normalizeNullableString(value) {
@@ -45,40 +62,38 @@ function customerLatLngForDb(payload) {
   return [Number(payload.latitude), Number(payload.longitude)];
 }
 
-async function createCustomer(payload) {
+async function createCustomer(payload, executor) {
+  const db = resolveExecutor(executor);
   const name = String(payload.name || "").trim();
   const phone = normalizeNullableString(payload.phone);
   const address = Number(payload.address);
-  const userId = payload.userId ? Number(payload.userId) : null;
   const depotId = payload.depotId ? Number(payload.depotId) : null;
   const [latitude, longitude] = customerLatLngForDb(payload);
-  const [rowsRaw] = await getPool().query("CALL sp_create_customer(?, ?, ?, ?, ?, ?, ?, ?)", [
+  const [rowsRaw] = await db.query("CALL sp_create_customer(?, ?, ?, ?, ?, ?, ?)", [
     name,
     phone,
     address,
-    userId,
     depotId,
     latitude,
     longitude,
     nowIso(),
   ]);
   const meta = getProcedureMeta(rowsRaw);
-  return getCustomerById(meta.insertId);
+  return getCustomerById(meta.insertId, db);
 }
 
-async function updateCustomer(id, payload) {
+async function updateCustomer(id, payload, executor) {
+  const db = resolveExecutor(executor);
   const name = String(payload.name || "").trim();
   const phone = normalizeNullableString(payload.phone);
   const address = Number(payload.address);
-  const userId = payload.userId ? Number(payload.userId) : null;
   const depotId = payload.depotId ? Number(payload.depotId) : null;
   const [latitude, longitude] = customerLatLngForDb(payload);
-  const [rowsRaw] = await getPool().query("CALL sp_update_customer(?, ?, ?, ?, ?, ?, ?, ?, ?)", [
+  const [rowsRaw] = await db.query("CALL sp_update_customer(?, ?, ?, ?, ?, ?, ?, ?)", [
     id,
     name,
     phone,
     address,
-    userId,
     depotId,
     latitude,
     longitude,
@@ -86,7 +101,7 @@ async function updateCustomer(id, payload) {
   ]);
   const meta = getProcedureMeta(rowsRaw);
   if (!Number(meta.affectedRows || 0)) return null;
-  return getCustomerById(id);
+  return getCustomerById(id, db);
 }
 
 async function deleteCustomer(id) {
@@ -101,6 +116,7 @@ module.exports = {
   listCustomersByOwnerUserId,
   getCustomerById,
   getCustomerByUserId,
+  setCustomerUserLink,
   createCustomer,
   updateCustomer,
   deleteCustomer,

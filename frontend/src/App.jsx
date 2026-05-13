@@ -37,7 +37,6 @@ function App() {
     orders,
     customers,
     depots,
-    customerUsers,
     addresses,
     producers,
     deliveryAgents,
@@ -134,7 +133,7 @@ function App() {
     submitRoleMenus,
     logout,
   } = useAdminDashboard();
-  const isAllowedAdminPanelRole = user?.role === "Admin" || user?.role === "Owner" || user?.role === "Depot";
+  const isAllowedAdminPanelRole = user?.role === "Admin" || user?.role === "Owner";
 
   if (!token) {
     return (
@@ -187,7 +186,7 @@ function App() {
             </div>
             <p style={{ margin: "0 0 16px", color: "var(--text-muted)" }}>
               {t("accessDenied.message", {
-                defaultValue: "Your account role cannot access the Admin Panel. Please sign in with an Admin, Owner, or Depot account.",
+                defaultValue: "Only Admin or Owner accounts can access the Admin Panel. Depot users, please use the mobile app.",
               })}
             </p>
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
@@ -223,7 +222,7 @@ function App() {
         </div>
         <p style={{ margin: "0 0 16px", color: "var(--text-muted)" }}>
           {t("accessDenied.message", {
-            defaultValue: "Your account role cannot access the Admin Panel. Please sign in with an Admin, Owner, or Depot account.",
+            defaultValue: "Only Admin or Owner accounts can access the Admin Panel. Depot users, please use the mobile app.",
           })}
         </p>
         <div style={{ display: "flex", justifyContent: "flex-end" }}>
@@ -255,7 +254,6 @@ function App() {
             <CreateOrderPage
               user={user}
               customers={customers}
-              customerUsers={customerUsers}
               addresses={addresses}
               items={items}
               newOrder={newOrder}
@@ -341,7 +339,6 @@ function App() {
           canAccessPath(user, "/customers") ? (
             <CustomersPage
               customers={customers}
-              customerUsers={customerUsers}
               addresses={addresses}
               depots={depots}
               newCustomer={newCustomer}
@@ -471,6 +468,8 @@ function App() {
           user?.role === "Admin" && canAccessPath(user, "/users") ? (
             <UsersPage
               users={users}
+              customers={customers}
+              deliveryAgents={deliveryAgents}
               currentUser={user}
               newUser={newUser}
               setNewUser={setNewUser}

@@ -10,18 +10,18 @@ import { canAccessPath } from "../../constants/menus";
  */
 const ROUTE_DATA_MAP = {
   "/overview": ["summary", "statuses"],
-  "/create-order": ["customers", "customerUsers", "addresses", "producers", "items"],
+  "/create-order": ["customers", "addresses", "producers", "items"],
   "/catalogs": ["catalogs"],
   "/items": ["catalogs", "items"],
   "/customer-item-prices": ["customers", "items", "customerItemPrices"],
   "/addresses": ["addresses"],
-  "/customers": ["customers", "customerUsers", "addresses", "depots"],
+  "/customers": ["customers", "addresses", "depots"],
   "/tracking-customer-location": ["customers"],
   "/depots": ["depots"],
   "/customers-by-depot": ["depots", "customers"],
   "/producers": ["producers"],
   "/delivery-agents": ["deliveryAgents"],
-  "/users": ["users", "roleMenus"],
+  "/users": ["users", "roleMenus", "customers", "deliveryAgents"],
   "/orders": ["orders", "statuses", "deliveryAgents"],
   "/order-groups": ["orderGroups"],
   "/assign-orders": ["orders", "deliveryAgents", "orderGroups"],
@@ -45,7 +45,6 @@ export async function fetchDashboardData(token, pathname = "/overview") {
   const config = authConfig(token);
   const profile = await apiClient.get("/users/me", config);
   const user = unwrapApiData(profile.data);
-  const canManageCustomers = user?.role === "Admin" || user?.role === "Owner" || user?.role === "Depot";
   const safePathname = canAccessPath(user, pathname) ? pathname : "/overview";
   const routeKeys = getKeysForRoute(safePathname);
   const requested = new Set(routeKeys);
@@ -61,7 +60,6 @@ export async function fetchDashboardData(token, pathname = "/overview") {
     orders: [],
     customers: [],
     depots: [],
-    customerUsers: [],
     addresses: [],
     producers: [],
     deliveryAgents: [],
@@ -107,12 +105,6 @@ export async function fetchDashboardData(token, pathname = "/overview") {
     const res = await apiClient.get("/depots", config);
     const rows = unwrapApiData(res.data);
     data.depots = Array.isArray(rows) ? rows : [];
-  });
-  queue("customerUsers", async () => {
-    if (!canManageCustomers) return;
-    const res = await apiClient.get("/customer-users", config);
-    const rows = unwrapApiData(res.data);
-    data.customerUsers = Array.isArray(rows) ? rows : [];
   });
   queue("addresses", async () => {
     const res = await apiClient.get("/addresses", config);

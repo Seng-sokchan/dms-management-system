@@ -56,12 +56,12 @@ export function AssignOrdersPage({
     [filteredOrders],
   );
   const {
-    page: deliveryAssignPage,
-    pageSize: deliveryAssignPageSize,
-    paged: pagedOrdersForDelivery,
-    setPage: setDeliveryAssignPage,
-    setPageSize: setDeliveryAssignPageSize,
-  } = usePagination(filteredOrders, { resetKey: appliedSearch });
+    page: assignPage,
+    pageSize: assignPageSize,
+    paged: pagedOrdersForAssign,
+    setPage: setAssignPage,
+    setPageSize: setAssignPageSize,
+  } = usePagination(ownerPreparingOrders, { resetKey: appliedSearch });
   const {
     page: submitPage,
     pageSize: submitPageSize,
@@ -69,13 +69,6 @@ export function AssignOrdersPage({
     setPage: setSubmitPage,
     setPageSize: setSubmitPageSize,
   } = usePagination(ownerPreparingOrders, { resetKey: appliedSearch });
-  const {
-    page: groupAssignPage,
-    pageSize: groupAssignPageSize,
-    paged: pagedOrdersForGroup,
-    setPage: setGroupAssignPage,
-    setPageSize: setGroupAssignPageSize,
-  } = usePagination(filteredOrders, { resetKey: appliedSearch });
 
   async function handleDeliveryChange(order, deliveryAgentId) {
     const next = deliveryAgentId || null;
@@ -118,9 +111,9 @@ export function AssignOrdersPage({
   }
 
   const rowMeta =
-    sortedOrders.length === 1
-      ? t("orders.rowOne", { n: sortedOrders.length })
-      : t("orders.rowMany", { n: sortedOrders.length });
+    ownerPreparingOrders.length === 1
+      ? t("orders.rowOne", { n: ownerPreparingOrders.length })
+      : t("orders.rowMany", { n: ownerPreparingOrders.length });
 
   return (
     <section className="admin-page">
@@ -131,10 +124,10 @@ export function AssignOrdersPage({
 
       <section className="panel">
         <div className="panel-header">
-          <h3>{t("assignOrders.deliveryPanelTitle")}</h3>
+          <h3>{t("assignOrders.assignPanelTitle")}</h3>
           <p className="panel-meta">{rowMeta}</p>
         </div>
-        <p className="form-hint">{t("assignOrders.deliveryPanelHint")}</p>
+        <p className="form-hint">{t("assignOrders.assignPanelHint")}</p>
         <DataTable
           showSearch
           searchValue={searchText}
@@ -143,11 +136,11 @@ export function AssignOrdersPage({
           searchPlaceholder={t("assignOrders.searchPlaceholder", { defaultValue: "Search orders..." })}
           searchButtonLabel={t("common.search", { defaultValue: "Search" })}
           pagination={{
-            page: deliveryAssignPage,
-            pageSize: deliveryAssignPageSize,
-            totalRows: filteredOrders.length,
-            onPageChange: setDeliveryAssignPage,
-            onPageSizeChange: setDeliveryAssignPageSize,
+            page: assignPage,
+            pageSize: assignPageSize,
+            totalRows: ownerPreparingOrders.length,
+            onPageChange: setAssignPage,
+            onPageSizeChange: setAssignPageSize,
           }}
         >
           <thead>
@@ -157,11 +150,13 @@ export function AssignOrdersPage({
               <th>{t("orders.status")}</th>
               <th>{t("assignOrders.currentDelivery")}</th>
               <th>{t("assignOrders.assignDelivery")}</th>
+              <th>{t("assignOrders.currentGroup")}</th>
+              <th>{t("assignOrders.assignGroup")}</th>
             </tr>
           </thead>
           <tbody>
-            {pagedOrdersForDelivery.map((order) => (
-              <tr key={`delivery-${order.id}`}>
+            {pagedOrdersForAssign.map((order) => (
+              <tr key={`assign-${order.id}`}>
                 <td>{order.customerName || t("orders.dash")}</td>
                 <td>{order.itemName ? `#${order.id} · ${order.itemName}` : `#${order.id}`}</td>
                 <td>
@@ -186,39 +181,6 @@ export function AssignOrdersPage({
                       </option>
                     ))}
                   </select>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </DataTable>
-
-        <h3 className="assign-orders-subpanel-title">{t("assignOrders.groupPanelTitle")}</h3>
-        <p className="form-hint">{t("assignOrders.groupPanelHint")}</p>
-        <DataTable
-          pagination={{
-            page: groupAssignPage,
-            pageSize: groupAssignPageSize,
-            totalRows: filteredOrders.length,
-            onPageChange: setGroupAssignPage,
-            onPageSizeChange: setGroupAssignPageSize,
-          }}
-        >
-          <thead>
-            <tr>
-              <th>{t("orders.customer")}</th>
-              <th>{t("orders.item")}</th>
-              <th>{t("orders.status")}</th>
-              <th>{t("assignOrders.currentGroup")}</th>
-              <th>{t("assignOrders.assignGroup")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pagedOrdersForGroup.map((order) => (
-              <tr key={`group-${order.id}`}>
-                <td>{order.customerName || t("orders.dash")}</td>
-                <td>{order.itemName ? `#${order.id} · ${order.itemName}` : `#${order.id}`}</td>
-                <td>
-                  <span className="status-chip">{order.status}</span>
                 </td>
                 <td>{order.orderGroupName || t("orders.dash")}</td>
                 <td>

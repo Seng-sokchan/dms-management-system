@@ -47,11 +47,15 @@ CREATE TABLE users (
   username VARCHAR(60) NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
   role_id INT UNSIGNED NOT NULL,
+  customer_id INT UNSIGNED DEFAULT NULL,
+  delivery_agent_id INT UNSIGNED DEFAULT NULL,
   is_active TINYINT(1) NOT NULL DEFAULT 1,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NULL,
   PRIMARY KEY (id),
   UNIQUE KEY uq_users_username (username),
+  UNIQUE KEY uq_users_customer_id (customer_id),
+  UNIQUE KEY uq_users_delivery_agent_id (delivery_agent_id),
   KEY idx_users_role_id (role_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
@@ -95,6 +99,9 @@ CREATE TABLE delivery_agents (
   KEY idx_delivery_agents_name (name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+ALTER TABLE users
+  ADD CONSTRAINT fk_users_delivery_agent FOREIGN KEY (delivery_agent_id) REFERENCES delivery_agents (id);
+
 CREATE TABLE order_groups (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   name VARCHAR(255) NOT NULL,
@@ -118,7 +125,6 @@ CREATE TABLE customers (
   name VARCHAR(120) NULL DEFAULT NULL,
   phone VARCHAR(30) NULL DEFAULT NULL,
   address INT UNSIGNED NOT NULL,
-  user_id INT UNSIGNED DEFAULT NULL,
   depot_id INT UNSIGNED DEFAULT NULL,
   latitude DECIMAL(10,7) NULL DEFAULT NULL,
   longitude DECIMAL(10,7) NULL DEFAULT NULL,
@@ -128,7 +134,6 @@ CREATE TABLE customers (
   PRIMARY KEY (id),
   KEY idx_customers_name (name),
   KEY idx_customers_address (address),
-  KEY idx_customers_user_id (user_id),
   KEY idx_customers_depot_id (depot_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
@@ -319,6 +324,9 @@ DROP PROCEDURE IF EXISTS sp_list_customers;
 DROP PROCEDURE IF EXISTS sp_list_customers_by_depot_id;
 DROP PROCEDURE IF EXISTS sp_list_customers_by_owner_user_id;
 DROP PROCEDURE IF EXISTS sp_get_customer_by_id;
+DROP PROCEDURE IF EXISTS sp_get_customer_by_user_id;
+DROP PROCEDURE IF EXISTS sp_set_customer_user_link;
+DROP PROCEDURE IF EXISTS sp_set_delivery_agent_user_link;
 DROP PROCEDURE IF EXISTS sp_list_depots;
 DROP PROCEDURE IF EXISTS sp_get_depot_by_id;
 DROP PROCEDURE IF EXISTS sp_get_depot_by_owner_user_id;
@@ -398,14 +406,14 @@ DROP PROCEDURE IF EXISTS sp_update_borrow_material_monthly_installment_status;
 DROP PROCEDURE IF EXISTS sp_delete_borrow_material_monthly_schedule;
 
 CREATE PROCEDURE sp_get_user_by_username(IN p_username VARCHAR(60))
-SELECT u.id, u.name, u.username, u.password_hash, r.name AS role
+SELECT u.id, u.name, u.username, u.password_hash, r.name AS role, u.delivery_agent_id
 FROM users u
 INNER JOIN roles r ON r.id = u.role_id
 WHERE u.username = p_username AND u.is_active = 1
 LIMIT 1;
 
 CREATE PROCEDURE sp_get_user_by_id(IN p_id INT UNSIGNED)
-SELECT u.id, u.name, u.username, r.name AS role, u.is_active
+SELECT u.id, u.name, u.username, r.name AS role, u.is_active, u.customer_id, u.delivery_agent_id
 FROM users u
 INNER JOIN roles r ON r.id = u.role_id
 WHERE u.id = p_id
@@ -418,7 +426,7 @@ WHERE name = p_name
 LIMIT 1;
 
 CREATE PROCEDURE sp_list_users()
-SELECT u.id, u.name, u.username, r.name AS role, u.is_active
+SELECT u.id, u.name, u.username, r.name AS role, u.is_active, u.customer_id, u.delivery_agent_id
 FROM users u
 INNER JOIN roles r ON r.id = u.role_id
 ORDER BY u.id DESC;
@@ -529,37 +537,37 @@ WHERE d.is_active = 1
 ORDER BY d.id DESC;
 
 CREATE PROCEDURE sp_get_customer_by_id(IN p_id INT UNSIGNED)
-SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, c.user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.latitude, c.longitude, c.updated_at
+SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, u.id AS user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.latitude, c.longitude, c.updated_at
 FROM customers c
 INNER JOIN addresses a ON a.id = c.address
-LEFT JOIN users u ON u.id = c.user_id
+LEFT JOIN users u ON u.customer_id = c.id
 LEFT JOIN depots d ON d.id = c.depot_id AND d.is_active = 1
 WHERE c.id = p_id AND c.is_active = 1
 LIMIT 1;
 
 CREATE PROCEDURE sp_list_customers()
-SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, c.user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.latitude, c.longitude, c.updated_at
+SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, u.id AS user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.latitude, c.longitude, c.updated_at
 FROM customers c
 INNER JOIN addresses a ON a.id = c.address
-LEFT JOIN users u ON u.id = c.user_id
+LEFT JOIN users u ON u.customer_id = c.id
 LEFT JOIN depots d ON d.id = c.depot_id AND d.is_active = 1
 WHERE c.is_active = 1
 ORDER BY c.id DESC;
 
 CREATE PROCEDURE sp_list_customers_by_depot_id(IN p_depot_id INT UNSIGNED)
-SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, c.user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.latitude, c.longitude, c.updated_at
+SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, u.id AS user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.latitude, c.longitude, c.updated_at
 FROM customers c
 INNER JOIN addresses a ON a.id = c.address
-LEFT JOIN users u ON u.id = c.user_id
+LEFT JOIN users u ON u.customer_id = c.id
 INNER JOIN depots d ON d.id = c.depot_id
 WHERE c.is_active = 1 AND d.is_active = 1 AND c.depot_id = p_depot_id
 ORDER BY c.id DESC;
 
 CREATE PROCEDURE sp_list_customers_by_owner_user_id(IN p_owner_user_id INT UNSIGNED)
-SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, c.user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.latitude, c.longitude, c.updated_at
+SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, u.id AS user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.latitude, c.longitude, c.updated_at
 FROM customers c
 INNER JOIN addresses a ON a.id = c.address
-LEFT JOIN users u ON u.id = c.user_id
+LEFT JOIN users u ON u.customer_id = c.id
 LEFT JOIN depots d ON d.id = c.depot_id AND d.is_active = 1
 WHERE c.is_active = 1
   AND (
@@ -567,6 +575,45 @@ WHERE c.is_active = 1
     OR d.owner_user_id = p_owner_user_id
   )
 ORDER BY c.id DESC;
+
+CREATE PROCEDURE sp_get_customer_by_user_id(IN p_user_id INT UNSIGNED)
+SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, u.id AS user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.latitude, c.longitude, c.updated_at
+FROM users u
+INNER JOIN customers c ON c.id = u.customer_id AND c.is_active = 1
+INNER JOIN addresses a ON a.id = c.address
+LEFT JOIN depots d ON d.id = c.depot_id AND d.is_active = 1
+WHERE u.id = p_user_id AND u.is_active = 1
+LIMIT 1;
+
+CREATE PROCEDURE sp_set_customer_user_link(IN p_customer_id INT UNSIGNED, IN p_user_id INT UNSIGNED)
+BEGIN
+  IF p_user_id IS NULL THEN
+    IF p_customer_id IS NOT NULL THEN
+      UPDATE users SET customer_id = NULL WHERE customer_id = p_customer_id;
+    END IF;
+  ELSEIF p_customer_id IS NULL THEN
+    UPDATE users SET customer_id = NULL WHERE id = p_user_id;
+  ELSE
+    UPDATE users SET customer_id = NULL WHERE id = p_user_id;
+    UPDATE users SET customer_id = NULL WHERE customer_id = p_customer_id AND id <> p_user_id;
+    UPDATE users SET customer_id = p_customer_id WHERE id = p_user_id;
+  END IF;
+END;
+
+CREATE PROCEDURE sp_set_delivery_agent_user_link(IN p_delivery_agent_id INT UNSIGNED, IN p_user_id INT UNSIGNED)
+BEGIN
+  IF p_user_id IS NULL THEN
+    IF p_delivery_agent_id IS NOT NULL THEN
+      UPDATE users SET delivery_agent_id = NULL WHERE delivery_agent_id = p_delivery_agent_id;
+    END IF;
+  ELSEIF p_delivery_agent_id IS NULL THEN
+    UPDATE users SET delivery_agent_id = NULL WHERE id = p_user_id;
+  ELSE
+    UPDATE users SET delivery_agent_id = NULL WHERE id = p_user_id;
+    UPDATE users SET delivery_agent_id = NULL WHERE delivery_agent_id = p_delivery_agent_id AND id <> p_user_id;
+    UPDATE users SET delivery_agent_id = p_delivery_agent_id WHERE id = p_user_id;
+  END IF;
+END;
 
 CREATE PROCEDURE sp_get_catalog_by_id(IN p_id INT UNSIGNED)
 SELECT id, name, note
@@ -837,15 +884,14 @@ CREATE PROCEDURE sp_create_customer(
   IN p_name VARCHAR(255),
   IN p_phone VARCHAR(30),
   IN p_address INT UNSIGNED,
-  IN p_user_id INT UNSIGNED,
   IN p_depot_id INT UNSIGNED,
   IN p_latitude DECIMAL(10,7),
   IN p_longitude DECIMAL(10,7),
   IN p_updated_at DATETIME
 )
 BEGIN
-  INSERT INTO customers (name, phone, address, user_id, depot_id, latitude, longitude, updated_at)
-  VALUES (p_name, p_phone, p_address, p_user_id, p_depot_id, p_latitude, p_longitude, p_updated_at);
+  INSERT INTO customers (name, phone, address, depot_id, latitude, longitude, updated_at)
+  VALUES (p_name, p_phone, p_address, p_depot_id, p_latitude, p_longitude, p_updated_at);
   SELECT LAST_INSERT_ID() AS insertId;
 END;
 
@@ -854,7 +900,6 @@ CREATE PROCEDURE sp_update_customer(
   IN p_name VARCHAR(255),
   IN p_phone VARCHAR(30),
   IN p_address INT UNSIGNED,
-  IN p_user_id INT UNSIGNED,
   IN p_depot_id INT UNSIGNED,
   IN p_latitude DECIMAL(10,7),
   IN p_longitude DECIMAL(10,7),
@@ -862,7 +907,7 @@ CREATE PROCEDURE sp_update_customer(
 )
 BEGIN
   UPDATE customers
-  SET name = p_name, phone = p_phone, address = p_address, user_id = p_user_id, depot_id = p_depot_id, latitude = p_latitude, longitude = p_longitude, updated_at = p_updated_at
+  SET name = p_name, phone = p_phone, address = p_address, depot_id = p_depot_id, latitude = p_latitude, longitude = p_longitude, updated_at = p_updated_at
   WHERE id = p_id AND is_active = 1;
   SELECT ROW_COUNT() AS affectedRows;
 END;
@@ -1443,7 +1488,39 @@ PREPARE stmt_add_orders_order_group_id FROM @sql_add_orders_order_group_id;
 EXECUTE stmt_add_orders_order_group_id;
 DEALLOCATE PREPARE stmt_add_orders_order_group_id;
 
--- 7) Ensure customers.user_id exists for linking customer users
+-- 7) users.customer_id: add column + unique index, backfill from legacy customers.user_id, then drop customers.user_id
+SET @has_users_customer_id := (
+  SELECT COUNT(*)
+  FROM information_schema.columns
+  WHERE table_schema = DATABASE()
+    AND table_name = 'users'
+    AND column_name = 'customer_id'
+);
+SET @sql_add_users_customer_id := IF(
+  @has_users_customer_id = 0,
+  'ALTER TABLE users ADD COLUMN customer_id INT UNSIGNED NULL',
+  'SELECT 1'
+);
+PREPARE stmt_add_users_customer_id FROM @sql_add_users_customer_id;
+EXECUTE stmt_add_users_customer_id;
+DEALLOCATE PREPARE stmt_add_users_customer_id;
+
+SET @has_uq_users_customer_id := (
+  SELECT COUNT(*)
+  FROM information_schema.statistics
+  WHERE table_schema = DATABASE()
+    AND table_name = 'users'
+    AND index_name = 'uq_users_customer_id'
+);
+SET @sql_uq_users_customer_id := IF(
+  @has_uq_users_customer_id = 0,
+  'ALTER TABLE users ADD UNIQUE KEY uq_users_customer_id (customer_id)',
+  'SELECT 1'
+);
+PREPARE stmt_uq_users_customer_id FROM @sql_uq_users_customer_id;
+EXECUTE stmt_uq_users_customer_id;
+DEALLOCATE PREPARE stmt_uq_users_customer_id;
+
 SET @has_customers_user_id := (
   SELECT COUNT(*)
   FROM information_schema.columns
@@ -1451,14 +1528,23 @@ SET @has_customers_user_id := (
     AND table_name = 'customers'
     AND column_name = 'user_id'
 );
-SET @sql_add_customers_user_id := IF(
-  @has_customers_user_id = 0,
-  'ALTER TABLE customers ADD COLUMN user_id INT UNSIGNED NULL',
+SET @sql_backfill_customer_link := IF(
+  @has_customers_user_id > 0,
+  'UPDATE users u INNER JOIN customers c ON c.user_id = u.id SET u.customer_id = c.id WHERE c.user_id IS NOT NULL',
   'SELECT 1'
 );
-PREPARE stmt_add_customers_user_id FROM @sql_add_customers_user_id;
-EXECUTE stmt_add_customers_user_id;
-DEALLOCATE PREPARE stmt_add_customers_user_id;
+PREPARE stmt_backfill_customer_link FROM @sql_backfill_customer_link;
+EXECUTE stmt_backfill_customer_link;
+DEALLOCATE PREPARE stmt_backfill_customer_link;
+
+SET @sql_drop_customers_user_id := IF(
+  @has_customers_user_id > 0,
+  'ALTER TABLE customers DROP COLUMN user_id',
+  'SELECT 1'
+);
+PREPARE stmt_drop_customers_user_id FROM @sql_drop_customers_user_id;
+EXECUTE stmt_drop_customers_user_id;
+DEALLOCATE PREPARE stmt_drop_customers_user_id;
 
 -- 7a) Customers: name and phone nullable
 SET @cust_name_not_null := (

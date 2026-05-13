@@ -15,7 +15,14 @@ export function AuthProvider({ children }) {
         const session = await loadSession();
         if (session.token) {
           setToken(session.token);
-          setUser(session.user);
+          try {
+            const me = await fetchMe(session.token);
+            const merged = { ...session.user, ...me };
+            setUser(merged);
+            await saveSession({ token: session.token, user: merged });
+          } catch {
+            setUser(session.user);
+          }
         }
       } finally {
         setIsLoading(false);
@@ -25,10 +32,10 @@ export function AuthProvider({ children }) {
   }, []);
 
   async function login(username, password) {
-    const payload = await loginApi({ username, password });
+    const payload = await loginApi({ username, password, client: "mobile" });
     const role = payload?.user?.role;
-    if (role !== "Customer" && role !== "Delivery") {
-      throw new Error("Only Customer or Delivery accounts can use this app");
+    if (role !== "Customer" && role !== "Delivery" && role !== "Depot") {
+      throw new Error("Only Customer, Delivery, or Depot accounts can use this app");
     }
     const me = await fetchMe(payload.token);
     const nextUser = { ...payload.user, ...me };

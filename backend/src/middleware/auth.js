@@ -82,6 +82,10 @@ async function resolveUserFromAccessToken(token) {
       name: currentUser.name,
       username: currentUser.username,
       role: currentUser.role,
+      deliveryAgentId:
+        currentUser.deliveryAgentId != null && String(currentUser.deliveryAgentId).trim() !== ""
+          ? String(currentUser.deliveryAgentId)
+          : "",
     };
   } catch (_error) {
     return null;

@@ -7,6 +7,7 @@ Base URL: `http://localhost:4000/api`
   - body: `{ "username": "admin", "password": "admin123" }`
   - response: `{ token, user }`
 - Use `Authorization: Bearer <token>` for protected endpoints.
+- `GET /users/me` includes `customerId` for **Customer** accounts and `deliveryAgentId` for **Delivery** accounts (nullable). Delivery users must be linked to a `delivery_agents` row (via Admin **Users**) so mobile and sockets can resolve the agent.
 
 ## Main Endpoints
 - `GET /health`
@@ -23,8 +24,8 @@ Base URL: `http://localhost:4000/api`
 - `GET /dashboard/summary`
 
 ## Mobile Integration Endpoints
-- `GET /mobile/orders`
-- `PATCH /mobile/orders/:id/status`
+- `GET /mobile/orders` — **Customer** sees orders for their linked customer; **Delivery** sees only orders whose `delivery_agent_id` matches `users.delivery_agent_id` for that login (empty list if the user is not linked to an agent).
+- `POST /mobile/orders/:id/status`
 
 ## Demo Users
 - Admin: `admin/admin123`
@@ -36,6 +37,7 @@ Base URL: `http://localhost:4000/api`
 ## Database Model (v3, App-Aligned)
 - Schema is defined in `backend/db/schema.mysql55.sql` (MySQL 5.5.8 compatible).
 - Active tables used by current API: `users`, `producers`, `delivery_agents`, `orders`, `payments`.
+- `users.delivery_agent_id` (nullable, unique when set) links a **Delivery** login to `delivery_agents.id`; order assignment still uses `orders.delivery_agent_id`.
 - `orders` uses the same single-item structure as current frontend/backend contracts.
 - `order_status_history` exists as optional audit table for future enhancement.
 - Initialize DB with: `npm run db:init` (uses `.env` DB credentials).
