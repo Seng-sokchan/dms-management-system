@@ -24,6 +24,18 @@ const createOrderSchema = z.object({
   producerId: idString.nullable().optional(),
 });
 
+const createOrderBatchLineSchema = z.object({
+  itemId: idString,
+  orderedQty: z.number().int().positive(),
+  unitPrice: z.number().nonnegative().optional(),
+  currency: z.enum(["USD", "KHR"]).optional().default("KHR"),
+});
+
+const createOrderBatchSchema = z.object({
+  customerId: idString,
+  lines: z.array(createOrderBatchLineSchema).min(1).max(50),
+});
+
 const assignOrderSchema = z.object({
   producerId: idString.nullable().optional(),
   deliveryAgentId: idString.nullable().optional(),
@@ -52,6 +64,7 @@ const listOrdersQuerySchema = z.object({
 
 module.exports = {
   createOrderSchema,
+  createOrderBatchSchema,
   assignOrderSchema,
   updateOrderStatusSchema,
   confirmDeliverySchema,

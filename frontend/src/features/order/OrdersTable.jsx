@@ -6,8 +6,8 @@ import { DataTable } from "../../components/ui/DataTable";
 import { useConfirm } from "../../components/ui/ConfirmProvider";
 
 const ORDER_STATUS_FALLBACK = [
-  "New_Order",
   "Owner_Preparing",
+  "Sent_To_Factory",
   "Ready_For_Delivery",
   "Recieve_By_Customer",
 ];

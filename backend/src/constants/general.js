@@ -1,10 +1,15 @@
-const ORDER_STATUS = ["New_Order", "Owner_Preparing", "Ready_For_Delivery", "Recieve_By_Customer"];
+const ORDER_STATUS = [
+  "Owner_Preparing",
+  "Sent_To_Factory",
+  "Ready_For_Delivery",
+  "Recieve_By_Customer",
+];
 
 const ROLES = ["Admin", "Owner", "Logistics", "Delivery", "Customer", "Depot"];
 
 const NEXT_STATUS = {
-  New_Order: ["Owner_Preparing"],
-  Owner_Preparing: ["Ready_For_Delivery"],
+  Owner_Preparing: ["Sent_To_Factory"],
+  Sent_To_Factory: ["Ready_For_Delivery"],
   Ready_For_Delivery: ["Recieve_By_Customer"],
   Recieve_By_Customer: [],
 };

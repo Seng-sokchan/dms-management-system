@@ -608,6 +608,18 @@ export function useAdminDashboard() {
     }
   }
 
+  async function submitSendOrderToFactory(orderId) {
+    try {
+      await moveOrderStatusRequest(token, orderId, { status: "Sent_To_Factory" });
+      await refresh();
+      await showSuccessPopup(
+        i18n.t("success.sentToFactory", { defaultValue: "Order sent to factory" }),
+      );
+    } catch (error) {
+      showError(getErrorMessage(error, "errors.updateStatus"));
+    }
+  }
+
   async function submitOrderDelete(orderId) {
     try {
       await deleteOrderRequest(token, orderId);
@@ -934,6 +946,7 @@ export function useAdminDashboard() {
     submitOrderMovement,
     submitOrderGroupAssignment,
     submitOrderDeliveryAssignment,
+    submitSendOrderToFactory,
     submitOrderDelete,
     submitUser,
     submitUserUpdate,

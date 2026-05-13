@@ -48,6 +48,11 @@ const createOrder = asyncHandler(async (req, res) => {
   return created(res, order);
 });
 
+const createOrderBatch = asyncHandler(async (req, res) => {
+  const orders = await orderService.createBatch(req.body);
+  return created(res, orders);
+});
+
 const createOrderGroup = asyncHandler(async (req, res) => {
   const row = await orderService.createOrderGroup(req.body);
   return created(res, row);
@@ -95,8 +100,8 @@ const deleteOrder = asyncHandler(async (req, res) => {
 
 // Mobile --------------------------------------------------------------------
 
-const mobileListOrders = asyncHandler(async (_req, res) => {
-  const orders = await orderService.listForMobile();
+const mobileListOrders = asyncHandler(async (req, res) => {
+  const orders = await orderService.listForMobile({ user: req.user });
   return success(res, orders, { meta: { count: orders.length } });
 });
 
@@ -113,6 +118,7 @@ module.exports = {
   listOrders,
   listOrderPaymentTotals,
   createOrder,
+  createOrderBatch,
   createOrderGroup,
   updateOrderGroup,
   deleteOrderGroup,

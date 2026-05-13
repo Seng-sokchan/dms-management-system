@@ -205,8 +205,8 @@ CREATE TABLE status (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 INSERT INTO status (id, name) VALUES
-  (1, 'New_Order'),
-  (2, 'Owner_Preparing'),
+  (1, 'Owner_Preparing'),
+  (2, 'Sent_To_Factory'),
   (3, 'Ready_For_Delivery'),
   (4, 'Recieve_By_Customer');
 
@@ -529,7 +529,7 @@ WHERE d.is_active = 1
 ORDER BY d.id DESC;
 
 CREATE PROCEDURE sp_get_customer_by_id(IN p_id INT UNSIGNED)
-SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, c.user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.latitude, c.longitude
+SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, c.user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.latitude, c.longitude, c.updated_at
 FROM customers c
 INNER JOIN addresses a ON a.id = c.address
 LEFT JOIN users u ON u.id = c.user_id
@@ -538,7 +538,7 @@ WHERE c.id = p_id AND c.is_active = 1
 LIMIT 1;
 
 CREATE PROCEDURE sp_list_customers()
-SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, c.user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.latitude, c.longitude
+SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, c.user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.latitude, c.longitude, c.updated_at
 FROM customers c
 INNER JOIN addresses a ON a.id = c.address
 LEFT JOIN users u ON u.id = c.user_id
@@ -547,7 +547,7 @@ WHERE c.is_active = 1
 ORDER BY c.id DESC;
 
 CREATE PROCEDURE sp_list_customers_by_depot_id(IN p_depot_id INT UNSIGNED)
-SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, c.user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.latitude, c.longitude
+SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, c.user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.latitude, c.longitude, c.updated_at
 FROM customers c
 INNER JOIN addresses a ON a.id = c.address
 LEFT JOIN users u ON u.id = c.user_id
@@ -556,7 +556,7 @@ WHERE c.is_active = 1 AND d.is_active = 1 AND c.depot_id = p_depot_id
 ORDER BY c.id DESC;
 
 CREATE PROCEDURE sp_list_customers_by_owner_user_id(IN p_owner_user_id INT UNSIGNED)
-SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, c.user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.latitude, c.longitude
+SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, c.user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.latitude, c.longitude, c.updated_at
 FROM customers c
 INNER JOIN addresses a ON a.id = c.address
 LEFT JOIN users u ON u.id = c.user_id

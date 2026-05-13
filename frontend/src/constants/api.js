@@ -4,8 +4,8 @@
  */
 
 export const ORDER_STATUS = [
-  "New_Order",
   "Owner_Preparing",
+  "Sent_To_Factory",
   "Ready_For_Delivery",
   "Recieve_By_Customer",
 ];

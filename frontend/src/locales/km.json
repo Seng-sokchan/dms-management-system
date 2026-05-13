@@ -174,11 +174,22 @@
   },
   "trackingCustomerLocation": {
     "title": "តាមដានទីតាំងអតិថិជន",
-    "lead": "អតិថិជនដែលមានរង្វាស់ទទឹង និងបណ្ដោយ បង្ហាញជាសញ្ញាលើផែនទី។",
+    "lead": "អតិថិជនដែលមានរង្វាស់រក្សាទុកបង្ហាញជាសញ្ញាក្រហម។ អ្នកបញ្ជូនដែលកំពុងបម្រើបង្ហាញជាសញ្ញាខៀវនៅពេលមានការតាមដានផ្ទាល់។",
     "noApiKey": "កំណត់ VITE_GOOGLE_MAPS_API_KEY ក្នុងបរិស្ថាន frontend និងបើក Maps JavaScript API នៅ Google Cloud។",
-    "noMarkers": "មិនមានអតិថិជនដែលមានរង្វាស់ទទឹង និងបណ្ដោយគ្រប់គ្រាន់ទេ។ បន្ថែមរង្វាស់នៅទំព័រ អតិថិជន។",
-    "showing": "បង្ហាញ {{count}} ទីតាំងដែលមានរង្វាស់។",
-    "openMaps": "បើកក្នុង Google Maps"
+    "noMarkers": "មិនទាន់មានទីតាំងបង្ហាញ។ កំណត់រង្វាស់អតិថិជននៅទំព័រ អតិថិជន ឬរង់ចាំអ្នកបញ្ជូនផ្ញើទីតាំង។",
+    "showing": "អតិថិជនលើផែនទី៖ {{count}} · អ្នកបញ្ជូនផ្ទាល់៖ {{deliveryCount}}",
+    "openMaps": "បើកក្នុង Google Maps",
+    "liveDeliveryTitle": "អ្នកបញ្ជូនផ្ទាល់",
+    "liveDeliveryConnected": "បានភ្ជាប់។ អ្នកបញ្ជូនសកម្មលើផែនទី៖ {{count}}។",
+    "liveDeliveryWaiting": "បានភ្ជាប់។ រង់ចាំអ្នកបញ្ជូនចែករំលែកទីតាំង…",
+    "liveDeliveryConnecting": "កំពុងភ្ជាប់ទៅការធ្វើបច្ចុប្បន្នភាពផ្ទាល់…",
+    "liveDeliveryDisconnected": "បានផ្តាច់ពីការធ្វើបច្ចុប្បន្នភាពផ្ទាល់។",
+    "liveDeliveryError": "កំហុសការភ្ជាប់ផ្ទាល់៖ {{message}}",
+    "liveDeliveryIdle": "ផែនទីអ្នកបញ្ជូនផ្ទាល់មិនមានសម្រាប់តួនាទីនេះទេ។",
+    "markerKindCustomer": "អតិថិជន",
+    "markerKindDelivery": "អ្នកបញ្ជូន",
+    "lastSeen": "ឃើញចុងក្រោយ {{time}}",
+    "lastSeenUnknown": "ឃើញចុងក្រោយ —"
   },
   "addresses": {
     "title": "អាស័យដ្ឋាន",
@@ -484,7 +495,7 @@
   },
   "assignOrders": {
     "title": "កំណត់ការកម្មង់",
-    "lead": "កំណត់ភ្នាក់ងារដឹកជញ្ជូន និងក្រុមផ្លូវសម្រាប់បន្ទាត់នីមួយៗ។ ជ្រើសរើសរួចរក្សាទុកភ្លាមៗ។",
+    "lead": "កំណត់ភ្នាក់ងារដឹកជញ្ជូន និងក្រុមការកម្មង់សម្រាប់បន្ទាត់នីមួយៗ បន្ទាប់មកបញ្ជូនការកម្មង់ទៅរោងចក្រ។",
     "deliveryPanelTitle": "កំណត់ដឹកជញ្ជូន",
     "deliveryPanelHint": "ជ្រើសរើសភ្នាក់ងារដឹកជញ្ជូនសម្រាប់រាល់ការកម្មង់។",
     "groupPanelTitle": "កំណត់ក្រុមការកម្មង់",
@@ -494,7 +505,10 @@
     "selectDeliveryPlaceholder": "— ជ្រើសរើសដឹកជញ្ជូន —",
     "currentGroup": "ក្រុមបច្ចុប្បន្ន",
     "assignGroup": "ក្រុមការកម្មង់",
-    "selectGroupPlaceholder": "— ជ្រើសរើសក្រុម —"
+    "selectGroupPlaceholder": "— ជ្រើសរើសក្រុម —",
+    "submitPanelTitle": "បញ្ជូនទៅរោងចក្រ",
+    "submitPanelHint": "ពិនិត្យការកម្មង់ក្នុងស្ថានភាព Owner_Preparing ហើយចុចបញ្ជូនទៅ Sent_To_Factory។",
+    "submitToFactoryButton": "បញ្ជូន"
   },
   "orderMovement": {
     "title": "ផ្លាស់ទីការកម្មង់",
@@ -588,8 +602,8 @@
   },
   "enums": {
     "orderStatus": {
-      "New_Order": "ការកម្មង់ថ្មី",
       "Owner_Preparing": "ម្ចាស់កំពុងរៀបចំ",
+      "Sent_To_Factory": "បានបញ្ជូនទៅរោងចក្រ",
       "Ready_For_Delivery": "រួចរាល់សម្រាប់ដឹកជញ្ជូន",
       "Recieve_By_Customer": "អតិថិជនបានទទួល"
     },
@@ -742,6 +756,7 @@
     "orderGroupDeleted": "បានលុបក្រុមការកម្មង់",
     "orderGroupAssigned": "បានកំណត់ក្រុមការកម្មង់",
     "deliveryAssigned": "បានរក្សាការកំណត់ដឹកជញ្ជូន",
+    "sentToFactory": "បានបញ្ជូនការកម្មង់ទៅរោងចក្រ",
     "orderDeleted": "បានលុបការកម្មង់",
     "paymentRecorded": "បានកត់ត្រាការទូទាត់",
     "userAdded": "បានបង្កើតអ្នកប្រើ",

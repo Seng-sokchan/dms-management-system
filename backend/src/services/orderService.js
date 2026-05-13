@@ -18,14 +18,19 @@ const deliveryAgentRepository = require("../repositories/deliveryAgents");
 const producerRepository = require("../repositories/producers");
 const lookupRepository = require("../repositories/lookups");
 const overviewRepository = require("../repositories/overview");
+const { getPool } = require("../db/pool");
 const { BadRequestError, NotFoundError, ForbiddenError } = require("../errors");
 
 /** New orders always use this producer; delivery agent is set later via assign. */
 const DEFAULT_NEW_ORDER_PRODUCER_ID = "1";
 
+const PENDING_ORDERS_MESSAGE =
+  "Complete all previous orders (delivered to customer) before placing new orders.";
+
 const STATUS_UPDATE_ROLES = new Set(["Admin", "Owner", "Logistics", "Delivery"]);
 const STATUS_OWNER_BY_TARGET = {
   Owner_Preparing: new Set(["Admin", "Owner"]),
+  Sent_To_Factory: new Set(["Admin", "Owner"]),
   Ready_For_Delivery: new Set(["Admin", "Owner", "Logistics", "Delivery"]),
   Recieve_By_Customer: new Set(["Admin", "Delivery"]),
 };
@@ -35,6 +40,8 @@ const STATUS_OWNER_BY_TARGET = {
 // ---------------------------------------------------------------------------
 
 function getNextAllowedStatuses(currentStatus, orderedStatuses = ORDER_STATUS) {
+  const mapped = NEXT_STATUS[currentStatus];
+  if (Array.isArray(mapped)) return mapped;
   if (Array.isArray(orderedStatuses) && orderedStatuses.length > 1) {
     const currentIndex = orderedStatuses.indexOf(currentStatus);
     if (currentIndex >= 0 && currentIndex < orderedStatuses.length - 1) {
@@ -44,7 +51,7 @@ function getNextAllowedStatuses(currentStatus, orderedStatuses = ORDER_STATUS) {
       return [];
     }
   }
-  return NEXT_STATUS[currentStatus] || [];
+  return [];
 }
 
 async function getStatusNames() {
@@ -99,6 +106,13 @@ async function getDashboardSummary() {
 // Mutations
 // ---------------------------------------------------------------------------
 
+async function assertNoNonTerminalOrdersForCustomer(customerId, executor) {
+  const n = await orderRepository.countNonTerminalOrdersByCustomer(customerId, executor);
+  if (n > 0) {
+    throw new BadRequestError(PENDING_ORDERS_MESSAGE);
+  }
+}
+
 /**
  * Create an order. Validates referenced entities exist and resolves the
  * unit price from customer-item mapping when not provided.
@@ -106,6 +120,8 @@ async function getDashboardSummary() {
 async function create(payload) {
   const customer = await customerRepository.getCustomerById(payload.customerId);
   if (!customer) throw new BadRequestError("Customer not found");
+
+  await assertNoNonTerminalOrdersForCustomer(payload.customerId);
 
   const item = await itemRepository.getItemById(payload.itemId);
   if (!item) throw new BadRequestError("Item not found");
@@ -133,6 +149,65 @@ async function create(payload) {
     currency,
     producerId: DEFAULT_NEW_ORDER_PRODUCER_ID,
   });
+}
+
+/**
+ * Create multiple orders for one customer in a single transaction.
+ * Same validation as {@link create} per line; fails entirely if any line is invalid
+ * or the customer has non-terminal orders at commit time.
+ */
+async function createBatch({ customerId, lines }) {
+  const producer = await producerRepository.getProducerById(DEFAULT_NEW_ORDER_PRODUCER_ID);
+  if (!producer) throw new BadRequestError("Default producer not found");
+
+  const customer = await customerRepository.getCustomerById(customerId);
+  if (!customer) throw new BadRequestError("Customer not found");
+
+  const rowsToInsert = [];
+  for (const line of lines) {
+    const item = await itemRepository.getItemById(line.itemId);
+    if (!item) throw new BadRequestError("Item not found");
+
+    const currency = String(line.currency || "KHR").toUpperCase() === "USD" ? "USD" : "KHR";
+    const mappedPrice = await customerItemPriceRepository.getCustomerItemPrice(
+      customerId,
+      line.itemId,
+      currency,
+    );
+    const unitPrice = line.unitPrice ?? mappedPrice?.unitPrice;
+    if (unitPrice == null) {
+      throw new BadRequestError("Customer item price not found");
+    }
+
+    rowsToInsert.push({
+      customerId,
+      addressId: customer.address,
+      itemId: line.itemId,
+      orderedQty: line.orderedQty,
+      unitPrice,
+      currency,
+      producerId: DEFAULT_NEW_ORDER_PRODUCER_ID,
+    });
+  }
+
+  const pool = getPool();
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    await assertNoNonTerminalOrdersForCustomer(customerId, conn);
+
+    const orders = [];
+    for (const row of rowsToInsert) {
+      orders.push(await orderRepository.createOrder(row, conn));
+    }
+    await conn.commit();
+    return orders;
+  } catch (err) {
+    await conn.rollback().catch(() => {});
+    throw err;
+  } finally {
+    conn.release();
+  }
 }
 
 /**
@@ -202,14 +277,14 @@ async function confirmDelivery(orderId) {
 }
 
 /**
- * Delete an order. Only New_Order is deletable.
+ * Delete an order. Only Owner_Preparing is deletable.
  */
 async function remove(orderId) {
   const order = await orderRepository.getOrderById(orderId);
   if (!order) throw new NotFoundError("Order not found");
 
-  if (order.status !== "New_Order") {
-    throw new BadRequestError("Only New_Order can be deleted");
+  if (order.status !== "Owner_Preparing") {
+    throw new BadRequestError("Only Owner_Preparing can be deleted");
   }
 
   const result = await orderRepository.deleteOrder(orderId);
@@ -223,8 +298,10 @@ async function remove(orderId) {
 // Mobile-specific helpers (kept narrow on purpose)
 // ---------------------------------------------------------------------------
 
-async function listForMobile() {
-  return orderRepository.listOrders();
+async function listForMobile({ user } = {}) {
+  const rows = await list();
+  if (user?.role !== "Delivery") return rows;
+  return rows.filter((row) => String(row.deliveryAgentId || "") === String(user.sub || ""));
 }
 
 async function updateStatusForMobile(orderId, nextStatus, { user }) {
@@ -246,6 +323,7 @@ module.exports = {
   listForMobile,
   // mutations
   create,
+  createBatch,
   assign,
   updateStatus,
   confirmDelivery,

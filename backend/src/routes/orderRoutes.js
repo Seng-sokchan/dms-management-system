@@ -14,6 +14,7 @@ const {
   listOrders,
   listOrderPaymentTotals,
   createOrder,
+  createOrderBatch,
   createOrderGroup,
   updateOrderGroup,
   deleteOrderGroup,
@@ -30,6 +31,7 @@ const { requireAuth } = require("../middleware/auth");
 const { validate } = require("../validators/validate");
 const {
   createOrderSchema,
+  createOrderBatchSchema,
   assignOrderSchema,
   updateOrderStatusSchema,
   confirmDeliverySchema,
@@ -70,6 +72,13 @@ router.delete(
   requireAuth,
   validate({ params: orderGroupIdParamsSchema }),
   deleteOrderGroup,
+);
+
+router.post(
+  "/orders/batch",
+  requireAuth,
+  validate({ body: createOrderBatchSchema }),
+  createOrderBatch,
 );
 
 router.post(

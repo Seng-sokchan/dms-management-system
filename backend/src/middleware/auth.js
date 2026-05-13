@@ -27,20 +27,11 @@ async function requireAuth(req, res, next) {
   }
 
   try {
-    const decoded = jwt.verify(token, getJwtSecret());
-    const currentUser = await getUserById(decoded.sub);
-    if (!currentUser || !currentUser.isActive) {
-      return res.status(401).json({
-        success: false,
-        error: { code: "UNAUTHORIZED", message: "Invalid token" },
-      });
+    const user = await resolveUserFromAccessToken(token);
+    if (!user) {
+      return fail(res, { status: 401, code: "UNAUTHORIZED", message: "Invalid token" });
     }
-    req.user = {
-      ...decoded,
-      name: currentUser.name,
-      username: currentUser.username,
-      role: currentUser.role,
-    };
+    req.user = user;
     return next();
   } catch (_error) {
     return fail(res, { status: 401, code: "UNAUTHORIZED", message: "Invalid token" });
@@ -73,9 +64,34 @@ function requireMenuKey(menuKey) {
   };
 }
 
+/**
+ * Resolve the current DB-backed user from a JWT access string (Socket.IO or custom callers).
+ * Returns null if invalid, inactive, or missing.
+ */
+async function resolveUserFromAccessToken(token) {
+  if (typeof token !== "string") return null;
+  const trimmed = token.trim();
+  if (!trimmed) return null;
+  try {
+    const decoded = jwt.verify(trimmed, getJwtSecret());
+    const currentUser = await getUserById(decoded.sub);
+    if (!currentUser || !currentUser.isActive) return null;
+    return {
+      ...decoded,
+      sub: String(currentUser.id),
+      name: currentUser.name,
+      username: currentUser.username,
+      role: currentUser.role,
+    };
+  } catch (_error) {
+    return null;
+  }
+}
+
 module.exports = {
   createToken,
   requireAuth,
   requireRoles,
   requireMenuKey,
+  resolveUserFromAccessToken,
 };

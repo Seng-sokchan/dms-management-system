@@ -22,10 +22,12 @@ export function AssignOrdersPage({
   orderGroups = [],
   onAssignDelivery,
   onAssignOrderGroup,
+  onSubmitToFactory,
 }) {
   const { t } = useTranslation();
   const [busyDeliveryId, setBusyDeliveryId] = useState(null);
   const [busyGroupId, setBusyGroupId] = useState(null);
+  const [busySubmitId, setBusySubmitId] = useState(null);
   const [searchText, setSearchText] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
 
@@ -49,6 +51,10 @@ export function AssignOrdersPage({
         .some((value) => String(value).toLowerCase().includes(keyword)),
     );
   }, [sortedOrders, appliedSearch]);
+  const ownerPreparingOrders = useMemo(
+    () => filteredOrders.filter((order) => order.status === "Owner_Preparing"),
+    [filteredOrders],
+  );
   const {
     page: deliveryAssignPage,
     pageSize: deliveryAssignPageSize,
@@ -56,6 +62,13 @@ export function AssignOrdersPage({
     setPage: setDeliveryAssignPage,
     setPageSize: setDeliveryAssignPageSize,
   } = usePagination(filteredOrders, { resetKey: appliedSearch });
+  const {
+    page: submitPage,
+    pageSize: submitPageSize,
+    paged: pagedOrdersForSubmit,
+    setPage: setSubmitPage,
+    setPageSize: setSubmitPageSize,
+  } = usePagination(ownerPreparingOrders, { resetKey: appliedSearch });
   const {
     page: groupAssignPage,
     pageSize: groupAssignPageSize,
@@ -91,6 +104,16 @@ export function AssignOrdersPage({
       await onAssignOrderGroup(order.id, next);
     } finally {
       setBusyGroupId(null);
+    }
+  }
+
+  async function handleSubmitToFactory(orderId) {
+    if (!onSubmitToFactory) return;
+    setBusySubmitId(orderId);
+    try {
+      await onSubmitToFactory(orderId);
+    } finally {
+      setBusySubmitId(null);
     }
   }
 
@@ -216,6 +239,50 @@ export function AssignOrdersPage({
                       </option>
                     ))}
                   </select>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </DataTable>
+
+        <h3 className="assign-orders-subpanel-title">{t("assignOrders.submitPanelTitle")}</h3>
+        <p className="form-hint">{t("assignOrders.submitPanelHint")}</p>
+        <DataTable
+          pagination={{
+            page: submitPage,
+            pageSize: submitPageSize,
+            totalRows: ownerPreparingOrders.length,
+            onPageChange: setSubmitPage,
+            onPageSizeChange: setSubmitPageSize,
+          }}
+        >
+          <thead>
+            <tr>
+              <th>{t("orders.customer")}</th>
+              <th>{t("orders.address")}</th>
+              <th>{t("orders.item")}</th>
+              <th>{t("orders.status")}</th>
+              <th>{t("orders.actions")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pagedOrdersForSubmit.map((order) => (
+              <tr key={`submit-${order.id}`}>
+                <td>{order.customerName || t("orders.dash")}</td>
+                <td>{order.orderAddressName || order.customerAddressName || t("orders.dash")}</td>
+                <td>{order.itemName ? `#${order.id} · ${order.itemName}` : `#${order.id}`}</td>
+                <td>
+                  <span className="status-chip">{order.status}</span>
+                </td>
+                <td>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    disabled={busySubmitId === order.id}
+                    onClick={() => void handleSubmitToFactory(order.id)}
+                  >
+                    {t("assignOrders.submitToFactoryButton")}
+                  </button>
                 </td>
               </tr>
             ))}

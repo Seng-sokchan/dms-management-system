@@ -174,11 +174,22 @@
   },
   "trackingCustomerLocation": {
     "title": "Tracking Customer Location",
-    "lead": "Customers with latitude and longitude appear as markers on the map.",
+    "lead": "Customers with stored coordinates appear as red markers. Delivery drivers on duty appear as blue markers when live tracking is available.",
     "noApiKey": "Set VITE_GOOGLE_MAPS_API_KEY in the frontend environment and enable the Maps JavaScript API for your Google Cloud project.",
-    "noMarkers": "No customers have both latitude and longitude set. Add coordinates on the Customers page.",
-    "showing": "Showing {{count}} location(s) with coordinates.",
-    "openMaps": "Open in Google Maps"
+    "noMarkers": "No locations to show yet. Set customer latitude and longitude on the Customers page, or wait for an active delivery driver to broadcast their position.",
+    "showing": "Customers with map pins: {{count}} · Live drivers: {{deliveryCount}}",
+    "openMaps": "Open in Google Maps",
+    "liveDeliveryTitle": "Live delivery drivers",
+    "liveDeliveryConnected": "Connected. Active drivers on map: {{count}}.",
+    "liveDeliveryWaiting": "Connected. Waiting for drivers to share location…",
+    "liveDeliveryConnecting": "Connecting to live updates…",
+    "liveDeliveryDisconnected": "Disconnected from live updates.",
+    "liveDeliveryError": "Live connection error: {{message}}",
+    "liveDeliveryIdle": "Live delivery map is not available for this role.",
+    "markerKindCustomer": "Customer",
+    "markerKindDelivery": "Delivery",
+    "lastSeen": "Last seen {{time}}",
+    "lastSeenUnknown": "Last seen —"
   },
   "addresses": {
     "title": "Addresses",
@@ -484,7 +495,7 @@
   },
   "assignOrders": {
     "title": "Assign orders",
-    "lead": "Set the delivery agent and order group for each line. Choosing a value saves immediately.",
+    "lead": "Set the delivery agent and order group for each line, then submit Owner Preparing orders to factory.",
     "deliveryPanelTitle": "Assign delivery",
     "deliveryPanelHint": "Pick a delivery agent for each order.",
     "groupPanelTitle": "Assign order group",
@@ -494,7 +505,10 @@
     "selectDeliveryPlaceholder": "— Select delivery —",
     "currentGroup": "Current group",
     "assignGroup": "Order group",
-    "selectGroupPlaceholder": "— Select group —"
+    "selectGroupPlaceholder": "— Select group —",
+    "submitPanelTitle": "Submit to factory",
+    "submitPanelHint": "Review Owner_Preparing orders and submit them to Sent_To_Factory.",
+    "submitToFactoryButton": "Submit"
   },
   "orderMovement": {
     "title": "Order movement",
@@ -588,8 +602,8 @@
   },
   "enums": {
     "orderStatus": {
-      "New_Order": "New order",
       "Owner_Preparing": "Owner preparing",
+      "Sent_To_Factory": "Sent to factory",
       "Ready_For_Delivery": "Ready for delivery",
       "Recieve_By_Customer": "Received by customer"
     },
@@ -742,6 +756,7 @@
     "orderGroupDeleted": "Order group deleted",
     "orderGroupAssigned": "Order group assigned",
     "deliveryAssigned": "Delivery assignment saved",
+    "sentToFactory": "Order sent to factory",
     "orderDeleted": "Order deleted",
     "paymentRecorded": "Payment recorded",
     "userAdded": "User created",

@@ -3,7 +3,7 @@ function mapOrder(row) {
   return {
     id: String(row.id),
     customerDirectoryName: row.customer_name != null ? row.customer_name : null,
-    customerName: orderAddressName || row.customer_name,
+    customerName: row.customer_name != null ? row.customer_name : null,
     addressId: row.address != null ? String(row.address) : null,
     orderAddressName,
     customerAddressId: row.customer_address_id != null ? String(row.customer_address_id) : null,
@@ -68,6 +68,7 @@ function mapCustomer(row) {
     addressName: row.address_name || "",
     latitude: parseCustomerCoord(row.latitude),
     longitude: parseCustomerCoord(row.longitude),
+    updatedAt: row.updated_at != null ? row.updated_at : null,
   };
 }
 

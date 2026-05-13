@@ -112,6 +112,7 @@ function App() {
     submitOrderMovement,
     submitOrderDeliveryAssignment,
     submitOrderGroupAssignment,
+    submitSendOrderToFactory,
     submitBorrowMaterial,
     submitBorrowMaterialUpdate,
     submitBorrowMaterialDelete,
@@ -358,7 +359,7 @@ function App() {
         path="/tracking-customer-location"
         element={withLayout(
           canAccessPath(user, "/tracking-customer-location") ? (
-            <TrackingCustomerLocationPage customers={customers} />
+            <TrackingCustomerLocationPage customers={customers} token={token} userRole={user?.role || ""} />
           ) : (
             renderDeniedRoute()
           ),
@@ -521,6 +522,7 @@ function App() {
               orderGroups={orderGroups}
               onAssignDelivery={submitOrderDeliveryAssignment}
               onAssignOrderGroup={submitOrderGroupAssignment}
+              onSubmitToFactory={submitSendOrderToFactory}
             />
           ) : (
             renderDeniedRoute()

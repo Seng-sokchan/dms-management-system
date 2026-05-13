@@ -20,11 +20,30 @@ async function getOrderById(id, executor) {
   return resultRows[0] ? mapOrder(resultRows[0]) : null;
 }
 
-async function createOrder(payload) {
+/** Terminal status name in DB: order is complete (delivered). */
+const TERMINAL_ORDER_STATUS_NAME = "Recieve_By_Customer";
+
+/**
+ * Count orders for this customer that are not yet delivered (not terminal status).
+ */
+async function countNonTerminalOrdersByCustomer(customerId, executor) {
+  const db = resolveExecutor(executor);
+  const [rows] = await db.query(
+    `SELECT COUNT(*) AS cnt
+     FROM orders o
+     INNER JOIN status s ON s.id = o.status
+     WHERE o.customer_id = ? AND s.name <> ?`,
+    [Number(customerId), TERMINAL_ORDER_STATUS_NAME],
+  );
+  return Number(rows[0]?.cnt || 0);
+}
+
+async function createOrder(payload, executor) {
+  const db = resolveExecutor(executor);
   const order = {
     ...payload,
     amountTotal: payload.orderedQty * payload.unitPrice,
-    status: "New_Order",
+    status: "Owner_Preparing",
     createdAt: nowIso(),
     updatedAt: nowIso(),
   };
@@ -32,11 +51,11 @@ async function createOrder(payload) {
   const customerId = Number(order.customerId);
   const addressId = Number(order.addressId);
   const producerId = order.producerId ? Number(order.producerId) : null;
-  const statusId = await getStatusIdByName(order.status);
+  const statusId = await getStatusIdByName(order.status, executor);
   if (!statusId) {
     throw new Error("Status not found");
   }
-  const [rowsRaw] = await getPool().query("CALL sp_create_order(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [
+  const [rowsRaw] = await db.query("CALL sp_create_order(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [
     customerId,
     addressId,
     itemId,
@@ -49,7 +68,7 @@ async function createOrder(payload) {
     order.updatedAt,
   ]);
   const meta = getProcedureMeta(rowsRaw);
-  return getOrderById(meta.insertId);
+  return getOrderById(meta.insertId, executor);
 }
 
 function toSqlIntOrNull(v) {
@@ -141,6 +160,7 @@ async function deleteOrder(id) {
 module.exports = {
   listOrders,
   getOrderById,
+  countNonTerminalOrdersByCustomer,
   createOrder,
   updateOrderAssignment,
   updateOrderStatus,
