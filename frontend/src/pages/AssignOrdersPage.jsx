@@ -221,7 +221,6 @@ export function AssignOrdersPage({
           <thead>
             <tr>
               <th>{t("orders.customer")}</th>
-              <th>{t("orders.address")}</th>
               <th>{t("orders.item")}</th>
               <th>{t("orders.status")}</th>
               <th>{t("orders.actions")}</th>
@@ -231,7 +230,6 @@ export function AssignOrdersPage({
             {pagedOrdersForSubmit.map((order) => (
               <tr key={`submit-${order.id}`}>
                 <td>{order.customerName || t("orders.dash")}</td>
-                <td>{order.orderAddressName || order.customerAddressName || t("orders.dash")}</td>
                 <td>{order.itemName ? `#${order.id} · ${order.itemName}` : `#${order.id}`}</td>
                 <td>
                   <span className="status-chip">{order.status}</span>

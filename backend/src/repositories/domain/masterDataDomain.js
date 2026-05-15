@@ -1,11 +1,4 @@
 const {
-  listAddresses,
-  getAddressById,
-  createAddress,
-  updateAddress,
-  deleteAddress,
-} = require("../addresses");
-const {
   listOrderGroups,
   getOrderGroupById,
   createOrderGroup,
@@ -36,11 +29,6 @@ const {
   deleteDeliveryAgent,
 } = require("../deliveryAgents");
 module.exports = {
-  listAddresses,
-  getAddressById,
-  createAddress,
-  updateAddress,
-  deleteAddress,
   listOrderGroups,
   getOrderGroupById,
   createOrderGroup,

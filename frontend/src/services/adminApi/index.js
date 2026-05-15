@@ -9,7 +9,6 @@ export * from "./catalogs";
 export * from "./items";
 export * from "./customers";
 export * from "./depots";
-export * from "./addresses";
 export * from "./producers";
 export * from "./deliveryAgents";
 export * from "./users";

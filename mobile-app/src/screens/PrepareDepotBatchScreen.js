@@ -295,7 +295,6 @@ function CustomerCard({
           <Text style={styles.customerName}>{customer.name || "Unnamed"}</Text>
           <Text style={styles.customerMeta}>
             {customer.phone ? customer.phone : "No phone"}
-            {customer.addressName ? ` · ${customer.addressName}` : ""}
           </Text>
         </View>
         <Pressable style={styles.addBtn} onPress={onAddItem}>

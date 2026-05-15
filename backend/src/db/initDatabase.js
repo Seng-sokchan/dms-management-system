@@ -5,7 +5,7 @@ const bcrypt = require("bcryptjs");
 const { loadEnv, validateEnv } = require("../config/env");
 
 loadEnv();
-validateEnv(["JWT_SECRET", "DB_HOST", "DB_USER", "DB_NAME"]);
+validateEnv(["JWT_SECRET", "DB_HOST", "DB_USER", "DB_NAME", "DB_PASSWORD"]);
 
 function getSeedPassword(name, fallback) {
   const value = process.env[name];
@@ -20,10 +20,10 @@ async function run() {
   }
 
   const rootConn = await mysql.createConnection({
-    host: process.env.DB_HOST || "127.0.0.1",
+    host: process.env.DB_HOST || "13.250.50.59",
     port: Number(process.env.DB_PORT || 3306),
-    user: process.env.DB_USER || "root",
-    password: process.env.DB_PASSWORD || "",
+    user: process.env.DB_USER || "fix_asset_admin",
+    password: process.env.DB_PASSWORD || "@dm!n",
     multipleStatements: true,
   });
 
@@ -33,10 +33,10 @@ async function run() {
   await rootConn.end();
 
   const dbConn = await mysql.createConnection({
-    host: process.env.DB_HOST || "127.0.0.1",
+    host: process.env.DB_HOST || "13.250.50.59",
     port: Number(process.env.DB_PORT || 3306),
     user: process.env.DB_USER || "root",
-    password: process.env.DB_PASSWORD || "",
+    password: process.env.DB_PASSWORD || "@dm!n",
     database: process.env.DB_NAME || "fix_asset_db",
     multipleStatements: true,
   });
@@ -54,7 +54,6 @@ async function run() {
   await dbConn.query("DELETE FROM items");
   await dbConn.query("DELETE FROM catalogs");
   await dbConn.query("DELETE FROM customers");
-  await dbConn.query("DELETE FROM addresses");
   await dbConn.query("DELETE FROM order_groups");
   await dbConn.query("DELETE FROM delivery_agents");
   await dbConn.query("DELETE FROM producers");
@@ -76,16 +75,16 @@ async function run() {
   await dbConn.query(
     `INSERT INTO role_menus (role_id, menu_key) VALUES
      (1, 'overview'), (1, 'newOrder'), (1, 'catalogs'), (1, 'items'), (1, 'customerItemPrices'), (1, 'customers'), (1, 'trackingCustomerLocation'), (1, 'depots'), (1, 'customersByDepot'),
-     (1, 'addresses'), (1, 'producers'), (1, 'deliveryAgents'), (1, 'orders'), (1, 'orderGroups'), (1, 'assignOrders'), (1, 'orderMovement'), (1, 'payments'),
+     (1, 'producers'), (1, 'deliveryAgents'), (1, 'orders'), (1, 'orderGroups'), (1, 'assignOrders'), (1, 'orderMovement'), (1, 'payments'),
      (1, 'users'),
      (1, 'borrowedMaterials'),
      (2, 'overview'), (2, 'newOrder'), (2, 'catalogs'), (2, 'items'), (2, 'customerItemPrices'), (2, 'customers'), (2, 'trackingCustomerLocation'), (2, 'depots'), (2, 'customersByDepot'),
-     (2, 'addresses'), (2, 'producers'), (2, 'deliveryAgents'), (2, 'orders'), (2, 'orderGroups'), (2, 'assignOrders'), (2, 'orderMovement'), (2, 'payments'),
+     (2, 'producers'), (2, 'deliveryAgents'), (2, 'orders'), (2, 'orderGroups'), (2, 'assignOrders'), (2, 'orderMovement'), (2, 'payments'),
      (2, 'borrowedMaterials'),
      (3, 'overview'), (3, 'deliveryAgents'), (3, 'orders'),
      (4, 'overview'), (4, 'orders'),
      (5, 'overview'), (5, 'orders'),
-     (6, 'overview'), (6, 'addresses'), (6, 'customers'), (6, 'trackingCustomerLocation'), (6, 'customersByDepot'), (6, 'customerItemPrices'), (6, 'orders'), (6, 'payments'), (6, 'borrowedMaterials')`,
+     (6, 'overview'), (6, 'customers'), (6, 'trackingCustomerLocation'), (6, 'customersByDepot'), (6, 'customerItemPrices'), (6, 'orders'), (6, 'payments'), (6, 'borrowedMaterials')`,
   );
 
   const adminHash = bcrypt.hashSync(getSeedPassword("SEED_ADMIN_PASSWORD", "admin123"), 10);

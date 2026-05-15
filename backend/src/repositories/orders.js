@@ -49,15 +49,13 @@ async function createOrder(payload, executor) {
   };
   const itemId = Number(order.itemId);
   const customerId = Number(order.customerId);
-  const addressId = Number(order.addressId);
   const producerId = order.producerId ? Number(order.producerId) : null;
   const statusId = await getStatusIdByName(order.status, executor);
   if (!statusId) {
     throw new Error("Status not found");
   }
-  const [rowsRaw] = await db.query("CALL sp_create_order(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [
+  const [rowsRaw] = await db.query("CALL sp_create_order(?, ?, ?, ?, ?, ?, ?, ?, ?)", [
     customerId,
-    addressId,
     itemId,
     order.orderedQty,
     order.unitPrice,

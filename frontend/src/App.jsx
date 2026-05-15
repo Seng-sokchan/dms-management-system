@@ -15,7 +15,6 @@ import { OverviewPage } from "./pages/OverviewPage";
 import { CatalogsPage } from "./pages/CatalogsPage";
 import { ItemsPage } from "./pages/ItemsPage";
 import { CustomerItemPricesPage } from "./pages/CustomerItemPricesPage";
-import { AddressesPage } from "./pages/AddressesPage";
 import { ProducersPage } from "./pages/ProducersPage";
 import { CustomersPage } from "./pages/CustomersPage";
 import { CustomersByDepotPage } from "./pages/CustomersByDepotPage";
@@ -37,7 +36,6 @@ function App() {
     orders,
     customers,
     depots,
-    addresses,
     producers,
     deliveryAgents,
     orderGroups,
@@ -57,7 +55,6 @@ function App() {
     newDepot,
     newCatalog,
     newOrderGroup,
-    newAddress,
     newItem,
     newDelivery,
     newBorrowMaterial,
@@ -73,7 +70,6 @@ function App() {
     setNewDepot,
     setNewCatalog,
     setNewOrderGroup,
-    setNewAddress,
     setNewItem,
     setNewDelivery,
     setNewBorrowMaterial,
@@ -86,9 +82,6 @@ function App() {
     submitOrderGroupCreate,
     submitOrderGroupUpdate,
     submitOrderGroupDelete,
-    submitAddress,
-    submitAddressUpdate,
-    submitAddressDelete,
     submitItem,
     submitItemUpdate,
     submitItemDelete,
@@ -254,7 +247,6 @@ function App() {
             <CreateOrderPage
               user={user}
               customers={customers}
-              addresses={addresses}
               items={items}
               newOrder={newOrder}
               setNewOrder={setNewOrder}
@@ -317,29 +309,11 @@ function App() {
         )}
       />
       <Route
-        path="/addresses"
-        element={withLayout(
-          canAccessPath(user, "/addresses") ? (
-            <AddressesPage
-              addresses={addresses}
-              newAddress={newAddress}
-              setNewAddress={setNewAddress}
-              onCreateAddress={submitAddress}
-              onUpdateAddress={submitAddressUpdate}
-              onDeleteAddress={submitAddressDelete}
-            />
-          ) : (
-            renderDeniedRoute()
-          ),
-        )}
-      />
-      <Route
         path="/customers"
         element={withLayout(
           canAccessPath(user, "/customers") ? (
             <CustomersPage
               customers={customers}
-              addresses={addresses}
               depots={depots}
               newCustomer={newCustomer}
               setNewCustomer={setNewCustomer}

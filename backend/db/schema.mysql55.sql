@@ -111,20 +111,10 @@ CREATE TABLE order_groups (
   UNIQUE KEY uq_order_groups_name (name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-CREATE TABLE addresses (
-  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  name VARCHAR(255) NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME NULL,
-  PRIMARY KEY (id),
-  KEY idx_addresses_name (name)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
 CREATE TABLE customers (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   name VARCHAR(120) NULL DEFAULT NULL,
   phone VARCHAR(30) NULL DEFAULT NULL,
-  address INT UNSIGNED NOT NULL,
   depot_id INT UNSIGNED DEFAULT NULL,
   latitude DECIMAL(10,7) NULL DEFAULT NULL,
   longitude DECIMAL(10,7) NULL DEFAULT NULL,
@@ -133,7 +123,6 @@ CREATE TABLE customers (
   updated_at DATETIME NULL,
   PRIMARY KEY (id),
   KEY idx_customers_name (name),
-  KEY idx_customers_address (address),
   KEY idx_customers_depot_id (depot_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
@@ -218,7 +207,6 @@ INSERT INTO status (id, name) VALUES
 CREATE TABLE orders (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   customer_id INT UNSIGNED NOT NULL,
-  address INT UNSIGNED NOT NULL,
   order_group_id INT UNSIGNED DEFAULT NULL,
   item_id INT UNSIGNED NOT NULL,
   currency VARCHAR(10) NOT NULL DEFAULT 'KHR',
@@ -237,7 +225,6 @@ CREATE TABLE orders (
   KEY idx_orders_producer_id (producer_id),
   KEY idx_orders_delivery_agent (delivery_agent_id),
   KEY idx_orders_customer_id (customer_id),
-  KEY idx_orders_address (address),
   KEY idx_orders_order_group_id (order_group_id),
   KEY idx_orders_item_id (item_id),
   CONSTRAINT fk_orders_delivery_agent FOREIGN KEY (delivery_agent_id) REFERENCES delivery_agents (id)
@@ -344,7 +331,6 @@ DROP PROCEDURE IF EXISTS sp_get_payment_status_id_by_name;
 DROP PROCEDURE IF EXISTS sp_list_payment_methods;
 DROP PROCEDURE IF EXISTS sp_create_payment;
 DROP PROCEDURE IF EXISTS sp_apply_payment_to_order;
-DROP PROCEDURE IF EXISTS sp_list_addresses;
 DROP PROCEDURE IF EXISTS sp_list_role_menu_keys_by_role_name;
 DROP PROCEDURE IF EXISTS sp_list_roles;
 DROP PROCEDURE IF EXISTS sp_list_role_menus;
@@ -537,36 +523,32 @@ WHERE d.is_active = 1
 ORDER BY d.id DESC;
 
 CREATE PROCEDURE sp_get_customer_by_id(IN p_id INT UNSIGNED)
-SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, u.id AS user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.latitude, c.longitude, c.updated_at
+SELECT c.id, c.name, c.phone, u.id AS user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.latitude, c.longitude, c.updated_at
 FROM customers c
-INNER JOIN addresses a ON a.id = c.address
 LEFT JOIN users u ON u.customer_id = c.id
 LEFT JOIN depots d ON d.id = c.depot_id AND d.is_active = 1
 WHERE c.id = p_id AND c.is_active = 1
 LIMIT 1;
 
 CREATE PROCEDURE sp_list_customers()
-SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, u.id AS user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.latitude, c.longitude, c.updated_at
+SELECT c.id, c.name, c.phone, u.id AS user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.latitude, c.longitude, c.updated_at
 FROM customers c
-INNER JOIN addresses a ON a.id = c.address
 LEFT JOIN users u ON u.customer_id = c.id
 LEFT JOIN depots d ON d.id = c.depot_id AND d.is_active = 1
 WHERE c.is_active = 1
 ORDER BY c.id DESC;
 
 CREATE PROCEDURE sp_list_customers_by_depot_id(IN p_depot_id INT UNSIGNED)
-SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, u.id AS user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.latitude, c.longitude, c.updated_at
+SELECT c.id, c.name, c.phone, u.id AS user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.latitude, c.longitude, c.updated_at
 FROM customers c
-INNER JOIN addresses a ON a.id = c.address
 LEFT JOIN users u ON u.customer_id = c.id
 INNER JOIN depots d ON d.id = c.depot_id
 WHERE c.is_active = 1 AND d.is_active = 1 AND c.depot_id = p_depot_id
 ORDER BY c.id DESC;
 
 CREATE PROCEDURE sp_list_customers_by_owner_user_id(IN p_owner_user_id INT UNSIGNED)
-SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, u.id AS user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.latitude, c.longitude, c.updated_at
+SELECT c.id, c.name, c.phone, u.id AS user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.latitude, c.longitude, c.updated_at
 FROM customers c
-INNER JOIN addresses a ON a.id = c.address
 LEFT JOIN users u ON u.customer_id = c.id
 LEFT JOIN depots d ON d.id = c.depot_id AND d.is_active = 1
 WHERE c.is_active = 1
@@ -577,10 +559,9 @@ WHERE c.is_active = 1
 ORDER BY c.id DESC;
 
 CREATE PROCEDURE sp_get_customer_by_user_id(IN p_user_id INT UNSIGNED)
-SELECT c.id, c.name, c.phone, c.address, a.name AS address_name, u.id AS user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.latitude, c.longitude, c.updated_at
+SELECT c.id, c.name, c.phone, u.id AS user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.latitude, c.longitude, c.updated_at
 FROM users u
 INNER JOIN customers c ON c.id = u.customer_id AND c.is_active = 1
-INNER JOIN addresses a ON a.id = c.address
 LEFT JOIN depots d ON d.id = c.depot_id AND d.is_active = 1
 WHERE u.id = p_user_id AND u.is_active = 1
 LIMIT 1;
@@ -709,11 +690,6 @@ SELECT id, name
 FROM status
 ORDER BY id DESC;
 
-CREATE PROCEDURE sp_list_addresses()
-SELECT a.id, a.name
-FROM addresses a
-ORDER BY a.id DESC;
-
 CREATE PROCEDURE sp_get_status_id_by_name(IN p_name VARCHAR(30))
 SELECT id
 FROM status
@@ -722,7 +698,7 @@ LIMIT 1;
 
 CREATE PROCEDURE sp_get_order_by_id(IN p_id INT UNSIGNED)
 SELECT
-  o.id, c.name AS customer_name, o.address, oa.name AS order_address_name, c.address AS customer_address_id, ca.name AS customer_address_name, o.customer_id, o.order_group_id, og.name AS order_group_name, o.item_id, o.currency, o.ordered_qty, o.unit_price,
+  o.id, c.name AS customer_name, o.customer_id, o.order_group_id, og.name AS order_group_name, o.item_id, o.currency, o.ordered_qty, o.unit_price,
   o.producer_id, o.delivery_agent_id, o.delivery_time,
   o.amount_total, s.name AS status, o.created_at, o.updated_at,
   c.phone AS customer_phone,
@@ -732,8 +708,6 @@ SELECT
   it.sku AS item_sku
 FROM orders o
 INNER JOIN customers c ON c.id = o.customer_id
-INNER JOIN addresses oa ON oa.id = o.address
-INNER JOIN addresses ca ON ca.id = c.address
 INNER JOIN items it ON it.id = o.item_id
 INNER JOIN status s ON s.id = o.status
 LEFT JOIN producers p ON p.id = o.producer_id
@@ -744,7 +718,7 @@ LIMIT 1;
 
 CREATE PROCEDURE sp_list_orders()
 SELECT
-  o.id, c.name AS customer_name, o.address, oa.name AS order_address_name, c.address AS customer_address_id, ca.name AS customer_address_name, o.customer_id, o.order_group_id, og.name AS order_group_name, o.item_id, o.currency, o.ordered_qty, o.unit_price,
+  o.id, c.name AS customer_name, o.customer_id, o.order_group_id, og.name AS order_group_name, o.item_id, o.currency, o.ordered_qty, o.unit_price,
   o.producer_id, o.delivery_agent_id, o.delivery_time,
   o.amount_total, s.name AS status, o.created_at, o.updated_at,
   c.phone AS customer_phone,
@@ -754,8 +728,6 @@ SELECT
   it.sku AS item_sku
 FROM orders o
 INNER JOIN customers c ON c.id = o.customer_id
-INNER JOIN addresses oa ON oa.id = o.address
-INNER JOIN addresses ca ON ca.id = c.address
 INNER JOIN items it ON it.id = o.item_id
 INNER JOIN status s ON s.id = o.status
 LEFT JOIN producers p ON p.id = o.producer_id
@@ -765,7 +737,6 @@ ORDER BY o.id DESC;
 
 CREATE PROCEDURE sp_create_order(
   IN p_customer_id INT UNSIGNED,
-  IN p_address INT UNSIGNED,
   IN p_item_id INT UNSIGNED,
   IN p_ordered_qty DECIMAL(12,2),
   IN p_unit_price DECIMAL(12,2),
@@ -777,11 +748,11 @@ CREATE PROCEDURE sp_create_order(
 )
 BEGIN
   INSERT INTO orders (
-    customer_id, address, order_group_id, item_id, currency, ordered_qty, unit_price, producer_id, delivery_agent_id, delivery_time,
+    customer_id, order_group_id, item_id, currency, ordered_qty, unit_price, producer_id, delivery_agent_id, delivery_time,
     amount_total, status, updated_at
   )
   VALUES (
-    p_customer_id, p_address, NULL, p_item_id, p_currency, p_ordered_qty, p_unit_price, p_producer_id, NULL, NULL,
+    p_customer_id, NULL, p_item_id, p_currency, p_ordered_qty, p_unit_price, p_producer_id, NULL, NULL,
     p_amount_total, p_status, p_updated_at
   );
   SELECT LAST_INSERT_ID() AS insertId;
@@ -883,15 +854,14 @@ END;
 CREATE PROCEDURE sp_create_customer(
   IN p_name VARCHAR(255),
   IN p_phone VARCHAR(30),
-  IN p_address INT UNSIGNED,
   IN p_depot_id INT UNSIGNED,
   IN p_latitude DECIMAL(10,7),
   IN p_longitude DECIMAL(10,7),
   IN p_updated_at DATETIME
 )
 BEGIN
-  INSERT INTO customers (name, phone, address, depot_id, latitude, longitude, updated_at)
-  VALUES (p_name, p_phone, p_address, p_depot_id, p_latitude, p_longitude, p_updated_at);
+  INSERT INTO customers (name, phone, depot_id, latitude, longitude, updated_at)
+  VALUES (p_name, p_phone, p_depot_id, p_latitude, p_longitude, p_updated_at);
   SELECT LAST_INSERT_ID() AS insertId;
 END;
 
@@ -899,7 +869,6 @@ CREATE PROCEDURE sp_update_customer(
   IN p_id INT UNSIGNED,
   IN p_name VARCHAR(255),
   IN p_phone VARCHAR(30),
-  IN p_address INT UNSIGNED,
   IN p_depot_id INT UNSIGNED,
   IN p_latitude DECIMAL(10,7),
   IN p_longitude DECIMAL(10,7),
@@ -907,7 +876,7 @@ CREATE PROCEDURE sp_update_customer(
 )
 BEGIN
   UPDATE customers
-  SET name = p_name, phone = p_phone, address = p_address, depot_id = p_depot_id, latitude = p_latitude, longitude = p_longitude, updated_at = p_updated_at
+  SET name = p_name, phone = p_phone, depot_id = p_depot_id, latitude = p_latitude, longitude = p_longitude, updated_at = p_updated_at
   WHERE id = p_id AND is_active = 1;
   SELECT ROW_COUNT() AS affectedRows;
 END;
@@ -1331,16 +1300,16 @@ DEALLOCATE PREPARE stmt_role_menus;
 
 INSERT INTO role_menus (role_id, menu_key) VALUES
 (1, 'overview'), (1, 'newOrder'), (1, 'catalogs'), (1, 'items'), (1, 'customerItemPrices'), (1, 'customers'), (1, 'trackingCustomerLocation'), (1, 'depots'), (1, 'customersByDepot'),
-(1, 'addresses'), (1, 'producers'), (1, 'deliveryAgents'), (1, 'orders'), (1, 'orderGroups'), (1, 'assignOrders'), (1, 'orderMovement'), (1, 'payments'),
+(1, 'producers'), (1, 'deliveryAgents'), (1, 'orders'), (1, 'orderGroups'), (1, 'assignOrders'), (1, 'orderMovement'), (1, 'payments'),
 (1, 'users'),
 (1, 'borrowedMaterials'),
 (2, 'overview'), (2, 'newOrder'), (2, 'catalogs'), (2, 'items'), (2, 'customerItemPrices'), (2, 'customers'), (2, 'trackingCustomerLocation'), (2, 'depots'), (2, 'customersByDepot'),
-(2, 'addresses'), (2, 'producers'), (2, 'deliveryAgents'), (2, 'orders'), (2, 'orderGroups'), (2, 'assignOrders'), (2, 'orderMovement'), (2, 'payments'),
+(2, 'producers'), (2, 'deliveryAgents'), (2, 'orders'), (2, 'orderGroups'), (2, 'assignOrders'), (2, 'orderMovement'), (2, 'payments'),
 (2, 'borrowedMaterials'),
 (3, 'overview'), (3, 'deliveryAgents'), (3, 'orders'),
 (4, 'overview'), (4, 'orders'),
 (5, 'overview'), (5, 'orders'),
-(6, 'overview'), (6, 'addresses'), (6, 'customers'), (6, 'trackingCustomerLocation'), (6, 'customersByDepot'), (6, 'customerItemPrices'), (6, 'orders'), (6, 'payments'), (6, 'borrowedMaterials')
+(6, 'overview'), (6, 'customers'), (6, 'trackingCustomerLocation'), (6, 'customersByDepot'), (6, 'customerItemPrices'), (6, 'orders'), (6, 'payments'), (6, 'borrowedMaterials')
 ON DUPLICATE KEY UPDATE menu_key = VALUES(menu_key);
 
 -- 2) Remove obsolete orders.producer_confirm_status if it still exists
@@ -1383,95 +1352,57 @@ PREPARE stmt_create_order_groups FROM @sql_create_order_groups;
 EXECUTE stmt_create_order_groups;
 DEALLOCATE PREPARE stmt_create_order_groups;
 
-SET @has_addresses_order_group_fk := (
-  SELECT COUNT(*)
-  FROM information_schema.table_constraints
-  WHERE table_schema = DATABASE()
-    AND table_name = 'addresses'
-    AND constraint_name = 'fk_addresses_order_group'
-);
-SET @sql_drop_addresses_order_group_fk := IF(
-  @has_addresses_order_group_fk > 0,
-  'ALTER TABLE addresses DROP FOREIGN KEY fk_addresses_order_group',
-  'SELECT 1'
-);
-PREPARE stmt_drop_addresses_order_group_fk FROM @sql_drop_addresses_order_group_fk;
-EXECUTE stmt_drop_addresses_order_group_fk;
-DEALLOCATE PREPARE stmt_drop_addresses_order_group_fk;
-
-SET @has_addresses_order_group_idx := (
-  SELECT COUNT(*)
-  FROM information_schema.statistics
-  WHERE table_schema = DATABASE()
-    AND table_name = 'addresses'
-    AND index_name = 'idx_addresses_order_group_id'
-);
-SET @sql_drop_addresses_order_group_idx := IF(
-  @has_addresses_order_group_idx > 0,
-  'ALTER TABLE addresses DROP INDEX idx_addresses_order_group_id',
-  'SELECT 1'
-);
-PREPARE stmt_drop_addresses_order_group_idx FROM @sql_drop_addresses_order_group_idx;
-EXECUTE stmt_drop_addresses_order_group_idx;
-DEALLOCATE PREPARE stmt_drop_addresses_order_group_idx;
-
-SET @has_addresses_order_group_id_col := (
-  SELECT COUNT(*)
-  FROM information_schema.columns
-  WHERE table_schema = DATABASE()
-    AND table_name = 'addresses'
-    AND column_name = 'order_group_id'
-);
-SET @sql_drop_addresses_order_group_id_col := IF(
-  @has_addresses_order_group_id_col > 0,
-  'ALTER TABLE addresses DROP COLUMN order_group_id',
-  'SELECT 1'
-);
-PREPARE stmt_drop_addresses_order_group_id_col FROM @sql_drop_addresses_order_group_id_col;
-EXECUTE stmt_drop_addresses_order_group_id_col;
-DEALLOCATE PREPARE stmt_drop_addresses_order_group_id_col;
-
--- 4) Keep customers.address as INT relation to addresses
-SET @has_customers_address_int := (
-  SELECT COUNT(*)
-  FROM information_schema.columns
-  WHERE table_schema = DATABASE()
-    AND table_name = 'customers'
-    AND column_name = 'address'
-    AND data_type IN ('int', 'bigint', 'smallint', 'mediumint', 'tinyint')
-);
-SET @sql_add_customers_address_int := IF(
-  @has_customers_address_int = 0,
-  'ALTER TABLE customers ADD COLUMN address INT UNSIGNED NULL',
-  'SELECT 1'
-);
-PREPARE stmt_add_customers_address_int FROM @sql_add_customers_address_int;
-EXECUTE stmt_add_customers_address_int;
-DEALLOCATE PREPARE stmt_add_customers_address_int;
-
--- 5) Ensure orders.address exists and follows customers relation
-SET @has_orders_address := (
+-- 4) Drop legacy address FK columns and addresses table
+SET @has_orders_address_col := (
   SELECT COUNT(*)
   FROM information_schema.columns
   WHERE table_schema = DATABASE()
     AND table_name = 'orders'
     AND column_name = 'address'
 );
-SET @sql_add_orders_address := IF(
-  @has_orders_address = 0,
-  'ALTER TABLE orders ADD COLUMN address INT UNSIGNED NULL',
+SET @sql_drop_orders_address_col := IF(
+  @has_orders_address_col > 0,
+  'ALTER TABLE orders DROP COLUMN address',
   'SELECT 1'
 );
-PREPARE stmt_add_orders_address FROM @sql_add_orders_address;
-EXECUTE stmt_add_orders_address;
-DEALLOCATE PREPARE stmt_add_orders_address;
+PREPARE stmt_drop_orders_address_col FROM @sql_drop_orders_address_col;
+EXECUTE stmt_drop_orders_address_col;
+DEALLOCATE PREPARE stmt_drop_orders_address_col;
 
-UPDATE orders o
-INNER JOIN customers c ON c.id = o.customer_id
-SET o.address = c.address
-WHERE o.address IS NULL;
+SET @has_customers_address_col := (
+  SELECT COUNT(*)
+  FROM information_schema.columns
+  WHERE table_schema = DATABASE()
+    AND table_name = 'customers'
+    AND column_name = 'address'
+);
+SET @sql_drop_customers_address_col := IF(
+  @has_customers_address_col > 0,
+  'ALTER TABLE customers DROP COLUMN address',
+  'SELECT 1'
+);
+PREPARE stmt_drop_customers_address_col FROM @sql_drop_customers_address_col;
+EXECUTE stmt_drop_customers_address_col;
+DEALLOCATE PREPARE stmt_drop_customers_address_col;
 
--- 6) Ensure orders.order_group_id exists
+SET @has_addresses_table := (
+  SELECT COUNT(*)
+  FROM information_schema.tables
+  WHERE table_schema = DATABASE()
+    AND table_name = 'addresses'
+);
+SET @sql_drop_addresses_table := IF(
+  @has_addresses_table > 0,
+  'DROP TABLE addresses',
+  'SELECT 1'
+);
+PREPARE stmt_drop_addresses_table FROM @sql_drop_addresses_table;
+EXECUTE stmt_drop_addresses_table;
+DEALLOCATE PREPARE stmt_drop_addresses_table;
+
+DELETE FROM role_menus WHERE menu_key = 'addresses';
+
+-- 5) Ensure orders.order_group_id exists
 SET @has_orders_order_group_id := (
   SELECT COUNT(*)
   FROM information_schema.columns
@@ -2190,7 +2121,7 @@ DROP PROCEDURE IF EXISTS sp_update_order_assignment;
 
 CREATE PROCEDURE sp_get_order_by_id(IN p_id INT UNSIGNED)
 SELECT
-  o.id, c.name AS customer_name, o.address, oa.name AS order_address_name, c.address AS customer_address_id, ca.name AS customer_address_name, o.customer_id, o.order_group_id, og.name AS order_group_name, o.item_id, o.currency, o.ordered_qty, o.unit_price,
+  o.id, c.name AS customer_name, o.customer_id, o.order_group_id, og.name AS order_group_name, o.item_id, o.currency, o.ordered_qty, o.unit_price,
   o.producer_id, o.delivery_agent_id, o.delivery_time,
   o.amount_total, s.name AS status, o.created_at, o.updated_at,
   c.phone AS customer_phone,
@@ -2200,8 +2131,6 @@ SELECT
   it.sku AS item_sku
 FROM orders o
 INNER JOIN customers c ON c.id = o.customer_id
-INNER JOIN addresses oa ON oa.id = o.address
-INNER JOIN addresses ca ON ca.id = c.address
 INNER JOIN items it ON it.id = o.item_id
 INNER JOIN status s ON s.id = o.status
 LEFT JOIN producers p ON p.id = o.producer_id
@@ -2212,7 +2141,7 @@ LIMIT 1;
 
 CREATE PROCEDURE sp_list_orders()
 SELECT
-  o.id, c.name AS customer_name, o.address, oa.name AS order_address_name, c.address AS customer_address_id, ca.name AS customer_address_name, o.customer_id, o.order_group_id, og.name AS order_group_name, o.item_id, o.currency, o.ordered_qty, o.unit_price,
+  o.id, c.name AS customer_name, o.customer_id, o.order_group_id, og.name AS order_group_name, o.item_id, o.currency, o.ordered_qty, o.unit_price,
   o.producer_id, o.delivery_agent_id, o.delivery_time,
   o.amount_total, s.name AS status, o.created_at, o.updated_at,
   c.phone AS customer_phone,
@@ -2222,8 +2151,6 @@ SELECT
   it.sku AS item_sku
 FROM orders o
 INNER JOIN customers c ON c.id = o.customer_id
-INNER JOIN addresses oa ON oa.id = o.address
-INNER JOIN addresses ca ON ca.id = c.address
 INNER JOIN items it ON it.id = o.item_id
 INNER JOIN status s ON s.id = o.status
 LEFT JOIN producers p ON p.id = o.producer_id
@@ -2233,7 +2160,6 @@ ORDER BY o.id DESC;
 
 CREATE PROCEDURE sp_create_order(
   IN p_customer_id INT UNSIGNED,
-  IN p_address INT UNSIGNED,
   IN p_item_id INT UNSIGNED,
   IN p_ordered_qty DECIMAL(12,2),
   IN p_unit_price DECIMAL(12,2),
@@ -2245,11 +2171,11 @@ CREATE PROCEDURE sp_create_order(
 )
 BEGIN
   INSERT INTO orders (
-    customer_id, address, order_group_id, item_id, currency, ordered_qty, unit_price, producer_id, delivery_agent_id, delivery_time,
+    customer_id, order_group_id, item_id, currency, ordered_qty, unit_price, producer_id, delivery_agent_id, delivery_time,
     amount_total, status, updated_at
   )
   VALUES (
-    p_customer_id, p_address, NULL, p_item_id, p_currency, p_ordered_qty, p_unit_price, p_producer_id, NULL, NULL,
+    p_customer_id, NULL, p_item_id, p_currency, p_ordered_qty, p_unit_price, p_producer_id, NULL, NULL,
     p_amount_total, p_status, p_updated_at
   );
   SELECT LAST_INSERT_ID() AS insertId;

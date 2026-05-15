@@ -3,7 +3,6 @@ import { Button } from "../../components/ui/Button";
 import "./CustomerForm.css";
 
 export function CustomerForm({
-  addresses = [],
   depots = [],
   newCustomer,
   setNewCustomer,
@@ -34,22 +33,6 @@ export function CustomerForm({
         onChange={(event) => setNewCustomer({ ...newCustomer, phone: event.target.value })}
         placeholder={t("customers.phone")}
       />
-      <label className="form-label" htmlFor="customer-address">
-        {t("customers.groupAddress")}
-      </label>
-      <select
-        id="customer-address"
-        value={newCustomer.address}
-        onChange={(event) => setNewCustomer({ ...newCustomer, address: event.target.value })}
-        required
-      >
-        <option value="">{t("customers.selectAddress")}</option>
-        {addresses.map((address) => (
-          <option key={address.id} value={address.id}>
-            {address.name}
-          </option>
-        ))}
-      </select>
       <label className="form-label" htmlFor="customer-latitude">
         {t("customers.latitude")}
       </label>
@@ -78,17 +61,17 @@ export function CustomerForm({
       </label>
       <select
         id="customer-depot"
-        value={newCustomer.depotId || ""}
+        value={newCustomer.depotId}
         onChange={(event) => setNewCustomer({ ...newCustomer, depotId: event.target.value })}
       >
-        <option value="">{t("customers.selectDepot", { defaultValue: "— Select depot —" })}</option>
+        <option value="">{t("customers.selectDepot", { defaultValue: "No depot" })}</option>
         {depots.map((depot) => (
           <option key={depot.id} value={depot.id}>
             {depot.name}
           </option>
         ))}
       </select>
-      <Button variant="primary" type="submit">
+      <Button type="submit" variant="primary">
         {t("customers.save")}
       </Button>
     </form>

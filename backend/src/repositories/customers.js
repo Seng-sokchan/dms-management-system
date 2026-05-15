@@ -66,13 +66,11 @@ async function createCustomer(payload, executor) {
   const db = resolveExecutor(executor);
   const name = String(payload.name || "").trim();
   const phone = normalizeNullableString(payload.phone);
-  const address = Number(payload.address);
   const depotId = payload.depotId ? Number(payload.depotId) : null;
   const [latitude, longitude] = customerLatLngForDb(payload);
-  const [rowsRaw] = await db.query("CALL sp_create_customer(?, ?, ?, ?, ?, ?, ?)", [
+  const [rowsRaw] = await db.query("CALL sp_create_customer(?, ?, ?, ?, ?, ?)", [
     name,
     phone,
-    address,
     depotId,
     latitude,
     longitude,
@@ -86,14 +84,12 @@ async function updateCustomer(id, payload, executor) {
   const db = resolveExecutor(executor);
   const name = String(payload.name || "").trim();
   const phone = normalizeNullableString(payload.phone);
-  const address = Number(payload.address);
   const depotId = payload.depotId ? Number(payload.depotId) : null;
   const [latitude, longitude] = customerLatLngForDb(payload);
-  const [rowsRaw] = await db.query("CALL sp_update_customer(?, ?, ?, ?, ?, ?, ?, ?)", [
+  const [rowsRaw] = await db.query("CALL sp_update_customer(?, ?, ?, ?, ?, ?, ?)", [
     id,
     name,
     phone,
-    address,
     depotId,
     latitude,
     longitude,

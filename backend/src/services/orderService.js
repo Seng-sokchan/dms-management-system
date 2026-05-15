@@ -143,7 +143,6 @@ async function create(payload) {
 
   return orderRepository.createOrder({
     customerId: payload.customerId,
-    addressId: customer.address,
     itemId: payload.itemId,
     orderedQty: payload.orderedQty,
     unitPrice,
@@ -182,7 +181,6 @@ async function createBatch({ customerId, lines }) {
 
     rowsToInsert.push({
       customerId,
-      addressId: customer.address,
       itemId: line.itemId,
       orderedQty: line.orderedQty,
       unitPrice,
@@ -279,7 +277,6 @@ async function createDepotBatch({ user, lines }) {
 
     rowsToInsert.push({
       customerId: String(line.customerId),
-      addressId: customer.address,
       itemId: line.itemId,
       orderedQty: line.orderedQty,
       unitPrice,

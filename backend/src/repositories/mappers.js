@@ -1,13 +1,8 @@
 function mapOrder(row) {
-  const orderAddressName = row.order_address_name != null ? row.order_address_name : null;
   return {
     id: String(row.id),
     customerDirectoryName: row.customer_name != null ? row.customer_name : null,
     customerName: row.customer_name != null ? row.customer_name : null,
-    addressId: row.address != null ? String(row.address) : null,
-    orderAddressName,
-    customerAddressId: row.customer_address_id != null ? String(row.customer_address_id) : null,
-    customerAddressName: row.customer_address_name != null ? row.customer_address_name : null,
     customerId: row.customer_id != null ? String(row.customer_id) : null,
     orderGroupId: row.order_group_id != null ? String(row.order_group_id) : null,
     orderGroupName: row.order_group_name != null ? row.order_group_name : null,
@@ -59,13 +54,11 @@ function mapCustomer(row) {
     id: String(row.id),
     name: row.name,
     phone: row.phone != null && String(row.phone).trim() !== "" ? String(row.phone) : null,
-    address: row.address != null ? String(row.address) : "",
     userId: row.user_id != null ? String(row.user_id) : "",
     userName: row.user_name || "",
     userUsername: row.user_username || "",
     depotId: row.depot_id != null ? String(row.depot_id) : "",
     depotName: row.depot_name || "",
-    addressName: row.address_name || "",
     latitude: parseCustomerCoord(row.latitude),
     longitude: parseCustomerCoord(row.longitude),
     updatedAt: row.updated_at != null ? row.updated_at : null,

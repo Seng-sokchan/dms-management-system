@@ -5,7 +5,6 @@ import { CreateOrderForm } from "../features/order/CreateOrderForm";
 export function CreateOrderPage({
   user,
   customers,
-  addresses,
   items,
   newOrder,
   setNewOrder,
@@ -33,7 +32,6 @@ export function CreateOrderPage({
       <div className="form-single">
         <CreateOrderForm
           customers={customers}
-          addresses={addresses}
           items={items}
           customerReadonly={isCustomerRole}
           newOrder={newOrder}

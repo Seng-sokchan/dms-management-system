@@ -208,9 +208,6 @@ export default function DeliveryTrackingScreen() {
       <Card style={styles.orderCard}>
         <Text style={styles.orderTitle}>#{item.id}</Text>
         <Text style={styles.orderLine}>Customer: {item.customerName || "-"}</Text>
-        <Text style={styles.orderLine}>
-          Address: {item.orderAddressName || item.customerAddressName || "-"}
-        </Text>
         <Text style={styles.orderStatus}>Status: {item.status}</Text>
         <View style={styles.actionsRow}>
           {isSentToFactory ? (

@@ -21,21 +21,12 @@ function buildAgentLookup(deliveryAgents) {
   return map;
 }
 
-function getCustomerAddressForCopy(order, dash) {
-  const orderAddr =
-    order.orderAddressName != null && String(order.orderAddressName).trim() !== ""
-      ? String(order.orderAddressName).trim()
+function getCustomerLabelForCopy(order, dash) {
+  const name =
+    order.customerName != null && String(order.customerName).trim() !== ""
+      ? String(order.customerName).trim()
       : null;
-  const masterAddr =
-    order.customerAddressName != null && String(order.customerAddressName).trim() !== ""
-      ? String(order.customerAddressName).trim()
-      : null;
-
-  if (orderAddr) return `${orderAddr}`;
-  if (masterAddr) return `${masterAddr}`;
-  const displayName = order.customerName != null && String(order.customerName).trim() !== "";
-  if (displayName) return `${displayName}`;
-  return dash;
+  return name || dash;
 }
 
 /**
@@ -68,7 +59,7 @@ function formatTruckCopyText(truckRow, dash, locale) {
   // Group orders by customer address for copy
   const byCustomerAddress = new Map();
   for (const order of truckRow.rows || []) {
-    const customerAddr = getCustomerAddressForCopy(order, dash);
+    const customerAddr = getCustomerLabelForCopy(order, dash);
     if (!byCustomerAddress.has(customerAddr)) byCustomerAddress.set(customerAddr, []);
     byCustomerAddress.get(customerAddr).push(order);
   }

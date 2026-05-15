@@ -10,12 +10,11 @@ import { canAccessPath } from "../../constants/menus";
  */
 const ROUTE_DATA_MAP = {
   "/overview": ["summary", "statuses"],
-  "/create-order": ["customers", "addresses", "producers", "items"],
+  "/create-order": ["customers", "producers", "items"],
   "/catalogs": ["catalogs"],
   "/items": ["catalogs", "items"],
   "/customer-item-prices": ["customers", "items", "customerItemPrices"],
-  "/addresses": ["addresses"],
-  "/customers": ["customers", "addresses", "depots"],
+  "/customers": ["customers", "depots"],
   "/tracking-customer-location": ["customers"],
   "/depots": ["depots"],
   "/customers-by-depot": ["depots", "customers"],
@@ -60,7 +59,6 @@ export async function fetchDashboardData(token, pathname = "/overview") {
     orders: [],
     customers: [],
     depots: [],
-    addresses: [],
     producers: [],
     deliveryAgents: [],
     catalogs: [],
@@ -105,11 +103,6 @@ export async function fetchDashboardData(token, pathname = "/overview") {
     const res = await apiClient.get("/depots", config);
     const rows = unwrapApiData(res.data);
     data.depots = Array.isArray(rows) ? rows : [];
-  });
-  queue("addresses", async () => {
-    const res = await apiClient.get("/addresses", config);
-    const rows = unwrapApiData(res.data);
-    data.addresses = Array.isArray(rows) ? rows : [];
   });
   queue("producers", async () => {
     const res = await apiClient.get("/producers", config);

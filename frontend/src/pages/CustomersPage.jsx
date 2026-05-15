@@ -6,13 +6,12 @@ import { Button } from "../components/ui/Button";
 import { DataTable } from "../components/ui/DataTable";
 import { useConfirm } from "../components/ui/ConfirmProvider";
 
-const EMPTY_EDIT = { id: "", name: "", phone: "", address: "", latitude: "", longitude: "", depotId: "" };
+const EMPTY_EDIT = { id: "", name: "", phone: "", latitude: "", longitude: "", depotId: "" };
 
 function buildCustomerSavePayload(editing) {
   const payload = {
     name: editing.name,
     phone: editing.phone,
-    address: editing.address,
     depotId: editing.depotId,
   };
   const lat = String(editing.latitude ?? "").trim();
@@ -26,7 +25,6 @@ function buildCustomerSavePayload(editing) {
 
 export function CustomersPage({
   customers,
-  addresses,
   depots = [],
   newCustomer,
   setNewCustomer,
@@ -52,7 +50,6 @@ export function CustomersPage({
         customer.userName,
         customer.userUsername,
         customer.depotName,
-        customer.addressName,
         customer.latitude,
         customer.longitude,
       ]
@@ -73,7 +70,6 @@ export function CustomersPage({
       id: customer.id,
       name: customer.name || "",
       phone: customer.phone ?? "",
-      address: customer.address || "",
       latitude: customer.latitude != null ? String(customer.latitude) : "",
       longitude: customer.longitude != null ? String(customer.longitude) : "",
       depotId: customer.depotId || "",
@@ -156,7 +152,6 @@ export function CustomersPage({
                   <th>{t("customers.phone")}</th>
                   <th>{t("customers.user")}</th>
                   <th>{t("customers.depot", { defaultValue: "Depot" })}</th>
-                  <th>{t("customers.address")}</th>
                   <th>{t("customers.latitude")}</th>
                   <th>{t("customers.longitude")}</th>
                   <th>{t("customers.mapsLink")}</th>
@@ -173,7 +168,6 @@ export function CustomersPage({
                       {customer.userName ? `${customer.userName} (${customer.userUsername})` : "—"}
                     </td>
                     <td>{customer.depotName || "—"}</td>
-                    <td>{customer.addressName || "—"}</td>
                     <td>{customer.latitude != null ? customer.latitude : "—"}</td>
                     <td>{customer.longitude != null ? customer.longitude : "—"}</td>
                     <td>
@@ -209,7 +203,6 @@ export function CustomersPage({
         <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="customer-create-title">
           <div className="modal-card">
             <CustomerForm
-              addresses={addresses}
               depots={depots}
               newCustomer={newCustomer}
               setNewCustomer={setNewCustomer}
@@ -248,22 +241,6 @@ export function CustomersPage({
               value={editingCustomer.phone}
               onChange={(event) => setEditingCustomer({ ...editingCustomer, phone: event.target.value })}
             />
-            <label className="form-label" htmlFor="customer-edit-group-address">
-              {t("customers.address")}
-            </label>
-            <select
-              id="customer-edit-group-address"
-              value={editingCustomer.address}
-              onChange={(event) => setEditingCustomer({ ...editingCustomer, address: event.target.value })}
-              required
-            >
-              <option value="">{t("customers.selectAddress")}</option>
-              {addresses.map((address) => (
-                <option key={address.id} value={address.id}>
-                  {address.name}
-                </option>
-              ))}
-            </select>
             <label className="form-label" htmlFor="customer-edit-latitude">
               {t("customers.latitude")}
             </label>
