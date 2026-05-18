@@ -3,8 +3,6 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
-  PermissionsAndroid,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -20,6 +18,7 @@ import { Card } from "../components/ui";
 import { getApiErrorMessage } from "../services/apiClient";
 import { listMobileOrders } from "../services/ordersApi";
 import { getSocketBaseUrl } from "../services/socketUrl";
+import { ensureLocationPermission } from "../utils/locationPermission";
 import { colors, radii, spacing, typography } from "../theme";
 
 const TRACKABLE_STATUS = "Ready_For_Delivery";
@@ -33,17 +32,6 @@ const PHNOM_PENH_REGION = {
 function parseCoord(value) {
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
-}
-
-async function requestLocationPermission() {
-  if (Platform.OS !== "android") return true;
-  const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION, {
-    title: "Location permission",
-    message: "Allow location permission to show your position on tracking map.",
-    buttonPositive: "Allow",
-    buttonNegative: "Not now",
-  });
-  return granted === PermissionsAndroid.RESULTS.GRANTED;
 }
 
 export default function CustomerTrackingScreen() {
@@ -105,7 +93,7 @@ export default function CustomerTrackingScreen() {
         } finally {
           if (!cancelled) setLoadingOrders(false);
         }
-        const ok = await requestLocationPermission();
+        const ok = await ensureLocationPermission();
         if (!ok || cancelled) return;
         Geolocation.getCurrentPosition(
           (info) => {

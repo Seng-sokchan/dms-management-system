@@ -21,6 +21,12 @@ export function unwrapApiData(payload) {
 }
 
 export function getApiErrorMessage(error, fallback = "Request failed") {
+  if (!error?.response) {
+    const networkMessage = String(error?.message || "");
+    if (/network error|failed to connect|cleartext/i.test(networkMessage)) {
+      return "Cannot reach server. Check your internet connection and API URL.";
+    }
+  }
   return (
     error?.response?.data?.error?.message
     || error?.response?.data?.message

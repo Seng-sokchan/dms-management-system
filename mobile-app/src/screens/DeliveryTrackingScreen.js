@@ -4,7 +4,6 @@ import {
   Alert,
   FlatList,
   Linking,
-  PermissionsAndroid,
   Platform,
   StyleSheet,
   Text,
@@ -19,6 +18,7 @@ import { useAuth } from "../context/AuthContext";
 import { Card } from "../components/ui";
 import { getSocketBaseUrl } from "../services/socketUrl";
 import { listMobileOrders, updateMobileOrderStatus } from "../services/ordersApi";
+import { ensureLocationPermission } from "../utils/locationPermission";
 import { colors, radii, spacing, typography } from "../theme";
 
 const EMIT_MIN_INTERVAL_MS = 8000;
@@ -36,27 +36,21 @@ function haversineMeters(lat1, lon1, lat2, lon2) {
   return R * c;
 }
 
-async function ensureFineLocationPermission() {
-  if (Platform.OS === "android") {
-    const granted = await PermissionsAndroid.request(
-      PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-      {
-        title: "Location permission",
-        message: "Allow location so dispatch can see your position while you are on duty.",
-        buttonPositive: "Allow",
-        buttonNegative: "Not now",
-      },
-    );
-    return granted === PermissionsAndroid.RESULTS.GRANTED;
-  }
-  if (Platform.OS === "ios") {
-    Geolocation.setRNConfiguration({
-      authorizationLevel: "whenInUse",
-      skipPermissionRequests: false,
-    });
-  }
-  return true;
-}
+const ANDROID_WATCH_OPTIONS = {
+  enableHighAccuracy: true,
+  distanceFilter: 15,
+  interval: 10000,
+  fastestInterval: 5000,
+  timeout: 25000,
+  maximumAge: 10000,
+};
+
+const IOS_WATCH_OPTIONS = {
+  enableHighAccuracy: true,
+  distanceFilter: 15,
+  timeout: 25000,
+  maximumAge: 10000,
+};
 
 export default function DeliveryTrackingScreen() {
   const { token } = useAuth();
@@ -64,11 +58,14 @@ export default function DeliveryTrackingScreen() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submittingOrderId, setSubmittingOrderId] = useState(null);
+  const [trackingStatus, setTrackingStatus] = useState("idle");
   const lastEmitAt = useRef(0);
   const lastLat = useRef(null);
   const lastLng = useRef(null);
   const socketRef = useRef(null);
   const watchIdRef = useRef(null);
+  const pendingLocationRef = useRef(null);
+  const locationErrorShownRef = useRef(false);
 
   const readyForDeliveryOrders = useMemo(
     () => orders.filter((order) => order.status === "Ready_For_Delivery"),
@@ -113,11 +110,75 @@ export default function DeliveryTrackingScreen() {
   useEffect(() => {
     let cancelled = false;
 
+    function emitLocation(latitude, longitude, accuracy) {
+      const payload = {
+        latitude,
+        longitude,
+        accuracy: accuracy != null ? Number(accuracy) : undefined,
+      };
+      if (socketRef.current?.connected) {
+        socketRef.current.emit("delivery:location", payload);
+        pendingLocationRef.current = null;
+        setTrackingStatus("active");
+        return;
+      }
+      pendingLocationRef.current = payload;
+    }
+
+    function handlePosition(info) {
+      const { latitude, longitude, accuracy } = info.coords;
+      const now = Date.now();
+      const prevLat = lastLat.current;
+      const prevLng = lastLng.current;
+      let canEmit = now - lastEmitAt.current >= EMIT_MIN_INTERVAL_MS;
+      if (!canEmit && prevLat != null && prevLng != null) {
+        const moved = haversineMeters(prevLat, prevLng, latitude, longitude);
+        if (moved >= MOVE_EMIT_THRESHOLD_M) canEmit = true;
+      }
+      if (!canEmit) return;
+      lastEmitAt.current = now;
+      lastLat.current = latitude;
+      lastLng.current = longitude;
+      emitLocation(latitude, longitude, accuracy);
+    }
+
+    function handleLocationError(error) {
+      if (cancelled || locationErrorShownRef.current) return;
+      locationErrorShownRef.current = true;
+      setTrackingStatus("location_error");
+      const code = error?.code;
+      const message =
+        code === 1
+          ? "Location permission is denied. Allow location in Settings."
+          : code === 2
+            ? "GPS is unavailable. Turn on Location (GPS) on your phone."
+            : "Could not read GPS. Move outdoors or wait a moment and try again.";
+      Alert.alert("Location", message, [
+        { text: "Cancel", style: "cancel" },
+        { text: "Open settings", onPress: () => Linking.openSettings() },
+      ]);
+    }
+
     async function startTracking() {
-      if (!shouldTrack) return;
-      const ok = await ensureFineLocationPermission();
+      if (!shouldTrack) {
+        setTrackingStatus("idle");
+        return;
+      }
+
+      setTrackingStatus("starting");
+      locationErrorShownRef.current = false;
+
+      if (Platform.OS === "ios") {
+        Geolocation.setRNConfiguration({
+          authorizationLevel: "whenInUse",
+          skipPermissionRequests: false,
+        });
+      }
+
+      const ok = await ensureLocationPermission();
       if (cancelled) return;
       if (!ok) {
+        setTrackingStatus("permission_denied");
         Alert.alert(
           "Location off",
           "Turn on location permission in system settings to share your position.",
@@ -131,15 +192,18 @@ export default function DeliveryTrackingScreen() {
 
       const baseUrl = getSocketBaseUrl();
       if (!baseUrl) {
+        setTrackingStatus("config_error");
         Alert.alert("Configuration", "API base URL is missing.");
         return;
       }
       const accessToken = typeof token === "string" ? token.trim() : "";
       if (!accessToken) {
+        setTrackingStatus("session_error");
         Alert.alert("Session", "Sign in again to share your location.");
         return;
       }
 
+      setTrackingStatus("connecting");
       const socket = io(baseUrl, {
         auth: { token: accessToken },
         query: { token: accessToken },
@@ -151,37 +215,27 @@ export default function DeliveryTrackingScreen() {
       });
       socketRef.current = socket;
 
+      socket.on("connect", () => {
+        if (cancelled) return;
+        setTrackingStatus("connected");
+        if (pendingLocationRef.current) {
+          socket.emit("delivery:location", pendingLocationRef.current);
+          pendingLocationRef.current = null;
+        }
+      });
+      socket.on("disconnect", () => {
+        if (!cancelled) setTrackingStatus("disconnected");
+      });
+      socket.on("connect_error", (err) => {
+        if (cancelled) return;
+        setTrackingStatus("socket_error");
+        Alert.alert("Connection", err?.message || "Could not connect to tracking server.");
+      });
+
       watchIdRef.current = Geolocation.watchPosition(
-        (info) => {
-          if (!socketRef.current?.connected) return;
-          const { latitude, longitude, accuracy } = info.coords;
-          const now = Date.now();
-          const prevLat = lastLat.current;
-          const prevLng = lastLng.current;
-          let canEmit = now - lastEmitAt.current >= EMIT_MIN_INTERVAL_MS;
-          if (!canEmit && prevLat != null && prevLng != null) {
-            const moved = haversineMeters(prevLat, prevLng, latitude, longitude);
-            if (moved >= MOVE_EMIT_THRESHOLD_M) canEmit = true;
-          }
-          if (!canEmit) return;
-          lastEmitAt.current = now;
-          lastLat.current = latitude;
-          lastLng.current = longitude;
-          socketRef.current.emit("delivery:location", {
-            latitude,
-            longitude,
-            accuracy: accuracy != null ? Number(accuracy) : undefined,
-          });
-        },
-        () => {},
-        Platform.OS === "android"
-          ? {
-              enableHighAccuracy: true,
-              distanceFilter: 20,
-              interval: 10000,
-              fastestInterval: 5000,
-            }
-          : { enableHighAccuracy: true, distanceFilter: 20 },
+        handlePosition,
+        handleLocationError,
+        Platform.OS === "android" ? ANDROID_WATCH_OPTIONS : IOS_WATCH_OPTIONS,
       );
     }
 
@@ -189,6 +243,8 @@ export default function DeliveryTrackingScreen() {
 
     return () => {
       cancelled = true;
+      setTrackingStatus("idle");
+      pendingLocationRef.current = null;
       if (watchIdRef.current != null) {
         Geolocation.clearWatch(watchIdRef.current);
         watchIdRef.current = null;
@@ -238,6 +294,11 @@ export default function DeliveryTrackingScreen() {
       <View style={styles.container}>
         <Text style={styles.title}>Delivery Orders</Text>
         <Text style={styles.lead}>Track assigned orders and update status while delivering.</Text>
+        {shouldTrack ? (
+          <Text style={styles.trackingStatus}>
+            Live tracking: {trackingStatus === "active" ? "sharing location" : trackingStatus}
+          </Text>
+        ) : null}
         {loading ? <ActivityIndicator color={colors.primary} style={styles.loader} /> : null}
         <FlatList
           data={orders}
@@ -273,6 +334,11 @@ const styles = StyleSheet.create({
     fontSize: typography.body,
     color: colors.textSecondary,
     lineHeight: 22,
+  },
+  trackingStatus: {
+    marginTop: spacing.sm,
+    fontSize: typography.caption,
+    color: colors.textMuted,
   },
   card: {
     marginTop: spacing.xl,
