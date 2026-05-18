@@ -16,6 +16,7 @@ const MENU_KEYS = [
   "assignOrders",
   "orderMovement",
   "payments",
+  "customerOrderHistory",
   "users",
   "borrowedMaterials",
 ];
@@ -41,6 +42,7 @@ const DEFAULT_MENUS_BY_ROLE = {
     "assignOrders",
     "orderMovement",
     "payments",
+    "customerOrderHistory",
     "users",
     "borrowedMaterials",
   ],
@@ -61,11 +63,12 @@ const DEFAULT_MENUS_BY_ROLE = {
     "assignOrders",
     "orderMovement",
     "payments",
+    "customerOrderHistory",
     "borrowedMaterials",
   ],
   Logistics: ["overview", "deliveryAgents", "orders"],
   Delivery: ["overview", "orders"],
-  Customer: ["overview", "orders"],
+  Customer: ["overview", "orders", "customerOrderHistory"],
   Depot: [
     "overview",
     "customers",
@@ -74,6 +77,7 @@ const DEFAULT_MENUS_BY_ROLE = {
     "customerItemPrices",
     "orders",
     "payments",
+    "customerOrderHistory",
     "borrowedMaterials",
   ],
 };

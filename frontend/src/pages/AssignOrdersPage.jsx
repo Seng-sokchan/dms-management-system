@@ -16,6 +16,27 @@ function deliveryAgentOptionLabel(agent) {
   return phone ? `${agent.name} (${phone})` : agent.name;
 }
 
+function localDateKey(date) {
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0"),
+  ].join("-");
+}
+
+/** True when created_at is on the user's local calendar day. */
+function isCreatedToday(createdAt) {
+  if (createdAt == null || createdAt === "") return false;
+  const raw = String(createdAt).trim();
+  const datePart = raw.slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
+    return datePart === localDateKey(new Date());
+  }
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return false;
+  return localDateKey(parsed) === localDateKey(new Date());
+}
+
 export function AssignOrdersPage({
   orders = [],
   deliveryAgents = [],
@@ -31,14 +52,27 @@ export function AssignOrdersPage({
   const [searchText, setSearchText] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
 
-  const sortedOrders = useMemo(
-    () => [...(orders || [])].sort((a, b) => Number(b.id) - Number(a.id)),
-    [orders],
+  const todayLabel = useMemo(
+    () =>
+      new Date().toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      }),
+    [],
   );
+
+  const eligibleOrders = useMemo(() => {
+    const todayOwnerPreparing = (orders || []).filter(
+      (order) => isCreatedToday(order.createdAt) && order.status === "Owner_Preparing",
+    );
+    return [...todayOwnerPreparing].sort((a, b) => Number(b.id) - Number(a.id));
+  }, [orders]);
+
   const filteredOrders = useMemo(() => {
     const keyword = appliedSearch.trim().toLowerCase();
-    if (!keyword) return sortedOrders;
-    return sortedOrders.filter((order) =>
+    if (!keyword) return eligibleOrders;
+    return eligibleOrders.filter((order) =>
       [
         order.id,
         order.customerName,
@@ -50,25 +84,22 @@ export function AssignOrdersPage({
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(keyword)),
     );
-  }, [sortedOrders, appliedSearch]);
-  const ownerPreparingOrders = useMemo(
-    () => filteredOrders.filter((order) => order.status === "Owner_Preparing"),
-    [filteredOrders],
-  );
+  }, [eligibleOrders, appliedSearch]);
+
   const {
     page: assignPage,
     pageSize: assignPageSize,
     paged: pagedOrdersForAssign,
     setPage: setAssignPage,
     setPageSize: setAssignPageSize,
-  } = usePagination(ownerPreparingOrders, { resetKey: appliedSearch });
+  } = usePagination(filteredOrders, { resetKey: appliedSearch });
   const {
     page: submitPage,
     pageSize: submitPageSize,
     paged: pagedOrdersForSubmit,
     setPage: setSubmitPage,
     setPageSize: setSubmitPageSize,
-  } = usePagination(ownerPreparingOrders, { resetKey: appliedSearch });
+  } = usePagination(filteredOrders, { resetKey: appliedSearch });
 
   async function handleDeliveryChange(order, deliveryAgentId) {
     const next = deliveryAgentId || null;
@@ -111,15 +142,16 @@ export function AssignOrdersPage({
   }
 
   const rowMeta =
-    ownerPreparingOrders.length === 1
-      ? t("orders.rowOne", { n: ownerPreparingOrders.length })
-      : t("orders.rowMany", { n: ownerPreparingOrders.length });
+    filteredOrders.length === 1
+      ? t("orders.rowOne", { n: filteredOrders.length })
+      : t("orders.rowMany", { n: filteredOrders.length });
 
   return (
     <section className="admin-page">
       <div className="section-heading">
         <h2>{t("assignOrders.title")}</h2>
         <p className="section-lead">{t("assignOrders.lead")}</p>
+        <p className="form-hint">{t("assignOrders.todayOnlyHint", { date: todayLabel })}</p>
       </div>
 
       <section className="panel">
@@ -138,7 +170,7 @@ export function AssignOrdersPage({
           pagination={{
             page: assignPage,
             pageSize: assignPageSize,
-            totalRows: ownerPreparingOrders.length,
+            totalRows: filteredOrders.length,
             onPageChange: setAssignPage,
             onPageSizeChange: setAssignPageSize,
           }}
@@ -209,11 +241,12 @@ export function AssignOrdersPage({
 
         <h3 className="assign-orders-subpanel-title">{t("assignOrders.submitPanelTitle")}</h3>
         <p className="form-hint">{t("assignOrders.submitPanelHint")}</p>
+        <p className="panel-meta assign-orders-submit-meta">{rowMeta}</p>
         <DataTable
           pagination={{
             page: submitPage,
             pageSize: submitPageSize,
-            totalRows: ownerPreparingOrders.length,
+            totalRows: filteredOrders.length,
             onPageChange: setSubmitPage,
             onPageSizeChange: setSubmitPageSize,
           }}

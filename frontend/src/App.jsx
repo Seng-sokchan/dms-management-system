@@ -11,6 +11,7 @@ import { OrdersPage } from "./pages/OrdersPage";
 import { AssignOrdersPage } from "./pages/AssignOrdersPage";
 import { OrderMovementPage } from "./pages/OrderMovementPage";
 import { PaymentsPage } from "./pages/PaymentsPage";
+import { CustomerOrderHistoryPage } from "./pages/CustomerOrderHistoryPage";
 import { OverviewPage } from "./pages/OverviewPage";
 import { CatalogsPage } from "./pages/CatalogsPage";
 import { ItemsPage } from "./pages/ItemsPage";
@@ -521,6 +522,16 @@ function App() {
         element={withLayout(
           canAccessPath(user, "/payments") ? (
             <PaymentsPage paymentTotals={paymentTotals} />
+          ) : (
+            renderDeniedRoute()
+          ),
+        )}
+      />
+      <Route
+        path="/customer-order-history"
+        element={withLayout(
+          canAccessPath(user, "/customer-order-history") ? (
+            <CustomerOrderHistoryPage customers={customers} orders={orders} />
           ) : (
             renderDeniedRoute()
           ),

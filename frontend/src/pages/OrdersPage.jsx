@@ -29,6 +29,141 @@ function getCustomerLabelForCopy(order, dash) {
   return name || dash;
 }
 
+function getCustomerLabel(order, dash) {
+  const fromDirectory =
+    order.customerDirectoryName != null && String(order.customerDirectoryName).trim() !== ""
+      ? String(order.customerDirectoryName).trim()
+      : null;
+  if (fromDirectory) return fromDirectory;
+  return getCustomerLabelForCopy(order, dash);
+}
+
+function getCustomerKey(order, dash) {
+  if (order.customerId != null && String(order.customerId).trim() !== "") {
+    return `id:${order.customerId}`;
+  }
+  return `name:${getCustomerLabel(order, dash)}`;
+}
+
+/**
+ * Pivot orders into one row per customer with item names as columns.
+ * @returns {{ itemColumns: string[], rows: Array<{ customerKey: string, customerLabel: string, qtyByItem: Record<string, number> }> }}
+ */
+function pivotOrdersByCustomer(orders, dash) {
+  const itemSet = new Set();
+  const rowMap = new Map();
+
+  for (const order of orders || []) {
+    const itemName = order.itemName != null ? String(order.itemName).trim() : "";
+    if (itemName) {
+      itemSet.add(itemName);
+    }
+
+    const customerKey = getCustomerKey(order, dash);
+    if (!rowMap.has(customerKey)) {
+      rowMap.set(customerKey, {
+        customerKey,
+        customerLabel: getCustomerLabel(order, dash),
+        qtyByItem: {},
+      });
+    }
+
+    if (!itemName) continue;
+    const row = rowMap.get(customerKey);
+    const qty = Number(order.orderedQty || 0);
+    row.qtyByItem[itemName] = (row.qtyByItem[itemName] || 0) + qty;
+  }
+
+  const itemColumns = Array.from(itemSet).sort((a, b) => a.localeCompare(b));
+  const rows = Array.from(rowMap.values()).sort((a, b) =>
+    a.customerLabel.localeCompare(b.customerLabel),
+  );
+
+  return { itemColumns, rows };
+}
+
+function sumRowQty(row, itemColumns) {
+  return itemColumns.reduce((sum, item) => sum + Number(row.qtyByItem[item] || 0), 0);
+}
+
+function computePivotTotals(rows, itemColumns) {
+  const totalsByItem = Object.fromEntries(itemColumns.map((item) => [item, 0]));
+  let grandTotal = 0;
+  for (const row of rows || []) {
+    for (const item of itemColumns) {
+      const qty = Number(row.qtyByItem[item] || 0);
+      totalsByItem[item] += qty;
+      grandTotal += qty;
+    }
+  }
+  return { totalsByItem, grandTotal };
+}
+
+function OrdersPivotTable({
+  itemColumns,
+  pagedRows,
+  allRows,
+  dash,
+  pagination,
+  customerHeader,
+  totalLabel,
+}) {
+  const { totalsByItem, grandTotal } = computePivotTotals(allRows, itemColumns);
+  const showPagination = pagination && pagination.totalRows > pagination.pageSize;
+
+  return (
+    <div className="orders-pivot-table-wrap">
+      <DataTable
+        className="orders-pivot-table-wrap__inner"
+        tableClassName="orders-pivot-table"
+        pagination={showPagination ? pagination : undefined}
+      >
+        <thead>
+          <tr>
+            <th>{customerHeader}</th>
+            {itemColumns.map((item) => (
+              <th key={item}>{item}</th>
+            ))}
+            <th>{totalLabel}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {pagedRows.map((row) => (
+            <tr key={row.customerKey}>
+              <td>{row.customerLabel}</td>
+              {itemColumns.map((item) => (
+                <td key={item} className="orders-pivot-table__qty">
+                  {row.qtyByItem[item] != null ? (
+                    <span className="qty-chip">{row.qtyByItem[item]}</span>
+                  ) : (
+                    dash
+                  )}
+                </td>
+              ))}
+              <td className="orders-pivot-table__qty">
+                <span className="qty-chip">{sumRowQty(row, itemColumns)}</span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr className="orders-pivot-table__total-row">
+            <th scope="row">{totalLabel}</th>
+            {itemColumns.map((item) => (
+              <td key={item} className="orders-pivot-table__qty">
+                <span className="qty-chip qty-chip--total">{totalsByItem[item]}</span>
+              </td>
+            ))}
+            <td className="orders-pivot-table__qty">
+              <span className="qty-chip qty-chip--total">{grandTotal}</span>
+            </td>
+          </tr>
+        </tfoot>
+      </DataTable>
+    </div>
+  );
+}
+
 /**
  * Clipboard:
  * -{date}: {driver} + {all group names, comma-separated}   ← once per truck
@@ -199,24 +334,33 @@ export function OrdersPage({ orders, deliveryAgents = [] }) {
     setPageSize: setTruckPageSize,
   } = usePagination(filteredGroupedTrucks, { resetKey: appliedTruckSearch });
 
-  const orderModalRows = activeGroup?.rows ?? [];
-  const truckModalRows = activeTruck?.rows ?? [];
+  const dash = t("orders.dash");
+
+  const pivotedGroup = useMemo(
+    () => pivotOrdersByCustomer(activeGroup?.rows ?? [], dash),
+    [activeGroup?.rows, dash],
+  );
+
+  const pivotedTruck = useMemo(
+    () => pivotOrdersByCustomer(activeTruck?.rows ?? [], dash),
+    [activeTruck?.rows, dash],
+  );
 
   const {
     page: modalOrderPage,
     pageSize: modalOrderPageSize,
-    paged: pagedModalOrders,
+    paged: pagedModalGroupRows,
     setPage: setModalOrderPage,
     setPageSize: setModalOrderPageSize,
-  } = usePagination(orderModalRows, { resetKey: activeGroup?.groupAddress ?? "" });
+  } = usePagination(pivotedGroup.rows, { resetKey: activeGroup?.groupAddress ?? "" });
 
   const {
     page: modalTruckOrderPage,
     pageSize: modalTruckOrderPageSize,
-    paged: pagedModalTruckOrders,
+    paged: pagedModalTruckRows,
     setPage: setModalTruckOrderPage,
     setPageSize: setModalTruckOrderPageSize,
-  } = usePagination(truckModalRows, { resetKey: activeTruck?.truckKey ?? "" });
+  } = usePagination(pivotedTruck.rows, { resetKey: activeTruck?.truckKey ?? "" });
 
   function openGroup(group) {
     setActiveTruck(null);
@@ -367,7 +511,7 @@ export function OrdersPage({ orders, deliveryAgents = [] }) {
 
       {activeGroup ? (
         <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="orders-group-view-title">
-          <section className="panel modal-card modal-card--orders-group">
+          <section className="panel modal-card modal-card--orders-group modal-card--orders-pivot">
             <div className="panel-header">
               <h3 id="orders-group-view-title">
                 {t("orders.groupOrdersFor", {
@@ -379,47 +523,28 @@ export function OrdersPage({ orders, deliveryAgents = [] }) {
                 {t("customers.cancel")}
               </Button>
             </div>
-            <DataTable
+            <OrdersPivotTable
+              itemColumns={pivotedGroup.itemColumns}
+              pagedRows={pagedModalGroupRows}
+              allRows={pivotedGroup.rows}
+              dash={dash}
+              customerHeader={t("orders.customer")}
+              totalLabel={t("orders.totalAll", { defaultValue: "Total" })}
               pagination={{
                 page: modalOrderPage,
                 pageSize: modalOrderPageSize,
-                totalRows: orderModalRows.length,
+                totalRows: pivotedGroup.rows.length,
                 onPageChange: setModalOrderPage,
                 onPageSizeChange: setModalOrderPageSize,
               }}
-            >
-              <thead>
-                <tr>
-                  <th>{t("orders.customer")}</th>
-                  <th>{t("orders.item")}</th>
-                  <th>{t("orders.delivery")}</th>
-                  <th>{t("orders.qty")}</th>
-                  <th>{t("orders.status")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pagedModalOrders.map((row) => (
-                  <tr key={row.id}>
-                    <td>{row.customerDirectoryName || t("orders.dash")}</td>
-                    <td>
-                      {row.itemName
-                        ? `#${row.id} - ${row.itemName}`
-                        : `#${row.id} - ${t("orders.dash")}`}
-                    </td>
-                    <td>{getDeliverySummaryLabel(row) || t("orders.dash")}</td>
-                    <td>{row.orderedQty}</td>
-                    <td>{row.status}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </DataTable>
+            />
           </section>
         </div>
       ) : null}
 
       {activeTruck ? (
         <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="orders-truck-view-title">
-          <section className="panel modal-card modal-card--orders-group">
+          <section className="panel modal-card modal-card--orders-group modal-card--orders-pivot">
             <div className="panel-header">
               <h3 id="orders-truck-view-title">
                 {t("orders.truckOrdersFor", {
@@ -431,40 +556,21 @@ export function OrdersPage({ orders, deliveryAgents = [] }) {
                 {t("customers.cancel")}
               </Button>
             </div>
-            <DataTable
+            <OrdersPivotTable
+              itemColumns={pivotedTruck.itemColumns}
+              pagedRows={pagedModalTruckRows}
+              allRows={pivotedTruck.rows}
+              dash={dash}
+              customerHeader={t("orders.customer")}
+              totalLabel={t("orders.totalAll", { defaultValue: "Total" })}
               pagination={{
                 page: modalTruckOrderPage,
                 pageSize: modalTruckOrderPageSize,
-                totalRows: truckModalRows.length,
+                totalRows: pivotedTruck.rows.length,
                 onPageChange: setModalTruckOrderPage,
                 onPageSizeChange: setModalTruckOrderPageSize,
               }}
-            >
-              <thead>
-                <tr>
-                  <th>{t("orders.address")}</th>
-                  <th>{t("orders.item")}</th>
-                  <th>{t("orders.groupMainAddress", { defaultValue: "Group main address" })}</th>
-                  <th>{t("orders.qty")}</th>
-                  <th>{t("orders.status")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pagedModalTruckOrders.map((row) => (
-                  <tr key={row.id}>
-                    <td>{row.customerName || t("orders.dash")}</td>
-                    <td>
-                      {row.itemName
-                        ? `#${row.id} - ${row.itemName}`
-                        : `#${row.id} - ${t("orders.dash")}`}
-                    </td>
-                    <td>{getGroupAddress(row) || t("orders.dash")}</td>
-                    <td>{row.orderedQty}</td>
-                    <td>{row.status}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </DataTable>
+            />
           </section>
         </div>
       ) : null}

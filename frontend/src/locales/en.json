@@ -77,6 +77,8 @@
     "orderMovementSub": "Move status",
     "payments": "Payments",
     "paymentsSub": "Order totals by customer & depot",
+    "customerOrderHistory": "Customer order history",
+    "customerOrderHistorySub": "Orders per customer",
     "borrowedMaterials": "Borrowed materials",
     "borrowedMaterialsSub": "Customer-held assets"
   },
@@ -99,6 +101,7 @@
     "assignOrders": "Assign orders",
     "orderMovement": "Order movement",
     "payments": "Payments",
+    "customerOrderHistory": "Customer order history",
     "borrowedMaterials": "Borrowed materials"
   },
   "overview": {
@@ -500,13 +503,15 @@
     "mixedStatus": "Mixed",
     "actions": "Actions",
     "view": "View",
-    "groupOrdersFor": "Orders for {{group}}"
+    "groupOrdersFor": "Orders for {{group}}",
+    "totalAll": "Total"
   },
   "assignOrders": {
     "title": "Assign orders",
     "lead": "Set the delivery agent and order group for each line, then submit Owner Preparing orders to factory.",
+    "todayOnlyHint": "Showing Owner_Preparing orders created today only ({{date}}).",
     "assignPanelTitle": "Assign delivery & order group",
-    "assignPanelHint": "Pick a delivery agent and order group for each Owner_Preparing order.",
+    "assignPanelHint": "Pick a delivery agent and order group for each Owner_Preparing order created today.",
     "deliveryPanelTitle": "Assign delivery",
     "deliveryPanelHint": "Pick a delivery agent for each order.",
     "groupPanelTitle": "Assign order group",
@@ -531,6 +536,21 @@
     "selectStatus": "— Select status —",
     "currentStatus": "Current status: {{status}}",
     "move": "Move status"
+  },
+  "customerOrderHistory": {
+    "title": "Customer order history",
+    "lead": "See how many orders each customer has placed and open the full order list.",
+    "orderCount": "Orders",
+    "orderCountLabel": "{{count}} order(s)",
+    "searchCustomersPlaceholder": "Search by name, phone, or order count...",
+    "searchOrdersPlaceholder": "Search orders...",
+    "empty": "No customers match your search.",
+    "noOrders": "This customer has no orders yet.",
+    "ordersForCustomer": "Orders for {{customer}}",
+    "orderId": "Order ID",
+    "amount": "Amount",
+    "createdAt": "Created",
+    "closeDetail": "Close"
   },
   "paymentTotalsPage": {
     "title": "Payments",

@@ -21,6 +21,7 @@ const lookupRepository = require("../repositories/lookups");
 const overviewRepository = require("../repositories/overview");
 const { getPool } = require("../db/pool");
 const { BadRequestError, NotFoundError, ForbiddenError } = require("../errors");
+const telegramService = require("./telegramService");
 
 /** New orders always use this producer; delivery agent is set later via assign. */
 const DEFAULT_NEW_ORDER_PRODUCER_ID = "1";
@@ -366,6 +367,10 @@ async function updateStatus(orderId, nextStatus, { user, allowReverse = false } 
   const allowedRolesForTarget = STATUS_OWNER_BY_TARGET[nextStatus];
   if (allowedRolesForTarget && !allowedRolesForTarget.has(user?.role)) {
     throw new ForbiddenError("You cannot move the order to this status");
+  }
+
+  if (nextStatus === "Sent_To_Factory") {
+    await telegramService.notifyOrderSentToFactory(order, user);
   }
 
   return orderRepository.updateOrderStatus(orderId, nextStatus, {

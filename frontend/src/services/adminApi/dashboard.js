@@ -26,6 +26,7 @@ const ROUTE_DATA_MAP = {
   "/assign-orders": ["orders", "deliveryAgents", "orderGroups"],
   "/order-movement": ["orders", "statuses"],
   "/payments": ["paymentTotals"],
+  "/customer-order-history": ["customers", "orders"],
   "/borrowed-materials": [
     "customers",
     "borrowMaterials",

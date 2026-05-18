@@ -29,6 +29,12 @@ export const MENU_ITEMS = [
   { key: "assignOrders", path: "/assign-orders", labelKey: "nav.assignOrders", subKey: "nav.assignOrdersSub" },
   { key: "orderMovement", path: "/order-movement", labelKey: "nav.orderMovement", subKey: "nav.orderMovementSub" },
   { key: "payments", path: "/payments", labelKey: "nav.payments", subKey: "nav.paymentsSub" },
+  {
+    key: "customerOrderHistory",
+    path: "/customer-order-history",
+    labelKey: "nav.customerOrderHistory",
+    subKey: "nav.customerOrderHistorySub",
+  },
   { key: "users", path: "/users", labelKey: "nav.users", subKey: "nav.usersSub" },
 ];
 

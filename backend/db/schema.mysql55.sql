@@ -722,6 +722,8 @@ SELECT
   o.producer_id, o.delivery_agent_id, o.delivery_time,
   o.amount_total, s.name AS status, o.created_at, o.updated_at,
   c.phone AS customer_phone,
+  c.latitude AS customer_latitude,
+  c.longitude AS customer_longitude,
   p.name AS producer_name,
   da.name AS delivery_agent_name,
   it.name AS item_name,
@@ -1300,16 +1302,16 @@ DEALLOCATE PREPARE stmt_role_menus;
 
 INSERT INTO role_menus (role_id, menu_key) VALUES
 (1, 'overview'), (1, 'newOrder'), (1, 'catalogs'), (1, 'items'), (1, 'customerItemPrices'), (1, 'customers'), (1, 'trackingCustomerLocation'), (1, 'depots'), (1, 'customersByDepot'),
-(1, 'producers'), (1, 'deliveryAgents'), (1, 'orders'), (1, 'orderGroups'), (1, 'assignOrders'), (1, 'orderMovement'), (1, 'payments'),
+(1, 'producers'), (1, 'deliveryAgents'), (1, 'orders'), (1, 'orderGroups'), (1, 'assignOrders'), (1, 'orderMovement'), (1, 'payments'), (1, 'customerOrderHistory'),
 (1, 'users'),
 (1, 'borrowedMaterials'),
 (2, 'overview'), (2, 'newOrder'), (2, 'catalogs'), (2, 'items'), (2, 'customerItemPrices'), (2, 'customers'), (2, 'trackingCustomerLocation'), (2, 'depots'), (2, 'customersByDepot'),
-(2, 'producers'), (2, 'deliveryAgents'), (2, 'orders'), (2, 'orderGroups'), (2, 'assignOrders'), (2, 'orderMovement'), (2, 'payments'),
+(2, 'producers'), (2, 'deliveryAgents'), (2, 'orders'), (2, 'orderGroups'), (2, 'assignOrders'), (2, 'orderMovement'), (2, 'payments'), (2, 'customerOrderHistory'),
 (2, 'borrowedMaterials'),
 (3, 'overview'), (3, 'deliveryAgents'), (3, 'orders'),
 (4, 'overview'), (4, 'orders'),
-(5, 'overview'), (5, 'orders'),
-(6, 'overview'), (6, 'customers'), (6, 'trackingCustomerLocation'), (6, 'customersByDepot'), (6, 'customerItemPrices'), (6, 'orders'), (6, 'payments'), (6, 'borrowedMaterials')
+(5, 'overview'), (5, 'orders'), (5, 'customerOrderHistory'),
+(6, 'overview'), (6, 'customers'), (6, 'trackingCustomerLocation'), (6, 'customersByDepot'), (6, 'customerItemPrices'), (6, 'orders'), (6, 'payments'), (6, 'customerOrderHistory'), (6, 'borrowedMaterials')
 ON DUPLICATE KEY UPDATE menu_key = VALUES(menu_key);
 
 -- 2) Remove obsolete orders.producer_confirm_status if it still exists
@@ -1796,6 +1798,13 @@ FROM roles r
 WHERE r.name IN ('Admin', 'Owner', 'Depot')
 ON DUPLICATE KEY UPDATE menu_key = VALUES(menu_key);
 
+-- 18c) Customer order history menu (Admin, Owner, Depot, Customer; idempotent)
+INSERT INTO role_menus (role_id, menu_key)
+SELECT r.id, 'customerOrderHistory'
+FROM roles r
+WHERE r.name IN ('Admin', 'Owner', 'Depot', 'Customer')
+ON DUPLICATE KEY UPDATE menu_key = VALUES(menu_key);
+
 -- 19) Borrow material order loans + monthly payment schedules (idempotent)
 SET @has_bmol := (
   SELECT COUNT(*) FROM information_schema.tables
@@ -2145,6 +2154,8 @@ SELECT
   o.producer_id, o.delivery_agent_id, o.delivery_time,
   o.amount_total, s.name AS status, o.created_at, o.updated_at,
   c.phone AS customer_phone,
+  c.latitude AS customer_latitude,
+  c.longitude AS customer_longitude,
   p.name AS producer_name,
   da.name AS delivery_agent_name,
   it.name AS item_name,

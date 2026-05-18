@@ -26,6 +26,7 @@ const PAGE_PATH_MAP = {
   "/assign-orders":   "assignOrders",
   "/order-movement":  "orderMovement",
   "/payments":        "payments",
+  "/customer-order-history": "customerOrderHistory",
   "/users":           "users",
 };
 
@@ -148,6 +149,13 @@ const NAV_ICONS = {
       <line x1="2" y1="10" x2="22" y2="10" />
     </svg>
   ),
+  customerOrderHistory: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <polyline points="12 7 12 12 15 14" />
+      <path d="M8 3h2M14 3h2" />
+    </svg>
+  ),
   users: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="8" r="4" />
@@ -197,6 +205,7 @@ const NAV_GROUPS = [
       "assignOrders",
       "orderMovement",
       "payments",
+      "customerOrderHistory",
     ],
   },
   {

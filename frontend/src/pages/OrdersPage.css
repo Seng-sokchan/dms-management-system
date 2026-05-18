@@ -12,3 +12,51 @@
 }
 
 .modal-card--orders-group { width: min(1140px, 98vw); }
+
+.modal-card--orders-pivot {
+  width: fit-content;
+  max-width: min(98vw, 100%);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-card--orders-pivot .panel-header {
+  flex-shrink: 0;
+}
+
+.orders-pivot-table-wrap {
+  overflow: auto;
+  max-height: min(70vh, calc(90vh - 7rem));
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.orders-pivot-table-wrap__inner.table-wrap {
+  overflow: visible;
+}
+
+.orders-pivot-table {
+  width: max-content;
+  min-width: 100%;
+}
+
+.orders-pivot-table th,
+.orders-pivot-table td {
+  white-space: nowrap;
+}
+
+.orders-pivot-table__qty {
+  text-align: right;
+}
+
+.orders-pivot-table__total-row th,
+.orders-pivot-table__total-row td {
+  font-weight: 700;
+  border-top: 2px solid var(--border, #e2e8f0);
+  background: var(--surface-muted, #f8fafc);
+}
+
+.qty-chip--total {
+  font-weight: 700;
+}

@@ -77,6 +77,8 @@
     "orderMovementSub": "ប្តូរស្ថានភាព",
     "payments": "ការទូទាត់",
     "paymentsSub": "សរុបតាមអតិថិជន និងឃ្លាំង",
+    "customerOrderHistory": "ប្រវត្តិការកម្មង់អតិថិជន",
+    "customerOrderHistorySub": "ការកម្មង់តាមអតិថិជន",
     "borrowedMaterials": "សម្ភារៈខ្ចី",
     "borrowedMaterialsSub": "សម្ភារៈដែលអតិថិជនកំពុងកាន់"
   },
@@ -99,6 +101,7 @@
     "assignOrders": "កំណត់ការកម្មង់",
     "orderMovement": "ផ្លាស់ទីការកម្មង់",
     "payments": "ការទូទាត់",
+    "customerOrderHistory": "ប្រវត្តិការកម្មង់អតិថិជន",
     "borrowedMaterials": "សម្ភារៈខ្ចី"
   },
   "overview": {
@@ -500,13 +503,15 @@
     "mixedStatus": "លាយគ្នា",
     "actions": "សកម្មភាព",
     "view": "មើល",
-    "groupOrdersFor": "ការកម្មង់សម្រាប់ {{group}}"
+    "groupOrdersFor": "ការកម្មង់សម្រាប់ {{group}}",
+    "totalAll": "សរុប"
   },
   "assignOrders": {
     "title": "កំណត់ការកម្មង់",
     "lead": "កំណត់ភ្នាក់ងារដឹកជញ្ជូន និងក្រុមការកម្មង់សម្រាប់បន្ទាត់នីមួយៗ បន្ទាប់មកបញ្ជូនការកម្មង់ទៅរោងចក្រ។",
+    "todayOnlyHint": "បង្ហាញតែការកម្មង់ Owner_Preparing ដែលបង្កើតថ្ងៃនេះ ({{date}})។",
     "assignPanelTitle": "កំណត់ដឹកជញ្ជូន និងក្រុមការកម្មង់",
-    "assignPanelHint": "ជ្រើសរើសភ្នាក់ងារដឹកជញ្ជូន និងក្រុមការកម្មង់សម្រាប់ការកម្មង់ស្ថានភាព Owner_Preparing។",
+    "assignPanelHint": "ជ្រើសរើសភ្នាក់ងារដឹកជញ្ជូន និងក្រុមការកម្មង់សម្រាប់ការកម្មង់ Owner_Preparing ដែលបង្កើតថ្ងៃនេះ។",
     "deliveryPanelTitle": "កំណត់ដឹកជញ្ជូន",
     "deliveryPanelHint": "ជ្រើសរើសភ្នាក់ងារដឹកជញ្ជូនសម្រាប់រាល់ការកម្មង់។",
     "groupPanelTitle": "កំណត់ក្រុមការកម្មង់",
@@ -531,6 +536,21 @@
     "selectStatus": "— ជ្រើសរើសស្ថានភាព —",
     "currentStatus": "ស្ថានភាពបច្ចុប្បន្ន: {{status}}",
     "move": "ប្ដូរស្ថានភាព"
+  },
+  "customerOrderHistory": {
+    "title": "ប្រវត្តិការកម្មង់អតិថិជន",
+    "lead": "មើលចំនួនការកម្មង់របស់អតិថិជននីមួយៗ និងបើកបញ្ជីការកម្មង់ពេញលេញ។",
+    "orderCount": "ការកម្មង់",
+    "orderCountLabel": "{{count}} ការកម្មង់",
+    "searchCustomersPlaceholder": "ស្វែងរកតាមឈ្មោះ ទូរស័ព្ទ ឬចំនួនការកម្មង់...",
+    "searchOrdersPlaceholder": "ស្វែងរកការកម្មង់...",
+    "empty": "គ្មានអតិថិជនដែលត្រូវនឹងការស្វែងរក។",
+    "noOrders": "អតិថិជននេះមិនទាន់មានការកម្មង់ទេ។",
+    "ordersForCustomer": "ការកម្មង់សម្រាប់ {{customer}}",
+    "orderId": "លេខការកម្មង់",
+    "amount": "ចំនួនទឹកប្រាក់",
+    "createdAt": "បង្កើត",
+    "closeDetail": "បិទ"
   },
   "paymentTotalsPage": {
     "title": "ការទូទាត់",

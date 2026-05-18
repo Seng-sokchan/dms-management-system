@@ -7,6 +7,8 @@ function mapOrder(row) {
     orderGroupId: row.order_group_id != null ? String(row.order_group_id) : null,
     orderGroupName: row.order_group_name != null ? row.order_group_name : null,
     customerPhone: row.customer_phone != null ? row.customer_phone : null,
+    customerLatitude: parseCustomerCoord(row.customer_latitude),
+    customerLongitude: parseCustomerCoord(row.customer_longitude),
     itemId: row.item_id != null ? String(row.item_id) : null,
     itemSku: row.item_sku != null ? row.item_sku : null,
     itemName: row.item_name,
