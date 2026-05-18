@@ -3,6 +3,7 @@ import { fetchOrderPaymentTotals } from "./orders";
 import { fetchBorrowMaterialOrderLoans } from "./borrowMaterialOrderLoans";
 import { fetchBorrowMaterialMonthlySchedules } from "./borrowMaterialMonthlySchedules";
 import { fetchCustomerItemPrices } from "./customerItemPrices";
+import { fetchDepotItemPrices } from "./depotItemPrices";
 import { canAccessPath } from "../../constants/menus";
 
 /**
@@ -13,7 +14,7 @@ const ROUTE_DATA_MAP = {
   "/create-order": ["customers", "producers", "items"],
   "/catalogs": ["catalogs"],
   "/items": ["catalogs", "items"],
-  "/customer-item-prices": ["customers", "items", "customerItemPrices"],
+  "/customer-item-prices": ["customers", "items", "depots", "customerItemPrices", "depotItemPrices"],
   "/customers": ["customers", "depots"],
   "/tracking-customer-location": ["customers"],
   "/depots": ["depots"],
@@ -73,6 +74,7 @@ export async function fetchDashboardData(token, pathname = "/overview") {
     borrowMaterialMonthlySchedules: [],
     paymentTotals: { byCustomer: [], byDepot: [] },
     customerItemPrices: [],
+    depotItemPrices: [],
   };
 
   const tasks = [];
@@ -167,6 +169,11 @@ export async function fetchDashboardData(token, pathname = "/overview") {
     const res = await fetchCustomerItemPrices(token);
     const rows = unwrapApiData(res.data);
     data.customerItemPrices = Array.isArray(rows) ? rows : [];
+  });
+  queue("depotItemPrices", async () => {
+    const res = await fetchDepotItemPrices(token);
+    const rows = unwrapApiData(res.data);
+    data.depotItemPrices = Array.isArray(rows) ? rows : [];
   });
 
   await Promise.all(tasks);

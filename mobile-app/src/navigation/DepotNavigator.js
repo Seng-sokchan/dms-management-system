@@ -1,12 +1,13 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { StyleSheet } from "react-native";
 import PrepareDepotBatchScreen from "../screens/PrepareDepotBatchScreen";
 import DepotOrdersScreen from "../screens/DepotOrdersScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import { AppIcon } from "../components/ui";
-import { colors, typography } from "../theme";
+import FloatingTabBar from "../components/navigation/FloatingTabBar";
+import { useFloatingTabScreenOptions, useStackScreenOptions } from "./screenOptions";
 
 function TabIconPrepare({ color, size }) {
   return <AppIcon name="clipboard-list-outline" color={color} size={size} />;
@@ -25,109 +26,71 @@ const PrepareStack = createNativeStackNavigator();
 const OrdersStack = createNativeStackNavigator();
 const ProfileStack = createNativeStackNavigator();
 
-const styles = StyleSheet.create({
-  header: {
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  headerTitle: {
-    fontSize: typography.h3,
-    fontWeight: "700",
-    color: colors.textPrimary,
-  },
-});
-
-const stackScreenOptions = {
-  headerStyle: styles.header,
-  headerShadowVisible: true,
-  headerTitleStyle: styles.headerTitle,
-  headerTitleAlign: "left",
-  headerTintColor: colors.textPrimary,
-  contentStyle: { backgroundColor: colors.background },
-  animation: "slide_from_right",
-};
-
 function PrepareNavigator() {
+  const stackScreenOptions = useStackScreenOptions();
+
   return (
     <PrepareStack.Navigator screenOptions={stackScreenOptions}>
       <PrepareStack.Screen
         name="PrepareDepotBatch"
         component={PrepareDepotBatchScreen}
-        options={{ title: "Prepare Batch" }}
+        options={{ headerShown: false }}
       />
     </PrepareStack.Navigator>
   );
 }
 
 function OrdersNavigator() {
+  const stackScreenOptions = useStackScreenOptions();
+
   return (
     <OrdersStack.Navigator screenOptions={stackScreenOptions}>
       <OrdersStack.Screen
         name="DepotOrders"
         component={DepotOrdersScreen}
-        options={{ title: "Depot Orders" }}
+        options={{ headerShown: false }}
       />
     </OrdersStack.Navigator>
   );
 }
 
 function ProfileNavigator() {
+  const stackScreenOptions = useStackScreenOptions();
+
   return (
     <ProfileStack.Navigator screenOptions={stackScreenOptions}>
       <ProfileStack.Screen
         name="ProfileHome"
         component={ProfileScreen}
-        options={{ title: "Profile" }}
+        options={{ headerShown: false }}
       />
     </ProfileStack.Navigator>
   );
 }
 
 export default function DepotNavigator() {
+  const floatingTabScreenOptions = useFloatingTabScreenOptions();
+  const { t } = useTranslation();
+
   return (
     <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textMuted,
-        tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopColor: colors.border,
-          borderTopWidth: 1,
-        },
-        tabBarLabelStyle: {
-          fontSize: typography.caption,
-          fontWeight: "600",
-        },
-      }}
+      screenOptions={floatingTabScreenOptions}
+      tabBar={(props) => <FloatingTabBar {...props} />}
     >
       <Tab.Screen
         name="DepotPrepare"
         component={PrepareNavigator}
-        options={{
-          title: "Prepare",
-          tabBarLabel: "Prepare",
-          tabBarIcon: TabIconPrepare,
-        }}
+        options={{ title: t("nav.prepare"), tabBarLabel: t("nav.prepare"), tabBarIcon: TabIconPrepare }}
       />
       <Tab.Screen
         name="DepotOrdersTab"
         component={OrdersNavigator}
-        options={{
-          title: "Orders",
-          tabBarLabel: "Orders",
-          tabBarIcon: TabIconOrders,
-        }}
+        options={{ title: t("nav.orders"), tabBarLabel: t("nav.orders"), tabBarIcon: TabIconOrders }}
       />
       <Tab.Screen
         name="DepotProfileTab"
         component={ProfileNavigator}
-        options={{
-          title: "Profile",
-          tabBarLabel: "Profile",
-          tabBarIcon: TabIconProfile,
-        }}
+        options={{ title: t("nav.profile"), tabBarLabel: t("nav.profile"), tabBarIcon: TabIconProfile }}
       />
     </Tab.Navigator>
   );

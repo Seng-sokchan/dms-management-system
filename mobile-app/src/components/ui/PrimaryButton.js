@@ -1,11 +1,53 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
-import { colors, radii, spacing, typography } from "../../theme";
+import { useTheme } from "../../context/ThemeContext";
 
-export default function PrimaryButton({ title, onPress, loading, disabled, style, textStyle, tone = "primary", icon }) {
+export default function PrimaryButton({
+  title,
+  onPress,
+  loading,
+  disabled,
+  style,
+  textStyle,
+  tone = "primary",
+  icon,
+}) {
+  const { colors, radii, spacing, typography } = useTheme();
   const isDisabled = disabled || loading;
   const backgroundColor = tone === "success" ? colors.success : colors.primary;
   const pressedColor = tone === "success" ? colors.successPressed : colors.primaryPressed;
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        button: {
+          minHeight: 44,
+          borderRadius: radii.pill,
+          paddingHorizontal: spacing.lg,
+          alignItems: "center",
+          justifyContent: "center",
+        },
+        contentRow: {
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: spacing.sm,
+        },
+        iconSlot: {
+          justifyContent: "center",
+          alignItems: "center",
+        },
+        text: {
+          color: colors.onPrimary,
+          fontSize: typography.button,
+          fontWeight: "700",
+        },
+        disabled: {
+          opacity: 0.65,
+        },
+      }),
+    [colors.onPrimary, radii.pill, spacing, typography.button],
+  );
 
   return (
     <Pressable
@@ -19,7 +61,7 @@ export default function PrimaryButton({ title, onPress, loading, disabled, style
       ]}
     >
       {loading ? (
-        <ActivityIndicator color="#fff" />
+        <ActivityIndicator color={colors.onPrimary} />
       ) : (
         <View style={styles.contentRow}>
           {icon ? <View style={styles.iconSlot}>{icon}</View> : null}
@@ -29,31 +71,3 @@ export default function PrimaryButton({ title, onPress, loading, disabled, style
     </Pressable>
   );
 }
-
-const styles = StyleSheet.create({
-  button: {
-    minHeight: 46,
-    borderRadius: radii.md,
-    paddingHorizontal: spacing.lg,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  contentRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.sm,
-  },
-  iconSlot: {
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  text: {
-    color: "#fff",
-    fontSize: typography.button,
-    fontWeight: "700",
-  },
-  disabled: {
-    opacity: 0.65,
-  },
-});

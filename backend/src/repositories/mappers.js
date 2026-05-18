@@ -120,6 +120,21 @@ function mapCustomerItemPrice(row) {
   };
 }
 
+function mapDepotItemPrice(row) {
+  return {
+    id: String(row.id),
+    depotId: row.depot_id != null ? String(row.depot_id) : "",
+    depotName: row.depot_name || "",
+    itemId: row.item_id != null ? String(row.item_id) : "",
+    itemName: row.item_name || "",
+    itemSku: row.item_sku || "",
+    currency: row.currency || "KHR",
+    unitPrice: Number(row.unit_price),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
 function mapUser(row) {
   return {
     id: String(row.id),
@@ -216,6 +231,7 @@ module.exports = {
   mapCatalog,
   mapItem,
   mapCustomerItemPrice,
+  mapDepotItemPrice,
   mapAddress,
   mapUser,
   mapBorrowMaterial,

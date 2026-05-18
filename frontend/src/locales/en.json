@@ -396,7 +396,11 @@
   },
   "customerItemPrices": {
     "title": "Customer item prices",
-    "lead": "Set default item prices per customer and currency.",
+    "lead": "Set item prices for standalone customers or for all customers under a depot.",
+    "normalTitle": "Customers without depot",
+    "normalLead": "Each price applies to one customer only.",
+    "depotTitle": "Depot-managed customers",
+    "depotLead": "Each price applies to every customer assigned to that depot.",
     "formTitle": "Set customer item price",
     "customer": "Customer",
     "item": "Item",
@@ -411,6 +415,15 @@
     "actions": "Actions",
     "delete": "Delete",
     "confirmDelete": "Delete this customer item price?"
+  },
+  "depotItemPrices": {
+    "formTitle": "Set depot item price",
+    "depot": "Depot",
+    "selectDepot": "— Select depot —",
+    "listTitle": "Configured depot prices",
+    "empty": "No depot item prices yet.",
+    "searchPlaceholder": "Search depot/item price...",
+    "confirmDelete": "Delete this depot item price?"
   },
   "deliveryAgents": {
     "title": "Delivery agents",
@@ -749,6 +762,8 @@
     "updateBorrowMonthlyInstallmentStatus": "Could not update installment status",
     "saveCustomerItemPrice": "Save customer item price failed",
     "deleteCustomerItemPrice": "Delete customer item price failed",
+    "saveDepotItemPrice": "Save depot item price failed",
+    "deleteDepotItemPrice": "Delete depot item price failed",
     "sessionExpired": "Session expired. Please sign in again."
   },
   "accessDenied": {
@@ -803,6 +818,8 @@
     "borrowMonthlyScheduleSaved": "Monthly schedule created",
     "borrowMonthlyScheduleDeleted": "Schedule removed",
     "customerItemPriceSaved": "Customer item price saved",
-    "customerItemPriceDeleted": "Customer item price deleted"
+    "customerItemPriceDeleted": "Customer item price deleted",
+    "depotItemPriceSaved": "Depot item price saved",
+    "depotItemPriceDeleted": "Depot item price deleted"
   }
 }

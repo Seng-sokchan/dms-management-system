@@ -8,18 +8,18 @@ import {
   Text,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 import Geolocation from "@react-native-community/geolocation";
 import MapView, { Marker } from "react-native-maps";
 import { useFocusEffect } from "@react-navigation/native";
 import { io } from "socket.io-client";
 import { useAuth } from "../context/AuthContext";
-import { Card } from "../components/ui";
+import { useTheme } from "../context/ThemeContext";
+import { Card, Screen, SectionHeader } from "../components/ui";
 import { getApiErrorMessage } from "../services/apiClient";
 import { listMobileOrders } from "../services/ordersApi";
 import { getSocketBaseUrl } from "../services/socketUrl";
 import { ensureLocationPermission } from "../utils/locationPermission";
-import { colors, radii, spacing, typography } from "../theme";
 
 const TRACKABLE_STATUS = "Ready_For_Delivery";
 const PHNOM_PENH_REGION = {
@@ -36,6 +36,8 @@ function parseCoord(value) {
 
 export default function CustomerTrackingScreen() {
   const { token } = useAuth();
+  const { t } = useTranslation();
+  const { colors, radii, shadows, spacing, typography } = useTheme();
   const socketRef = useRef(null);
   const [orders, setOrders] = useState([]);
   const [selectedOrderId, setSelectedOrderId] = useState("");
@@ -45,22 +47,79 @@ export default function CustomerTrackingScreen() {
   const [socketState, setSocketState] = useState("idle");
   const [error, setError] = useState("");
 
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: { paddingBottom: spacing.sm },
+        loadingWrap: { marginBottom: spacing.md, alignItems: "center" },
+        ordersCard: { marginBottom: spacing.md, paddingVertical: spacing.md },
+        cardTitle: {
+          color: colors.textPrimary,
+          fontWeight: "700",
+          fontSize: typography.body,
+          marginBottom: spacing.sm,
+        },
+        muted: { color: colors.textMuted, fontSize: typography.bodySmall, lineHeight: 18 },
+        statusLine: {
+          marginTop: spacing.md,
+          color: colors.textMuted,
+          fontSize: typography.caption,
+          fontWeight: "500",
+        },
+        chipList: { paddingVertical: spacing.xs },
+        orderChip: {
+          marginRight: spacing.sm,
+          borderRadius: radii.pill,
+          paddingHorizontal: spacing.md,
+          paddingVertical: spacing.sm,
+          backgroundColor: colors.surfaceSoft,
+        },
+        orderChipActive: { backgroundColor: colors.primary },
+        orderChipTitle: {
+          color: colors.textPrimary,
+          fontWeight: "600",
+          fontSize: typography.bodySmall,
+        },
+        orderChipTitleActive: { color: colors.onPrimary },
+        orderChipSub: { color: colors.textMuted, marginTop: 2, fontSize: typography.caption },
+        orderChipSubActive: { color: colors.onPrimary, opacity: 0.72 },
+        mapWrap: {
+          flex: 1,
+          marginTop: spacing.sm,
+          borderRadius: radii.xl,
+          overflow: "hidden",
+          backgroundColor: colors.surface,
+        },
+        map: { flex: 1, minHeight: 220 },
+        errorText: {
+          color: colors.danger,
+          marginTop: spacing.sm,
+          fontSize: typography.caption,
+          fontWeight: "600",
+        },
+      }),
+    [colors, radii, spacing, typography],
+  );
+
   const trackableOrders = useMemo(
     () => orders.filter((row) => row?.status === TRACKABLE_STATUS && row?.deliveryAgentId),
     [orders],
   );
 
-  const subscribeSelectedOrder = useCallback((orderId) => {
-    if (!orderId || !socketRef.current?.connected) return;
-    socketRef.current.emit("subscribe:customer-order-tracking", { orderId }, (ack) => {
-      if (!ack?.ok) {
-        setDriverLocation(null);
-        setError(ack?.error || "Cannot subscribe to this order");
-        return;
-      }
-      setError("");
-    });
-  }, []);
+  const subscribeSelectedOrder = useCallback(
+    (orderId) => {
+      if (!orderId || !socketRef.current?.connected) return;
+      socketRef.current.emit("subscribe:customer-order-tracking", { orderId }, (ack) => {
+        if (!ack?.ok) {
+          setDriverLocation(null);
+          setError(ack?.error || t("tracking.subscribeError"));
+          return;
+        }
+        setError("");
+      });
+    },
+    [t],
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -74,7 +133,9 @@ export default function CustomerTrackingScreen() {
           if (cancelled) return;
           setOrders(rows);
           if (!selectedOrderId) {
-            const firstId = rows.find((row) => row?.status === TRACKABLE_STATUS && row?.deliveryAgentId)?.id;
+            const firstId = rows.find(
+              (row) => row?.status === TRACKABLE_STATUS && row?.deliveryAgentId,
+            )?.id;
             if (firstId) setSelectedOrderId(String(firstId));
           } else {
             const stillVisible = rows.some(
@@ -89,7 +150,7 @@ export default function CustomerTrackingScreen() {
             }
           }
         } catch (err) {
-          if (!cancelled) setError(getApiErrorMessage(err, "Failed to load orders"));
+          if (!cancelled) setError(getApiErrorMessage(err, t("tracking.loadFailed")));
         } finally {
           if (!cancelled) setLoadingOrders(false);
         }
@@ -113,7 +174,7 @@ export default function CustomerTrackingScreen() {
       return () => {
         cancelled = true;
       };
-    }, [selectedOrderId, token]),
+    }, [selectedOrderId, token, t]),
   );
 
   useFocusEffect(
@@ -141,19 +202,19 @@ export default function CustomerTrackingScreen() {
           latitude,
           longitude,
           updatedAt: payload?.updatedAt || "",
-          name: payload?.name || payload?.username || "Driver",
+          name: payload?.name || payload?.username || t("tracking.driver"),
         });
       });
       socket.on("connect_error", (err) => {
         setSocketState("error");
-        setError(err?.message || "Socket connection failed");
+        setError(err?.message || t("tracking.socketFailed"));
       });
       return () => {
         socketRef.current = null;
         socket.removeAllListeners();
         socket.disconnect();
       };
-    }, [selectedOrderId, subscribeSelectedOrder, token]),
+    }, [selectedOrderId, subscribeSelectedOrder, token, t]),
   );
 
   useFocusEffect(
@@ -184,90 +245,67 @@ export default function CustomerTrackingScreen() {
         style={[styles.orderChip, isActive && styles.orderChipActive]}
       >
         <Text style={[styles.orderChipTitle, isActive && styles.orderChipTitleActive]}>
-          #{item.id} - {item.itemName || "Order"}
+          {t("tracking.orderLabel", { id: item.id, name: item.itemName || "Order" })}
         </Text>
-        <Text style={styles.orderChipSub}>{item.deliveryTime || TRACKABLE_STATUS}</Text>
+        <Text style={[styles.orderChipSub, isActive && styles.orderChipSubActive]}>
+          {item.deliveryTime || TRACKABLE_STATUS}
+        </Text>
       </Pressable>
     );
   };
 
+  const connectionLabel =
+    socketState === "connected" ? t("tracking.live") : socketState;
+
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        <Text style={styles.title}>Track delivery</Text>
-        <Text style={styles.lead}>Live location is available when order status is Ready_For_Delivery.</Text>
+    <Screen contentStyle={styles.container}>
+      <SectionHeader title={t("tracking.title")} subtitle={t("tracking.subtitle")} />
 
-        {loadingOrders ? (
-          <View style={styles.loadingWrap}>
-            <ActivityIndicator color={colors.primary} />
-          </View>
-        ) : null}
-
-        <Card style={styles.card}>
-          <Text style={styles.cardTitle}>Trackable orders</Text>
-          {trackableOrders.length === 0 ? (
-            <Text style={styles.muted}>No orders are currently ready for delivery.</Text>
-          ) : (
-            <FlatList
-              horizontal
-              data={trackableOrders}
-              keyExtractor={(item) => String(item.id)}
-              renderItem={renderOrder}
-              showsHorizontalScrollIndicator={false}
-            />
-          )}
-          <Text style={styles.muted}>Socket: {socketState}</Text>
-        </Card>
-
-        <View style={styles.mapWrap}>
-          <MapView style={styles.map} initialRegion={mapRegion} region={mapRegion}>
-            {driverLocation ? (
-              <Marker coordinate={driverLocation} title={driverLocation.name || "Driver"} description="Live location" />
-            ) : null}
-            {myLocation ? <Marker coordinate={myLocation} pinColor="#ef4444" title="You" /> : null}
-          </MapView>
+      {loadingOrders ? (
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator color={colors.textPrimary} />
         </View>
+      ) : null}
 
-        {error ? (
-          <Pressable onPress={() => Alert.alert("Tracking", error)}>
-            <Text style={styles.errorText}>{error}</Text>
-          </Pressable>
-        ) : null}
+      <Card style={styles.ordersCard}>
+        <Text style={styles.cardTitle}>{t("tracking.activeOrders")}</Text>
+        {trackableOrders.length === 0 ? (
+          <Text style={styles.muted}>{t("tracking.noOrders")}</Text>
+        ) : (
+          <FlatList
+            horizontal
+            data={trackableOrders}
+            keyExtractor={(item) => String(item.id)}
+            renderItem={renderOrder}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.chipList}
+          />
+        )}
+        <Text style={styles.statusLine}>
+          {t("tracking.connection")} · {connectionLabel}
+        </Text>
+      </Card>
+
+      <View style={[styles.mapWrap, shadows.card]}>
+        <MapView style={styles.map} initialRegion={mapRegion} region={mapRegion}>
+          {driverLocation ? (
+            <Marker
+              coordinate={driverLocation}
+              title={driverLocation.name || t("tracking.driver")}
+              description={t("tracking.liveLocation")}
+            />
+          ) : null}
+          {myLocation ? (
+            <Marker coordinate={myLocation} pinColor={colors.primary} title={t("tracking.you")} />
+          ) : null}
+        </MapView>
       </View>
-    </SafeAreaView>
+
+      {error ? (
+        <Pressable onPress={() => Alert.alert(t("tracking.title"), error)}>
+          <Text style={styles.errorText}>{error}</Text>
+        </Pressable>
+      ) : null}
+    </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: colors.background },
-  container: { flex: 1, paddingHorizontal: spacing.lg, paddingTop: spacing.lg },
-  title: { fontSize: typography.h2, fontWeight: "800", color: colors.textPrimary },
-  lead: { marginTop: spacing.sm, fontSize: typography.body, color: colors.textSecondary },
-  loadingWrap: { marginTop: spacing.md, alignItems: "center" },
-  card: { marginTop: spacing.lg, padding: spacing.md, borderRadius: radii.lg },
-  cardTitle: { color: colors.textPrimary, fontWeight: "700", marginBottom: spacing.sm },
-  muted: { color: colors.textMuted, marginTop: spacing.sm, fontSize: typography.caption },
-  orderChip: {
-    marginRight: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.surfaceSoft,
-  },
-  orderChipActive: { borderColor: colors.primary, backgroundColor: colors.surfaceMuted },
-  orderChipTitle: { color: colors.textPrimary, fontWeight: "600", fontSize: typography.bodySmall },
-  orderChipTitleActive: { color: colors.primary },
-  orderChipSub: { color: colors.textMuted, marginTop: 2, fontSize: typography.caption },
-  mapWrap: {
-    flex: 1,
-    marginTop: spacing.lg,
-    borderRadius: radii.lg,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  map: { flex: 1 },
-  errorText: { color: colors.danger, marginTop: spacing.sm, fontSize: typography.caption },
-});

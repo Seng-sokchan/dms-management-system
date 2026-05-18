@@ -1,83 +1,94 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { useTranslation } from "react-i18next";
 import QRCode from "react-native-qrcode-svg";
-import { colors, radii, spacing, typography } from "../theme";
+import { useTheme } from "../context/ThemeContext";
 
 export default function QrModal({ visible, qrValue, onClose }) {
+  const { t } = useTranslation();
+  const { colors, radii, spacing, typography } = useTheme();
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        overlay: {
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: colors.overlay,
+          padding: spacing.lg,
+        },
+        card: {
+          width: "100%",
+          maxWidth: 360,
+          backgroundColor: colors.surface,
+          borderRadius: radii.xl,
+          padding: spacing.xl,
+          alignItems: "center",
+        },
+        title: {
+          fontSize: typography.h3,
+          fontWeight: "800",
+          color: colors.textPrimary,
+          textAlign: "center",
+        },
+        subtitle: {
+          marginTop: spacing.sm,
+          fontSize: typography.bodySmall,
+          color: colors.textSecondary,
+          textAlign: "center",
+          lineHeight: 18,
+        },
+        qrWrap: {
+          marginVertical: spacing.xl,
+          padding: spacing.lg,
+          backgroundColor: colors.surface,
+          borderRadius: radii.lg,
+        },
+        meta: {
+          fontSize: typography.caption,
+          color: colors.textMuted,
+          textAlign: "center",
+          marginBottom: spacing.lg,
+        },
+        button: {
+          backgroundColor: colors.primary,
+          borderRadius: radii.pill,
+          paddingVertical: spacing.md,
+          paddingHorizontal: spacing.xxl,
+          minWidth: 120,
+        },
+        buttonPressed: {
+          opacity: 0.9,
+        },
+        buttonText: {
+          color: colors.onPrimary,
+          fontWeight: "700",
+          fontSize: typography.button,
+          textAlign: "center",
+        },
+      }),
+    [colors, radii, spacing, typography],
+  );
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlay}>
         <View style={styles.card}>
-          <Text style={styles.title}>Pre-order successful</Text>
-          <Text style={styles.subtitle}>Scan this QR code to confirm order details</Text>
+          <Text style={styles.title}>{t("qr.title")}</Text>
+          <Text style={styles.subtitle}>{t("qr.subtitle")}</Text>
           <View style={styles.qrWrap}>
             <QRCode value={qrValue || "DMS-SAMPLE-QR"} size={180} />
           </View>
-          <Text style={styles.meta}>Present this code to finalize fulfillment</Text>
-          <Pressable style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]} onPress={onClose}>
-            <Text style={styles.buttonText}>Close</Text>
+          <Text style={styles.meta}>{t("qr.meta")}</Text>
+          <Pressable
+            style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
+            onPress={onClose}
+          >
+            <Text style={styles.buttonText}>{t("qr.close")}</Text>
           </Pressable>
         </View>
       </View>
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: colors.overlay,
-    padding: spacing.lg,
-  },
-  card: {
-    width: "100%",
-    maxWidth: 360,
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.xl,
-    alignItems: "center",
-  },
-  title: {
-    fontSize: typography.h2,
-    fontWeight: "700",
-    color: colors.textPrimary,
-  },
-  subtitle: {
-    marginTop: spacing.sm,
-    marginBottom: spacing.lg,
-    color: colors.textSecondary,
-    fontSize: typography.bodySmall,
-    textAlign: "center",
-  },
-  qrWrap: {
-    padding: spacing.md,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surfaceSoft,
-  },
-  meta: {
-    marginTop: spacing.md,
-    color: colors.textMuted,
-    fontSize: typography.caption,
-  },
-  button: {
-    marginTop: spacing.xl,
-    backgroundColor: colors.primary,
-    borderRadius: radii.md,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.xxl,
-  },
-  buttonPressed: {
-    backgroundColor: colors.primaryPressed,
-  },
-  buttonText: {
-    color: colors.surface,
-    fontWeight: "700",
-    fontSize: typography.button,
-  },
-});

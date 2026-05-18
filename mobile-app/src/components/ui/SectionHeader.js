@@ -1,8 +1,39 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { colors, spacing, typography } from "../../theme";
+import { useTheme } from "../../context/ThemeContext";
 
 export default function SectionHeader({ title, subtitle, rightAction }) {
+  const { colors, spacing, typography } = useTheme();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        row: {
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: spacing.md,
+          marginTop: spacing.sm,
+        },
+        content: {
+          flex: 1,
+          marginRight: spacing.md,
+        },
+        title: {
+          fontSize: typography.h2,
+          fontWeight: "800",
+          color: colors.textPrimary,
+          letterSpacing: -0.3,
+        },
+        subtitle: {
+          marginTop: spacing.xs,
+          fontSize: typography.bodySmall,
+          color: colors.textSecondary,
+          lineHeight: 18,
+        },
+      }),
+    [colors, spacing, typography],
+  );
+
   return (
     <View style={styles.row}>
       <View style={styles.content}>
@@ -13,26 +44,3 @@ export default function SectionHeader({ title, subtitle, rightAction }) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: spacing.md,
-  },
-  content: {
-    flex: 1,
-    marginRight: spacing.md,
-  },
-  title: {
-    fontSize: typography.h3,
-    fontWeight: "700",
-    color: colors.textPrimary,
-  },
-  subtitle: {
-    marginTop: spacing.xs,
-    fontSize: typography.bodySmall,
-    color: colors.textSecondary,
-  },
-});

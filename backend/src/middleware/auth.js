@@ -10,11 +10,13 @@ function getJwtSecret() {
   return process.env.JWT_SECRET;
 }
 
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "365d";
+
 function createToken(user) {
   return jwt.sign(
     { sub: user.id, name: user.name, role: user.role, username: user.username },
     getJwtSecret(),
-    { expiresIn: "12h" },
+    { expiresIn: JWT_EXPIRES_IN },
   );
 }
 

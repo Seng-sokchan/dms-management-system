@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import i18n from "../i18n/config";
 import { clearSession, loadSession, saveSession } from "../services/authStorage";
 import { fetchMe, login as loginApi } from "../services/authApi";
 
@@ -35,7 +36,7 @@ export function AuthProvider({ children }) {
     const payload = await loginApi({ username, password, client: "mobile" });
     const role = payload?.user?.role;
     if (role !== "Customer" && role !== "Delivery" && role !== "Depot") {
-      throw new Error("Only Customer, Delivery, or Depot accounts can use this app");
+      throw new Error(i18n.t("auth.roleNotAllowed"));
     }
     const me = await fetchMe(payload.token);
     const nextUser = { ...payload.user, ...me };

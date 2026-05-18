@@ -1,13 +1,14 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { StyleSheet } from "react-native";
 import ItemListScreen from "../screens/ItemListScreen";
 import CartScreen from "../screens/CartScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import CustomerTrackingScreen from "../screens/CustomerTrackingScreen";
 import { AppIcon } from "../components/ui";
-import { colors, typography } from "../theme";
+import FloatingTabBar from "../components/navigation/FloatingTabBar";
+import { useFloatingTabScreenOptions, useStackScreenOptions } from "./screenOptions";
 
 function TabIconNewOrder({ color, size }) {
   return <AppIcon name="cart-outline" color={color} size={size} />;
@@ -25,94 +26,63 @@ const Tab = createBottomTabNavigator();
 const NewOrderStack = createNativeStackNavigator();
 const ProfileStack = createNativeStackNavigator();
 
-const styles = StyleSheet.create({
-  header: {
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  headerTitle: {
-    fontSize: typography.h3,
-    fontWeight: "700",
-    color: colors.textPrimary,
-  },
-});
-
-const stackScreenOptions = {
-  headerStyle: styles.header,
-  headerShadowVisible: true,
-  headerTitleStyle: styles.headerTitle,
-  headerTitleAlign: "left",
-  headerTintColor: colors.textPrimary,
-  contentStyle: { backgroundColor: colors.background },
-  animation: "slide_from_right",
-};
-
 function NewOrderNavigator() {
+  const stackScreenOptions = useStackScreenOptions();
+  const { t } = useTranslation();
+
   return (
     <NewOrderStack.Navigator screenOptions={stackScreenOptions}>
-      <NewOrderStack.Screen name="ItemListScreen" component={ItemListScreen} options={{ title: "Products" }} />
+      <NewOrderStack.Screen
+        name="ItemListScreen"
+        component={ItemListScreen}
+        options={{ headerShown: false }}
+      />
       <NewOrderStack.Screen
         name="Cart"
         component={CartScreen}
-        options={{
-          title: "Your Cart",
-          presentation: "card",
-        }}
+        options={{ title: t("nav.cart"), presentation: "card" }}
       />
     </NewOrderStack.Navigator>
   );
 }
 
 function ProfileNavigator() {
+  const stackScreenOptions = useStackScreenOptions();
+
   return (
     <ProfileStack.Navigator screenOptions={stackScreenOptions}>
-      <ProfileStack.Screen name="ProfileHome" component={ProfileScreen} options={{ title: "Profile" }} />
+      <ProfileStack.Screen
+        name="ProfileHome"
+        component={ProfileScreen}
+        options={{ headerShown: false }}
+      />
     </ProfileStack.Navigator>
   );
 }
 
 export default function AuthenticatedTabs() {
+  const floatingTabScreenOptions = useFloatingTabScreenOptions();
+  const { t } = useTranslation();
+
   return (
     <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textMuted,
-        tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopColor: colors.border,
-          borderTopWidth: 1,
-        },
-        tabBarLabelStyle: {
-          fontSize: typography.caption,
-          fontWeight: "600",
-        },
-      }}
+      screenOptions={floatingTabScreenOptions}
+      tabBar={(props) => <FloatingTabBar {...props} />}
     >
       <Tab.Screen
         name="NewOrder"
         component={NewOrderNavigator}
-        options={{
-          title: "New Order",
-          tabBarIcon: TabIconNewOrder,
-        }}
-      />
-      <Tab.Screen
-        name="ProfileTab"
-        component={ProfileNavigator}
-        options={{
-          title: "Profile",
-          tabBarIcon: TabIconProfile,
-        }}
+        options={{ title: t("nav.order"), tabBarIcon: TabIconNewOrder }}
       />
       <Tab.Screen
         name="CustomerTracking"
         component={CustomerTrackingScreen}
-        options={{
-          title: "Tracking",
-          tabBarIcon: TabIconTracking,
-        }}
+        options={{ title: t("nav.tracking"), tabBarIcon: TabIconTracking }}
+      />
+      <Tab.Screen
+        name="ProfileTab"
+        component={ProfileNavigator}
+        options={{ title: t("nav.profile"), tabBarIcon: TabIconProfile }}
       />
     </Tab.Navigator>
   );

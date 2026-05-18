@@ -1,16 +1,20 @@
 // @ts-nocheck
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { I18nextProvider, useTranslation } from "react-i18next";
 import { AuthProvider, useAuth } from "./src/context/AuthContext";
+import { ThemeProvider, useTheme } from "./src/context/ThemeContext";
 import { CartProvider } from "./src/context/CartContext";
 import LoginScreen from "./src/screens/LoginScreen";
 import AuthenticatedTabs from "./src/navigation/AuthenticatedTabs";
 import DeliveryNavigator from "./src/navigation/DeliveryNavigator";
 import DepotNavigator from "./src/navigation/DepotNavigator";
-import { colors, typography } from "./src/theme";
+import { useStackScreenOptions } from "./src/navigation/screenOptions";
+import { bootstrapI18n } from "./src/i18n/config";
+import i18n from "./src/i18n/config";
 
 const Stack = createNativeStackNavigator();
 
@@ -24,12 +28,15 @@ function CustomerMain() {
 
 function AppNavigator() {
   const { isLoading, token, user } = useAuth();
+  const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
+  const stackScreenOptions = useStackScreenOptions();
 
   if (isLoading) {
     return (
-      <View style={styles.loader}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loaderText}>Preparing your workspace...</Text>
+      <View style={[styles.loader, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.textPrimary} />
+        <Text style={[styles.loaderText, { color: colors.textSecondary }]}>{t("app.preparing")}</Text>
       </View>
     );
   }
@@ -37,7 +44,7 @@ function AppNavigator() {
   return (
     <NavigationContainer
       theme={{
-        dark: true,
+        dark: isDark,
         colors: {
           primary: colors.primary,
           background: colors.background,
@@ -54,23 +61,9 @@ function AppNavigator() {
         },
       }}
     >
-      <Stack.Navigator
-        screenOptions={{
-          headerStyle: styles.header,
-          headerShadowVisible: true,
-          headerTitleStyle: styles.headerTitle,
-          headerTitleAlign: "left",
-          headerTintColor: colors.textPrimary,
-          contentStyle: { backgroundColor: colors.background },
-          animation: "slide_from_right",
-        }}
-      >
+      <Stack.Navigator screenOptions={stackScreenOptions}>
         {!token ? (
-          <Stack.Screen
-            name="Login"
-            component={LoginScreen}
-            options={{ headerShown: false }}
-          />
+          <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
         ) : user?.role === "Delivery" ? (
           <Stack.Screen
             name="DeliveryMain"
@@ -78,29 +71,49 @@ function AppNavigator() {
             options={{ headerShown: false }}
           />
         ) : user?.role === "Depot" ? (
-          <Stack.Screen
-            name="DepotMain"
-            component={DepotNavigator}
-            options={{ headerShown: false }}
-          />
+          <Stack.Screen name="DepotMain" component={DepotNavigator} options={{ headerShown: false }} />
         ) : (
-          <Stack.Screen
-            name="Main"
-            component={CustomerMain}
-            options={{ headerShown: false }}
-          />
+          <Stack.Screen name="Main" component={CustomerMain} options={{ headerShown: false }} />
         )}
       </Stack.Navigator>
     </NavigationContainer>
   );
 }
 
-export default function App() {
+function AppRoot() {
   return (
-    <SafeAreaProvider>
+    <ThemeProvider>
       <AuthProvider>
         <AppNavigator />
       </AuthProvider>
+    </ThemeProvider>
+  );
+}
+
+export default function App() {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    bootstrapI18n()
+      .catch(() => {})
+      .finally(() => setReady(true));
+  }, []);
+
+  if (!ready) {
+    return (
+      <SafeAreaProvider>
+        <View style={styles.bootLoader}>
+          <ActivityIndicator size="large" color="#111" />
+        </View>
+      </SafeAreaProvider>
+    );
+  }
+
+  return (
+    <SafeAreaProvider>
+      <I18nextProvider i18n={i18n}>
+        <AppRoot />
+      </I18nextProvider>
     </SafeAreaProvider>
   );
 }
@@ -110,21 +123,15 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.background,
     gap: 12,
   },
   loaderText: {
-    color: colors.textSecondary,
-    fontSize: typography.bodySmall,
+    fontSize: 13,
   },
-  header: {
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  headerTitle: {
-    fontSize: typography.h3,
-    fontWeight: "700",
-    color: colors.textPrimary,
+  bootLoader: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F7F7F8",
   },
 });

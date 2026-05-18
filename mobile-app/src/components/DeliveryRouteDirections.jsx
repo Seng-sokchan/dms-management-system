@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
 import MapViewDirections from "react-native-maps-directions";
 import { GOOGLE_MAPS_API_KEY } from "../config/appConfig";
-import { colors } from "../theme";
+import { useTheme } from "../context/ThemeContext";
 
 /**
  * Road route from driver → destination via Google Directions API.
  */
 export function DeliveryRouteDirections({ origin, destination, onReady, onError }) {
+  const { colors } = useTheme();
   const [routeKey, setRouteKey] = useState(0);
   const apiKey = GOOGLE_MAPS_API_KEY?.trim() || "";
 

@@ -1,4 +1,5 @@
 export { default as AppIcon } from "./AppIcon";
+export { default as CustomerScreen } from "./CustomerScreen";
 export { default as Card } from "./Card";
 export { default as EmptyState } from "./EmptyState";
 export { default as InputField } from "./InputField";

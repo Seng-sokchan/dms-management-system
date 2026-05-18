@@ -396,7 +396,11 @@
   },
   "customerItemPrices": {
     "title": "តម្លៃទំនិញតាមអតិថិជន",
-    "lead": "កំណត់តម្លៃឯកតាលំនាំតាមអតិថិជន ទំនិញ និងរូបិយប័ណ្ណ។",
+    "lead": "កំណត់តម្លៃទំនិញសម្រាប់អតិថិជនឯករាជ្យ ឬសម្រាប់អតិថិជនទាំងអស់ក្រោមឃ្លាំង។",
+    "normalTitle": "អតិថិជនគ្មានឃ្លាំង",
+    "normalLead": "តម្លៃមួយអនុវត្តតែអតិថិជនម្នាក់។",
+    "depotTitle": "អតិថិជនក្រោមឃ្លាំង",
+    "depotLead": "តម្លៃមួយអនុវត្តចំពោះអតិថិជនទាំងអស់ក្នុងឃ្លាំងនោះ។",
     "formTitle": "កំណត់តម្លៃទំនិញ",
     "customer": "អតិថិជន",
     "item": "ទំនិញ",
@@ -411,6 +415,15 @@
     "actions": "សកម្មភាព",
     "delete": "លុប",
     "confirmDelete": "តើអ្នកចង់លុបតម្លៃនេះមែនទេ?"
+  },
+  "depotItemPrices": {
+    "formTitle": "កំណត់តម្លៃទំនិញតាមឃ្លាំង",
+    "depot": "ឃ្លាំង",
+    "selectDepot": "— ជ្រើសរើសឃ្លាំង —",
+    "listTitle": "តម្លៃឃ្លាំងដែលបានកំណត់",
+    "empty": "មិនទាន់មានតម្លៃទំនិញតាមឃ្លាំងទេ។",
+    "searchPlaceholder": "ស្វែងរកតម្លៃឃ្លាំង/ទំនិញ...",
+    "confirmDelete": "តើអ្នកចង់លុបតម្លៃឃ្លាំងនេះមែនទេ?"
   },
   "deliveryAgents": {
     "title": "ភ្នាក់ងារដឹកជញ្ជូន",
@@ -749,6 +762,8 @@
     "updateBorrowMonthlyInstallmentStatus": "មិនអាចធ្វើបច្ចុប្បន្នភាពស្ថានភាពការបង់បានទេ",
     "saveCustomerItemPrice": "រក្សាទុកតម្លៃទំនិញតាមអតិថិជនបរាជ័យ",
     "deleteCustomerItemPrice": "លុបតម្លៃទំនិញតាមអតិថិជនបរាជ័យ",
+    "saveDepotItemPrice": "រក្សាទុកតម្លៃទំនិញតាមឃ្លាំងបរាជ័យ",
+    "deleteDepotItemPrice": "លុបតម្លៃទំនិញតាមឃ្លាំងបរាជ័យ",
     "sessionExpired": "សម័យផុតកំណត់។ សូមចូលម្តងទៀត។"
   },
   "accessDenied": {
@@ -803,6 +818,8 @@
     "borrowMonthlyScheduleSaved": "បានបង្កើតកាលវិភាគប្រចាំខែ",
     "borrowMonthlyScheduleDeleted": "បានលុបកាលវិភាគ",
     "customerItemPriceSaved": "បានរក្សាទុកតម្លៃទំនិញតាមអតិថិជន",
-    "customerItemPriceDeleted": "បានលុបតម្លៃទំនិញតាមអតិថិជន"
+    "customerItemPriceDeleted": "បានលុបតម្លៃទំនិញតាមអតិថិជន",
+    "depotItemPriceSaved": "បានរក្សាទុកតម្លៃទំនិញតាមឃ្លាំង",
+    "depotItemPriceDeleted": "បានលុបតម្លៃទំនិញតាមឃ្លាំង"
   }
 }

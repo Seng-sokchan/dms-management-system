@@ -43,6 +43,7 @@ function App() {
     catalogs,
     items,
     customerItemPrices,
+    depotItemPrices,
     borrowMaterials,
     customerBorrowedMaterials,
     borrowMaterialOrderLoans,
@@ -88,6 +89,8 @@ function App() {
     submitItemDelete,
     submitCustomerItemPrice,
     submitCustomerItemPriceDelete,
+    submitDepotItemPrice,
+    submitDepotItemPriceDelete,
     submitProducer,
     submitProducerUpdate,
     submitProducerDelete,
@@ -299,10 +302,14 @@ function App() {
           canAccessPath(user, "/customer-item-prices") ? (
             <CustomerItemPricesPage
               customers={customers}
+              depots={depots}
               items={items}
               customerItemPrices={customerItemPrices}
-              onSave={submitCustomerItemPrice}
-              onDelete={submitCustomerItemPriceDelete}
+              depotItemPrices={depotItemPrices}
+              onSaveCustomerPrice={submitCustomerItemPrice}
+              onDeleteCustomerPrice={submitCustomerItemPriceDelete}
+              onSaveDepotPrice={submitDepotItemPrice}
+              onDeleteDepotPrice={submitDepotItemPriceDelete}
             />
           ) : (
             renderDeniedRoute()

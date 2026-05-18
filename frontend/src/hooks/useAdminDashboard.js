@@ -46,6 +46,8 @@ import {
   deleteBorrowMaterialMonthlySchedule,
   upsertCustomerItemPrice,
   deleteCustomerItemPrice,
+  upsertDepotItemPrice,
+  deleteDepotItemPrice,
   deleteOrderGroup,
 } from "../services/adminApi";
 import {
@@ -114,6 +116,7 @@ export function useAdminDashboard() {
   const [borrowMaterialOrderLoans, setBorrowMaterialOrderLoans] = useState([]);
   const [borrowMaterialMonthlySchedules, setBorrowMaterialMonthlySchedules] = useState([]);
   const [customerItemPrices, setCustomerItemPrices] = useState([]);
+  const [depotItemPrices, setDepotItemPrices] = useState([]);
   const [paymentTotals, setPaymentTotals] = useState({ byCustomer: [], byDepot: [] });
 
   const [newOrder, setNewOrder] = useState({
@@ -197,6 +200,7 @@ export function useAdminDashboard() {
         Array.isArray(data.borrowMaterialMonthlySchedules) ? data.borrowMaterialMonthlySchedules : [],
       );
       setCustomerItemPrices(Array.isArray(data.customerItemPrices) ? data.customerItemPrices : []);
+      setDepotItemPrices(Array.isArray(data.depotItemPrices) ? data.depotItemPrices : []);
       setPaymentTotals(
         data.paymentTotals && typeof data.paymentTotals === "object"
           ? {
@@ -226,6 +230,7 @@ export function useAdminDashboard() {
         setBorrowMaterialOrderLoans([]);
         setBorrowMaterialMonthlySchedules([]);
         setCustomerItemPrices([]);
+        setDepotItemPrices([]);
         setPaymentTotals({ byCustomer: [], byDepot: [] });
         showError(i18n.t("errors.sessionExpired"));
         return;
@@ -841,6 +846,32 @@ export function useAdminDashboard() {
     }
   }
 
+  async function submitDepotItemPrice(eventOrPayload) {
+    const isEvent = eventOrPayload && typeof eventOrPayload.preventDefault === "function";
+    if (isEvent) eventOrPayload.preventDefault();
+    const payload = !isEvent && eventOrPayload && typeof eventOrPayload === "object" ? eventOrPayload : null;
+    if (!payload) return;
+    try {
+      await upsertDepotItemPrice(token, payload);
+      await refresh();
+      await showSuccessPopup(
+        i18n.t("success.depotItemPriceSaved", { defaultValue: "Depot item price saved" }),
+      );
+    } catch (error) {
+      showError(getErrorMessage(error, "errors.saveDepotItemPrice"));
+    }
+  }
+
+  async function submitDepotItemPriceDelete(id) {
+    try {
+      await deleteDepotItemPrice(token, id);
+      await refresh();
+      showSuccess(i18n.t("success.depotItemPriceDeleted", { defaultValue: "Depot item price deleted" }));
+    } catch (error) {
+      showError(getErrorMessage(error, "errors.deleteDepotItemPrice"));
+    }
+  }
+
   function logout() {
     setToken("");
     setUser(null);
@@ -868,6 +899,7 @@ export function useAdminDashboard() {
     borrowMaterialOrderLoans,
     borrowMaterialMonthlySchedules,
     customerItemPrices,
+    depotItemPrices,
     paymentTotals,
     flash,
     dismissFlash,
@@ -945,6 +977,8 @@ export function useAdminDashboard() {
     submitBorrowMaterialMonthlyInstallmentStatusUpdate,
     submitCustomerItemPrice,
     submitCustomerItemPriceDelete,
+    submitDepotItemPrice,
+    submitDepotItemPriceDelete,
     refresh,
     logout,
   };

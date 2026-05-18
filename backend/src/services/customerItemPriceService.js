@@ -14,6 +14,11 @@ async function list() {
 async function upsert(payload) {
   const customer = await customerRepository.getCustomerById(payload.customerId);
   if (!customer) throw new BadRequestError("Customer not found");
+  if (customer.depotId) {
+    throw new BadRequestError(
+      "This customer is assigned to a depot. Set prices in the depot pricing section instead.",
+    );
+  }
 
   const item = await itemRepository.getItemById(payload.itemId);
   if (!item) throw new BadRequestError("Item not found");

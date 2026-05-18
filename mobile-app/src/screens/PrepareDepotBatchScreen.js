@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
@@ -12,14 +13,237 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 import { AppIcon, Card, EmptyState, PrimaryButton, Screen, SectionHeader } from "../components/ui";
 import { fetchCustomers } from "../services/customersApi";
 import { fetchItems } from "../services/itemsApi";
 import { createDepotBatch } from "../services/ordersApi";
 import { getApiErrorMessage } from "../services/apiClient";
-import { colors, radii, spacing, typography } from "../theme";
+import { radii, spacing, typography } from "../theme/tokens";
+
+function createStyles(colors) {
+  return StyleSheet.create({
+    centered: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      gap: spacing.md,
+    },
+    loadingText: {
+      color: colors.textSecondary,
+      fontSize: typography.bodySmall,
+    },
+    errorCard: {
+      marginBottom: spacing.md,
+      backgroundColor: colors.surfaceSoft,
+    },
+    errorTitle: {
+      color: colors.textPrimary,
+      fontWeight: "700",
+      fontSize: typography.body,
+    },
+    errorBody: {
+      color: colors.textSecondary,
+      marginTop: spacing.xs,
+      fontSize: typography.bodySmall,
+    },
+    retryButton: {
+      marginTop: spacing.md,
+      alignSelf: "flex-start",
+      minWidth: 120,
+    },
+    list: {
+      paddingBottom: spacing.xxl,
+    },
+    customerCard: {
+      marginBottom: spacing.md,
+    },
+    customerHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: spacing.md,
+    },
+    customerName: {
+      fontSize: typography.h3,
+      fontWeight: "700",
+      color: colors.textPrimary,
+    },
+    customerMeta: {
+      marginTop: spacing.xs,
+      color: colors.textSecondary,
+      fontSize: typography.bodySmall,
+    },
+    addBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.xs,
+      backgroundColor: colors.surfaceSoft,
+      borderColor: colors.border,
+      borderWidth: 1,
+      borderRadius: radii.pill,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+    },
+    addBtnText: {
+      color: colors.textPrimary,
+      fontSize: typography.bodySmall,
+      fontWeight: "600",
+    },
+    noLines: {
+      marginTop: spacing.md,
+      color: colors.textMuted,
+      fontSize: typography.bodySmall,
+    },
+    linesWrap: {
+      marginTop: spacing.md,
+      gap: spacing.sm,
+    },
+    lineRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+      paddingVertical: spacing.xs,
+    },
+    lineName: {
+      color: colors.textPrimary,
+      fontWeight: "600",
+      fontSize: typography.body,
+    },
+    lineSku: {
+      color: colors.textSecondary,
+      fontSize: typography.caption,
+      marginTop: 2,
+    },
+    qtyWrap: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.surfaceSoft,
+      borderRadius: radii.pill,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingHorizontal: spacing.xs,
+    },
+    qtyBtn: {
+      width: 28,
+      height: 28,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    qtyButtonText: {
+      color: colors.textPrimary,
+      fontWeight: "700",
+      fontSize: 16,
+    },
+    qtyInput: {
+      minWidth: 32,
+      textAlign: "center",
+      fontWeight: "700",
+      color: colors.textPrimary,
+      paddingVertical: 0,
+    },
+    removeLine: {
+      paddingHorizontal: spacing.xs,
+    },
+    clearLink: {
+      alignSelf: "flex-end",
+      paddingVertical: spacing.xs,
+    },
+    clearLinkText: {
+      color: colors.danger,
+      fontSize: typography.caption,
+      fontWeight: "600",
+    },
+    footer: {
+      marginTop: spacing.sm,
+      paddingTop: spacing.md,
+      borderTopWidth: 1,
+      borderColor: colors.border,
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+    },
+    total: {
+      fontWeight: "700",
+      fontSize: typography.body,
+      color: colors.textPrimary,
+    },
+    submitButton: {
+      minWidth: 150,
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: colors.overlay,
+      justifyContent: "flex-end",
+    },
+    modalSheet: {
+      backgroundColor: colors.surface,
+      borderTopLeftRadius: radii.xl,
+      borderTopRightRadius: radii.xl,
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.lg,
+      paddingBottom: spacing.xl,
+      maxHeight: "75%",
+    },
+    modalHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: spacing.md,
+    },
+    modalTitle: {
+      fontSize: typography.h3,
+      fontWeight: "700",
+      color: colors.textPrimary,
+    },
+    modalSearch: {
+      backgroundColor: colors.surfaceSoft,
+      borderRadius: radii.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      color: colors.textPrimary,
+      marginBottom: spacing.md,
+    },
+    modalList: {
+      flexGrow: 0,
+    },
+    modalEmpty: {
+      color: colors.textMuted,
+      textAlign: "center",
+      paddingVertical: spacing.lg,
+    },
+    modalRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingVertical: spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+      gap: spacing.md,
+    },
+    modalRowDisabled: {
+      opacity: 0.5,
+    },
+    modalRowName: {
+      color: colors.textPrimary,
+      fontWeight: "600",
+      fontSize: typography.body,
+    },
+    modalRowSku: {
+      color: colors.textSecondary,
+      fontSize: typography.caption,
+      marginTop: 2,
+    },
+    modalRowBadge: {
+      color: colors.textMuted,
+      fontSize: typography.caption,
+      fontWeight: "600",
+    },
+  });
+}
 
 /**
  * Depot operator builds a batch: per customer, choose item(s) and qty, then submit.
@@ -28,6 +252,9 @@ import { colors, radii, spacing, typography } from "../theme";
  */
 export default function PrepareDepotBatchScreen() {
   const { token } = useAuth();
+  const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [customers, setCustomers] = useState([]);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -53,13 +280,13 @@ export default function PrepareDepotBatchScreen() {
       setItems(Array.isArray(itemRows) ? itemRows : []);
       setLoadError("");
     } catch (error) {
-      const message = getApiErrorMessage(error, "Unable to load depot data");
+      const message = getApiErrorMessage(error, t("depot.loadDataFailed"));
       setLoadError(message);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [token]);
+  }, [token, t]);
 
   useEffect(() => {
     void load();
@@ -154,7 +381,7 @@ export default function PrepareDepotBatchScreen() {
       }
     }
     if (flattened.length === 0) {
-      Alert.alert("Batch empty", "Add at least one line before submitting.");
+      Alert.alert(t("depot.batchEmptyTitle"), t("depot.batchEmptyMessage"));
       return;
     }
 
@@ -163,14 +390,14 @@ export default function PrepareDepotBatchScreen() {
       const created = await createDepotBatch(token, flattened);
       const count = Array.isArray(created) ? created.length : flattened.length;
       Alert.alert(
-        "Batch submitted",
-        `${count} order${count === 1 ? "" : "s"} created across ${customersWithCart.length} customer${customersWithCart.length === 1 ? "" : "s"}.`,
+        t("depot.batchSuccessTitle"),
+        t("depot.batchSuccessDetail", { count, customers: customersWithCart.length }),
       );
       setCartByCustomer({});
     } catch (error) {
       Alert.alert(
-        "Batch failed",
-        getApiErrorMessage(error, "Unable to submit batch"),
+        t("depot.batchFailedTitle"),
+        getApiErrorMessage(error, t("depot.batchFailedDefault")),
       );
     } finally {
       setSubmitting(false);
@@ -180,36 +407,38 @@ export default function PrepareDepotBatchScreen() {
   if (loading) {
     return (
       <Screen style={styles.centered}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>Loading depot data...</Text>
+        <ActivityIndicator size="large" color={colors.textPrimary} />
+        <Text style={styles.loadingText}>{t("depot.loadingData")}</Text>
       </Screen>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <Screen style={styles.container}>
+    <Screen>
         <SectionHeader
-          title="Prepare batch"
+          title={t("depot.prepareTitle")}
           subtitle={
             totalLines > 0
-              ? `${totalLines} line${totalLines === 1 ? "" : "s"} across ${customersWithCart.length} customer${customersWithCart.length === 1 ? "" : "s"}`
-              : "Pick a customer, add items, then submit one batch."
+              ? t("depot.prepareSubtitleLines", {
+                  lines: totalLines,
+                  customers: customersWithCart.length,
+                })
+              : t("depot.prepareSubtitleEmpty")
           }
         />
 
         {!!loadError && (
           <Card style={styles.errorCard}>
-            <Text style={styles.errorTitle}>Could not load data</Text>
+            <Text style={styles.errorTitle}>{t("depot.loadErrorTitle")}</Text>
             <Text style={styles.errorBody}>{loadError}</Text>
             <PrimaryButton
-              title="Try Again"
+              title={t("common.tryAgain")}
               onPress={() => {
                 setLoading(true);
                 void load();
               }}
               style={styles.retryButton}
-              icon={<AppIcon name="refresh" size={18} color="#fff" />}
+              icon={<AppIcon name="refresh" size={18} color={colors.onPrimary} />}
             />
           </Card>
         )}
@@ -222,7 +451,7 @@ export default function PrepareDepotBatchScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor={colors.primary}
+              tintColor={colors.textMuted}
             />
           }
           renderItem={({ item: customer }) => (
@@ -230,6 +459,8 @@ export default function PrepareDepotBatchScreen() {
               customer={customer}
               lines={cartByCustomer[String(customer.id)] || []}
               itemsById={itemsById}
+              styles={styles}
+              colors={colors}
               onAddItem={() => setPickerCustomerId(String(customer.id))}
               onChangeQty={(itemId, qty) => updateLineQty(customer.id, itemId, qty)}
               onRemoveLine={(itemId) => removeLine(customer.id, itemId)}
@@ -238,29 +469,29 @@ export default function PrepareDepotBatchScreen() {
           )}
           ListEmptyComponent={
             <EmptyState
-              title="No customers in your depot"
-              subtitle="Ask an admin or owner to assign customers to your depot."
+              title={t("depot.noCustomersTitle")}
+              subtitle={t("depot.noCustomersSubtitle")}
             />
           }
         />
 
         <View style={styles.footer}>
-          <Text style={styles.total}>
-            {totalLines} line{totalLines === 1 ? "" : "s"}
-          </Text>
+          <Text style={styles.total}>{t("depot.total", { count: totalLines })}</Text>
           <PrimaryButton
-            title="Submit Batch"
+            title={t("depot.submitBatch")}
             tone="success"
             onPress={handleSubmit}
             loading={submitting}
             disabled={totalLines === 0}
             style={styles.submitButton}
-            icon={<AppIcon name="check-circle-outline" size={18} color="#fff" />}
+            icon={<AppIcon name="check-circle-outline" size={18} color={colors.onPrimary} />}
           />
         </View>
 
         <ItemPickerModal
           visible={!!pickerCustomerId}
+          styles={styles}
+          colors={colors}
           items={items}
           alreadyChosenItemIds={
             new Set(
@@ -273,8 +504,7 @@ export default function PrepareDepotBatchScreen() {
           }}
           onClose={() => setPickerCustomerId("")}
         />
-      </Screen>
-    </SafeAreaView>
+    </Screen>
   );
 }
 
@@ -282,24 +512,27 @@ function CustomerCard({
   customer,
   lines,
   itemsById,
+  styles,
+  colors,
   onAddItem,
   onChangeQty,
   onRemoveLine,
   onClear,
 }) {
+  const { t } = useTranslation();
   const hasLines = lines.length > 0;
   return (
     <Card style={styles.customerCard}>
       <View style={styles.customerHeader}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.customerName}>{customer.name || "Unnamed"}</Text>
+          <Text style={styles.customerName}>{customer.name || t("depot.unnamed")}</Text>
           <Text style={styles.customerMeta}>
-            {customer.phone ? customer.phone : "No phone"}
+            {customer.phone ? customer.phone : t("depot.noPhone")}
           </Text>
         </View>
         <Pressable style={styles.addBtn} onPress={onAddItem}>
           <AppIcon name="plus" size={16} color={colors.textPrimary} />
-          <Text style={styles.addBtnText}>Add item</Text>
+          <Text style={styles.addBtnText}>{t("depot.addItem")}</Text>
         </Pressable>
       </View>
 
@@ -344,17 +577,18 @@ function CustomerCard({
             );
           })}
           <Pressable style={styles.clearLink} onPress={onClear}>
-            <Text style={styles.clearLinkText}>Clear customer</Text>
+            <Text style={styles.clearLinkText}>{t("depot.clearCustomer")}</Text>
           </Pressable>
         </View>
       ) : (
-        <Text style={styles.noLines}>No items added yet.</Text>
+        <Text style={styles.noLines}>{t("depot.noLines")}</Text>
       )}
     </Card>
   );
 }
 
-function ItemPickerModal({ visible, items, alreadyChosenItemIds, onPick, onClose }) {
+function ItemPickerModal({ visible, items, alreadyChosenItemIds, onPick, onClose, styles, colors }) {
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
 
   const filteredItems = useMemo(() => {
@@ -376,13 +610,13 @@ function ItemPickerModal({ visible, items, alreadyChosenItemIds, onPick, onClose
       <View style={styles.modalOverlay}>
         <View style={styles.modalSheet}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Pick an item</Text>
+            <Text style={styles.modalTitle}>{t("depot.pickItem")}</Text>
             <Pressable onPress={onClose} hitSlop={8}>
               <AppIcon name="close" size={20} color={colors.textPrimary} />
             </Pressable>
           </View>
           <TextInput
-            placeholder="Search by name or SKU"
+            placeholder={t("depot.searchPlaceholder")}
             placeholderTextColor={colors.textMuted}
             style={styles.modalSearch}
             value={query}
@@ -391,7 +625,7 @@ function ItemPickerModal({ visible, items, alreadyChosenItemIds, onPick, onClose
           />
           <ScrollView style={styles.modalList}>
             {filteredItems.length === 0 ? (
-              <Text style={styles.modalEmpty}>No items match.</Text>
+              <Text style={styles.modalEmpty}>{t("depot.noItemsMatch")}</Text>
             ) : (
               filteredItems.map((item) => {
                 const isAdded = alreadyChosenItemIds.has(String(item.id));
@@ -409,7 +643,7 @@ function ItemPickerModal({ visible, items, alreadyChosenItemIds, onPick, onClose
                       )}
                     </View>
                     {isAdded ? (
-                      <Text style={styles.modalRowBadge}>Added</Text>
+                      <Text style={styles.modalRowBadge}>{t("depot.added")}</Text>
                     ) : (
                       <AppIcon name="plus" size={18} color={colors.primary} />
                     )}
@@ -423,231 +657,3 @@ function ItemPickerModal({ visible, items, alreadyChosenItemIds, onPick, onClose
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  container: {
-    flex: 1,
-  },
-  centered: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.md,
-  },
-  loadingText: {
-    color: colors.textSecondary,
-    fontSize: typography.bodySmall,
-  },
-  errorCard: {
-    marginBottom: spacing.md,
-    backgroundColor: colors.surfaceSoft,
-  },
-  errorTitle: {
-    color: colors.textPrimary,
-    fontWeight: "700",
-    fontSize: typography.body,
-  },
-  errorBody: {
-    color: colors.textSecondary,
-    marginTop: spacing.xs,
-    fontSize: typography.bodySmall,
-  },
-  retryButton: {
-    marginTop: spacing.md,
-    alignSelf: "flex-start",
-    minWidth: 120,
-  },
-  list: {
-    paddingBottom: spacing.xxl,
-  },
-  customerCard: {
-    marginBottom: spacing.md,
-  },
-  customerHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.md,
-  },
-  customerName: {
-    fontSize: typography.h3,
-    fontWeight: "700",
-    color: colors.textPrimary,
-  },
-  customerMeta: {
-    marginTop: spacing.xs,
-    color: colors.textSecondary,
-    fontSize: typography.bodySmall,
-  },
-  addBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-    backgroundColor: colors.surfaceSoft,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: radii.pill,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  addBtnText: {
-    color: colors.textPrimary,
-    fontSize: typography.bodySmall,
-    fontWeight: "600",
-  },
-  noLines: {
-    marginTop: spacing.md,
-    color: colors.textMuted,
-    fontSize: typography.bodySmall,
-  },
-  linesWrap: {
-    marginTop: spacing.md,
-    gap: spacing.sm,
-  },
-  lineRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    paddingVertical: spacing.xs,
-  },
-  lineName: {
-    color: colors.textPrimary,
-    fontWeight: "600",
-    fontSize: typography.body,
-  },
-  lineSku: {
-    color: colors.textSecondary,
-    fontSize: typography.caption,
-    marginTop: 2,
-  },
-  qtyWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.surfaceSoft,
-    borderRadius: radii.pill,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: spacing.xs,
-  },
-  qtyBtn: {
-    width: 28,
-    height: 28,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  qtyButtonText: {
-    color: colors.textPrimary,
-    fontWeight: "700",
-    fontSize: 16,
-  },
-  qtyInput: {
-    minWidth: 32,
-    textAlign: "center",
-    fontWeight: "700",
-    color: colors.textPrimary,
-    paddingVertical: 0,
-  },
-  removeLine: {
-    paddingHorizontal: spacing.xs,
-  },
-  clearLink: {
-    alignSelf: "flex-end",
-    paddingVertical: spacing.xs,
-  },
-  clearLinkText: {
-    color: colors.danger,
-    fontSize: typography.caption,
-    fontWeight: "600",
-  },
-  footer: {
-    marginTop: spacing.sm,
-    paddingTop: spacing.md,
-    borderTopWidth: 1,
-    borderColor: colors.border,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  total: {
-    fontWeight: "700",
-    fontSize: typography.body,
-    color: colors.textPrimary,
-  },
-  submitButton: {
-    minWidth: 150,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: colors.overlay,
-    justifyContent: "flex-end",
-  },
-  modalSheet: {
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: radii.xl,
-    borderTopRightRadius: radii.xl,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.xl,
-    maxHeight: "75%",
-  },
-  modalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: spacing.md,
-  },
-  modalTitle: {
-    fontSize: typography.h3,
-    fontWeight: "700",
-    color: colors.textPrimary,
-  },
-  modalSearch: {
-    backgroundColor: colors.surfaceSoft,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    color: colors.textPrimary,
-    marginBottom: spacing.md,
-  },
-  modalList: {
-    flexGrow: 0,
-  },
-  modalEmpty: {
-    color: colors.textMuted,
-    textAlign: "center",
-    paddingVertical: spacing.lg,
-  },
-  modalRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    gap: spacing.md,
-  },
-  modalRowDisabled: {
-    opacity: 0.5,
-  },
-  modalRowName: {
-    color: colors.textPrimary,
-    fontWeight: "600",
-    fontSize: typography.body,
-  },
-  modalRowSku: {
-    color: colors.textSecondary,
-    fontSize: typography.caption,
-    marginTop: 2,
-  },
-  modalRowBadge: {
-    color: colors.textMuted,
-    fontSize: typography.caption,
-    fontWeight: "600",
-  },
-});

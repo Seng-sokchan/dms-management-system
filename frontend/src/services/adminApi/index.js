@@ -16,5 +16,6 @@ export * from "./roleMenus";
 export * from "./borrowMaterials";
 export * from "./customerBorrowedMaterials";
 export * from "./customerItemPrices";
+export * from "./depotItemPrices";
 export * from "./borrowMaterialOrderLoans";
 export * from "./borrowMaterialMonthlySchedules";

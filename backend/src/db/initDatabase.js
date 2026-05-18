@@ -60,7 +60,8 @@ async function seedSampleData(dbConn) {
     `INSERT INTO customers (id, name, phone, depot_id, latitude, longitude, is_active, updated_at) VALUES
       (1, 'Star Mart Toul Kork', '011111111', 1, 11.5500000, 104.9200000, 1, NOW()),
       (2, 'Green Cafe Riverside', '011222222', 1, 11.5600000, 104.9350000, 1, NOW()),
-      (3, 'City Mini Mart', '011333333', 1, 11.5450000, 104.9100000, 1, NOW())`,
+      (3, 'City Mini Mart', '011333333', 1, 11.5450000, 104.9100000, 1, NOW()),
+      (4, 'Independent Corner Shop', '011444444', NULL, 11.5520000, 104.9250000, 1, NOW())`,
   );
 
   await dbConn.query(
@@ -82,13 +83,16 @@ async function seedSampleData(dbConn) {
   );
 
   await dbConn.query(
-    `INSERT INTO customer_item_prices (customer_id, item_id, currency, unit_price, updated_at) VALUES
+    `INSERT INTO depot_item_prices (depot_id, item_id, currency, unit_price, updated_at) VALUES
       (1, 1, 'KHR', 1500.00, NOW()),
       (1, 2, 'KHR', 1200.00, NOW()),
-      (1, 3, 'KHR', 5000.00, NOW()),
-      (2, 1, 'KHR', 1550.00, NOW()),
-      (2, 2, 'KHR', 1250.00, NOW()),
-      (3, 1, 'KHR', 1500.00, NOW())`,
+      (1, 3, 'KHR', 5000.00, NOW())`,
+  );
+
+  await dbConn.query(
+    `INSERT INTO customer_item_prices (customer_id, item_id, currency, unit_price, updated_at) VALUES
+      (4, 1, 'KHR', 1600.00, NOW()),
+      (4, 2, 'KHR', 1300.00, NOW())`,
   );
 
   await dbConn.query(
@@ -163,6 +167,7 @@ async function run() {
   await dbConn.query("DELETE FROM borrow_material_monthly_schedules");
   await dbConn.query("DELETE FROM borrow_material_order_loans");
   await dbConn.query("DELETE FROM orders");
+  await dbConn.query("DELETE FROM depot_item_prices");
   await dbConn.query("DELETE FROM customer_item_prices");
   await dbConn.query("DELETE FROM customer_borrowed_materials");
   await dbConn.query("DELETE FROM borrow_materials");

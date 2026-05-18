@@ -1,66 +1,72 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Button } from "../components/ui/Button";
-import { DataTable } from "../components/ui/DataTable";
-import { useConfirm } from "../components/ui/ConfirmProvider";
-import { usePagination } from "../hooks/usePagination";
+import { PriceFormTable } from "../features/customerItemPrices/PriceFormTable";
 
-const INITIAL_FORM = {
-  customerId: "",
+const INITIAL_PRICE_FORM = {
+  entityId: "",
   itemId: "",
   currency: "KHR",
   unitPrice: "",
 };
 
+function formatPrice(value) {
+  return Number(value).toLocaleString(undefined, { minimumFractionDigits: 2 });
+}
+
 export function CustomerItemPricesPage({
   customers = [],
+  depots = [],
   items = [],
   customerItemPrices = [],
-  onSave,
-  onDelete,
+  depotItemPrices = [],
+  onSaveCustomerPrice,
+  onDeleteCustomerPrice,
+  onSaveDepotPrice,
+  onDeleteDepotPrice,
 }) {
   const { t } = useTranslation();
-  const { confirm } = useConfirm();
-  const [form, setForm] = useState(INITIAL_FORM);
-  const [searchText, setSearchText] = useState("");
-  const [appliedSearch, setAppliedSearch] = useState("");
+  const [customerForm, setCustomerForm] = useState(INITIAL_PRICE_FORM);
+  const [depotForm, setDepotForm] = useState(INITIAL_PRICE_FORM);
 
-  const filteredRows = useMemo(() => {
-    const q = appliedSearch.trim().toLowerCase();
-    if (!q) return customerItemPrices;
-    return customerItemPrices.filter((row) =>
-      [row.customerName, row.itemName, row.itemSku, row.currency, row.unitPrice]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(q)),
-    );
-  }, [customerItemPrices, appliedSearch]);
+  const customersWithoutDepot = useMemo(
+    () => customers.filter((customer) => !customer.depotId),
+    [customers],
+  );
 
-  const { page, pageSize, paged, setPage, setPageSize } = usePagination(filteredRows, {
-    resetKey: appliedSearch,
-  });
+  const customerOptions = useMemo(
+    () => customersWithoutDepot.map((customer) => ({ id: customer.id, label: customer.name })),
+    [customersWithoutDepot],
+  );
 
-  async function submit(event) {
-    event.preventDefault();
-    await onSave({
-      customerId: String(form.customerId),
-      itemId: String(form.itemId),
-      currency: form.currency,
-      unitPrice: Number(form.unitPrice),
+  const depotOptions = useMemo(
+    () => depots.map((depot) => ({ id: depot.id, label: depot.name })),
+    [depots],
+  );
+
+  const priceColumn = {
+    key: "unitPrice",
+    label: t("customerItemPrices.unitPrice"),
+    render: (row) => formatPrice(row.unitPrice),
+  };
+
+  async function submitCustomerPrice() {
+    await onSaveCustomerPrice({
+      customerId: String(customerForm.entityId),
+      itemId: String(customerForm.itemId),
+      currency: customerForm.currency,
+      unitPrice: Number(customerForm.unitPrice),
     });
-    setForm(INITIAL_FORM);
+    setCustomerForm(INITIAL_PRICE_FORM);
   }
 
-  async function handleDelete(id) {
-    if (
-      !(await confirm({
-        title: t("confirm.deleteTitle"),
-        message: t("customerItemPrices.confirmDelete"),
-        tone: "danger",
-      }))
-    ) {
-      return;
-    }
-    await onDelete(id);
+  async function submitDepotPrice() {
+    await onSaveDepotPrice({
+      depotId: String(depotForm.entityId),
+      itemId: String(depotForm.itemId),
+      currency: depotForm.currency,
+      unitPrice: Number(depotForm.unitPrice),
+    });
+    setDepotForm(INITIAL_PRICE_FORM);
   }
 
   return (
@@ -70,126 +76,97 @@ export function CustomerItemPricesPage({
         <p className="section-lead">{t("customerItemPrices.lead")}</p>
       </div>
 
-      <form className="panel form" onSubmit={submit}>
-        <h3>{t("customerItemPrices.formTitle")}</h3>
-        <label className="form-label" htmlFor="cip-customer">
-          {t("customerItemPrices.customer")}
-        </label>
-        <select
-          id="cip-customer"
-          value={form.customerId}
-          onChange={(event) => setForm({ ...form, customerId: event.target.value })}
-          required
-        >
-          <option value="">{t("customerItemPrices.selectCustomer")}</option>
-          {customers.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
+      <PriceFormTable
+        title={t("customerItemPrices.normalTitle")}
+        lead={t("customerItemPrices.normalLead")}
+        formTitle={t("customerItemPrices.formTitle")}
+        listTitle={t("customerItemPrices.listTitle")}
+        emptyMessage={t("customerItemPrices.empty")}
+        searchPlaceholder={t("customerItemPrices.searchPlaceholder")}
+        confirmDeleteMessage={t("customerItemPrices.confirmDelete")}
+        entityLabel={t("customerItemPrices.customer")}
+        entityOptions={customerOptions}
+        entityId="cip-customer"
+        entityValue={customerForm.entityId}
+        onEntityChange={(value) => setCustomerForm({ ...customerForm, entityId: value })}
+        selectEntityLabel={t("customerItemPrices.selectCustomer")}
+        items={items}
+        form={customerForm}
+        onFormChange={setCustomerForm}
+        onSubmit={submitCustomerPrice}
+        rows={customerItemPrices}
+        searchFields={["customerName", "itemName", "itemSku", "currency", "unitPrice"]}
+        columns={[
+          {
+            key: "customer",
+            label: t("customerItemPrices.customer"),
+            render: (row) => row.customerName,
+          },
+          {
+            key: "item",
+            label: t("customerItemPrices.item"),
+            render: (row) => row.itemName,
+          },
+          {
+            key: "sku",
+            label: "SKU",
+            render: (row) => row.itemSku || "—",
+          },
+          {
+            key: "currency",
+            label: t("customerItemPrices.currency"),
+            render: (row) => row.currency,
+          },
+          priceColumn,
+        ]}
+        onDelete={onDeleteCustomerPrice}
+      />
 
-        <label className="form-label" htmlFor="cip-item">
-          {t("customerItemPrices.item")}
-        </label>
-        <select
-          id="cip-item"
-          value={form.itemId}
-          onChange={(event) => setForm({ ...form, itemId: event.target.value })}
-          required
-        >
-          <option value="">{t("customerItemPrices.selectItem")}</option>
-          {items.map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.name}
-              {item.sku ? ` (${item.sku})` : ""}
-            </option>
-          ))}
-        </select>
-
-        <label className="form-label" htmlFor="cip-currency">
-          {t("customerItemPrices.currency")}
-        </label>
-        <select
-          id="cip-currency"
-          value={form.currency}
-          onChange={(event) => setForm({ ...form, currency: event.target.value })}
-          required
-        >
-          <option value="KHR">KHR</option>
-          <option value="USD">USD</option>
-        </select>
-
-        <label className="form-label" htmlFor="cip-unit-price">
-          {t("customerItemPrices.unitPrice")}
-        </label>
-        <input
-          id="cip-unit-price"
-          type="number"
-          min="0"
-          step="0.01"
-          value={form.unitPrice}
-          onChange={(event) => setForm({ ...form, unitPrice: event.target.value })}
-          required
-        />
-        <div className="row-actions">
-          <Button variant="primary" type="submit">
-            {t("customerItemPrices.save")}
-          </Button>
-        </div>
-      </form>
-
-      <section className="panel entity-list">
-        <h3>{t("customerItemPrices.listTitle")}</h3>
-        {customerItemPrices.length === 0 ? (
-          <p className="entity-list-empty">{t("customerItemPrices.empty")}</p>
-        ) : (
-          <DataTable
-            showSearch
-            searchValue={searchText}
-            onSearchValueChange={setSearchText}
-            onSearch={() => setAppliedSearch(searchText)}
-            searchPlaceholder={t("customerItemPrices.searchPlaceholder")}
-            searchButtonLabel={t("common.search", { defaultValue: "Search" })}
-            pagination={{
-              page,
-              pageSize,
-              totalRows: filteredRows.length,
-              onPageChange: setPage,
-              onPageSizeChange: setPageSize,
-            }}
-          >
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>{t("customerItemPrices.customer")}</th>
-                <th>{t("customerItemPrices.item")}</th>
-                <th>SKU</th>
-                <th>{t("customerItemPrices.currency")}</th>
-                <th>{t("customerItemPrices.unitPrice")}</th>
-                <th>{t("customerItemPrices.actions")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paged.map((row) => (
-                <tr key={row.id}>
-                  <td>{row.id}</td>
-                  <td>{row.customerName}</td>
-                  <td>{row.itemName}</td>
-                  <td>{row.itemSku || "—"}</td>
-                  <td>{row.currency}</td>
-                  <td>{Number(row.unitPrice).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                  <td>
-                    <Button variant="ghost" tone="delete" onClick={() => void handleDelete(row.id)}>
-                      {t("customerItemPrices.delete")}
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </DataTable>
-        )}
-      </section>
+      <PriceFormTable
+        title={t("customerItemPrices.depotTitle")}
+        lead={t("customerItemPrices.depotLead")}
+        formTitle={t("depotItemPrices.formTitle")}
+        listTitle={t("depotItemPrices.listTitle")}
+        emptyMessage={t("depotItemPrices.empty")}
+        searchPlaceholder={t("depotItemPrices.searchPlaceholder")}
+        confirmDeleteMessage={t("depotItemPrices.confirmDelete")}
+        entityLabel={t("depotItemPrices.depot")}
+        entityOptions={depotOptions}
+        entityId="dip-depot"
+        entityValue={depotForm.entityId}
+        onEntityChange={(value) => setDepotForm({ ...depotForm, entityId: value })}
+        selectEntityLabel={t("depotItemPrices.selectDepot")}
+        items={items}
+        form={depotForm}
+        onFormChange={setDepotForm}
+        onSubmit={submitDepotPrice}
+        rows={depotItemPrices}
+        searchFields={["depotName", "itemName", "itemSku", "currency", "unitPrice"]}
+        columns={[
+          {
+            key: "depot",
+            label: t("depotItemPrices.depot"),
+            render: (row) => row.depotName,
+          },
+          {
+            key: "item",
+            label: t("customerItemPrices.item"),
+            render: (row) => row.itemName,
+          },
+          {
+            key: "sku",
+            label: "SKU",
+            render: (row) => row.itemSku || "—",
+          },
+          {
+            key: "currency",
+            label: t("customerItemPrices.currency"),
+            render: (row) => row.currency,
+          },
+          priceColumn,
+        ]}
+        onDelete={onDeleteDepotPrice}
+      />
     </section>
   );
 }
