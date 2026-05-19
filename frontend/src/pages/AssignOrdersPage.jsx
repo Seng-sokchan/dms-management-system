@@ -37,17 +37,76 @@ function isCreatedToday(createdAt) {
   return localDateKey(parsed) === localDateKey(new Date());
 }
 
+function formatQty(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n.toLocaleString("en-US") : String(value || "—");
+}
+
+function buildSubmitGroups(orders, deliveryAgents, t) {
+  const deliveryNamesById = new Map(deliveryAgents.map((agent) => [String(agent.id), agent.name]));
+  const groups = new Map();
+
+  for (const order of orders) {
+    const deliveryAgentId =
+      order.deliveryAgentId != null && order.deliveryAgentId !== ""
+        ? String(order.deliveryAgentId)
+        : "";
+    const key = deliveryAgentId || "__unassigned__";
+    if (!groups.has(key)) {
+      groups.set(key, {
+        key,
+        deliveryAgentId,
+        deliveryLabel: deliveryAgentId
+          ? order.deliveryAgentName || deliveryNamesById.get(deliveryAgentId) || t("orders.dash")
+          : t("orders.dash"),
+        representativeOrderId: order.id,
+        orders: [],
+        customerIds: new Set(),
+        items: new Map(),
+      });
+    }
+
+    const group = groups.get(key);
+    group.orders.push(order);
+    group.customerIds.add(order.customerId || order.customerName || order.id);
+
+    const itemKey = order.itemId || order.itemName || order.id;
+    const current = group.items.get(itemKey);
+    const qty = Number(order.orderedQty);
+    if (current) {
+      const currentQty = Number(current.qty);
+      current.qty =
+        Number.isFinite(currentQty) && Number.isFinite(qty) ? currentQty + qty : order.orderedQty;
+    } else {
+      group.items.set(itemKey, {
+        name: order.itemName || t("orders.dash"),
+        qty: order.orderedQty,
+      });
+    }
+  }
+
+  return [...groups.values()].map((group) => {
+    const itemSummary = [...group.items.values()]
+      .map((item) => `${item.name} x${formatQty(item.qty)}`)
+      .join(" + ");
+
+    return {
+      ...group,
+      itemSummary,
+      orderCount: group.orders.length,
+      customerCount: group.customerIds.size,
+    };
+  });
+}
+
 export function AssignOrdersPage({
   orders = [],
   deliveryAgents = [],
-  orderGroups = [],
   onAssignDelivery,
-  onAssignOrderGroup,
   onSubmitToFactory,
 }) {
   const { t } = useTranslation();
   const [busyDeliveryId, setBusyDeliveryId] = useState(null);
-  const [busyGroupId, setBusyGroupId] = useState(null);
   const [busySubmitId, setBusySubmitId] = useState(null);
   const [searchText, setSearchText] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
@@ -79,12 +138,16 @@ export function AssignOrdersPage({
         order.itemName,
         order.status,
         order.deliveryAgentName,
-        order.orderGroupName,
       ]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(keyword)),
     );
   }, [eligibleOrders, appliedSearch]);
+
+  const submitGroups = useMemo(
+    () => buildSubmitGroups(filteredOrders, deliveryAgents, t),
+    [filteredOrders, deliveryAgents, t],
+  );
 
   const {
     page: assignPage,
@@ -96,10 +159,10 @@ export function AssignOrdersPage({
   const {
     page: submitPage,
     pageSize: submitPageSize,
-    paged: pagedOrdersForSubmit,
+    paged: pagedGroupsForSubmit,
     setPage: setSubmitPage,
     setPageSize: setSubmitPageSize,
-  } = usePagination(filteredOrders, { resetKey: appliedSearch });
+  } = usePagination(submitGroups, { resetKey: appliedSearch });
 
   async function handleDeliveryChange(order, deliveryAgentId) {
     const next = deliveryAgentId || null;
@@ -117,25 +180,11 @@ export function AssignOrdersPage({
     }
   }
 
-  async function handleGroupChange(order, orderGroupId) {
-    const next = orderGroupId || null;
-    const cur =
-      order.orderGroupId != null && order.orderGroupId !== "" ? String(order.orderGroupId) : "";
-    if ((next || "") === cur) return;
-    if (!next) return;
-    setBusyGroupId(order.id);
-    try {
-      await onAssignOrderGroup(order.id, next);
-    } finally {
-      setBusyGroupId(null);
-    }
-  }
-
-  async function handleSubmitToFactory(orderId) {
+  async function handleSubmitToFactory(group) {
     if (!onSubmitToFactory) return;
-    setBusySubmitId(orderId);
+    setBusySubmitId(group.key);
     try {
-      await onSubmitToFactory(orderId);
+      await onSubmitToFactory(group.representativeOrderId);
     } finally {
       setBusySubmitId(null);
     }
@@ -145,6 +194,13 @@ export function AssignOrdersPage({
     filteredOrders.length === 1
       ? t("orders.rowOne", { n: filteredOrders.length })
       : t("orders.rowMany", { n: filteredOrders.length });
+  const submitMeta =
+    submitGroups.length === 1
+      ? t("assignOrders.groupOne", { n: submitGroups.length, defaultValue: "1 driver" })
+      : t("assignOrders.groupMany", {
+          n: submitGroups.length,
+          defaultValue: `${submitGroups.length} drivers`,
+        });
 
   return (
     <section className="admin-page">
@@ -182,8 +238,6 @@ export function AssignOrdersPage({
               <th>{t("orders.status")}</th>
               <th>{t("assignOrders.currentDelivery")}</th>
               <th>{t("assignOrders.assignDelivery")}</th>
-              <th>{t("assignOrders.currentGroup")}</th>
-              <th>{t("assignOrders.assignGroup")}</th>
             </tr>
           </thead>
           <tbody>
@@ -214,26 +268,6 @@ export function AssignOrdersPage({
                     ))}
                   </select>
                 </td>
-                <td>{order.orderGroupName || t("orders.dash")}</td>
-                <td>
-                  <select
-                    aria-label={t("assignOrders.assignGroup")}
-                    value={
-                      order.orderGroupId != null && order.orderGroupId !== ""
-                        ? String(order.orderGroupId)
-                        : ""
-                    }
-                    disabled={busyGroupId === order.id}
-                    onChange={(event) => void handleGroupChange(order, event.target.value)}
-                  >
-                    <option value="">{t("assignOrders.selectGroupPlaceholder")}</option>
-                    {orderGroups.map((group) => (
-                      <option key={group.id} value={group.id}>
-                        {group.name}
-                      </option>
-                    ))}
-                  </select>
-                </td>
               </tr>
             ))}
           </tbody>
@@ -241,38 +275,53 @@ export function AssignOrdersPage({
 
         <h3 className="assign-orders-subpanel-title">{t("assignOrders.submitPanelTitle")}</h3>
         <p className="form-hint">{t("assignOrders.submitPanelHint")}</p>
-        <p className="panel-meta assign-orders-submit-meta">{rowMeta}</p>
+        <p className="panel-meta assign-orders-submit-meta">{submitMeta}</p>
         <DataTable
           pagination={{
             page: submitPage,
             pageSize: submitPageSize,
-            totalRows: filteredOrders.length,
+            totalRows: submitGroups.length,
             onPageChange: setSubmitPage,
             onPageSizeChange: setSubmitPageSize,
           }}
         >
           <thead>
             <tr>
-              <th>{t("orders.customer")}</th>
+              <th>{t("assignOrders.currentDelivery")}</th>
+              <th>{t("assignOrders.groupSize", { defaultValue: "Group size" })}</th>
               <th>{t("orders.item")}</th>
               <th>{t("orders.status")}</th>
               <th>{t("orders.actions")}</th>
             </tr>
           </thead>
           <tbody>
-            {pagedOrdersForSubmit.map((order) => (
-              <tr key={`submit-${order.id}`}>
-                <td>{order.customerName || t("orders.dash")}</td>
-                <td>{order.itemName ? `#${order.id} · ${order.itemName}` : `#${order.id}`}</td>
+            {pagedGroupsForSubmit.map((group) => (
+              <tr key={`submit-${group.key}`}>
+                <td>{group.deliveryLabel}</td>
                 <td>
-                  <span className="status-chip">{order.status}</span>
+                  {t("assignOrders.groupSizeValue", {
+                    orders: group.orderCount,
+                    customers: group.customerCount,
+                    defaultValue: `${group.orderCount} orders / ${group.customerCount} customers`,
+                  })}
+                </td>
+                <td>{group.itemSummary || t("orders.dash")}</td>
+                <td>
+                  <span className="status-chip">Owner_Preparing</span>
                 </td>
                 <td>
                   <button
                     type="button"
                     className="btn btn-primary"
-                    disabled={busySubmitId === order.id}
-                    onClick={() => void handleSubmitToFactory(order.id)}
+                    disabled={!group.deliveryAgentId || busySubmitId === group.key}
+                    title={
+                      group.deliveryAgentId
+                        ? undefined
+                        : t("assignOrders.assignDeliveryBeforeSubmit", {
+                            defaultValue: "Assign a delivery agent before submitting",
+                          })
+                    }
+                    onClick={() => void handleSubmitToFactory(group)}
                   >
                     {t("assignOrders.submitToFactoryButton")}
                   </button>

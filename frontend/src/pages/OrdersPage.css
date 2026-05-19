@@ -1,4 +1,4 @@
-/* Orders page — group modal */
+/* Orders page truck modal */
 
 .orders-page-panels .panel + .panel {
   margin-top: 1.5rem;
@@ -11,7 +11,7 @@
   align-items: center;
 }
 
-.modal-card--orders-group { width: min(1140px, 98vw); }
+.modal-card--orders-truck { width: min(1140px, 98vw); }
 
 .modal-card--orders-pivot {
   width: fit-content;

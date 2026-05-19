@@ -15,6 +15,7 @@ const PAGE_PATH_MAP = {
   "/items":           "items",
   "/customer-item-prices": "customerItemPrices",
   "/customers":       "customers",
+  "/provinces":       "provinces",
   "/tracking-customer-location": "trackingCustomerLocation",
   "/borrowed-materials": "borrowedMaterials",
   "/depots":          "depots",
@@ -22,7 +23,6 @@ const PAGE_PATH_MAP = {
   "/producers":       "producers",
   "/delivery-agents": "deliveryAgents",
   "/orders":          "orders",
-  "/order-groups":    "orderGroups",
   "/assign-orders":   "assignOrders",
   "/order-movement":  "orderMovement",
   "/payments":        "payments",
@@ -64,6 +64,12 @@ const NAV_ICONS = {
       <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
       <circle cx="9" cy="7" r="4" />
       <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
+    </svg>
+  ),
+  provinces: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 21s7-5.2 7-11a7 7 0 10-14 0c0 5.8 7 11 7 11z" />
+      <circle cx="12" cy="10" r="2.5" />
     </svg>
   ),
   trackingCustomerLocation: (
@@ -113,14 +119,6 @@ const NAV_ICONS = {
       <rect x="9" y="3" width="6" height="4" rx="1" />
       <line x1="9"  y1="12" x2="15" y2="12" />
       <line x1="9"  y1="16" x2="13" y2="16" />
-    </svg>
-  ),
-  orderGroups: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="5" width="7" height="6" rx="1.2" />
-      <rect x="14" y="5" width="7" height="6" rx="1.2" />
-      <rect x="8.5" y="13" width="7" height="6" rx="1.2" />
-      <path d="M10 8h4M12 11v2" />
     </svg>
   ),
   assignOrders: (
@@ -195,13 +193,13 @@ const NAV_GROUPS = [
       "items",
       "customerItemPrices",
       "customers",
+      "provinces",
       "trackingCustomerLocation",
       "borrowedMaterials",
       "depots",
       "customersByDepot",
       "producers",
       "orders",
-      "orderGroups",
       "assignOrders",
       "orderMovement",
       "payments",

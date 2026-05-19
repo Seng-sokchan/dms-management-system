@@ -29,37 +29,105 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;");
 }
 
-function formatMoney(amount, currency) {
-  const n = Number(amount);
-  const cur = escapeHtml(currency || "KHR");
-  if (!Number.isFinite(n)) return cur;
-  return `${n.toLocaleString("en-US")} ${cur}`;
+function pad2(value) {
+  return String(value).padStart(2, "0");
 }
 
-function formatOrderSentToFactoryMessage(order, user) {
-  const customerLine = order.customerPhone
-    ? `${escapeHtml(order.customerName || "—")} (${escapeHtml(order.customerPhone)})`
-    : escapeHtml(order.customerName || "—");
+function formatDateTime(date = new Date()) {
+  const year = date.getFullYear();
+  const month = pad2(date.getMonth() + 1);
+  const day = pad2(date.getDate());
+  return `${day}.${month}.${year}`;
+}
 
-  const itemLabel = order.itemSku
-    ? `${escapeHtml(order.itemName || "—")} [${escapeHtml(order.itemSku)}]`
-    : escapeHtml(order.itemName || "—");
+function formatQty(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return String(value ?? "—");
+  return n.toLocaleString("en-US");
+}
 
-  const submittedBy = user?.name
-    ? `${escapeHtml(user.name)} (${escapeHtml(user.role || "—")})`
-    : escapeHtml(user?.username || "—");
+function normalizeOrders(orderOrOrders) {
+  if (Array.isArray(orderOrOrders)) return orderOrOrders.filter(Boolean);
+  return orderOrOrders ? [orderOrOrders] : [];
+}
+
+function addItemQty(items, itemKey, itemName, orderedQty) {
+  const current = items.get(itemKey);
+  const qty = Number(orderedQty);
+
+  if (current) {
+    const currentQty = Number(current.qty);
+    current.qty =
+      Number.isFinite(currentQty) && Number.isFinite(qty)
+        ? currentQty + qty
+        : orderedQty;
+    return;
+  }
+
+  items.set(itemKey, {
+    name: itemName,
+    qty: orderedQty,
+  });
+}
+
+function getOrderProvinceName(order) {
+  return String(
+    order?.customerProvinceName ||
+      order?.provinceName ||
+      order?.customer_province_name ||
+      order?.province_name ||
+      "",
+  ).trim();
+}
+
+function formatOrderSentToFactoryMessage(orderOrOrders) {
+  const orders = normalizeOrders(orderOrOrders);
+  const firstOrder = orders[0] || {};
+  const driverName = firstOrder.deliveryAgentName || "—";
+  const provinceNames = [
+    ...new Set(
+      orders
+        .map(getOrderProvinceName)
+        .filter(Boolean),
+    ),
+  ];
+  const provinceName = provinceNames.length > 0 ? provinceNames.join(", ") : "—";
+
+  const customers = new Map();
+  const totalItems = new Map();
+  for (const order of orders) {
+    const customerKey = order.customerId || order.customerName || `order-${order.id}`;
+    if (!customers.has(customerKey)) {
+      customers.set(customerKey, {
+        name: order.customerName || "—",
+        items: new Map(),
+      });
+    }
+
+    const customer = customers.get(customerKey);
+    const itemName = order.itemName || "—";
+    const itemKey = order.itemId || itemName;
+
+    addItemQty(customer.items, itemKey, itemName, order.orderedQty);
+    addItemQty(totalItems, itemKey, itemName, order.orderedQty);
+  }
 
   const lines = [
-    "<b>New order sent to factory</b>",
-    "",
-    `Order: <b>#${escapeHtml(order.id)}</b>`,
-    `Customer: ${customerLine}`,
-    `Item: ${itemLabel} x${escapeHtml(order.orderedQty)}`,
-    `Total: ${formatMoney(order.amountTotal, order.currency)}`,
-    `Delivery: ${escapeHtml(order.deliveryAgentName || "—")}`,
-    `Group: ${escapeHtml(order.orderGroupName || "—")}`,
-    `Submitted by: ${submittedBy}`,
+    `${escapeHtml(formatDateTime())}: ${escapeHtml(driverName)} - ${escapeHtml(provinceName)}`,
   ];
+  lines.push("\n");
+  lines.push("-សរុប:");
+  for (const item of totalItems.values()) {
+    lines.push(`${escapeHtml(item.name)}: ចំនួន: ${escapeHtml(formatQty(item.qty))}`);
+  }
+  lines.push("\n");
+
+  for (const customer of customers.values()) {
+    const items = [...customer.items.values()]
+      .map((item) => `${escapeHtml(item.name)} ចំនួន: ${escapeHtml(formatQty(item.qty))}`)
+      .join(" + ");
+    lines.push(`-${escapeHtml(customer.name)}: ${items}`);
+  }
 
   return lines.join("\n");
 }
@@ -111,15 +179,15 @@ async function sendMessage(text) {
   return body;
 }
 
-async function notifyOrderSentToFactory(order, user) {
+async function notifyOrderSentToFactory(orderOrOrders, user) {
   if (!isTelegramConfigured()) {
     logError("Telegram not configured for factory notification", {
-      orderId: order?.id,
+      orderId: normalizeOrders(orderOrOrders)[0]?.id,
     });
     throw new BadRequestError(NOTIFY_FAILURE_MESSAGE);
   }
 
-  const text = formatOrderSentToFactoryMessage(order, user);
+  const text = formatOrderSentToFactoryMessage(orderOrOrders, user);
   await sendMessage(text);
 }
 

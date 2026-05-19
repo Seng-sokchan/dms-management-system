@@ -12,10 +12,11 @@ import {
   deleteItem,
   deleteUser,
   createCatalog,
-  createOrderGroup,
   createCustomer,
+  createProvince,
   createDepot,
   deleteCustomer,
+  deleteProvince,
   deleteDepot,
   deleteProducer,
   createProducer,
@@ -23,11 +24,11 @@ import {
   login as loginRequest,
   updateCatalog,
   updateCustomer,
+  updateProvince,
   updateDepot,
   updateDeliveryAgent,
   updateItem,
   updateOrderAssignment,
-  updateOrderGroup,
   updateOrderStatus,
   moveOrderStatus as moveOrderStatusRequest,
   updateProducer,
@@ -48,7 +49,6 @@ import {
   deleteCustomerItemPrice,
   upsertDepotItemPrice,
   deleteDepotItemPrice,
-  deleteOrderGroup,
 } from "../services/adminApi";
 import {
   getStoredToken,
@@ -105,12 +105,12 @@ export function useAdminDashboard() {
   const [users, setUsers] = useState([]);
   const [roleMenusByRole, setRoleMenusByRole] = useState(null);
   const [customers, setCustomers] = useState([]);
+  const [provinces, setProvinces] = useState([]);
   const [depots, setDepots] = useState([]);
   const [producers, setProducers] = useState([]);
   const [deliveryAgents, setDeliveryAgents] = useState([]);
   const [catalogs, setCatalogs] = useState([]);
   const [items, setItems] = useState([]);
-  const [orderGroups, setOrderGroups] = useState([]);
   const [borrowMaterials, setBorrowMaterials] = useState([]);
   const [customerBorrowedMaterials, setCustomerBorrowedMaterials] = useState([]);
   const [borrowMaterialOrderLoans, setBorrowMaterialOrderLoans] = useState([]);
@@ -131,7 +131,9 @@ export function useAdminDashboard() {
     latitude: "",
     longitude: "",
     depotId: "",
+    provinceId: "",
   });
+  const [newProvince, setNewProvince] = useState({ name: "" });
   const [newDepot, setNewDepot] = useState({
     name: "",
     phone: "",
@@ -140,7 +142,6 @@ export function useAdminDashboard() {
     depotUserId: "",
   });
   const [newCatalog, setNewCatalog] = useState({ name: "", note: "" });
-  const [newOrderGroup, setNewOrderGroup] = useState({ name: "" });
   const [newItem, setNewItem] = useState({
     catalogId: "",
     name: "",
@@ -183,12 +184,12 @@ export function useAdminDashboard() {
       setStatuses(Array.isArray(data.statuses) ? data.statuses : []);
       setOrders(data.orders);
       setCustomers(Array.isArray(data.customers) ? data.customers : []);
+      setProvinces(Array.isArray(data.provinces) ? data.provinces : []);
       setDepots(Array.isArray(data.depots) ? data.depots : []);
       setProducers(Array.isArray(data.producers) ? data.producers : []);
       setDeliveryAgents(Array.isArray(data.deliveryAgents) ? data.deliveryAgents : []);
       setCatalogs(Array.isArray(data.catalogs) ? data.catalogs : []);
       setItems(Array.isArray(data.items) ? data.items : []);
-      setOrderGroups(Array.isArray(data.orderGroups) ? data.orderGroups : []);
       setUsers(Array.isArray(data.users) ? data.users : []);
       setRoleMenusByRole(data.roleMenusByRole && typeof data.roleMenusByRole === "object" ? data.roleMenusByRole : null);
       setBorrowMaterials(Array.isArray(data.borrowMaterials) ? data.borrowMaterials : []);
@@ -219,12 +220,12 @@ export function useAdminDashboard() {
         setUsers([]);
         setRoleMenusByRole(null);
         setCustomers([]);
+        setProvinces([]);
         setDepots([]);
         setProducers([]);
         setDeliveryAgents([]);
         setCatalogs([]);
         setItems([]);
-        setOrderGroups([]);
         setBorrowMaterials([]);
         setCustomerBorrowedMaterials([]);
         setBorrowMaterialOrderLoans([]);
@@ -317,38 +318,6 @@ export function useAdminDashboard() {
     }
   }
 
-  async function submitOrderGroupCreate(event) {
-    event.preventDefault();
-    try {
-      await createOrderGroup(token, newOrderGroup);
-      setNewOrderGroup({ name: "" });
-      await refresh();
-      await showSuccessPopup(i18n.t("success.orderGroupCreated", { defaultValue: "Order group created" }));
-    } catch (error) {
-      showError(getErrorMessage(error, "errors.createOrderGroup"));
-    }
-  }
-
-  async function submitOrderGroupUpdate(orderGroupId, payload) {
-    try {
-      await updateOrderGroup(token, orderGroupId, payload);
-      await refresh();
-      await showSuccessPopup(i18n.t("success.orderGroupUpdated", { defaultValue: "Order group updated" }));
-    } catch (error) {
-      showError(getErrorMessage(error, "errors.updateOrderGroup"));
-    }
-  }
-
-  async function submitOrderGroupDelete(orderGroupId) {
-    try {
-      await deleteOrderGroup(token, orderGroupId);
-      await refresh();
-      showSuccess(i18n.t("success.orderGroupDeleted", { defaultValue: "Order group deleted" }));
-    } catch (error) {
-      showError(getErrorMessage(error, "errors.deleteOrderGroup"));
-    }
-  }
-
   async function submitItem(event) {
     event.preventDefault();
     try {
@@ -395,7 +364,7 @@ export function useAdminDashboard() {
     event.preventDefault();
     try {
       await createCustomer(token, newCustomer);
-      setNewCustomer({ name: "", phone: "", latitude: "", longitude: "", depotId: "" });
+      setNewCustomer({ name: "", phone: "", latitude: "", longitude: "", depotId: "", provinceId: "" });
       await refresh();
       await showSuccessPopup(i18n.t("success.customerAdded"));
     } catch (error) {
@@ -423,6 +392,38 @@ export function useAdminDashboard() {
       showSuccess(i18n.t("success.customerDeleted"));
     } catch (error) {
       showError(getErrorMessage(error, "errors.deleteCustomer"));
+    }
+  }
+
+  async function submitProvince(event) {
+    event.preventDefault();
+    try {
+      await createProvince(token, newProvince);
+      setNewProvince({ name: "" });
+      await refresh();
+      await showSuccessPopup(i18n.t("success.provinceAdded", { defaultValue: "Province added" }));
+    } catch (error) {
+      showError(getErrorMessage(error, "errors.createProvince"));
+    }
+  }
+
+  async function submitProvinceUpdate(provinceId, payload) {
+    try {
+      await updateProvince(token, provinceId, payload);
+      await refresh();
+      await showSuccessPopup(i18n.t("success.provinceUpdated", { defaultValue: "Province updated" }));
+    } catch (error) {
+      showError(getErrorMessage(error, "errors.updateProvince"));
+    }
+  }
+
+  async function submitProvinceDelete(provinceId) {
+    try {
+      await deleteProvince(token, provinceId);
+      await refresh();
+      showSuccess(i18n.t("success.provinceDeleted", { defaultValue: "Province deleted" }));
+    } catch (error) {
+      showError(getErrorMessage(error, "errors.deleteProvince"));
     }
   }
 
@@ -553,16 +554,6 @@ export function useAdminDashboard() {
       await showSuccessPopup(i18n.t("success.statusUpdated"));
     } catch (error) {
       showError(getErrorMessage(error, "errors.updateStatus"));
-    }
-  }
-
-  async function submitOrderGroupAssignment(orderId, orderGroupId) {
-    try {
-      await updateOrderAssignment(token, orderId, { orderGroupId: orderGroupId || null });
-      await refresh();
-      await showSuccessPopup(i18n.t("success.orderGroupAssigned", { defaultValue: "Order group assigned" }));
-    } catch (error) {
-      showError(getErrorMessage(error, "errors.updateOrderGroup"));
     }
   }
 
@@ -888,12 +879,12 @@ export function useAdminDashboard() {
     users,
     roleMenusByRole,
     customers,
+    provinces,
     depots,
     producers,
     deliveryAgents,
     catalogs,
     items,
-    orderGroups,
     borrowMaterials,
     customerBorrowedMaterials,
     borrowMaterialOrderLoans,
@@ -906,9 +897,9 @@ export function useAdminDashboard() {
     newOrder,
     newProducer,
     newCustomer,
+    newProvince,
     newDepot,
     newCatalog,
-    newOrderGroup,
     newItem,
     newDelivery,
     newUser,
@@ -922,9 +913,9 @@ export function useAdminDashboard() {
     setNewOrder,
     setNewProducer,
     setNewCustomer,
+    setNewProvince,
     setNewDepot,
     setNewCatalog,
-    setNewOrderGroup,
     setNewItem,
     setNewDelivery,
     setNewUser,
@@ -935,9 +926,6 @@ export function useAdminDashboard() {
     submitCatalog,
     submitCatalogUpdate,
     submitCatalogDelete,
-    submitOrderGroupCreate,
-    submitOrderGroupUpdate,
-    submitOrderGroupDelete,
     submitItem,
     submitItemUpdate,
     submitItemDelete,
@@ -947,6 +935,9 @@ export function useAdminDashboard() {
     submitCustomer,
     submitCustomerUpdate,
     submitCustomerDelete,
+    submitProvince,
+    submitProvinceUpdate,
+    submitProvinceDelete,
     submitDepot,
     submitDepotUpdate,
     submitDepotDelete,
@@ -956,7 +947,6 @@ export function useAdminDashboard() {
     submitDeliveryConfirmation,
     submitOrderStatus,
     submitOrderMovement,
-    submitOrderGroupAssignment,
     submitOrderDeliveryAssignment,
     submitSendOrderToFactory,
     submitOrderDelete,

@@ -15,16 +15,16 @@ const ROUTE_DATA_MAP = {
   "/catalogs": ["catalogs"],
   "/items": ["catalogs", "items"],
   "/customer-item-prices": ["customers", "items", "depots", "customerItemPrices", "depotItemPrices"],
-  "/customers": ["customers", "depots"],
+  "/customers": ["customers", "depots", "provinces"],
   "/tracking-customer-location": ["customers"],
+  "/provinces": ["provinces"],
   "/depots": ["depots"],
   "/customers-by-depot": ["depots", "customers"],
   "/producers": ["producers"],
   "/delivery-agents": ["deliveryAgents"],
   "/users": ["users", "roleMenus", "customers", "deliveryAgents"],
   "/orders": ["orders", "statuses", "deliveryAgents"],
-  "/order-groups": ["orderGroups"],
-  "/assign-orders": ["orders", "deliveryAgents", "orderGroups"],
+  "/assign-orders": ["orders", "deliveryAgents"],
   "/order-movement": ["orders", "statuses"],
   "/payments": ["paymentTotals"],
   "/customer-order-history": ["customers", "orders"],
@@ -60,12 +60,12 @@ export async function fetchDashboardData(token, pathname = "/overview") {
     statuses: [],
     orders: [],
     customers: [],
+    provinces: [],
     depots: [],
     producers: [],
     deliveryAgents: [],
     catalogs: [],
     items: [],
-    orderGroups: [],
     users: [],
     roleMenusByRole: null,
     borrowMaterials: [],
@@ -102,6 +102,11 @@ export async function fetchDashboardData(token, pathname = "/overview") {
     const rows = unwrapApiData(res.data);
     data.customers = Array.isArray(rows) ? rows : [];
   });
+  queue("provinces", async () => {
+    const res = await apiClient.get("/provinces", config);
+    const rows = unwrapApiData(res.data);
+    data.provinces = Array.isArray(rows) ? rows : [];
+  });
   queue("depots", async () => {
     const res = await apiClient.get("/depots", config);
     const rows = unwrapApiData(res.data);
@@ -126,11 +131,6 @@ export async function fetchDashboardData(token, pathname = "/overview") {
     const res = await apiClient.get("/items", config);
     const rows = unwrapApiData(res.data);
     data.items = Array.isArray(rows) ? rows : [];
-  });
-  queue("orderGroups", async () => {
-    const res = await apiClient.get("/order-groups", config);
-    const rows = unwrapApiData(res.data);
-    data.orderGroups = Array.isArray(rows) ? rows : [];
   });
   queue("users", async () => {
     const res = await apiClient.get("/users", config);

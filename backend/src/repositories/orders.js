@@ -20,6 +20,54 @@ async function getOrderById(id, executor) {
   return resultRows[0] ? mapOrder(resultRows[0]) : null;
 }
 
+async function listFactoryNotificationOrdersByOrderId(id) {
+  const [rows] = await getPool().query(
+    `SELECT
+       o.id,
+       c.name AS customer_name,
+       o.customer_id,
+       o.item_id,
+       o.currency,
+       o.ordered_qty,
+       o.unit_price,
+       o.producer_id,
+       o.delivery_agent_id,
+       o.delivery_time,
+       o.amount_total,
+       s.name AS status,
+       o.created_at,
+       o.updated_at,
+       c.phone AS customer_phone,
+       c.province_id AS customer_province_id,
+       pr.name AS customer_province_name,
+       c.latitude AS customer_latitude,
+       c.longitude AS customer_longitude,
+       p.name AS producer_name,
+       da.name AS delivery_agent_name,
+       it.name AS item_name,
+       it.sku AS item_sku
+     FROM orders source
+     INNER JOIN orders o ON (
+       o.id = source.id
+       OR (
+         source.delivery_agent_id IS NOT NULL
+         AND o.status = source.status
+         AND o.delivery_agent_id = source.delivery_agent_id
+       )
+     )
+     INNER JOIN customers c ON c.id = o.customer_id
+     INNER JOIN items it ON it.id = o.item_id
+     INNER JOIN status s ON s.id = o.status
+     LEFT JOIN provinces pr ON pr.id = c.province_id AND pr.is_active = 1
+     LEFT JOIN producers p ON p.id = o.producer_id
+     LEFT JOIN delivery_agents da ON da.id = o.delivery_agent_id
+     WHERE source.id = ?
+     ORDER BY c.name, it.name, o.id`,
+    [id],
+  );
+  return rows.map(mapOrder);
+}
+
 /** Terminal status name in DB: order is complete (delivered). */
 const TERMINAL_ORDER_STATUS_NAME = "Recieve_By_Customer";
 
@@ -80,7 +128,6 @@ async function updateOrderAssignment(id, payload) {
   if (!order) return null;
 
   let mergedProducerId = payload.producerId !== undefined ? payload.producerId : order.producerId;
-  let mergedOrderGroupId = payload.orderGroupId !== undefined ? payload.orderGroupId : order.orderGroupId;
   let mergedDeliveryTime = payload.deliveryTime !== undefined ? payload.deliveryTime : order.deliveryTime;
   let mergedDeliveryAgentId =
     payload.deliveryAgentId !== undefined ? payload.deliveryAgentId : order.deliveryAgentId;
@@ -104,10 +151,9 @@ async function updateOrderAssignment(id, payload) {
     throw new Error("Status not found");
   }
 
-  await getPool().query("CALL sp_update_order_assignment(?, ?, ?, ?, ?, ?, ?)", [
+  await getPool().query("CALL sp_update_order_assignment(?, ?, ?, ?, ?, ?)", [
     id,
     toSqlIntOrNull(mergedProducerId),
-    toSqlIntOrNull(mergedOrderGroupId),
     mergedDeliveryTime ?? null,
     toSqlIntOrNull(mergedDeliveryAgentId),
     statusId,
@@ -135,6 +181,49 @@ async function updateOrderStatus(id, status, { changedByUserId = null, note = ""
   return getOrderById(id);
 }
 
+async function updateOrderStatuses(ids, status, { changedByUserId = null, note = "" } = {}) {
+  const uniqueIds = [...new Set((ids || []).map((id) => Number(id)).filter(Number.isFinite))];
+  if (uniqueIds.length === 0) return [];
+
+  const pool = getPool();
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    const toStatusId = await getStatusIdByName(status, conn);
+    if (!toStatusId) {
+      throw new Error("Status not found");
+    }
+
+    const changedIds = [];
+    for (const id of uniqueIds) {
+      const before = await getOrderById(id, conn);
+      if (!before) continue;
+
+      const fromStatusId = await getStatusIdByName(before.status, conn);
+      await conn.query("UPDATE orders SET status = ?, updated_at = ? WHERE id = ?", [
+        toStatusId,
+        nowIso(),
+        id,
+      ]);
+      await conn.query(
+        `INSERT INTO order_status_history
+           (order_id, from_status, to_status, changed_by_user_id, note)
+         VALUES (?, ?, ?, ?, ?)`,
+        [id, fromStatusId, toStatusId, changedByUserId, note || ""],
+      );
+      changedIds.push(id);
+    }
+
+    await conn.commit();
+    return Promise.all(changedIds.map((id) => getOrderById(id)));
+  } catch (err) {
+    await conn.rollback().catch(() => {});
+    throw err;
+  } finally {
+    conn.release();
+  }
+}
+
 async function confirmOrderDelivery(id) {
   const order = await getOrderById(id);
   if (!order) return null;
@@ -158,10 +247,12 @@ async function deleteOrder(id) {
 module.exports = {
   listOrders,
   getOrderById,
+  listFactoryNotificationOrdersByOrderId,
   countNonTerminalOrdersByCustomer,
   createOrder,
   updateOrderAssignment,
   updateOrderStatus,
+  updateOrderStatuses,
   confirmOrderDelivery,
   deleteOrder,
 };

@@ -6,13 +6,14 @@ import { Button } from "../components/ui/Button";
 import { DataTable } from "../components/ui/DataTable";
 import { useConfirm } from "../components/ui/ConfirmProvider";
 
-const EMPTY_EDIT = { id: "", name: "", phone: "", latitude: "", longitude: "", depotId: "" };
+const EMPTY_EDIT = { id: "", name: "", phone: "", latitude: "", longitude: "", depotId: "", provinceId: "" };
 
 function buildCustomerSavePayload(editing) {
   const payload = {
     name: editing.name,
     phone: editing.phone,
     depotId: editing.depotId,
+    provinceId: editing.provinceId,
   };
   const lat = String(editing.latitude ?? "").trim();
   const lng = String(editing.longitude ?? "").trim();
@@ -26,6 +27,7 @@ function buildCustomerSavePayload(editing) {
 export function CustomersPage({
   customers,
   depots = [],
+  provinces = [],
   newCustomer,
   setNewCustomer,
   onCreateCustomer,
@@ -50,6 +52,7 @@ export function CustomersPage({
         customer.userName,
         customer.userUsername,
         customer.depotName,
+        customer.provinceName,
         customer.latitude,
         customer.longitude,
       ]
@@ -73,6 +76,7 @@ export function CustomersPage({
       latitude: customer.latitude != null ? String(customer.latitude) : "",
       longitude: customer.longitude != null ? String(customer.longitude) : "",
       depotId: customer.depotId || "",
+      provinceId: customer.provinceId || "",
     });
   }
 
@@ -152,6 +156,7 @@ export function CustomersPage({
                   <th>{t("customers.phone")}</th>
                   <th>{t("customers.user")}</th>
                   <th>{t("customers.depot", { defaultValue: "Depot" })}</th>
+                  <th>{t("customers.province", { defaultValue: "Province" })}</th>
                   <th>{t("customers.latitude")}</th>
                   <th>{t("customers.longitude")}</th>
                   <th>{t("customers.mapsLink")}</th>
@@ -168,6 +173,7 @@ export function CustomersPage({
                       {customer.userName ? `${customer.userName} (${customer.userUsername})` : "—"}
                     </td>
                     <td>{customer.depotName || "—"}</td>
+                    <td>{customer.provinceName || "—"}</td>
                     <td>{customer.latitude != null ? customer.latitude : "—"}</td>
                     <td>{customer.longitude != null ? customer.longitude : "—"}</td>
                     <td>
@@ -204,6 +210,7 @@ export function CustomersPage({
           <div className="modal-card">
             <CustomerForm
               depots={depots}
+              provinces={provinces}
               newCustomer={newCustomer}
               setNewCustomer={setNewCustomer}
               onCreateCustomer={async (event) => {
@@ -276,6 +283,22 @@ export function CustomersPage({
               {depots.map((depot) => (
                 <option key={depot.id} value={depot.id}>
                   {depot.name}
+                </option>
+              ))}
+            </select>
+            <label className="form-label" htmlFor="customer-edit-province">
+              {t("customers.province", { defaultValue: "Province" })}{" "}
+              <span className="form-optional">({t("createOrder.optional")})</span>
+            </label>
+            <select
+              id="customer-edit-province"
+              value={editingCustomer.provinceId || ""}
+              onChange={(event) => setEditingCustomer({ ...editingCustomer, provinceId: event.target.value })}
+            >
+              <option value="">{t("customers.selectProvince", { defaultValue: "— Select province —" })}</option>
+              {provinces.map((province) => (
+                <option key={province.id} value={province.id}>
+                  {province.name}
                 </option>
               ))}
             </select>

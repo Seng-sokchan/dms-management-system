@@ -1,10 +1,3 @@
-const {
-  listOrderGroups,
-  getOrderGroupById,
-  createOrderGroup,
-  updateOrderGroup,
-  deleteOrderGroup,
-} = require("../orderGroups");
 const { listOrderStatuses } = require("../lookups");
 const {
   listCatalogs,
@@ -28,12 +21,14 @@ const {
   updateDeliveryAgent,
   deleteDeliveryAgent,
 } = require("../deliveryAgents");
+const {
+  listProvinces,
+  getProvinceById,
+  createProvince,
+  updateProvince,
+  deleteProvince,
+} = require("../provinces");
 module.exports = {
-  listOrderGroups,
-  getOrderGroupById,
-  createOrderGroup,
-  updateOrderGroup,
-  deleteOrderGroup,
   listOrderStatuses,
   listCatalogs,
   getCatalogById,
@@ -55,4 +50,9 @@ module.exports = {
   createDeliveryAgent,
   updateDeliveryAgent,
   deleteDeliveryAgent,
+  listProvinces,
+  getProvinceById,
+  createProvince,
+  updateProvince,
+  deleteProvince,
 };

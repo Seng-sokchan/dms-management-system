@@ -10,7 +10,6 @@
  */
 const { NEXT_STATUS, ORDER_STATUS } = require("../constants");
 const orderRepository = require("../repositories/orders");
-const orderGroupRepository = require("../repositories/orderGroups");
 const customerRepository = require("../repositories/customers");
 const depotRepository = require("../repositories/depots");
 const itemRepository = require("../repositories/items");
@@ -61,6 +60,46 @@ async function getStatusNames() {
   return rows.map((row) => row.name);
 }
 
+async function hydrateFactoryNotificationLabels(order) {
+  if (!order) return order;
+
+  const [deliveryAgent] = await Promise.all([
+    order.deliveryAgentName || !order.deliveryAgentId
+      ? null
+      : deliveryAgentRepository.getDeliveryAgentById(order.deliveryAgentId),
+  ]);
+
+  return {
+    ...order,
+    deliveryAgentName: order.deliveryAgentName || deliveryAgent?.name || null,
+  };
+}
+
+async function getFactoryNotificationOrders(order) {
+  const orders = await orderRepository.listFactoryNotificationOrdersByOrderId(order.id);
+  const listedOrder = orders.find((row) => String(row.id) === String(order.id));
+  const sourceOrder = await hydrateFactoryNotificationLabels(listedOrder || order);
+
+  if (!sourceOrder?.deliveryAgentId) {
+    return [sourceOrder || order];
+  }
+
+  const deliveryAgentId = String(sourceOrder.deliveryAgentId);
+  const currentStatus = sourceOrder.status;
+
+  const matchingOrders = orders.filter(
+    (row) =>
+      row.status === currentStatus &&
+      String(row.deliveryAgentId || "") === deliveryAgentId,
+  );
+
+  const notificationOrders = matchingOrders.length > 0 ? matchingOrders : [sourceOrder];
+  return notificationOrders.map((row) => ({
+    ...row,
+    deliveryAgentName: row.deliveryAgentName || sourceOrder.deliveryAgentName,
+  }));
+}
+
 // ---------------------------------------------------------------------------
 // Listing
 // ---------------------------------------------------------------------------
@@ -75,25 +114,6 @@ async function list({ user } = {}) {
   const customer = await customerRepository.getCustomerByUserId(user.sub);
   if (!customer) return [];
   return orders.filter((row) => String(row.customerId) === String(customer.id));
-}
-
-async function listGroups() {
-  return orderGroupRepository.listOrderGroups();
-}
-
-async function createOrderGroup(payload) {
-  return orderGroupRepository.createOrderGroup(payload);
-}
-
-async function updateOrderGroup(orderGroupId, payload) {
-  const row = await orderGroupRepository.updateOrderGroup(orderGroupId, payload);
-  if (!row) throw new NotFoundError("Order group not found");
-  return row;
-}
-
-async function deleteOrderGroup(orderGroupId) {
-  const deleted = await orderGroupRepository.deleteOrderGroup(orderGroupId);
-  if (!deleted) throw new NotFoundError("Order group not found");
 }
 
 async function listStatuses() {
@@ -309,7 +329,7 @@ async function createDepotBatch({ user, lines }) {
 }
 
 /**
- * Assign an order to a producer/delivery agent/group. Validates targets exist.
+ * Assign an order to a producer or delivery agent. Validates targets exist.
  */
 async function assign(orderId, payload) {
   const order = await orderRepository.getOrderById(orderId);
@@ -318,10 +338,6 @@ async function assign(orderId, payload) {
   if (payload.deliveryAgentId) {
     const agent = await deliveryAgentRepository.getDeliveryAgentById(payload.deliveryAgentId);
     if (!agent) throw new BadRequestError("Delivery agent not found");
-  }
-  if (payload.orderGroupId) {
-    const orderGroup = await orderGroupRepository.getOrderGroupById(payload.orderGroupId);
-    if (!orderGroup) throw new BadRequestError("Order group not found");
   }
 
   return orderRepository.updateOrderAssignment(orderId, payload);
@@ -370,7 +386,14 @@ async function updateStatus(orderId, nextStatus, { user, allowReverse = false } 
   }
 
   if (nextStatus === "Sent_To_Factory") {
-    await telegramService.notifyOrderSentToFactory(order, user);
+    const notificationOrders = await getFactoryNotificationOrders(order);
+    await telegramService.notifyOrderSentToFactory(notificationOrders, user);
+    const updatedOrders = await orderRepository.updateOrderStatuses(
+      notificationOrders.map((row) => row.id),
+      nextStatus,
+      { changedByUserId: user?.sub ?? null },
+    );
+    return updatedOrders.find((row) => String(row.id) === String(orderId)) || updatedOrders[0] || null;
   }
 
   return orderRepository.updateOrderStatus(orderId, nextStatus, {
@@ -445,10 +468,6 @@ module.exports = {
   getStatusNames,
   // queries
   list,
-  listGroups,
-  createOrderGroup,
-  updateOrderGroup,
-  deleteOrderGroup,
   listStatuses,
   getDashboardSummary,
   listForMobile,

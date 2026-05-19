@@ -18,12 +18,12 @@ import { ItemsPage } from "./pages/ItemsPage";
 import { CustomerItemPricesPage } from "./pages/CustomerItemPricesPage";
 import { ProducersPage } from "./pages/ProducersPage";
 import { CustomersPage } from "./pages/CustomersPage";
+import { ProvincesPage } from "./pages/ProvincesPage";
 import { CustomersByDepotPage } from "./pages/CustomersByDepotPage";
 import { TrackingCustomerLocationPage } from "./pages/TrackingCustomerLocationPage";
 import { DepotsPage } from "./pages/DepotsPage";
 import { BorrowedMaterialsPage } from "./pages/BorrowedMaterialsPage";
 import { UsersPage } from "./pages/UsersPage";
-import { OrderGroupsPage } from "./pages/OrderGroupsPage";
 import "./App.css";
 
 function App() {
@@ -36,10 +36,10 @@ function App() {
     statuses,
     orders,
     customers,
+    provinces,
     depots,
     producers,
     deliveryAgents,
-    orderGroups,
     catalogs,
     items,
     customerItemPrices,
@@ -54,9 +54,9 @@ function App() {
     newOrder,
     newProducer,
     newCustomer,
+    newProvince,
     newDepot,
     newCatalog,
-    newOrderGroup,
     newItem,
     newDelivery,
     newBorrowMaterial,
@@ -69,9 +69,9 @@ function App() {
     setNewOrder,
     setNewProducer,
     setNewCustomer,
+    setNewProvince,
     setNewDepot,
     setNewCatalog,
-    setNewOrderGroup,
     setNewItem,
     setNewDelivery,
     setNewBorrowMaterial,
@@ -81,9 +81,6 @@ function App() {
     submitCatalog,
     submitCatalogUpdate,
     submitCatalogDelete,
-    submitOrderGroupCreate,
-    submitOrderGroupUpdate,
-    submitOrderGroupDelete,
     submitItem,
     submitItemUpdate,
     submitItemDelete,
@@ -97,17 +94,17 @@ function App() {
     submitCustomer,
     submitCustomerUpdate,
     submitCustomerDelete,
+    submitProvince,
+    submitProvinceUpdate,
+    submitProvinceDelete,
     submitDepot,
     submitDepotUpdate,
     submitDepotDelete,
     submitDelivery,
     submitDeliveryUpdate,
     submitDeliveryDelete,
-    submitDeliveryConfirmation,
-    submitOrderStatus,
     submitOrderMovement,
     submitOrderDeliveryAssignment,
-    submitOrderGroupAssignment,
     submitSendOrderToFactory,
     submitBorrowMaterial,
     submitBorrowMaterialUpdate,
@@ -323,11 +320,29 @@ function App() {
             <CustomersPage
               customers={customers}
               depots={depots}
+              provinces={provinces}
               newCustomer={newCustomer}
               setNewCustomer={setNewCustomer}
               onCreateCustomer={submitCustomer}
               onUpdateCustomer={submitCustomerUpdate}
               onDeleteCustomer={submitCustomerDelete}
+            />
+          ) : (
+            renderDeniedRoute()
+          ),
+        )}
+      />
+      <Route
+        path="/provinces"
+        element={withLayout(
+          canAccessPath(user, "/provinces") ? (
+            <ProvincesPage
+              provinces={provinces}
+              newProvince={newProvince}
+              setNewProvince={setNewProvince}
+              onCreateProvince={submitProvince}
+              onUpdateProvince={submitProvinceUpdate}
+              onDeleteProvince={submitProvinceDelete}
             />
           ) : (
             renderDeniedRoute()
@@ -477,32 +492,13 @@ function App() {
         )}
       />
       <Route
-        path="/order-groups"
-        element={withLayout(
-          canAccessPath(user, "/order-groups") ? (
-            <OrderGroupsPage
-              orderGroups={orderGroups}
-              newOrderGroup={newOrderGroup}
-              setNewOrderGroup={setNewOrderGroup}
-              onCreateOrderGroup={submitOrderGroupCreate}
-              onUpdateOrderGroup={submitOrderGroupUpdate}
-              onDeleteOrderGroup={submitOrderGroupDelete}
-            />
-          ) : (
-            renderDeniedRoute()
-          ),
-        )}
-      />
-      <Route
         path="/assign-orders"
         element={withLayout(
           (user?.role === "Admin" || user?.role === "Owner") && canAccessPath(user, "/assign-orders") ? (
             <AssignOrdersPage
               orders={orders}
               deliveryAgents={deliveryAgents}
-              orderGroups={orderGroups}
               onAssignDelivery={submitOrderDeliveryAssignment}
-              onAssignOrderGroup={submitOrderGroupAssignment}
               onSubmitToFactory={submitSendOrderToFactory}
             />
           ) : (

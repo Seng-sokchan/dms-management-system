@@ -51,7 +51,6 @@ const createDepotBatchSchema = z.object({
 const assignOrderSchema = z.object({
   producerId: idString.nullable().optional(),
   deliveryAgentId: idString.nullable().optional(),
-  orderGroupId: idString.nullable().optional(),
   deliveryTime: z.string().datetime().optional(),
 });
 

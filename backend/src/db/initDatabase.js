@@ -52,16 +52,22 @@ async function seedSampleData(dbConn) {
   );
 
   await dbConn.query(
+    `INSERT INTO provinces (id, name, is_active, updated_at) VALUES
+      (1, 'Phnom Penh', 1, NOW()),
+      (2, 'Kandal', 1, NOW())`,
+  );
+
+  await dbConn.query(
     `INSERT INTO users (id, name, username, password_hash, role_id, delivery_agent_id, is_active, updated_at) VALUES
       (5, 'Sokha Driver', 'delivery', '${deliveryHash}', 4, 1, 1, NOW())`,
   );
 
   await dbConn.query(
-    `INSERT INTO customers (id, name, phone, depot_id, latitude, longitude, is_active, updated_at) VALUES
-      (1, 'Star Mart Toul Kork', '011111111', 1, 11.5500000, 104.9200000, 1, NOW()),
-      (2, 'Green Cafe Riverside', '011222222', 1, 11.5600000, 104.9350000, 1, NOW()),
-      (3, 'City Mini Mart', '011333333', 1, 11.5450000, 104.9100000, 1, NOW()),
-      (4, 'Independent Corner Shop', '011444444', NULL, 11.5520000, 104.9250000, 1, NOW())`,
+    `INSERT INTO customers (id, name, phone, depot_id, province_id, latitude, longitude, is_active, updated_at) VALUES
+      (1, 'Star Mart Toul Kork', '011111111', 1, 1, 11.5500000, 104.9200000, 1, NOW()),
+      (2, 'Green Cafe Riverside', '011222222', 1, 1, 11.5600000, 104.9350000, 1, NOW()),
+      (3, 'City Mini Mart', '011333333', 1, 1, 11.5450000, 104.9100000, 1, NOW()),
+      (4, 'Independent Corner Shop', '011444444', NULL, 2, 11.5520000, 104.9250000, 1, NOW())`,
   );
 
   await dbConn.query(
@@ -96,11 +102,6 @@ async function seedSampleData(dbConn) {
   );
 
   await dbConn.query(
-    `INSERT INTO order_groups (id, name, updated_at) VALUES
-      (1, 'March 2026 Promo Batch', NOW())`,
-  );
-
-  await dbConn.query(
     `INSERT INTO borrow_materials (id, name, unit, note, is_active, updated_at) VALUES
       (1, 'Glass Bottle Crate', 'crate', 'Returnable crate', 1, NOW())`,
   );
@@ -113,13 +114,13 @@ async function seedSampleData(dbConn) {
   // status: 1=Owner_Preparing, 2=Sent_To_Factory, 3=Ready_For_Delivery, 4=Recieve_By_Customer
   await dbConn.query(
     `INSERT INTO orders (
-      id, customer_id, order_group_id, item_id, currency, ordered_qty, unit_price,
+      id, customer_id, item_id, currency, ordered_qty, unit_price,
       producer_id, delivery_agent_id, amount_total, status, updated_at
     ) VALUES
-      (1, 1, 1, 1, 'KHR', 100, 1500.00, 1, 1, 150000.00, 3, NOW()),
-      (2, 1, NULL, 2, 'KHR', 50, 1200.00, 1, 1, 60000.00, 2, NOW()),
-      (3, 2, NULL, 1, 'KHR', 200, 1550.00, 1, NULL, 310000.00, 1, NOW()),
-      (4, 3, NULL, 3, 'KHR', 30, 5000.00, 1, 1, 150000.00, 4, NOW())`,
+      (1, 1, 1, 'KHR', 100, 1500.00, 1, 1, 150000.00, 3, NOW()),
+      (2, 1, 2, 'KHR', 50, 1200.00, 1, 1, 60000.00, 2, NOW()),
+      (3, 2, 1, 'KHR', 200, 1550.00, 1, NULL, 310000.00, 1, NOW()),
+      (4, 3, 3, 'KHR', 30, 5000.00, 1, 1, 150000.00, 4, NOW())`,
   );
 
   await dbConn.query(
@@ -174,7 +175,7 @@ async function run() {
   await dbConn.query("DELETE FROM items");
   await dbConn.query("DELETE FROM catalogs");
   await dbConn.query("DELETE FROM customers");
-  await dbConn.query("DELETE FROM order_groups");
+  await dbConn.query("DELETE FROM provinces");
   await dbConn.query("DELETE FROM delivery_agents");
   await dbConn.query("DELETE FROM producers");
   await dbConn.query("DELETE FROM depots");
@@ -194,12 +195,12 @@ async function run() {
 
   await dbConn.query(
     `INSERT INTO role_menus (role_id, menu_key) VALUES
-     (1, 'overview'), (1, 'newOrder'), (1, 'catalogs'), (1, 'items'), (1, 'customerItemPrices'), (1, 'customers'), (1, 'trackingCustomerLocation'), (1, 'depots'), (1, 'customersByDepot'),
-     (1, 'producers'), (1, 'deliveryAgents'), (1, 'orders'), (1, 'orderGroups'), (1, 'assignOrders'), (1, 'orderMovement'), (1, 'payments'), (1, 'customerOrderHistory'),
+     (1, 'overview'), (1, 'newOrder'), (1, 'catalogs'), (1, 'items'), (1, 'customerItemPrices'), (1, 'customers'), (1, 'trackingCustomerLocation'), (1, 'provinces'), (1, 'depots'), (1, 'customersByDepot'),
+     (1, 'producers'), (1, 'deliveryAgents'), (1, 'orders'), (1, 'assignOrders'), (1, 'orderMovement'), (1, 'payments'), (1, 'customerOrderHistory'),
      (1, 'users'),
      (1, 'borrowedMaterials'),
-     (2, 'overview'), (2, 'newOrder'), (2, 'catalogs'), (2, 'items'), (2, 'customerItemPrices'), (2, 'customers'), (2, 'trackingCustomerLocation'), (2, 'depots'), (2, 'customersByDepot'),
-     (2, 'producers'), (2, 'deliveryAgents'), (2, 'orders'), (2, 'orderGroups'), (2, 'assignOrders'), (2, 'orderMovement'), (2, 'payments'), (2, 'customerOrderHistory'),
+     (2, 'overview'), (2, 'newOrder'), (2, 'catalogs'), (2, 'items'), (2, 'customerItemPrices'), (2, 'customers'), (2, 'trackingCustomerLocation'), (2, 'provinces'), (2, 'depots'), (2, 'customersByDepot'),
+     (2, 'producers'), (2, 'deliveryAgents'), (2, 'orders'), (2, 'assignOrders'), (2, 'orderMovement'), (2, 'payments'), (2, 'customerOrderHistory'),
      (2, 'borrowedMaterials'),
      (3, 'overview'), (3, 'deliveryAgents'), (3, 'orders'),
      (4, 'overview'), (4, 'orders'),

@@ -8,6 +8,7 @@ export const MENU_ITEMS = [
   { key: "items", path: "/items", labelKey: "nav.items", subKey: "nav.itemsSub" },
   { key: "customerItemPrices", path: "/customer-item-prices", labelKey: "nav.customerItemPrices", subKey: "nav.customerItemPricesSub" },
   { key: "customers", path: "/customers", labelKey: "nav.customers", subKey: "nav.customersSub" },
+  { key: "provinces", path: "/provinces", labelKey: "nav.provinces", subKey: "nav.provincesSub" },
   {
     key: "trackingCustomerLocation",
     path: "/tracking-customer-location",
@@ -25,7 +26,6 @@ export const MENU_ITEMS = [
   { key: "producers", path: "/producers", labelKey: "nav.producers", subKey: "nav.producersSub" },
   { key: "deliveryAgents", path: "/delivery-agents", labelKey: "nav.delivery", subKey: "nav.deliverySub" },
   { key: "orders", path: "/orders", labelKey: "nav.orders", subKey: "nav.ordersSub" },
-  { key: "orderGroups", path: "/order-groups", labelKey: "nav.orderGroups", subKey: "nav.orderGroupsSub" },
   { key: "assignOrders", path: "/assign-orders", labelKey: "nav.assignOrders", subKey: "nav.assignOrdersSub" },
   { key: "orderMovement", path: "/order-movement", labelKey: "nav.orderMovement", subKey: "nav.orderMovementSub" },
   { key: "payments", path: "/payments", labelKey: "nav.payments", subKey: "nav.paymentsSub" },

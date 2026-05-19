@@ -5,13 +5,13 @@
  *   1. Pull validated data from req (already parsed by `validate()`).
  *   2. Pull caller identity from req.user.
  *   3. Call the service.
- *   4. Format the response with `success` / `created` / `noContent`.
+ *   4. Format the response with `success` / `created`.
  *
  * No Zod, no try/catch, no business logic, no repository imports.
  */
 const orderService = require("../services/orderService");
 const paymentTotalsService = require("../services/paymentTotalsService");
-const { success, created, noContent } = require("../utils/response");
+const { success, created } = require("../utils/response");
 const { asyncHandler } = require("../errors");
 
 // Listing -------------------------------------------------------------------
@@ -24,11 +24,6 @@ const listOrders = asyncHandler(async (req, res) => {
 const listOrderPaymentTotals = asyncHandler(async (req, res) => {
   const data = await paymentTotalsService.listOrderPaymentTotals({ user: req.user });
   return success(res, data);
-});
-
-const listOrderGroups = asyncHandler(async (_req, res) => {
-  const groups = await orderService.listGroups();
-  return success(res, groups);
 });
 
 const listStatuses = asyncHandler(async (_req, res) => {
@@ -59,21 +54,6 @@ const createDepotBatch = asyncHandler(async (req, res) => {
     lines: req.body.lines,
   });
   return created(res, orders);
-});
-
-const createOrderGroup = asyncHandler(async (req, res) => {
-  const row = await orderService.createOrderGroup(req.body);
-  return created(res, row);
-});
-
-const updateOrderGroup = asyncHandler(async (req, res) => {
-  const row = await orderService.updateOrderGroup(req.params.id, req.body);
-  return success(res, row);
-});
-
-const deleteOrderGroup = asyncHandler(async (req, res) => {
-  await orderService.deleteOrderGroup(req.params.id);
-  return noContent(res);
 });
 
 const assignOrder = asyncHandler(async (req, res) => {
@@ -122,15 +102,11 @@ const mobileUpdateStatus = asyncHandler(async (req, res) => {
 
 module.exports = {
   listStatuses,
-  listOrderGroups,
   listOrders,
   listOrderPaymentTotals,
   createOrder,
   createOrderBatch,
   createDepotBatch,
-  createOrderGroup,
-  updateOrderGroup,
-  deleteOrderGroup,
   assignOrder,
   updateOrderStatus,
   moveOrderStatus,

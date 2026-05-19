@@ -19,6 +19,7 @@ DROP TABLE IF EXISTS order_groups;
 DROP TABLE IF EXISTS customer_borrowed_materials;
 DROP TABLE IF EXISTS borrow_materials;
 DROP TABLE IF EXISTS customers;
+DROP TABLE IF EXISTS provinces;
 DROP TABLE IF EXISTS depots;
 DROP TABLE IF EXISTS trucks;
 DROP TABLE IF EXISTS delivery_agents;
@@ -100,16 +101,14 @@ CREATE TABLE delivery_agents (
   KEY idx_delivery_agents_name (name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-ALTER TABLE users
-  ADD CONSTRAINT fk_users_delivery_agent FOREIGN KEY (delivery_agent_id) REFERENCES delivery_agents (id);
-
-CREATE TABLE order_groups (
+CREATE TABLE provinces (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  name VARCHAR(255) NOT NULL,
+  name VARCHAR(120) NOT NULL,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NULL,
   PRIMARY KEY (id),
-  UNIQUE KEY uq_order_groups_name (name)
+  KEY idx_provinces_name (name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE customers (
@@ -117,6 +116,7 @@ CREATE TABLE customers (
   name VARCHAR(120) NULL DEFAULT NULL,
   phone VARCHAR(30) NULL DEFAULT NULL,
   depot_id INT UNSIGNED DEFAULT NULL,
+  province_id INT UNSIGNED DEFAULT NULL,
   latitude DECIMAL(10,7) NULL DEFAULT NULL,
   longitude DECIMAL(10,7) NULL DEFAULT NULL,
   is_active TINYINT(1) NOT NULL DEFAULT 1,
@@ -124,7 +124,8 @@ CREATE TABLE customers (
   updated_at DATETIME NULL,
   PRIMARY KEY (id),
   KEY idx_customers_name (name),
-  KEY idx_customers_depot_id (depot_id)
+  KEY idx_customers_depot_id (depot_id),
+  KEY idx_customers_province_id (province_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE borrow_materials (
@@ -222,7 +223,6 @@ INSERT INTO status (id, name) VALUES
 CREATE TABLE orders (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   customer_id INT UNSIGNED NOT NULL,
-  order_group_id INT UNSIGNED DEFAULT NULL,
   item_id INT UNSIGNED NOT NULL,
   currency VARCHAR(10) NOT NULL DEFAULT 'KHR',
   ordered_qty INT UNSIGNED NOT NULL,
@@ -240,9 +240,7 @@ CREATE TABLE orders (
   KEY idx_orders_producer_id (producer_id),
   KEY idx_orders_delivery_agent (delivery_agent_id),
   KEY idx_orders_customer_id (customer_id),
-  KEY idx_orders_order_group_id (order_group_id),
-  KEY idx_orders_item_id (item_id),
-  CONSTRAINT fk_orders_delivery_agent FOREIGN KEY (delivery_agent_id) REFERENCES delivery_agents (id)
+  KEY idx_orders_item_id (item_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE borrow_material_order_loans (
@@ -322,6 +320,8 @@ DROP PROCEDURE IF EXISTS sp_list_producers;
 DROP PROCEDURE IF EXISTS sp_get_producer_by_id;
 DROP PROCEDURE IF EXISTS sp_list_delivery_agents;
 DROP PROCEDURE IF EXISTS sp_get_delivery_agent_by_id;
+DROP PROCEDURE IF EXISTS sp_list_provinces;
+DROP PROCEDURE IF EXISTS sp_get_province_by_id;
 DROP PROCEDURE IF EXISTS sp_list_customers;
 DROP PROCEDURE IF EXISTS sp_list_customers_by_depot_id;
 DROP PROCEDURE IF EXISTS sp_list_customers_by_owner_user_id;
@@ -360,6 +360,9 @@ DROP PROCEDURE IF EXISTS sp_delete_order;
 DROP PROCEDURE IF EXISTS sp_create_catalog;
 DROP PROCEDURE IF EXISTS sp_update_catalog;
 DROP PROCEDURE IF EXISTS sp_delete_catalog;
+DROP PROCEDURE IF EXISTS sp_create_province;
+DROP PROCEDURE IF EXISTS sp_update_province;
+DROP PROCEDURE IF EXISTS sp_delete_province;
 DROP PROCEDURE IF EXISTS sp_create_customer;
 DROP PROCEDURE IF EXISTS sp_update_customer;
 DROP PROCEDURE IF EXISTS sp_delete_customer;
@@ -541,35 +544,59 @@ LEFT JOIN users du ON du.id = d.depot_user_id
 WHERE d.is_active = 1
 ORDER BY d.id DESC;
 
+CREATE PROCEDURE sp_get_province_by_id(IN p_id INT UNSIGNED)
+SELECT id, name
+FROM provinces
+WHERE id = p_id AND is_active = 1
+LIMIT 1;
+
+CREATE PROCEDURE sp_list_provinces()
+SELECT id, name
+FROM provinces
+WHERE is_active = 1
+ORDER BY id DESC;
+
 CREATE PROCEDURE sp_get_customer_by_id(IN p_id INT UNSIGNED)
-SELECT c.id, c.name, c.phone, u.id AS user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.latitude, c.longitude, c.updated_at
+SELECT c.id, c.name, c.phone, u.id AS user_id, u.name AS user_name, u.username AS user_username,
+       c.depot_id, d.name AS depot_name, c.province_id, p.name AS province_name,
+       c.latitude, c.longitude, c.updated_at
 FROM customers c
 LEFT JOIN users u ON u.customer_id = c.id
 LEFT JOIN depots d ON d.id = c.depot_id AND d.is_active = 1
+LEFT JOIN provinces p ON p.id = c.province_id AND p.is_active = 1
 WHERE c.id = p_id AND c.is_active = 1
 LIMIT 1;
 
 CREATE PROCEDURE sp_list_customers()
-SELECT c.id, c.name, c.phone, u.id AS user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.latitude, c.longitude, c.updated_at
+SELECT c.id, c.name, c.phone, u.id AS user_id, u.name AS user_name, u.username AS user_username,
+       c.depot_id, d.name AS depot_name, c.province_id, p.name AS province_name,
+       c.latitude, c.longitude, c.updated_at
 FROM customers c
 LEFT JOIN users u ON u.customer_id = c.id
 LEFT JOIN depots d ON d.id = c.depot_id AND d.is_active = 1
+LEFT JOIN provinces p ON p.id = c.province_id AND p.is_active = 1
 WHERE c.is_active = 1
 ORDER BY c.id DESC;
 
 CREATE PROCEDURE sp_list_customers_by_depot_id(IN p_depot_id INT UNSIGNED)
-SELECT c.id, c.name, c.phone, u.id AS user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.latitude, c.longitude, c.updated_at
+SELECT c.id, c.name, c.phone, u.id AS user_id, u.name AS user_name, u.username AS user_username,
+       c.depot_id, d.name AS depot_name, c.province_id, p.name AS province_name,
+       c.latitude, c.longitude, c.updated_at
 FROM customers c
 LEFT JOIN users u ON u.customer_id = c.id
 INNER JOIN depots d ON d.id = c.depot_id
+LEFT JOIN provinces p ON p.id = c.province_id AND p.is_active = 1
 WHERE c.is_active = 1 AND d.is_active = 1 AND c.depot_id = p_depot_id
 ORDER BY c.id DESC;
 
 CREATE PROCEDURE sp_list_customers_by_owner_user_id(IN p_owner_user_id INT UNSIGNED)
-SELECT c.id, c.name, c.phone, u.id AS user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.latitude, c.longitude, c.updated_at
+SELECT c.id, c.name, c.phone, u.id AS user_id, u.name AS user_name, u.username AS user_username,
+       c.depot_id, d.name AS depot_name, c.province_id, p.name AS province_name,
+       c.latitude, c.longitude, c.updated_at
 FROM customers c
 LEFT JOIN users u ON u.customer_id = c.id
 LEFT JOIN depots d ON d.id = c.depot_id AND d.is_active = 1
+LEFT JOIN provinces p ON p.id = c.province_id AND p.is_active = 1
 WHERE c.is_active = 1
   AND (
     c.depot_id IS NULL
@@ -578,10 +605,13 @@ WHERE c.is_active = 1
 ORDER BY c.id DESC;
 
 CREATE PROCEDURE sp_get_customer_by_user_id(IN p_user_id INT UNSIGNED)
-SELECT c.id, c.name, c.phone, u.id AS user_id, u.name AS user_name, u.username AS user_username, c.depot_id, d.name AS depot_name, c.latitude, c.longitude, c.updated_at
+SELECT c.id, c.name, c.phone, u.id AS user_id, u.name AS user_name, u.username AS user_username,
+       c.depot_id, d.name AS depot_name, c.province_id, p.name AS province_name,
+       c.latitude, c.longitude, c.updated_at
 FROM users u
 INNER JOIN customers c ON c.id = u.customer_id AND c.is_active = 1
 LEFT JOIN depots d ON d.id = c.depot_id AND d.is_active = 1
+LEFT JOIN provinces p ON p.id = c.province_id AND p.is_active = 1
 WHERE u.id = p_user_id AND u.is_active = 1
 LIMIT 1;
 
@@ -824,7 +854,7 @@ LIMIT 1;
 
 CREATE PROCEDURE sp_get_order_by_id(IN p_id INT UNSIGNED)
 SELECT
-  o.id, c.name AS customer_name, o.customer_id, o.order_group_id, og.name AS order_group_name, o.item_id, o.currency, o.ordered_qty, o.unit_price,
+  o.id, c.name AS customer_name, o.customer_id, o.item_id, o.currency, o.ordered_qty, o.unit_price,
   o.producer_id, o.delivery_agent_id, o.delivery_time,
   o.amount_total, s.name AS status, o.created_at, o.updated_at,
   c.phone AS customer_phone,
@@ -838,13 +868,12 @@ INNER JOIN items it ON it.id = o.item_id
 INNER JOIN status s ON s.id = o.status
 LEFT JOIN producers p ON p.id = o.producer_id
 LEFT JOIN delivery_agents da ON da.id = o.delivery_agent_id
-LEFT JOIN order_groups og ON og.id = o.order_group_id
 WHERE o.id = p_id
 LIMIT 1;
 
 CREATE PROCEDURE sp_list_orders()
 SELECT
-  o.id, c.name AS customer_name, o.customer_id, o.order_group_id, og.name AS order_group_name, o.item_id, o.currency, o.ordered_qty, o.unit_price,
+  o.id, c.name AS customer_name, o.customer_id, o.item_id, o.currency, o.ordered_qty, o.unit_price,
   o.producer_id, o.delivery_agent_id, o.delivery_time,
   o.amount_total, s.name AS status, o.created_at, o.updated_at,
   c.phone AS customer_phone,
@@ -860,7 +889,6 @@ INNER JOIN items it ON it.id = o.item_id
 INNER JOIN status s ON s.id = o.status
 LEFT JOIN producers p ON p.id = o.producer_id
 LEFT JOIN delivery_agents da ON da.id = o.delivery_agent_id
-LEFT JOIN order_groups og ON og.id = o.order_group_id
 ORDER BY o.id DESC;
 
 CREATE PROCEDURE sp_create_order(
@@ -876,11 +904,11 @@ CREATE PROCEDURE sp_create_order(
 )
 BEGIN
   INSERT INTO orders (
-    customer_id, order_group_id, item_id, currency, ordered_qty, unit_price, producer_id, delivery_agent_id, delivery_time,
+    customer_id, item_id, currency, ordered_qty, unit_price, producer_id, delivery_agent_id, delivery_time,
     amount_total, status, updated_at
   )
   VALUES (
-    p_customer_id, NULL, p_item_id, p_currency, p_ordered_qty, p_unit_price, p_producer_id, NULL, NULL,
+    p_customer_id, p_item_id, p_currency, p_ordered_qty, p_unit_price, p_producer_id, NULL, NULL,
     p_amount_total, p_status, p_updated_at
   );
   SELECT LAST_INSERT_ID() AS insertId;
@@ -889,7 +917,6 @@ END;
 CREATE PROCEDURE sp_update_order_assignment(
   IN p_id INT UNSIGNED,
   IN p_producer_id INT UNSIGNED,
-  IN p_order_group_id INT UNSIGNED,
   IN p_delivery_time DATETIME,
   IN p_delivery_agent_id INT UNSIGNED,
   IN p_status TINYINT UNSIGNED,
@@ -897,7 +924,6 @@ CREATE PROCEDURE sp_update_order_assignment(
 )
 UPDATE orders
 SET producer_id = p_producer_id,
-    order_group_id = p_order_group_id,
     delivery_time = p_delivery_time,
     delivery_agent_id = p_delivery_agent_id,
     status = p_status,
@@ -979,17 +1005,46 @@ BEGIN
   SELECT ROW_COUNT() AS affectedRows;
 END;
 
+CREATE PROCEDURE sp_create_province(
+  IN p_name VARCHAR(120),
+  IN p_updated_at DATETIME
+)
+BEGIN
+  INSERT INTO provinces (name, updated_at)
+  VALUES (p_name, p_updated_at);
+  SELECT LAST_INSERT_ID() AS insertId;
+END;
+
+CREATE PROCEDURE sp_update_province(
+  IN p_id INT UNSIGNED,
+  IN p_name VARCHAR(120),
+  IN p_updated_at DATETIME
+)
+BEGIN
+  UPDATE provinces
+  SET name = p_name, updated_at = p_updated_at
+  WHERE id = p_id AND is_active = 1;
+  SELECT ROW_COUNT() AS affectedRows;
+END;
+
+CREATE PROCEDURE sp_delete_province(IN p_id INT UNSIGNED, IN p_updated_at DATETIME)
+BEGIN
+  UPDATE provinces SET is_active = 0, updated_at = p_updated_at WHERE id = p_id AND is_active = 1;
+  SELECT ROW_COUNT() AS affectedRows;
+END;
+
 CREATE PROCEDURE sp_create_customer(
   IN p_name VARCHAR(255),
   IN p_phone VARCHAR(30),
   IN p_depot_id INT UNSIGNED,
+  IN p_province_id INT UNSIGNED,
   IN p_latitude DECIMAL(10,7),
   IN p_longitude DECIMAL(10,7),
   IN p_updated_at DATETIME
 )
 BEGIN
-  INSERT INTO customers (name, phone, depot_id, latitude, longitude, updated_at)
-  VALUES (p_name, p_phone, p_depot_id, p_latitude, p_longitude, p_updated_at);
+  INSERT INTO customers (name, phone, depot_id, province_id, latitude, longitude, updated_at)
+  VALUES (p_name, p_phone, p_depot_id, p_province_id, p_latitude, p_longitude, p_updated_at);
   SELECT LAST_INSERT_ID() AS insertId;
 END;
 
@@ -998,13 +1053,14 @@ CREATE PROCEDURE sp_update_customer(
   IN p_name VARCHAR(255),
   IN p_phone VARCHAR(30),
   IN p_depot_id INT UNSIGNED,
+  IN p_province_id INT UNSIGNED,
   IN p_latitude DECIMAL(10,7),
   IN p_longitude DECIMAL(10,7),
   IN p_updated_at DATETIME
 )
 BEGIN
   UPDATE customers
-  SET name = p_name, phone = p_phone, depot_id = p_depot_id, latitude = p_latitude, longitude = p_longitude, updated_at = p_updated_at
+  SET name = p_name, phone = p_phone, depot_id = p_depot_id, province_id = p_province_id, latitude = p_latitude, longitude = p_longitude, updated_at = p_updated_at
   WHERE id = p_id AND is_active = 1;
   SELECT ROW_COUNT() AS affectedRows;
 END;
@@ -1103,31 +1159,6 @@ END;
 CREATE PROCEDURE sp_delete_item(IN p_id INT UNSIGNED, IN p_updated_at DATETIME)
 BEGIN
   UPDATE items SET is_active = 0, updated_at = p_updated_at WHERE id = p_id AND is_active = 1;
-  SELECT ROW_COUNT() AS affectedRows;
-END;
-
-CREATE PROCEDURE sp_list_order_groups()
-SELECT id, name FROM order_groups ORDER BY id DESC;
-
-CREATE PROCEDURE sp_get_order_group_by_id(IN p_id INT UNSIGNED)
-SELECT id, name FROM order_groups WHERE id = p_id LIMIT 1;
-
-CREATE PROCEDURE sp_create_order_group(IN p_name VARCHAR(255), IN p_updated_at DATETIME)
-BEGIN
-  INSERT INTO order_groups (name, updated_at) VALUES (p_name, p_updated_at);
-  SELECT LAST_INSERT_ID() AS insertId;
-END;
-
-CREATE PROCEDURE sp_update_order_group(IN p_id INT UNSIGNED, IN p_name VARCHAR(255), IN p_updated_at DATETIME)
-BEGIN
-  UPDATE order_groups SET name = p_name, updated_at = p_updated_at WHERE id = p_id;
-  SELECT ROW_COUNT() AS affectedRows;
-END;
-
-CREATE PROCEDURE sp_delete_order_group(IN p_id INT UNSIGNED, IN p_updated_at DATETIME)
-BEGIN
-  UPDATE order_groups SET updated_at = p_updated_at WHERE id = p_id;
-  DELETE FROM order_groups WHERE id = p_id;
   SELECT ROW_COUNT() AS affectedRows;
 END;
 
@@ -1428,11 +1459,11 @@ DEALLOCATE PREPARE stmt_role_menus;
 
 INSERT INTO role_menus (role_id, menu_key) VALUES
 (1, 'overview'), (1, 'newOrder'), (1, 'catalogs'), (1, 'items'), (1, 'customerItemPrices'), (1, 'customers'), (1, 'trackingCustomerLocation'), (1, 'depots'), (1, 'customersByDepot'),
-(1, 'producers'), (1, 'deliveryAgents'), (1, 'orders'), (1, 'orderGroups'), (1, 'assignOrders'), (1, 'orderMovement'), (1, 'payments'), (1, 'customerOrderHistory'),
+(1, 'producers'), (1, 'deliveryAgents'), (1, 'orders'), (1, 'assignOrders'), (1, 'orderMovement'), (1, 'payments'), (1, 'customerOrderHistory'),
 (1, 'users'),
 (1, 'borrowedMaterials'),
 (2, 'overview'), (2, 'newOrder'), (2, 'catalogs'), (2, 'items'), (2, 'customerItemPrices'), (2, 'customers'), (2, 'trackingCustomerLocation'), (2, 'depots'), (2, 'customersByDepot'),
-(2, 'producers'), (2, 'deliveryAgents'), (2, 'orders'), (2, 'orderGroups'), (2, 'assignOrders'), (2, 'orderMovement'), (2, 'payments'), (2, 'customerOrderHistory'),
+(2, 'producers'), (2, 'deliveryAgents'), (2, 'orders'), (2, 'assignOrders'), (2, 'orderMovement'), (2, 'payments'), (2, 'customerOrderHistory'),
 (2, 'borrowedMaterials'),
 (3, 'overview'), (3, 'deliveryAgents'), (3, 'orders'),
 (4, 'overview'), (4, 'orders'),
@@ -1457,28 +1488,21 @@ PREPARE stmt_drop_producer_confirm_status FROM @sql_drop_producer_confirm_status
 EXECUTE stmt_drop_producer_confirm_status;
 DEALLOCATE PREPARE stmt_drop_producer_confirm_status;
 
--- 3) Ensure order_groups exists (legacy compatibility)
+-- 3) Drop order_groups after removing the feature
 SET @has_order_groups := (
   SELECT COUNT(*)
   FROM information_schema.tables
   WHERE table_schema = DATABASE()
     AND table_name = 'order_groups'
 );
-SET @sql_create_order_groups := IF(
-  @has_order_groups = 0,
-  'CREATE TABLE order_groups (
-    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-    name VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME NULL,
-    PRIMARY KEY (id),
-    UNIQUE KEY uq_order_groups_name (name)
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8',
+SET @sql_drop_order_groups := IF(
+  @has_order_groups > 0,
+  'DROP TABLE order_groups',
   'SELECT 1'
 );
-PREPARE stmt_create_order_groups FROM @sql_create_order_groups;
-EXECUTE stmt_create_order_groups;
-DEALLOCATE PREPARE stmt_create_order_groups;
+PREPARE stmt_drop_order_groups FROM @sql_drop_order_groups;
+EXECUTE stmt_drop_order_groups;
+DEALLOCATE PREPARE stmt_drop_order_groups;
 
 -- 4) Drop legacy address FK columns and addresses table
 SET @has_orders_address_col := (
@@ -1529,8 +1553,9 @@ EXECUTE stmt_drop_addresses_table;
 DEALLOCATE PREPARE stmt_drop_addresses_table;
 
 DELETE FROM role_menus WHERE menu_key = 'addresses';
+DELETE FROM role_menus WHERE menu_key = 'orderGroups';
 
--- 5) Ensure orders.order_group_id exists
+-- 5) Drop orders.order_group_id after removing the feature
 SET @has_orders_order_group_id := (
   SELECT COUNT(*)
   FROM information_schema.columns
@@ -1538,14 +1563,14 @@ SET @has_orders_order_group_id := (
     AND table_name = 'orders'
     AND column_name = 'order_group_id'
 );
-SET @sql_add_orders_order_group_id := IF(
-  @has_orders_order_group_id = 0,
-  'ALTER TABLE orders ADD COLUMN order_group_id INT UNSIGNED NULL',
+SET @sql_drop_orders_order_group_id := IF(
+  @has_orders_order_group_id > 0,
+  'ALTER TABLE orders DROP COLUMN order_group_id',
   'SELECT 1'
 );
-PREPARE stmt_add_orders_order_group_id FROM @sql_add_orders_order_group_id;
-EXECUTE stmt_add_orders_order_group_id;
-DEALLOCATE PREPARE stmt_add_orders_order_group_id;
+PREPARE stmt_drop_orders_order_group_id FROM @sql_drop_orders_order_group_id;
+EXECUTE stmt_drop_orders_order_group_id;
+DEALLOCATE PREPARE stmt_drop_orders_order_group_id;
 
 -- 7) users.customer_id: add column + unique index, backfill from legacy customers.user_id, then drop customers.user_id
 SET @has_users_customer_id := (
@@ -2370,22 +2395,6 @@ PREPARE stmt_add_ord_da_col19 FROM @sql_add_ord_da_col19;
 EXECUTE stmt_add_ord_da_col19;
 DEALLOCATE PREPARE stmt_add_ord_da_col19;
 
-SET @has_ord_da_fk19 := (
-  SELECT COUNT(*)
-  FROM information_schema.table_constraints
-  WHERE table_schema = DATABASE()
-    AND table_name = 'orders'
-    AND constraint_name = 'fk_orders_delivery_agent'
-);
-SET @sql_add_ord_da_fk19 := IF(
-  @has_ord_da_fk19 = 0,
-  'ALTER TABLE orders ADD CONSTRAINT fk_orders_delivery_agent FOREIGN KEY (delivery_agent_id) REFERENCES delivery_agents (id)',
-  'SELECT 1'
-);
-PREPARE stmt_add_ord_da_fk19 FROM @sql_add_ord_da_fk19;
-EXECUTE stmt_add_ord_da_fk19;
-DEALLOCATE PREPARE stmt_add_ord_da_fk19;
-
 DROP PROCEDURE IF EXISTS sp_get_order_by_id;
 DROP PROCEDURE IF EXISTS sp_list_orders;
 DROP PROCEDURE IF EXISTS sp_create_order;
@@ -2393,7 +2402,7 @@ DROP PROCEDURE IF EXISTS sp_update_order_assignment;
 
 CREATE PROCEDURE sp_get_order_by_id(IN p_id INT UNSIGNED)
 SELECT
-  o.id, c.name AS customer_name, o.customer_id, o.order_group_id, og.name AS order_group_name, o.item_id, o.currency, o.ordered_qty, o.unit_price,
+  o.id, c.name AS customer_name, o.customer_id, o.item_id, o.currency, o.ordered_qty, o.unit_price,
   o.producer_id, o.delivery_agent_id, o.delivery_time,
   o.amount_total, s.name AS status, o.created_at, o.updated_at,
   c.phone AS customer_phone,
@@ -2407,13 +2416,12 @@ INNER JOIN items it ON it.id = o.item_id
 INNER JOIN status s ON s.id = o.status
 LEFT JOIN producers p ON p.id = o.producer_id
 LEFT JOIN delivery_agents da ON da.id = o.delivery_agent_id
-LEFT JOIN order_groups og ON og.id = o.order_group_id
 WHERE o.id = p_id
 LIMIT 1;
 
 CREATE PROCEDURE sp_list_orders()
 SELECT
-  o.id, c.name AS customer_name, o.customer_id, o.order_group_id, og.name AS order_group_name, o.item_id, o.currency, o.ordered_qty, o.unit_price,
+  o.id, c.name AS customer_name, o.customer_id, o.item_id, o.currency, o.ordered_qty, o.unit_price,
   o.producer_id, o.delivery_agent_id, o.delivery_time,
   o.amount_total, s.name AS status, o.created_at, o.updated_at,
   c.phone AS customer_phone,
@@ -2429,7 +2437,6 @@ INNER JOIN items it ON it.id = o.item_id
 INNER JOIN status s ON s.id = o.status
 LEFT JOIN producers p ON p.id = o.producer_id
 LEFT JOIN delivery_agents da ON da.id = o.delivery_agent_id
-LEFT JOIN order_groups og ON og.id = o.order_group_id
 ORDER BY o.id DESC;
 
 CREATE PROCEDURE sp_create_order(
@@ -2445,11 +2452,11 @@ CREATE PROCEDURE sp_create_order(
 )
 BEGIN
   INSERT INTO orders (
-    customer_id, order_group_id, item_id, currency, ordered_qty, unit_price, producer_id, delivery_agent_id, delivery_time,
+    customer_id, item_id, currency, ordered_qty, unit_price, producer_id, delivery_agent_id, delivery_time,
     amount_total, status, updated_at
   )
   VALUES (
-    p_customer_id, NULL, p_item_id, p_currency, p_ordered_qty, p_unit_price, p_producer_id, NULL, NULL,
+    p_customer_id, p_item_id, p_currency, p_ordered_qty, p_unit_price, p_producer_id, NULL, NULL,
     p_amount_total, p_status, p_updated_at
   );
   SELECT LAST_INSERT_ID() AS insertId;
@@ -2458,7 +2465,6 @@ END;
 CREATE PROCEDURE sp_update_order_assignment(
   IN p_id INT UNSIGNED,
   IN p_producer_id INT UNSIGNED,
-  IN p_order_group_id INT UNSIGNED,
   IN p_delivery_time DATETIME,
   IN p_delivery_agent_id INT UNSIGNED,
   IN p_status TINYINT UNSIGNED,
@@ -2466,7 +2472,6 @@ CREATE PROCEDURE sp_update_order_assignment(
 )
 UPDATE orders
 SET producer_id = p_producer_id,
-    order_group_id = p_order_group_id,
     delivery_time = p_delivery_time,
     delivery_agent_id = p_delivery_agent_id,
     status = p_status,

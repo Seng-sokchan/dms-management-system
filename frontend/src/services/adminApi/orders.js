@@ -24,23 +24,6 @@ export async function deleteOrder(token, orderId) {
   return apiClient.delete(`/orders/${orderId}`, authConfig(token));
 }
 
-export async function fetchOrderGroups(token) {
-  return apiClient.get("/order-groups", authConfig(token));
-}
-
-export async function createOrderGroup(token, payload) {
-  const response = await apiClient.post("/order-groups", payload, authConfig(token));
-  return unwrapApiData(response.data);
-}
-
-export async function updateOrderGroup(token, orderGroupId, payload) {
-  return apiClient.post(`/order-groups/${orderGroupId}`, payload, authConfig(token));
-}
-
-export async function deleteOrderGroup(token, orderGroupId) {
-  return apiClient.delete(`/order-groups/${orderGroupId}`, authConfig(token));
-}
-
 /** @returns {Promise<{ byCustomer: object[], byDepot: object[] }>} */
 export async function fetchOrderPaymentTotals(token) {
   const res = await apiClient.get("/orders/payment-totals", authConfig(token));

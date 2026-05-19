@@ -65,7 +65,6 @@ export function CustomerOrdersDetailModal({ customer, orders = [], onClose }) {
         order.amountTotal,
         order.currency,
         order.deliveryAgentName,
-        order.orderGroupName,
         order.createdAt,
       ]
         .filter(Boolean)
@@ -133,7 +132,6 @@ export function CustomerOrdersDetailModal({ customer, orders = [], onClose }) {
                 <th>{t("customerOrderHistory.amount")}</th>
                 <th>{t("customerOrderHistory.createdAt")}</th>
                 <th>{t("orders.delivery")}</th>
-                <th>{t("orders.groupMainAddress")}</th>
               </tr>
             </thead>
             <tbody>
@@ -148,7 +146,6 @@ export function CustomerOrdersDetailModal({ customer, orders = [], onClose }) {
                   <td>{formatMoney(order.amountTotal, order.currency, locale)}</td>
                   <td>{formatCreatedAt(order.createdAt, locale)}</td>
                   <td>{order.deliveryAgentName || t("orders.dash")}</td>
-                  <td>{order.orderGroupName || t("orders.dash")}</td>
                 </tr>
               ))}
             </tbody>

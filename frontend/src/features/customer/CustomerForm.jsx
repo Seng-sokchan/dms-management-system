@@ -4,6 +4,7 @@ import "./CustomerForm.css";
 
 export function CustomerForm({
   depots = [],
+  provinces = [],
   newCustomer,
   setNewCustomer,
   onCreateCustomer,
@@ -68,6 +69,22 @@ export function CustomerForm({
         {depots.map((depot) => (
           <option key={depot.id} value={depot.id}>
             {depot.name}
+          </option>
+        ))}
+      </select>
+      <label className="form-label" htmlFor="customer-province">
+        {t("customers.province", { defaultValue: "Province" })}{" "}
+        <span className="form-optional">({t("createOrder.optional")})</span>
+      </label>
+      <select
+        id="customer-province"
+        value={newCustomer.provinceId}
+        onChange={(event) => setNewCustomer({ ...newCustomer, provinceId: event.target.value })}
+      >
+        <option value="">{t("customers.selectProvince", { defaultValue: "No province" })}</option>
+        {provinces.map((province) => (
+          <option key={province.id} value={province.id}>
+            {province.name}
           </option>
         ))}
       </select>

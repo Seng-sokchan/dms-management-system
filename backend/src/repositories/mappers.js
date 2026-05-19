@@ -4,9 +4,9 @@ function mapOrder(row) {
     customerDirectoryName: row.customer_name != null ? row.customer_name : null,
     customerName: row.customer_name != null ? row.customer_name : null,
     customerId: row.customer_id != null ? String(row.customer_id) : null,
-    orderGroupId: row.order_group_id != null ? String(row.order_group_id) : null,
-    orderGroupName: row.order_group_name != null ? row.order_group_name : null,
     customerPhone: row.customer_phone != null ? row.customer_phone : null,
+    customerProvinceId: row.customer_province_id != null ? String(row.customer_province_id) : null,
+    customerProvinceName: row.customer_province_name != null ? row.customer_province_name : null,
     customerLatitude: parseCustomerCoord(row.customer_latitude),
     customerLongitude: parseCustomerCoord(row.customer_longitude),
     itemId: row.item_id != null ? String(row.item_id) : null,
@@ -61,6 +61,8 @@ function mapCustomer(row) {
     userUsername: row.user_username || "",
     depotId: row.depot_id != null ? String(row.depot_id) : "",
     depotName: row.depot_name || "",
+    provinceId: row.province_id != null ? String(row.province_id) : "",
+    provinceName: row.province_name || "",
     latitude: parseCustomerCoord(row.latitude),
     longitude: parseCustomerCoord(row.longitude),
     updatedAt: row.updated_at != null ? row.updated_at : null,
@@ -77,6 +79,13 @@ function mapDepot(row) {
     ownerUserName: row.owner_user_name || "",
     depotUserId: row.depot_user_id != null ? String(row.depot_user_id) : "",
     depotUserName: row.depot_user_name || "",
+  };
+}
+
+function mapProvince(row) {
+  return {
+    id: String(row.id),
+    name: row.name,
   };
 }
 
@@ -228,6 +237,7 @@ module.exports = {
   mapDelivery,
   mapCustomer,
   mapDepot,
+  mapProvince,
   mapCatalog,
   mapItem,
   mapCustomerItemPrice,

@@ -10,6 +10,7 @@ const {
   getUserById,
   getDepotById,
   getDepotByDepotUserId,
+  getProvinceById,
   getCustomerById,
   setCustomerUserLink,
 } = require("../repositories");
@@ -67,6 +68,12 @@ async function assertDepotAccess(user, depotId) {
   }
 }
 
+async function assertProvinceExists(provinceId) {
+  if (!provinceId) return;
+  const province = await getProvinceById(provinceId);
+  if (!province) throw new BadRequestError("Province not found");
+}
+
 async function createCustomer(user, payload) {
   const nextPayload = { ...payload };
   await validateCustomerUser(nextPayload.userId);
@@ -76,6 +83,7 @@ async function createCustomer(user, payload) {
     nextPayload.depotId = depot.id;
   }
   await assertDepotAccess(user, nextPayload.depotId);
+  await assertProvinceExists(nextPayload.provinceId);
 
   const { userId, ...customerPayload } = nextPayload;
   const pool = getPool();
@@ -108,6 +116,7 @@ async function updateCustomer(user, customerId, payload) {
     nextPayload.depotId = depot.id;
   }
   await assertDepotAccess(user, nextPayload.depotId);
+  await assertProvinceExists(nextPayload.provinceId);
 
   const { userId, ...customerPayload } = nextPayload;
   const pool = getPool();

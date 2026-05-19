@@ -32,6 +32,7 @@ const createCustomerSchema = z
     phone: nullableTrimmed(30).optional(),
     userId: nullableTrimmed(30).optional(),
     depotId: optionalIdString,
+    provinceId: optionalIdString,
     latitude: optionalLatitude,
     longitude: optionalLongitude,
   })
