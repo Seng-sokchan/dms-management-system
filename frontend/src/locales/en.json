@@ -4,7 +4,9 @@
     "tagline": "Operations console",
     "footer": "v1 — internal use",
     "breadcrumb": "Dashboard",
-    "dashboard": "Dashboard"
+    "dashboard": "Dashboard",
+    "loadingTitle": "Loading workspace…",
+    "loadingHint": "Syncing your account and data."
   },
   "a11y": {
     "mainNav": "Main navigation",
@@ -34,10 +36,15 @@
   "auth": {
     "eyebrow": "Secure access",
     "title": "Admin Panel",
+    "welcome": "Welcome",
+    "loginHeading": "Login",
     "blurb": "Sign in to manage orders, delivery, and payments. Demo: admin / admin123, owner / owner123, logistics / logistics123, delivery / delivery123, customer1 / customer123",
     "username": "Username",
     "password": "Password",
-    "signIn": "Sign in",
+    "placeholderUsername": "Enter your username",
+    "placeholderPassword": "Enter your password",
+    "signIn": "Login",
+    "logIn": "Log In",
     "signOut": "Sign out"
   },
   "nav": {

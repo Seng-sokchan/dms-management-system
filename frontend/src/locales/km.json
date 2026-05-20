@@ -4,7 +4,9 @@
     "tagline": "ផ្ទាំងប្រតិបត្តិការ",
     "footer": "v1 — ប្រើក្នុងផ្ទៃក្នុង",
     "breadcrumb": "ផ្ទាំងគ្រប់គ្រង",
-    "dashboard": "ផ្ទាំងគ្រប់គ្រង"
+    "dashboard": "ផ្ទាំងគ្រប់គ្រង",
+    "loadingTitle": "កំពុងផ្ទុកទីកន្លែងធ្វើការ…",
+    "loadingHint": "កំពុងសមកាលគណនី និងទិន្នន័យរបស់អ្នក។"
   },
   "a11y": {
     "mainNav": "ម៉ឺនុយចម្បង",
@@ -34,10 +36,15 @@
   "auth": {
     "eyebrow": "ការចូលដោយសុវត្ថិភាព",
     "title": "ផ្ទាំងគ្រប់គ្រង",
+    "welcome": "សូមស្វាគមន៍",
+    "loginHeading": "ចូល",
     "blurb": "ចូលដើម្បីគ្រប់គ្រងការកម្មង់ ការដឹកជញ្ជូន និងការទូទាត់។ ឧទាហរណ៍៖ admin / admin123, owner / owner123, logistics / logistics123, delivery / delivery123, customer1 / customer123",
     "username": "ឈ្មោះអ្នកប្រើ",
     "password": "ពាក្យសម្ងាត់",
+    "placeholderUsername": "បញ្ចូលឈ្មោះអ្នកប្រើ",
+    "placeholderPassword": "បញ្ចូលពាក្យសម្ងាត់",
     "signIn": "ចូល",
+    "logIn": "ចូល",
     "signOut": "ចេញ"
   },
   "nav": {

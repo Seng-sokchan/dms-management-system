@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { canAccessMenuKey, canAccessPath, MENU_ITEMS } from "./constants/menus";
 import { AdminLayout } from "./components/layout/AdminLayout";
 import { Button } from "./components/ui/Button";
+import { DashboardBootstrapScreen } from "./components/ui/DashboardBootstrapScreen";
 import { LoginForm } from "./features/auth/LoginForm";
 import { useAdminDashboard } from "./hooks/useAdminDashboard";
 import { CreateOrderPage } from "./pages/CreateOrderPage";
@@ -31,6 +32,7 @@ function App() {
   const {
     auth,
     token,
+    isDashboardBootstrapping,
     user,
     summary,
     statuses,
@@ -146,6 +148,10 @@ function App() {
         />
       </Routes>
     );
+  }
+
+  if (isDashboardBootstrapping) {
+    return <DashboardBootstrapScreen />;
   }
 
   if (user && !isAllowedAdminPanelRole) {

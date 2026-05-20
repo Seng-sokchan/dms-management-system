@@ -1,5 +1,188 @@
-/* LoginForm: full-page auth shell (.auth-container / .auth-card) lives in App.css */
+/* ═══ Login — glassmorphism card over facility photo (see LoginForm.jsx) ═══ */
 
-.login-form.form {
-  max-width: 100%;
+.auth-shell {
+  position: relative;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+/* Full-bleed photo (--auth-login-bg-url set in LoginForm.jsx) + read overlays for bright scenes */
+.auth-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-color: #1e293b;
+  background-image:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.48) 0%, rgba(15, 23, 42, 0.62) 45%, rgba(15, 23, 42, 0.72) 100%),
+    linear-gradient(125deg, rgba(30, 41, 59, 0.28) 0%, transparent 48%),
+    var(--auth-login-bg-url);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.auth-bg-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(ellipse 90% 70% at 50% 22%, rgba(15, 23, 42, 0.12) 0%, transparent 55%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.08) 0%, rgba(0, 0, 0, 0.38) 100%);
+}
+
+.auth-glass-frame {
+  position: relative;
+  z-index: 2;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.25rem;
+}
+
+.auth-glass-card {
+  width: min(420px, 100%);
+  padding: 2.5rem 2.35rem 2.15rem;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.12),
+    0 24px 64px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.auth-glass-title {
+  margin: 0 0 2rem;
+  font-size: clamp(1.65rem, 4vw, 2rem);
+  font-weight: 700;
+  text-align: center;
+  color: #fff;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.auth-glass-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.auth-glass-field {
+  margin-bottom: 1.35rem;
+}
+
+.auth-glass-field:last-of-type {
+  margin-bottom: 1.75rem;
+}
+
+.auth-glass-input {
+  display: block;
+  width: 100% !important;
+  border: none !important;
+  border-radius: 0 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.55) !important;
+  padding: 0.55rem 0 0.65rem !important;
+  font-size: 0.95rem !important;
+  font-weight: 500;
+  color: #fff !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  transition: border-color 0.18s ease, opacity 0.18s ease;
+}
+
+.auth-glass-input::placeholder {
+  color: rgba(255, 255, 255, 0.78);
+  font-weight: 400;
+}
+
+.auth-glass-input:hover:not(:focus) {
+  border-bottom-color: rgba(255, 255, 255, 0.72) !important;
+}
+
+.auth-glass-input:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  border-bottom-color: #fff !important;
+}
+
+.auth-glass-submit {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0.88rem 1.25rem;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #0f172a;
+  background: #fff;
+  cursor: pointer;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.15);
+  transition: transform 0.14s ease, filter 0.14s ease, box-shadow 0.14s ease;
+}
+
+.auth-glass-submit:hover {
+  filter: brightness(1.03);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.22);
+}
+
+.auth-glass-submit:active {
+  transform: translateY(0);
+  filter: brightness(0.98);
+}
+
+.auth-glass-feedback {
+  margin: 1.15rem 0 0;
+  padding: 0.65rem 0.85rem;
+  border-radius: 10px;
+  font-size: 0.84rem;
+  font-weight: 500;
+  text-align: center;
+  background: rgba(236, 253, 245, 0.92);
+  border: 1px solid rgba(167, 243, 208, 0.9);
+  color: #047857;
+}
+
+.auth-glass-feedback--error {
+  background: rgba(254, 242, 242, 0.92);
+  border-color: rgba(254, 202, 202, 0.95);
+  color: #b91c1c;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 480px) {
+  .auth-glass-card {
+    padding: 2rem 1.5rem 1.75rem;
+    border-radius: 16px;
+  }
+
+  .auth-glass-title {
+    margin-bottom: 1.65rem;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .auth-glass-card {
+    background: rgba(30, 24, 48, 0.92);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
 }

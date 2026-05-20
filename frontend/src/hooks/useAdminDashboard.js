@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import {
   confirmDelivery as confirmDeliveryRequest,
@@ -68,6 +68,8 @@ export function useAdminDashboard() {
   const [auth, setAuth] = useState({ username: "", password: "" });
   const [token, setTokenState] = useState(getStoredToken);
   const [flash, setFlash] = useState(null);
+  const dashboardBootstrapDoneRef = useRef(false);
+  const [isDashboardBootstrapping, setIsDashboardBootstrapping] = useState(() => !!getStoredToken());
 
   const setToken = useCallback((next) => {
     setTokenState(next);
@@ -177,6 +179,8 @@ export function useAdminDashboard() {
 
   const refresh = useCallback(async () => {
     if (!token) return;
+    const isInitialSessionLoad = !dashboardBootstrapDoneRef.current;
+    if (isInitialSessionLoad) setIsDashboardBootstrapping(true);
     try {
       const data = await fetchDashboardData(token, location.pathname);
       setUser(data.user);
@@ -210,8 +214,10 @@ export function useAdminDashboard() {
             }
           : { byCustomer: [], byDepot: [] },
       );
+      dashboardBootstrapDoneRef.current = true;
     } catch (error) {
       if (error?.response?.status === 401) {
+        dashboardBootstrapDoneRef.current = false;
         setToken("");
         setUser(null);
         setSummary(null);
@@ -236,7 +242,10 @@ export function useAdminDashboard() {
         showError(i18n.t("errors.sessionExpired"));
         return;
       }
+      dashboardBootstrapDoneRef.current = true;
       showError(getErrorMessage(error, "errors.loadData"));
+    } finally {
+      if (isInitialSessionLoad) setIsDashboardBootstrapping(false);
     }
   }, [token, location.pathname, setToken, showError]);
 
@@ -251,6 +260,8 @@ export function useAdminDashboard() {
     event.preventDefault();
     try {
       const data = await loginRequest({ ...auth, client: "admin" });
+      dashboardBootstrapDoneRef.current = false;
+      setIsDashboardBootstrapping(true);
       setToken(data.token);
       showSuccess(i18n.t("success.welcome", { name: data.user.name }));
     } catch (error) {
@@ -864,6 +875,8 @@ export function useAdminDashboard() {
   }
 
   function logout() {
+    dashboardBootstrapDoneRef.current = false;
+    setIsDashboardBootstrapping(false);
     setToken("");
     setUser(null);
     dismissFlash();
@@ -872,6 +885,7 @@ export function useAdminDashboard() {
   return {
     auth,
     token,
+    isDashboardBootstrapping,
     user,
     summary,
     statuses,
