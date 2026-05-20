@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Download DMS Mobile — the Distribution Management System app for Android."
+    />
+    <title>DMS Mobile — Download</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+    <link rel="icon" href="icon.png" type="image/png" />
+  </head>
+  <body>
+    <div class="bg-blob bg-blob--1" aria-hidden="true"></div>
+    <div class="bg-blob bg-blob--2" aria-hidden="true"></div>
+
+    <main class="page">
+      <article class="card">
+        <header class="card-header">
+          <span class="brand-mark" aria-hidden="true">DMS</span>
+          <nav class="lang-switch" aria-label="Language">
+            <button type="button" data-lang="en" class="is-active" aria-pressed="true">EN</button>
+            <button type="button" data-lang="km" aria-pressed="false">ខ្មែរ</button>
+          </nav>
+        </header>
+
+        <section class="hero">
+          <div class="icon-wrap">
+            <img
+              class="app-icon"
+              src="icon.png"
+              data-i18n-alt="iconAlt"
+              alt="DMS Mobile app icon"
+              width="88"
+              height="88"
+            />
+          </div>
+          <h1>DMS Mobile</h1>
+          <p class="subtitle" data-i18n="subtitle">
+            Distribution Management System — field app for Android
+          </p>
+          <div class="meta-row">
+            <span class="badge badge-version" data-i18n="version">Version 0.0.1</span>
+            <span class="badge badge-platform">
+              <svg class="badge-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  fill="currentColor"
+                  d="M17.6 9.48l1.84-3.18c.16-.31.04-.69-.26-.85-.29-.15-.65-.06-.83.22l-1.88 3.24a9.86 9.86 0 0 0-4.94 0L9.65 5.67c-.19-.28-.54-.37-.83-.22-.3.16-.42.54-.26.85l1.84 3.18a8.977 8.977 0 0 0-3.47 3.47L3.54 17.4c-.31.16-.48.52-.37.85.11.33.42.55.76.55h16.14c.34 0 .65-.22.76-.55.11-.33-.06-.69-.37-.85l-3.18-1.84a8.977 8.977 0 0 0-3.46-3.47zM12 17.5c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"
+                />
+              </svg>
+              <span data-i18n="platform">Android</span>
+            </span>
+          </div>
+        </section>
+
+        <a class="download-btn" href="app.apk" download>
+          <svg class="download-btn__icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              fill="currentColor"
+              d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"
+            />
+          </svg>
+          <span data-i18n="download">Download APK</span>
+        </a>
+
+        <section class="install-steps" aria-labelledby="install-heading">
+          <h2 id="install-heading" data-i18n="installHeading">Install on Android</h2>
+          <ol class="steps-list">
+            <li class="step-item">
+              <span class="step-num" aria-hidden="true">1</span>
+              <span class="step-text" data-i18n="step1">Download the APK using the button above.</span>
+            </li>
+            <li class="step-item">
+              <span class="step-num" aria-hidden="true">2</span>
+              <span class="step-text" data-i18n="step2">
+                If prompted, allow installs from your browser or file manager
+                (<strong>Install unknown apps</strong>).
+              </span>
+            </li>
+            <li class="step-item">
+              <span class="step-num" aria-hidden="true">3</span>
+              <span class="step-text" data-i18n="step3">
+                Open the downloaded file and tap <strong>Install</strong>.
+              </span>
+            </li>
+            <li class="step-item">
+              <span class="step-num" aria-hidden="true">4</span>
+              <span class="step-text" data-i18n="step4">
+                Launch <strong>DMS Mobile</strong> and sign in with your account.
+              </span>
+            </li>
+          </ol>
+        </section>
+
+        <footer class="note" data-i18n="note">
+          The APK file must be built and copied to this folder before the download link works.
+          See <code>website/README.md</code> for build instructions.
+        </footer>
+      </article>
+    </main>
+    <script src="i18n.js"></script>
+  </body>
+</html>
