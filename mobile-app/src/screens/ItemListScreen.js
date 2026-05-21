@@ -1,10 +1,19 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text } from "react-native";
+import { Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import { useTheme } from "../context/ThemeContext";
-import { AppIcon, Card, EmptyState, PrimaryButton, Screen, SectionHeader } from "../components/ui";
+import {
+  AppIcon,
+  Card,
+  CatalogCardSkeleton,
+  EmptyState,
+  PrimaryButton,
+  Screen,
+  SectionHeader,
+  SkeletonList,
+} from "../components/ui";
 import { fetchItems } from "../services/itemsApi";
 import { getApiErrorMessage } from "../services/apiClient";
 
@@ -46,15 +55,6 @@ export default function ItemListScreen({ navigation }) {
           color: colors.textPrimary,
           fontSize: typography.bodySmall,
           fontWeight: "700",
-        },
-        centered: {
-          alignItems: "center",
-          justifyContent: "center",
-        },
-        loadingText: {
-          color: colors.textSecondary,
-          fontSize: typography.bodySmall,
-          marginTop: spacing.md,
         },
         errorCard: {
           marginBottom: spacing.md,
@@ -121,23 +121,17 @@ export default function ItemListScreen({ navigation }) {
     loadItems();
   }
 
-  if (loading) {
-    return (
-      <Screen contentStyle={styles.centered}>
-        <ActivityIndicator size="large" color={colors.textPrimary} />
-        <Text style={styles.loadingText}>{t("catalog.loading")}</Text>
-      </Screen>
-    );
-  }
-
   return (
-    <Screen>
+    <Screen accessibilityState={loading ? { busy: true } : undefined}>
       <SectionHeader
         title={t("catalog.title")}
         subtitle={t("catalog.subtitle")}
         rightAction={<CartHeaderButton navigation={navigation} totalItems={totalItems} styles={styles} />}
       />
-      {!!loadError && (
+      {loading ? (
+        <SkeletonList count={4} ItemComponent={CatalogCardSkeleton} />
+      ) : null}
+      {!loading && !!loadError && (
         <Card style={styles.errorCard}>
           <Text style={styles.errorTitle}>{t("catalog.loadErrorTitle")}</Text>
           <Text style={styles.errorBody}>{loadError}</Text>
@@ -149,6 +143,7 @@ export default function ItemListScreen({ navigation }) {
           />
         </Card>
       )}
+      {!loading ? (
       <FlatList
         data={items}
         keyExtractor={(item) => String(item.id)}
@@ -176,6 +171,7 @@ export default function ItemListScreen({ navigation }) {
           <EmptyState title={t("catalog.emptyTitle")} subtitle={t("catalog.emptySubtitle")} />
         }
       />
+      ) : null}
     </Screen>
   );
 }

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
   FlatList,
   InteractionManager,
   Pressable,
@@ -12,11 +13,11 @@ import {
 import { useTranslation } from "react-i18next";
 import { useFocusEffect, useIsFocused, useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { AppIcon } from "../components/ui";
+import { AppIcon, OrderCardSkeleton, SkeletonList } from "../components/ui";
 import { DeliveryMapSection } from "../components/DeliveryMapSection";
 import {
   DeliveryOrdersBottomSheet,
-  DELIVERY_SHEET_PEEK_HEIGHT,
+  getDeliverySheetPeekHeight,
 } from "../components/DeliveryOrdersBottomSheet";
 import { DeliveryOrderCard } from "../components/DeliveryOrderCard";
 import { useAuth } from "../context/AuthContext";
@@ -26,7 +27,6 @@ import { listMobileOrders, updateMobileOrderStatus } from "../services/ordersApi
 import {
   ensureDriverLocationReady,
   getCurrentDriverPositionAsync,
-  isUsingFakeDriverLocation,
 } from "../utils/driverLocationProvider";
 import {
   getOrderDestination,
@@ -45,8 +45,6 @@ const GET_CURRENT_OPTIONS = {
   timeout: 15000,
   maximumAge: 10000,
 };
-
-const useFakeLocation = isUsingFakeDriverLocation();
 
 export default function DeliveryNavigationScreen() {
   const { token } = useAuth();
@@ -89,9 +87,6 @@ export default function DeliveryNavigationScreen() {
           fontWeight: "700",
           color: colors.textPrimary,
         },
-        sheetLoader: {
-          marginVertical: spacing.md,
-        },
         sheetSectionLabel: {
           marginBottom: spacing.sm,
           fontSize: typography.bodySmall,
@@ -121,6 +116,10 @@ export default function DeliveryNavigationScreen() {
   const [directionsError, setDirectionsError] = useState("");
   const [ordersSheetExpanded, setOrdersSheetExpanded] = useState(false);
   const [mapLayout, setMapLayout] = useState({ width: 0, height: 0 });
+  const sheetPeekHeight = useMemo(
+    () => getDeliverySheetPeekHeight(Dimensions.get("window").height),
+    [],
+  );
   const [mapReady, setMapReady] = useState(false);
 
   const lastNavRecalcLat = useRef(null);
@@ -395,14 +394,10 @@ export default function DeliveryNavigationScreen() {
     }
     const label =
       trackingStatus === "active"
-        ? useFakeLocation
-          ? t("delivery.testLocationOn")
-          : t("delivery.liveTrackingOn")
-        : trackingStatus === "test_location"
-          ? t("delivery.testLocationOff")
-          : String(trackingStatus);
+        ? t("delivery.liveTrackingOn")
+        : String(trackingStatus);
     return label;
-  }, [activeNavOrder, readyForDeliveryOrders.length, trackingStatus, t, useFakeLocation]);
+  }, [activeNavOrder, readyForDeliveryOrders.length, trackingStatus, t]);
 
   return (
     <View
@@ -419,7 +414,7 @@ export default function DeliveryNavigationScreen() {
           fullScreen
           mapWidth={mapLayout.width}
           mapHeight={mapLayout.height}
-          bottomInset={DELIVERY_SHEET_PEEK_HEIGHT}
+          bottomInset={sheetPeekHeight}
           driverLocation={driverLocation}
           activeNavOrder={activeNavOrder}
           activeNavOrderId={activeNavOrderId}
@@ -428,7 +423,6 @@ export default function DeliveryNavigationScreen() {
           directionsError={directionsError}
           readyForDeliveryOrders={readyForDeliveryOrders}
           readyOrdersMissingCoordsCount={readyOrdersMissingCoordsCount}
-          useFakeLocation={useFakeLocation}
           onDirectionsError={handleDirectionsError}
         />
       ) : (
@@ -453,23 +447,28 @@ export default function DeliveryNavigationScreen() {
         peekTitle={sheetPeekTitle}
         peekSubtitle={sheetPeekSubtitle}
       >
-        {loading ? (
-          <ActivityIndicator color={colors.textPrimary} style={styles.sheetLoader} />
-        ) : null}
         <Text style={styles.sheetSectionLabel}>{t("delivery.activeDeliveries")}</Text>
-        <FlatList
-          style={styles.list}
-          data={listOrders}
-          keyExtractor={keyExtractor}
-          renderItem={renderOrderItem}
-          extraData={{ activeNavOrderId, submittingOrderId }}
-          contentContainerStyle={styles.sheetListContent}
-          ListEmptyComponent={
-            loading ? null : <Text style={styles.emptyText}>{t("delivery.noActiveDeliveries")}</Text>
-          }
-          scrollEnabled={ordersSheetExpanded}
-          showsVerticalScrollIndicator={ordersSheetExpanded}
-        />
+        {loading ? (
+          <SkeletonList
+            count={3}
+            ItemComponent={OrderCardSkeleton}
+            itemProps={{ showActions: true }}
+          />
+        ) : (
+          <FlatList
+            style={styles.list}
+            data={listOrders}
+            keyExtractor={keyExtractor}
+            renderItem={renderOrderItem}
+            extraData={{ activeNavOrderId, submittingOrderId }}
+            contentContainerStyle={styles.sheetListContent}
+            ListEmptyComponent={
+              <Text style={styles.emptyText}>{t("delivery.noActiveDeliveries")}</Text>
+            }
+            scrollEnabled={ordersSheetExpanded}
+            showsVerticalScrollIndicator={ordersSheetExpanded}
+          />
+        )}
       </DeliveryOrdersBottomSheet>
     </View>
   );

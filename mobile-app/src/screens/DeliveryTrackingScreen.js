@@ -1,16 +1,8 @@
 import React, { useCallback, useMemo, useRef, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Alert, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
-import { Screen, SectionHeader } from "../components/ui";
+import { OrderCardSkeleton, Screen, SectionHeader, SkeletonList } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { DeliveryCartCard } from "../components/DeliveryCartCard";
@@ -73,7 +65,6 @@ export default function DeliveryTrackingScreen() {
           color: colors.onPrimary,
           opacity: 0.85,
         },
-        loader: { marginTop: spacing.md },
         sectionLabel: {
           marginTop: spacing.sm,
           marginBottom: spacing.sm,
@@ -274,7 +265,9 @@ export default function DeliveryTrackingScreen() {
     ],
   );
 
-  const listEmpty = loading ? null : (
+  const listEmpty = loading ? (
+    <SkeletonList count={3} ItemComponent={OrderCardSkeleton} itemProps={{ showActions: true }} />
+  ) : (
     <Text style={styles.emptyText}>
       {pendingOrders.length > 0 && cartOrders.length === pendingOrders.length
         ? t("delivery.allInCart")
@@ -283,12 +276,11 @@ export default function DeliveryTrackingScreen() {
   );
 
   return (
-    <Screen contentStyle={styles.container}>
+    <Screen contentStyle={styles.container} accessibilityState={loading ? { busy: true } : undefined}>
       <SectionHeader title={t("delivery.title")} subtitle={t("delivery.subtitle")} />
-      {loading ? <ActivityIndicator color={colors.textPrimary} style={styles.loader} /> : null}
       <FlatList
         style={styles.list}
-        data={listOrders}
+        data={loading ? [] : listOrders}
         keyExtractor={keyExtractor}
         renderItem={renderOrderItem}
         extraData={cartOrderIds}

@@ -1,13 +1,5 @@
 import React, { useCallback, useMemo, useRef, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Alert, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import Geolocation from "@react-native-community/geolocation";
 import MapView, { Marker } from "react-native-maps";
@@ -15,7 +7,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { io } from "socket.io-client";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
-import { Card, Screen, SectionHeader } from "../components/ui";
+import { Card, Screen, SectionHeader, TrackingChipsSkeleton } from "../components/ui";
 import { getApiErrorMessage } from "../services/apiClient";
 import { listMobileOrders } from "../services/ordersApi";
 import { getSocketBaseUrl } from "../services/socketUrl";
@@ -51,7 +43,6 @@ export default function CustomerTrackingScreen() {
     () =>
       StyleSheet.create({
         container: { paddingBottom: spacing.sm },
-        loadingWrap: { marginBottom: spacing.md, alignItems: "center" },
         ordersCard: { marginBottom: spacing.md, paddingVertical: spacing.md },
         cardTitle: {
           color: colors.textPrimary,
@@ -258,18 +249,17 @@ export default function CustomerTrackingScreen() {
     socketState === "connected" ? t("tracking.live") : socketState;
 
   return (
-    <Screen contentStyle={styles.container}>
+    <Screen
+      contentStyle={styles.container}
+      accessibilityState={loadingOrders ? { busy: true } : undefined}
+    >
       <SectionHeader title={t("tracking.title")} subtitle={t("tracking.subtitle")} />
-
-      {loadingOrders ? (
-        <View style={styles.loadingWrap}>
-          <ActivityIndicator color={colors.textPrimary} />
-        </View>
-      ) : null}
 
       <Card style={styles.ordersCard}>
         <Text style={styles.cardTitle}>{t("tracking.activeOrders")}</Text>
-        {trackableOrders.length === 0 ? (
+        {loadingOrders ? (
+          <TrackingChipsSkeleton />
+        ) : trackableOrders.length === 0 ? (
           <Text style={styles.muted}>{t("tracking.noOrders")}</Text>
         ) : (
           <FlatList

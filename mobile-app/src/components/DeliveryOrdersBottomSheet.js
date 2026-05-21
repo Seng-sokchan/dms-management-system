@@ -11,14 +11,26 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../context/ThemeContext";
 
-export const DELIVERY_SHEET_PEEK_HEIGHT = 56;
-const PEEK_HEIGHT = DELIVERY_SHEET_PEEK_HEIGHT;
-const EXPANDED_SCREEN_RATIO = 0.52;
+export const DELIVERY_SHEET_PEEK_RATIO = 0.3;
+export const DELIVERY_SHEET_EXPANDED_RATIO = 0.5;
 const SNAP_VELOCITY = 0.35;
 
+export function getDeliverySheetPeekHeight(screenHeight) {
+  const h = screenHeight ?? Dimensions.get("window").height;
+  return Math.round(h * DELIVERY_SHEET_PEEK_RATIO);
+}
+
+export function getDeliverySheetExpandedHeight(screenHeight) {
+  const h = screenHeight ?? Dimensions.get("window").height;
+  return Math.round(h * DELIVERY_SHEET_EXPANDED_RATIO);
+}
+
+/** @deprecated Use getDeliverySheetPeekHeight() for map inset. */
+export const DELIVERY_SHEET_PEEK_HEIGHT = getDeliverySheetPeekHeight();
+
 /**
- * Bottom sheet for delivery order list. Collapsed by default so the map stays fullscreen.
- * Swipe up/down on the handle (or tap the bar) to expand/collapse.
+ * Bottom sheet for delivery order list. Collapsed peek shows ~30% of screen (order preview).
+ * Swipe up to expand up to ~50% of screen.
  */
 export function DeliveryOrdersBottomSheet({
   expanded,
@@ -54,7 +66,7 @@ export function DeliveryOrdersBottomSheet({
           height: 4,
           borderRadius: radii.pill,
           backgroundColor: colors.border,
-          marginBottom: spacing.sm,
+          marginBottom: spacing.xs,
         },
         peekTitle: {
           fontSize: typography.body,
@@ -74,10 +86,9 @@ export function DeliveryOrdersBottomSheet({
           color: colors.textMuted,
           textAlign: "center",
         },
-        peekCollapsed: {
+        peekHint: {
           fontSize: typography.caption,
-          fontWeight: "600",
-          color: colors.textSecondary,
+          color: colors.textMuted,
           textAlign: "center",
         },
         body: {
@@ -89,11 +100,15 @@ export function DeliveryOrdersBottomSheet({
   );
   const insets = useSafeAreaInsets();
   const screenHeight = Dimensions.get("window").height;
-  const expandedHeight = useMemo(
-    () => Math.round(screenHeight * EXPANDED_SCREEN_RATIO),
+  const peekHeight = useMemo(
+    () => getDeliverySheetPeekHeight(screenHeight),
     [screenHeight],
   );
-  const hiddenOffset = expandedHeight - PEEK_HEIGHT;
+  const expandedHeight = useMemo(
+    () => getDeliverySheetExpandedHeight(screenHeight),
+    [screenHeight],
+  );
+  const hiddenOffset = expandedHeight - peekHeight;
 
   const translateY = useRef(new Animated.Value(hiddenOffset)).current;
   const positionRef = useRef(hiddenOffset);
@@ -107,6 +122,14 @@ export function DeliveryOrdersBottomSheet({
     });
     return () => translateY.removeListener(id);
   }, [translateY]);
+
+  useEffect(() => {
+    if (!expandedRef.current) {
+      translateY.setValue(hiddenOffset);
+      positionRef.current = hiddenOffset;
+      dragStartY.current = hiddenOffset;
+    }
+  }, [hiddenOffset, translateY]);
 
   const snapTo = useCallback(
     (toExpanded, { animated = true } = {}) => {
@@ -147,7 +170,7 @@ export function DeliveryOrdersBottomSheet({
       },
       onPanResponderRelease: (_, gesture) => {
         translateY.stopAnimation((value) => {
-          const openProgress = 1 - value / hiddenOffset;
+          const openProgress = hiddenOffset > 0 ? 1 - value / hiddenOffset : 1;
           const shouldExpand =
             gesture.vy < -SNAP_VELOCITY ||
             (Math.abs(gesture.vy) <= SNAP_VELOCITY && openProgress > 0.45);
@@ -185,9 +208,7 @@ export function DeliveryOrdersBottomSheet({
               <Text style={styles.hint}>Swipe down for full map</Text>
             </>
           ) : (
-            <Text style={styles.peekCollapsed} numberOfLines={1}>
-              {peekTitle} · swipe up
-            </Text>
+            <Text style={styles.peekHint}>Swipe up for more</Text>
           )}
         </Pressable>
       </View>

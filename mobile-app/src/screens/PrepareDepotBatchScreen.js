@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  ActivityIndicator,
   Alert,
   FlatList,
   Modal,
@@ -15,7 +14,16 @@ import {
 } from "react-native";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
-import { AppIcon, Card, EmptyState, PrimaryButton, Screen, SectionHeader } from "../components/ui";
+import {
+  AppIcon,
+  Card,
+  DepotCustomerCardSkeleton,
+  EmptyState,
+  PrimaryButton,
+  Screen,
+  SectionHeader,
+  SkeletonList,
+} from "../components/ui";
 import { fetchCustomers } from "../services/customersApi";
 import { fetchItems } from "../services/itemsApi";
 import { createDepotBatch } from "../services/ordersApi";
@@ -404,30 +412,22 @@ export default function PrepareDepotBatchScreen() {
     }
   }
 
-  if (loading) {
-    return (
-      <Screen style={styles.centered}>
-        <ActivityIndicator size="large" color={colors.textPrimary} />
-        <Text style={styles.loadingText}>{t("depot.loadingData")}</Text>
-      </Screen>
-    );
-  }
+  const prepareSubtitle = loading
+    ? t("depot.loadingData")
+    : totalLines > 0
+      ? t("depot.prepareSubtitleLines", {
+          lines: totalLines,
+          customers: customersWithCart.length,
+        })
+      : t("depot.prepareSubtitleEmpty");
 
   return (
-    <Screen>
-        <SectionHeader
-          title={t("depot.prepareTitle")}
-          subtitle={
-            totalLines > 0
-              ? t("depot.prepareSubtitleLines", {
-                  lines: totalLines,
-                  customers: customersWithCart.length,
-                })
-              : t("depot.prepareSubtitleEmpty")
-          }
-        />
+    <Screen accessibilityState={loading ? { busy: true } : undefined}>
+        <SectionHeader title={t("depot.prepareTitle")} subtitle={prepareSubtitle} />
 
-        {!!loadError && (
+        {loading ? <SkeletonList count={3} ItemComponent={DepotCustomerCardSkeleton} /> : null}
+
+        {!loading && !!loadError && (
           <Card style={styles.errorCard}>
             <Text style={styles.errorTitle}>{t("depot.loadErrorTitle")}</Text>
             <Text style={styles.errorBody}>{loadError}</Text>
@@ -443,6 +443,7 @@ export default function PrepareDepotBatchScreen() {
           </Card>
         )}
 
+        {!loading ? (
         <FlatList
           data={customers}
           keyExtractor={(customer) => String(customer.id)}
@@ -474,7 +475,9 @@ export default function PrepareDepotBatchScreen() {
             />
           }
         />
+        ) : null}
 
+        {!loading ? (
         <View style={styles.footer}>
           <Text style={styles.total}>{t("depot.total", { count: totalLines })}</Text>
           <PrimaryButton
@@ -487,6 +490,7 @@ export default function PrepareDepotBatchScreen() {
             icon={<AppIcon name="check-circle-outline" size={18} color={colors.onPrimary} />}
           />
         </View>
+        ) : null}
 
         <ItemPickerModal
           visible={!!pickerCustomerId}

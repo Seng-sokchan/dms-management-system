@@ -5,7 +5,6 @@ import { getSocketBaseUrl } from "../services/socketUrl";
 import {
   clearDriverWatch,
   ensureDriverLocationReady,
-  isUsingFakeDriverLocation,
   watchDriverPosition,
 } from "../utils/driverLocationProvider";
 import { haversineMeters, shouldRefreshByDistance } from "../utils/deliveryNavigation";
@@ -30,8 +29,6 @@ const IOS_WATCH_OPTIONS = {
   timeout: 25000,
   maximumAge: 10000,
 };
-
-const useFakeLocation = isUsingFakeDriverLocation();
 
 /**
  * Live GPS + Socket.IO for delivery agents.
@@ -145,7 +142,7 @@ export function useDeliveryLiveTracking({
         return;
       }
 
-      setTrackingStatus(useFakeLocation ? "test_location" : "starting");
+      setTrackingStatus("starting");
       locationErrorShownRef.current = false;
 
       const ok = await ensureDriverLocationReady();

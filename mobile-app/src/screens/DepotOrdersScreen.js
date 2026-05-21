@@ -1,18 +1,21 @@
 import React, { useCallback, useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  FlatList,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { FlatList, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useFocusEffect } from "@react-navigation/native";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { getAppLocale } from "../i18n/config";
-import { AppIcon, Card, EmptyState, PrimaryButton, Screen, SectionHeader } from "../components/ui";
+import {
+  AppIcon,
+  Card,
+  EmptyState,
+  OrderCardSkeleton,
+  PrimaryButton,
+  Screen,
+  SectionHeader,
+  SkeletonBone,
+  SkeletonList,
+} from "../components/ui";
 import { listMobileOrders } from "../services/ordersApi";
 import { getApiErrorMessage } from "../services/apiClient";
 
@@ -28,11 +31,10 @@ export default function DepotOrdersScreen() {
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        centered: { alignItems: "center", justifyContent: "center" },
-        loadingText: {
-          color: colors.textSecondary,
-          fontSize: typography.bodySmall,
-          marginTop: spacing.md,
+        chipSkeletonRow: {
+          flexDirection: "row",
+          gap: spacing.sm,
+          marginBottom: spacing.md,
         },
         statusRow: {
           flexDirection: "row",
@@ -138,20 +140,24 @@ export default function DepotOrdersScreen() {
         })
       : t("depot.ordersSubtitleEmpty");
 
-  if (loading) {
-    return (
-      <Screen contentStyle={styles.centered}>
-        <ActivityIndicator size="large" color={colors.textPrimary} />
-        <Text style={styles.loadingText}>{t("depot.loadingOrders")}</Text>
-      </Screen>
-    );
-  }
+  const headerSubtitle = loading ? t("depot.loadingOrders") : subtitle;
 
   return (
-    <Screen>
-      <SectionHeader title={t("depot.ordersTitle")} subtitle={subtitle} />
+    <Screen accessibilityState={loading ? { busy: true } : undefined}>
+      <SectionHeader title={t("depot.ordersTitle")} subtitle={headerSubtitle} />
 
-      {totalsByStatus.length > 0 && (
+      {loading ? (
+        <>
+          <View style={styles.chipSkeletonRow} accessible={false}>
+            <SkeletonBone width={72} height={28} borderRadius={radii.pill} />
+            <SkeletonBone width={88} height={28} borderRadius={radii.pill} />
+            <SkeletonBone width={64} height={28} borderRadius={radii.pill} />
+          </View>
+          <SkeletonList count={4} ItemComponent={OrderCardSkeleton} />
+        </>
+      ) : null}
+
+      {!loading && totalsByStatus.length > 0 && (
         <View style={styles.statusRow}>
           {totalsByStatus.map(([status, count]) => (
             <View key={status} style={styles.statusChip}>
@@ -163,7 +169,7 @@ export default function DepotOrdersScreen() {
         </View>
       )}
 
-      {!!loadError && (
+      {!loading && !!loadError && (
         <Card style={styles.errorCard}>
           <Text style={styles.errorTitle}>{t("depot.loadOrdersError")}</Text>
           <Text style={styles.errorBody}>{loadError}</Text>
@@ -179,6 +185,7 @@ export default function DepotOrdersScreen() {
         </Card>
       )}
 
+      {!loading ? (
       <FlatList
         data={orders}
         keyExtractor={(order) => String(order.id)}
@@ -196,6 +203,7 @@ export default function DepotOrdersScreen() {
           )
         }
       />
+      ) : null}
     </Screen>
   );
 }

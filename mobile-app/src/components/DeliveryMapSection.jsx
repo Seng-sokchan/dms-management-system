@@ -15,7 +15,6 @@ function DeliveryMapSectionInner({
   directionsError,
   readyForDeliveryOrders,
   readyOrdersMissingCoordsCount,
-  useFakeLocation,
   onDirectionsError,
   fullScreen = false,
   bottomInset = 0,
@@ -134,9 +133,6 @@ function DeliveryMapSectionInner({
   }, [activeNavOrderId, activeDestination, mapRegion]);
 
   const warnings = [];
-  if (useFakeLocation) {
-    warnings.push("Test GPS — disable USE_FAKE_DRIVER_LOCATION for real GPS.");
-  }
   if (readyOrdersMissingCoordsCount > 0) {
     warnings.push(`${readyOrdersMissingCoordsCount} order(s) missing coordinates.`);
   }
@@ -234,7 +230,7 @@ function DeliveryMapSectionInner({
         </Text>
       ) : (
         <Text style={styles.mapSectionLead}>
-          {useFakeLocation ? "Using test location…" : "Waiting for GPS to find the nearest stop…"}
+          Waiting for GPS to find the nearest stop…
         </Text>
       )}
       {warnings.map((msg) => (
