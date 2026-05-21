@@ -206,22 +206,14 @@
   },
   "trackingCustomerLocation": {
     "title": "Tracking Customer Location",
-    "lead": "Customers with stored coordinates appear as red markers. Delivery drivers on duty appear as blue markers when live tracking is available.",
+    "lead": "Customers with stored coordinates appear as red markers on the map.",
     "noApiKey": "Set VITE_GOOGLE_MAPS_API_KEY in the frontend environment and enable the Maps JavaScript API for your Google Cloud project.",
-    "noMarkers": "No locations to show yet. Set customer latitude and longitude on the Customers page, or wait for an active delivery driver to broadcast their position.",
-    "showing": "Customers with map pins: {{count}} · Live drivers: {{deliveryCount}}",
+    "noMarkers": "No locations to show yet. Set customer latitude and longitude on the Customers page.",
+    "showing": "Customers with map pins: {{count}}",
     "openMaps": "Open in Google Maps",
-    "liveDeliveryTitle": "Live delivery drivers",
-    "liveDeliveryConnected": "Connected. Active drivers on map: {{count}}.",
-    "liveDeliveryWaiting": "Connected. Waiting for drivers to share location…",
-    "liveDeliveryConnecting": "Connecting to live updates…",
-    "liveDeliveryDisconnected": "Disconnected from live updates.",
-    "liveDeliveryError": "Live connection error: {{message}}",
-    "liveDeliveryIdle": "Live delivery map is not available for this role.",
     "markerKindCustomer": "Customer",
-    "markerKindDelivery": "Delivery",
-    "lastSeen": "Last seen {{time}}",
-    "lastSeenUnknown": "Last seen —"
+    "lastSeen": "Last updated {{time}}",
+    "lastSeenUnknown": "Last updated —"
   },
   "addresses": {
     "title": "Addresses",

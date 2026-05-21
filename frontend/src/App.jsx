@@ -359,7 +359,7 @@ function App() {
         path="/tracking-customer-location"
         element={withLayout(
           canAccessPath(user, "/tracking-customer-location") ? (
-            <TrackingCustomerLocationPage customers={customers} token={token} userRole={user?.role || ""} />
+            <TrackingCustomerLocationPage customers={customers} />
           ) : (
             renderDeniedRoute()
           ),

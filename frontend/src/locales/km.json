@@ -206,22 +206,14 @@
   },
   "trackingCustomerLocation": {
     "title": "តាមដានទីតាំងអតិថិជន",
-    "lead": "អតិថិជនដែលមានរង្វាស់រក្សាទុកបង្ហាញជាសញ្ញាក្រហម។ អ្នកបញ្ជូនដែលកំពុងបម្រើបង្ហាញជាសញ្ញាខៀវនៅពេលមានការតាមដានផ្ទាល់។",
+    "lead": "អតិថិជនដែលមានរង្វាស់រក្សាទុកបង្ហាញជាសញ្ញាក្រហមលើផែនទី។",
     "noApiKey": "កំណត់ VITE_GOOGLE_MAPS_API_KEY ក្នុងបរិស្ថាន frontend និងបើក Maps JavaScript API នៅ Google Cloud។",
-    "noMarkers": "មិនទាន់មានទីតាំងបង្ហាញ។ កំណត់រង្វាស់អតិថិជននៅទំព័រ អតិថិជន ឬរង់ចាំអ្នកបញ្ជូនផ្ញើទីតាំង។",
-    "showing": "អតិថិជនលើផែនទី៖ {{count}} · អ្នកបញ្ជូនផ្ទាល់៖ {{deliveryCount}}",
+    "noMarkers": "មិនទាន់មានទីតាំងបង្ហាញ។ កំណត់រង្វាស់អតិថិជននៅទំព័រ អតិថិជន។",
+    "showing": "អតិថិជនលើផែនទី៖ {{count}}",
     "openMaps": "បើកក្នុង Google Maps",
-    "liveDeliveryTitle": "អ្នកបញ្ជូនផ្ទាល់",
-    "liveDeliveryConnected": "បានភ្ជាប់។ អ្នកបញ្ជូនសកម្មលើផែនទី៖ {{count}}។",
-    "liveDeliveryWaiting": "បានភ្ជាប់។ រង់ចាំអ្នកបញ្ជូនចែករំលែកទីតាំង…",
-    "liveDeliveryConnecting": "កំពុងភ្ជាប់ទៅការធ្វើបច្ចុប្បន្នភាពផ្ទាល់…",
-    "liveDeliveryDisconnected": "បានផ្តាច់ពីការធ្វើបច្ចុប្បន្នភាពផ្ទាល់។",
-    "liveDeliveryError": "កំហុសការភ្ជាប់ផ្ទាល់៖ {{message}}",
-    "liveDeliveryIdle": "ផែនទីអ្នកបញ្ជូនផ្ទាល់មិនមានសម្រាប់តួនាទីនេះទេ។",
     "markerKindCustomer": "អតិថិជន",
-    "markerKindDelivery": "អ្នកបញ្ជូន",
-    "lastSeen": "ឃើញចុងក្រោយ {{time}}",
-    "lastSeenUnknown": "ឃើញចុងក្រោយ —"
+    "lastSeen": "ធ្វើបច្ចុប្បន្នភាពចុងក្រោយ {{time}}",
+    "lastSeenUnknown": "ធ្វើបច្ចុប្បន្នភាពចុងក្រោយ —"
   },
   "addresses": {
     "title": "អាស័យដ្ឋាន",
