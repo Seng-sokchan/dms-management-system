@@ -1,4 +1,4 @@
-export const API_BASE_URL = "http://10.0.2.2:4000/api";
+export const API_BASE_URL = "http://10.0.2.2:4000/v1";
 
 /**
  * Google Maps API key (Maps SDK + Directions API must be enabled in Google Cloud).

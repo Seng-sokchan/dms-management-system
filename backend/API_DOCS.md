@@ -1,6 +1,6 @@
 # Order Management API (Express.js)
 
-Base URL: `http://localhost:4000/api`
+Base URL: `http://localhost:4000/v1` (production: `https://api.dmscambodia.com/v1`)
 
 ## Authentication
 - `POST /auth/login`

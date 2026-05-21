@@ -25,7 +25,7 @@ React + Vite admin frontend for the Fix Asset order management system.
    - `npm run dev`
 3. Open the URL shown by Vite (usually `http://localhost:5173`).
 
-> The frontend expects backend APIs under `/api/*` (default backend is on `http://localhost:4000`).
+> The frontend expects backend APIs under `/v1/*` (default base URL: `http://localhost:4000/v1`).
 
 ## Authentication
 

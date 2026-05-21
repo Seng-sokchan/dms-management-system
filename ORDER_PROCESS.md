@@ -23,7 +23,7 @@ This document reflects the current implementation from order creation through pa
   - delivery proof fields are empty
 
 Typical API:
-- `POST /api/orders`
+- `POST /v1/orders`
 
 ---
 
@@ -37,7 +37,7 @@ Typical API:
   - `OWNER_PREPARING`
 
 Typical API:
-- `PATCH /api/orders/:id`
+- `PATCH /v1/orders/:id`
 
 ---
 
@@ -56,7 +56,7 @@ Typical API:
   - `OUT_FOR_DELIVERY`
 
 Typical API:
-- `PATCH /api/orders/:id`
+- `PATCH /v1/orders/:id`
 
 ---
 
@@ -81,7 +81,7 @@ Typical API:
   - `RECEIVED_BY_CUSTOMER`
 
 Typical API:
-- `POST /api/orders/:id/delivery-confirmation`
+- `POST /v1/orders/:id/delivery-confirmation`
 
 ---
 
@@ -97,7 +97,7 @@ Typical API:
 - Payment no longer forces status transition, so customer can pay later.
 
 Typical API:
-- `POST /api/payments`
+- `POST /v1/payments`
 
 ## Status Summary
 

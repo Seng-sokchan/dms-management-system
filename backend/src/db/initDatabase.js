@@ -18,14 +18,12 @@ function hashSeedPassword(name, fallback) {
   return bcrypt.hashSync(getSeedPassword(name, fallback), 10);
 }
 
-/** Demo catalog, orders, and linked accounts for local / staging testing. */
-async function seedSampleData(dbConn) {
+/** Demo roles, menus, and staff accounts for local / staging user-management testing. */
+async function seedUserManagementData(dbConn) {
   const adminHash = hashSeedPassword("SEED_ADMIN_PASSWORD", "admin123");
   const ownerHash = hashSeedPassword("SEED_OWNER_PASSWORD", "owner123");
   const depotHash = hashSeedPassword("SEED_DEPOT_PASSWORD", "depot123");
   const logisticsHash = hashSeedPassword("SEED_LOGISTICS_PASSWORD", "logistics123");
-  const deliveryHash = hashSeedPassword("SEED_DELIVERY_PASSWORD", "delivery123");
-  const customerHash = hashSeedPassword("SEED_CUSTOMER_PASSWORD", "customer123");
 
   await dbConn.query(
     `INSERT INTO users (id, name, username, password_hash, role_id, is_active, updated_at) VALUES
@@ -33,102 +31,6 @@ async function seedSampleData(dbConn) {
       (2, 'Business Owner', 'owner', '${ownerHash}', 2, 1, NOW()),
       (3, 'Depot Staff', 'depot1', '${depotHash}', 6, 1, NOW()),
       (4, 'Logistics Coordinator', 'logistics', '${logisticsHash}', 3, 1, NOW())`,
-  );
-
-  await dbConn.query(
-    `INSERT INTO depots (id, name, phone, address, owner_user_id, depot_user_id, is_active, updated_at) VALUES
-      (1, 'Phnom Penh Central Depot', '023900100', 'Street 271, Phnom Penh', 2, 3, 1, NOW())`,
-  );
-
-  await dbConn.query(
-    `INSERT INTO producers (id, name, phone, capacity_note, is_active, updated_at) VALUES
-      (1, 'Mekong Beverage Factory', '023555100', '5000 units/day', 1, NOW())`,
-  );
-
-  await dbConn.query(
-    `INSERT INTO delivery_agents (id, name, phone, vehicle_type, is_active, updated_at) VALUES
-      (1, 'Sokha Driver', '012345678', 'Motorbike', 1, NOW()),
-      (2, 'Dara Driver', '098765432', 'Truck', 1, NOW())`,
-  );
-
-  await dbConn.query(
-    `INSERT INTO provinces (id, name, is_active, updated_at) VALUES
-      (1, 'Phnom Penh', 1, NOW()),
-      (2, 'Kandal', 1, NOW())`,
-  );
-
-  await dbConn.query(
-    `INSERT INTO users (id, name, username, password_hash, role_id, delivery_agent_id, is_active, updated_at) VALUES
-      (5, 'Sokha Driver', 'delivery', '${deliveryHash}', 4, 1, 1, NOW())`,
-  );
-
-  await dbConn.query(
-    `INSERT INTO customers (id, name, phone, depot_id, province_id, latitude, longitude, is_active, updated_at) VALUES
-      (1, 'Star Mart Toul Kork', '011111111', 1, 1, 11.5500000, 104.9200000, 1, NOW()),
-      (2, 'Green Cafe Riverside', '011222222', 1, 1, 11.5600000, 104.9350000, 1, NOW()),
-      (3, 'City Mini Mart', '011333333', 1, 1, 11.5450000, 104.9100000, 1, NOW()),
-      (4, 'Independent Corner Shop', '011444444', NULL, 2, 11.5520000, 104.9250000, 1, NOW())`,
-  );
-
-  await dbConn.query(
-    `INSERT INTO users (id, name, username, password_hash, role_id, customer_id, is_active, updated_at) VALUES
-      (6, 'Star Mart Account', 'customer', '${customerHash}', 5, 1, 1, NOW())`,
-  );
-
-  await dbConn.query(
-    `INSERT INTO catalogs (id, name, note, is_active, updated_at) VALUES
-      (1, 'Soft Drinks', 'Bottled beverages', 1, NOW()),
-      (2, 'Snacks', 'Packaged snacks', 1, NOW())`,
-  );
-
-  await dbConn.query(
-    `INSERT INTO items (id, catalog_id, name, sku, is_active, updated_at) VALUES
-      (1, 1, 'Cola 330ml', 'DRK-COLA-330', 1, NOW()),
-      (2, 1, 'Mineral Water 500ml', 'DRK-WATER-500', 1, NOW()),
-      (3, 2, 'Potato Chips 50g', 'SNK-CHIPS-50', 1, NOW())`,
-  );
-
-  await dbConn.query(
-    `INSERT INTO depot_item_prices (depot_id, item_id, currency, unit_price, updated_at) VALUES
-      (1, 1, 'KHR', 1500.00, NOW()),
-      (1, 2, 'KHR', 1200.00, NOW()),
-      (1, 3, 'KHR', 5000.00, NOW())`,
-  );
-
-  await dbConn.query(
-    `INSERT INTO customer_item_prices (customer_id, item_id, currency, unit_price, updated_at) VALUES
-      (4, 1, 'KHR', 1600.00, NOW()),
-      (4, 2, 'KHR', 1300.00, NOW())`,
-  );
-
-  await dbConn.query(
-    `INSERT INTO borrow_materials (id, name, unit, note, is_active, updated_at) VALUES
-      (1, 'Glass Bottle Crate', 'crate', 'Returnable crate', 1, NOW())`,
-  );
-
-  await dbConn.query(
-    `INSERT INTO customer_borrowed_materials (customer_id, material_id, qty, note, updated_at) VALUES
-      (1, 1, 4, 'Demo borrowed crates', NOW())`,
-  );
-
-  // status: 1=Owner_Preparing, 2=Sent_To_Factory, 3=Ready_For_Delivery, 4=Recieve_By_Customer
-  await dbConn.query(
-    `INSERT INTO orders (
-      id, customer_id, item_id, currency, ordered_qty, unit_price,
-      producer_id, delivery_agent_id, amount_total, status, updated_at
-    ) VALUES
-      (1, 1, 1, 'KHR', 100, 1500.00, 1, 1, 150000.00, 3, NOW()),
-      (2, 1, 2, 'KHR', 50, 1200.00, 1, 1, 60000.00, 2, NOW()),
-      (3, 2, 1, 'KHR', 200, 1550.00, 1, NULL, 310000.00, 1, NOW()),
-      (4, 3, 3, 'KHR', 30, 5000.00, 1, 1, 150000.00, 4, NOW())`,
-  );
-
-  await dbConn.query(
-    `INSERT INTO order_status_history (order_id, from_status, to_status, changed_by_user_id, note) VALUES
-      (1, 2, 3, 4, 'Ready for delivery - demo seed'),
-      (2, 1, 2, 2, 'Sent to factory - demo seed'),
-      (3, NULL, 1, 2, 'Order created - demo seed'),
-      (4, 3, 4, 5, 'Delivered - demo seed')`,
   );
 }
 
@@ -208,17 +110,17 @@ async function run() {
      (6, 'overview'), (6, 'customers'), (6, 'trackingCustomerLocation'), (6, 'customersByDepot'), (6, 'customerItemPrices'), (6, 'orders'), (6, 'payments'), (6, 'customerOrderHistory'), (6, 'borrowedMaterials')`,
   );
 
-  await seedSampleData(dbConn);
+  await seedUserManagementData(dbConn);
 
   await dbConn.end();
 
   // eslint-disable-next-line no-console
   console.log(
-    `Database initialized with sample data: ${process.env.DB_NAME || "fix_asset_db"}`,
+    `Database initialized (roles, menus, users): ${process.env.DB_NAME || "fix_asset_db"}`,
   );
   // eslint-disable-next-line no-console
   console.log(
-    "Demo logins: admin/admin123, owner/owner123, depot1/depot123, logistics/logistics123, delivery/delivery123, customer/customer123",
+    "Demo logins: admin/admin123, owner/owner123, depot1/depot123, logistics/logistics123",
   );
 }
 

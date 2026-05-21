@@ -186,9 +186,8 @@ once, the rest is mechanical.
   switches to the standard envelope `{ success, data }` — frontends that
   read raw fields (`response.id`) need to read `response.data.id` instead.
   This is the only breaking change per module.
-- For each module migrated, ship a single PR and bump the API to
-  `/api/v1` (already mounted in `app.js`). Keep `/api` mounted for the
-  legacy clients during the transition.
+- For each module migrated, ship a single PR. REST routes are mounted at
+  `/v1` in `app.js` (e.g. `GET /v1/health`).
 - Smoke test after each module: hit the routes listed in
   `docs/API_DOCS.md` for that module via the admin frontend client and the
   Postman collection.

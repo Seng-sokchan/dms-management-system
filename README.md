@@ -94,4 +94,4 @@ Fullstack implementation based on the attached plan:
 - Foreign keys and indexes are still included for maintainability and performance.
 - `order_status_history` is populated when order **status** is changed (PATCH or mobile); rows link to `users.id` via `changed_by_user_id`.
 - API responses use camelCase; DB columns are snake_case; list endpoints **join** related tables (e.g. order rows include producer/agent names, payments include order customer/item labels).
-- Profile endpoint `/api/users/me` returns `{ id, name, username, role, allowedMenus }`.
+- Profile endpoint `/v1/users/me` returns `{ id, name, username, role, allowedMenus }`.

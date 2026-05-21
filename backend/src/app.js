@@ -21,9 +21,7 @@ app.use(express.json());
 app.use(morgan("dev"));
 app.use(responsePolicy);
 
-// Keep legacy '/api' routes and expose versioned '/api/v1' routes.
-app.use("/api", apiRoutes);
-app.use("/api/v1", apiRoutes);
+app.use("/v1", apiRoutes);
 app.use(notFound);
 
 // Global error handler (must be last)
