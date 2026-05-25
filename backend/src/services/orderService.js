@@ -401,14 +401,47 @@ async function updateStatus(orderId, nextStatus, { user, allowReverse = false } 
   });
 }
 
+const DELIVERY_CONFIRM_ROLES = new Set(["Admin", "Delivery"]);
+
 /**
- * Confirm a delivery: moves the order to Recieve_By_Customer.
+ * Confirm a delivery with loss quantity; sets Recieve_By_Customer and delivered/loss qty.
  */
-async function confirmDelivery(orderId) {
+async function confirmDelivery(orderId, { lossQty }, { user } = {}) {
   const order = await orderRepository.getOrderById(orderId);
   if (!order) throw new NotFoundError("Order not found");
 
-  return orderRepository.confirmOrderDelivery(orderId);
+  if (!DELIVERY_CONFIRM_ROLES.has(user?.role)) {
+    throw new ForbiddenError("Forbidden for this role");
+  }
+
+  if (order.status !== "Ready_For_Delivery") {
+    throw new BadRequestError("Order must be Ready_For_Delivery to confirm delivery");
+  }
+
+  if (user?.role === "Delivery") {
+    const agentId =
+      user.deliveryAgentId != null && String(user.deliveryAgentId).trim() !== ""
+        ? String(user.deliveryAgentId)
+        : "";
+    if (!agentId) {
+      throw new ForbiddenError("Delivery account is not linked to a delivery agent");
+    }
+    if (String(order.deliveryAgentId || "") !== agentId) {
+      throw new ForbiddenError("Forbidden for this order");
+    }
+  }
+
+  const orderedQty = Number(order.orderedQty || 0);
+  const loss = Number(lossQty);
+  if (!Number.isFinite(loss) || loss < 0) {
+    throw new BadRequestError("Invalid loss quantity");
+  }
+  if (loss > orderedQty) {
+    throw new BadRequestError("Loss quantity cannot exceed ordered quantity");
+  }
+
+  const deliveredQty = orderedQty - loss;
+  return orderRepository.confirmOrderDelivery(orderId, { deliveredQty, lossQty: loss });
 }
 
 /**
@@ -453,6 +486,12 @@ async function listForMobile({ user } = {}) {
     const customers = await customerRepository.listCustomersByDepotId(depot.id);
     const allowedCustomerIds = new Set(customers.map((c) => String(c.id)));
     return rows.filter((row) => allowedCustomerIds.has(String(row.customerId)));
+  }
+
+  if (role === "Customer") {
+    const customer = await customerRepository.getCustomerByUserId(user.sub);
+    if (!customer) return [];
+    return rows.filter((row) => String(row.customerId) === String(customer.id));
   }
 
   return rows;

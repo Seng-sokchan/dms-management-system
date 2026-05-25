@@ -1,6 +1,8 @@
 const http = require("http");
 const { loadEnv, validateEnv } = require("./config/env");
 const { checkDbConnection } = require("./db/pool");
+const { ensurePaywaySchema } = require("./db/ensurePaywaySchema");
+const { ensureDeliveryQtySchema } = require("./db/ensureDeliveryQtySchema");
 const { attachDeliveryLocationSocket } = require("./socket/deliveryLocationSocket");
 
 loadEnv();
@@ -9,6 +11,8 @@ const app = require("./app");
 async function start() {
   validateEnv();
   await checkDbConnection();
+  await ensurePaywaySchema();
+  await ensureDeliveryQtySchema();
 
   const port = Number(process.env.PORT || 4000);
   const server = http.createServer(app);

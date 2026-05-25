@@ -58,7 +58,9 @@ const updateOrderStatusSchema = z.object({
   status: z.enum(ORDER_STATUS),
 });
 
-const confirmDeliverySchema = z.object({}).passthrough();
+const confirmDeliverySchema = z.object({
+  lossQty: z.coerce.number().int().min(0),
+});
 
 // Param + query schemas -----------------------------------------------------
 

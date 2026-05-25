@@ -9,19 +9,22 @@ import { AuthProvider, useAuth } from "./src/context/AuthContext";
 import { ThemeProvider, useTheme } from "./src/context/ThemeContext";
 import { CartProvider } from "./src/context/CartContext";
 import LoginScreen from "./src/screens/LoginScreen";
-import AuthenticatedTabs from "./src/navigation/AuthenticatedTabs";
+import CustomerRootNavigator from "./src/navigation/CustomerRootNavigator";
 import DeliveryNavigator from "./src/navigation/DeliveryNavigator";
-import DepotNavigator from "./src/navigation/DepotNavigator";
+import DepotRootNavigator from "./src/navigation/DepotRootNavigator";
 import { useStackScreenOptions } from "./src/navigation/screenOptions";
 import { bootstrapI18n } from "./src/i18n/config";
 import i18n from "./src/i18n/config";
+import { navigationRef } from "./src/navigation/paymentReturnNavigation";
+import { usePaymentDeepLink } from "./src/hooks/usePaymentDeepLink";
+import { usePaymentReturnResume } from "./src/hooks/usePaymentReturnResume";
 
 const Stack = createNativeStackNavigator();
 
 function CustomerMain() {
   return (
     <CartProvider>
-      <AuthenticatedTabs />
+      <CustomerRootNavigator />
     </CartProvider>
   );
 }
@@ -31,6 +34,11 @@ function AppNavigator() {
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
   const stackScreenOptions = useStackScreenOptions();
+  const [navReady, setNavReady] = useState(false);
+  const paymentHandlersEnabled = Boolean(token) && navReady;
+
+  usePaymentDeepLink({ enabled: paymentHandlersEnabled });
+  usePaymentReturnResume({ enabled: paymentHandlersEnabled });
 
   if (isLoading) {
     return (
@@ -43,6 +51,11 @@ function AppNavigator() {
 
   return (
     <NavigationContainer
+      ref={navigationRef}
+      onReady={() => setNavReady(true)}
+      onStateChange={() => {
+        if (navigationRef.isReady()) setNavReady(true);
+      }}
       theme={{
         dark: isDark,
         colors: {
@@ -71,7 +84,7 @@ function AppNavigator() {
             options={{ headerShown: false }}
           />
         ) : user?.role === "Depot" ? (
-          <Stack.Screen name="DepotMain" component={DepotNavigator} options={{ headerShown: false }} />
+          <Stack.Screen name="DepotMain" component={DepotRootNavigator} options={{ headerShown: false }} />
         ) : (
           <Stack.Screen name="Main" component={CustomerMain} options={{ headerShown: false }} />
         )}

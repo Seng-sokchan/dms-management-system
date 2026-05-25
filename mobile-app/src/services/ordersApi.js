@@ -56,6 +56,15 @@ export async function updateMobileOrderStatus(token, orderId, status) {
   return unwrapApiData(response.data);
 }
 
+export async function confirmMobileDelivery(token, orderId, { lossQty }) {
+  const response = await apiClient.post(
+    `/mobile/orders/${orderId}/delivery-confirmation`,
+    { lossQty },
+    authConfig(token),
+  );
+  return unwrapApiData(response.data);
+}
+
 /**
  * Submit a multi-customer batch of orders. Each line targets a single customer
  * and item with a quantity. Used by the Depot mobile flow.

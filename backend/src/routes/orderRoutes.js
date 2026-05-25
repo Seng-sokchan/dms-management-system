@@ -23,6 +23,7 @@ const {
   deleteOrder,
   mobileListOrders,
   mobileUpdateStatus,
+  mobileConfirmDelivery,
 } = require("../controllers/orderController");
 const { requireAuth, requireRoles } = require("../middleware/auth");
 const { validate } = require("../validators/validate");
@@ -111,6 +112,13 @@ router.post(
   requireAuth,
   validate({ params: orderIdParamsSchema, body: updateOrderStatusSchema }),
   mobileUpdateStatus,
+);
+
+router.post(
+  "/mobile/orders/:id/delivery-confirmation",
+  requireAuth,
+  validate({ params: orderIdParamsSchema, body: confirmDeliverySchema }),
+  mobileConfirmDelivery,
 );
 
 module.exports = router;

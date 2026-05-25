@@ -20,11 +20,16 @@ import {
   DeliveryOrdersBottomSheet,
   getDeliverySheetPeekHeight,
 } from "../components/DeliveryOrdersBottomSheet";
+import DeliveryConfirmationModal from "../components/DeliveryConfirmationModal";
 import { DeliveryOrderCard } from "../components/DeliveryOrderCard";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { useDeliveryLiveTracking } from "../hooks/useDeliveryLiveTracking";
-import { listMobileOrders, updateMobileOrderStatus } from "../services/ordersApi";
+import {
+  confirmMobileDelivery,
+  listMobileOrders,
+  updateMobileOrderStatus,
+} from "../services/ordersApi";
 import {
   ensureDriverLocationReady,
   getCurrentDriverPositionAsync,
@@ -118,6 +123,7 @@ export default function DeliveryNavigationScreen() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submittingOrderId, setSubmittingOrderId] = useState(null);
+  const [confirmOrder, setConfirmOrder] = useState(null);
   const [activeNavOrderId, setActiveNavOrderId] = useState(null);
   const [directionsOrigin, setDirectionsOrigin] = useState(null);
   const [directionsError, setDirectionsError] = useState("");
@@ -379,6 +385,84 @@ export default function DeliveryNavigationScreen() {
     ],
   );
 
+  const applyAfterDelivered = useCallback(
+    async (orderId, rows) => {
+      const loc = driverLocationRef.current || (await refreshDriverLocationOnce());
+      if (loc) {
+        recomputeActiveNavOrder(rows, loc);
+      } else {
+        setActiveNavOrderId(null);
+      }
+
+      const stillActive = rows.filter((row) => row.status === "Ready_For_Delivery");
+      if (stillActive.length === 0) {
+        navigation.goBack();
+      }
+    },
+    [navigation, recomputeActiveNavOrder, refreshDriverLocationOnce, driverLocationRef],
+  );
+
+  const handleRequestDeliver = useCallback((order) => {
+    setConfirmOrder(order);
+  }, []);
+
+  const handleConfirmDelivery = useCallback(
+    async ({ lossQty }) => {
+      const order = confirmOrder;
+      if (!order) return;
+
+      const orderId = order.id;
+      const accessToken = typeof token === "string" ? token.trim() : "";
+      if (!accessToken) return;
+
+      const orderBefore = ordersRef.current.find((row) => String(row.id) === String(orderId));
+
+      if (String(orderId) === String(manualNavOrderIdRef.current)) {
+        manualNavLockRef.current = false;
+        manualNavOrderIdRef.current = null;
+      }
+      setActiveNavOrderId(null);
+      setConfirmOrder(null);
+
+      setOrders((prev) =>
+        prev.map((row) =>
+          String(row.id) === String(orderId) ? { ...row, status: "Recieve_By_Customer" } : row,
+        ),
+      );
+
+      setSubmittingOrderId(orderId);
+      try {
+        await confirmMobileDelivery(accessToken, orderId, { lossQty });
+        const rows = await loadOrders({ silent: true });
+        await applyAfterDelivered(orderId, rows);
+      } catch {
+        setOrders((prev) =>
+          prev.map((row) =>
+            String(row.id) === String(orderId) && orderBefore
+              ? { ...row, status: orderBefore.status }
+              : row,
+          ),
+        );
+        Alert.alert(t("delivery.statusAlertTitle"), t("delivery.confirmFailed"));
+        if (orderBefore?.status === "Ready_For_Delivery") {
+          const loc = driverLocationRef.current;
+          if (loc) recomputeActiveNavOrder(ordersRef.current, loc);
+        }
+      } finally {
+        setSubmittingOrderId(null);
+      }
+    },
+    [
+      confirmOrder,
+      token,
+      loadOrders,
+      applyAfterDelivered,
+      recomputeActiveNavOrder,
+      driverLocationRef,
+      t,
+    ],
+  );
+
   useEffect(() => {
     if (!isFocused) {
       setMapReady(false);
@@ -444,11 +528,12 @@ export default function DeliveryNavigationScreen() {
         submittingOrderId={submittingOrderId}
         onAddToCart={() => {}}
         onStatusChange={changeOrderStatus}
+        onRequestDeliver={handleRequestDeliver}
         onSelectForNav={handleSelectNavOrder}
         canSelectForNav={orderHasCustomerCoords(item)}
       />
     ),
-    [activeNavOrderId, submittingOrderId, changeOrderStatus, handleSelectNavOrder],
+    [activeNavOrderId, submittingOrderId, changeOrderStatus, handleRequestDeliver, handleSelectNavOrder],
   );
 
   const sheetPeekTitle = useMemo(() => {
@@ -551,6 +636,14 @@ export default function DeliveryNavigationScreen() {
           />
         )}
       </DeliveryOrdersBottomSheet>
+
+      <DeliveryConfirmationModal
+        visible={confirmOrder != null}
+        order={confirmOrder}
+        submitting={submittingOrderId != null && confirmOrder != null}
+        onConfirm={handleConfirmDelivery}
+        onCancel={() => setConfirmOrder(null)}
+      />
     </View>
   );
 }

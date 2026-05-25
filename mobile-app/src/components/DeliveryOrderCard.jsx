@@ -11,6 +11,7 @@ function DeliveryOrderCardInner({
   submittingOrderId,
   onAddToCart,
   onStatusChange,
+  onRequestDeliver,
   onSelectForNav,
   canSelectForNav = false,
 }) {
@@ -108,7 +109,9 @@ function DeliveryOrderCardInner({
           <TouchableOpacity
             style={styles.actionButton}
             disabled={isSubmitting}
-            onPress={() => onStatusChange(item.id, "Recieve_By_Customer")}
+            onPress={() =>
+              onRequestDeliver ? onRequestDeliver(item) : onStatusChange(item.id, "Recieve_By_Customer")
+            }
           >
             <Text style={styles.actionText}>{t("delivery.delivered")}</Text>
           </TouchableOpacity>

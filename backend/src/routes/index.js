@@ -1,6 +1,7 @@
 const express = require("express");
 const healthRoutes = require("./healthRoutes");
 const authRoutes = require("./authRoutes");
+const webhookRoutes = require("./webhookRoutes");
 const masterDataRoutes = require("./groups/masterDataRoutes");
 const opsRoutes = require("./groups/opsRoutes");
 const adminRoutes = require("./groups/adminRoutes");
@@ -8,6 +9,7 @@ const adminRoutes = require("./groups/adminRoutes");
 const router = express.Router();
 
 router.use(healthRoutes);
+router.use(webhookRoutes);
 router.use(authRoutes);
 for (const routes of masterDataRoutes) router.use(routes);
 for (const routes of opsRoutes) router.use(routes);

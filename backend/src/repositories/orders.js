@@ -224,7 +224,7 @@ async function updateOrderStatuses(ids, status, { changedByUserId = null, note =
   }
 }
 
-async function confirmOrderDelivery(id) {
+async function confirmOrderDelivery(id, { deliveredQty, lossQty } = {}) {
   const order = await getOrderById(id);
   if (!order) return null;
   const nextStatus = "Recieve_By_Customer";
@@ -232,7 +232,13 @@ async function confirmOrderDelivery(id) {
   if (!nextStatusId) {
     throw new Error("Status not found");
   }
-  await getPool().query("CALL sp_confirm_order_delivery(?, ?, ?)", [id, nextStatusId, nowIso()]);
+  await getPool().query("CALL sp_confirm_order_delivery(?, ?, ?, ?, ?)", [
+    id,
+    nextStatusId,
+    deliveredQty,
+    lossQty,
+    nowIso(),
+  ]);
   return getOrderById(id);
 }
 

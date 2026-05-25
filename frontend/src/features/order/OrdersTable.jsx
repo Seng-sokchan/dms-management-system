@@ -4,6 +4,7 @@ import { usePagination } from "../../hooks/usePagination";
 import { Button } from "../../components/ui/Button";
 import { DataTable } from "../../components/ui/DataTable";
 import { useConfirm } from "../../components/ui/ConfirmProvider";
+import { DeliveryConfirmModal } from "./DeliveryConfirmModal";
 
 const ORDER_STATUS_FALLBACK = [
   "Owner_Preparing",
@@ -17,22 +18,30 @@ export function OrdersTable({ orders, statuses, onUpdateStatus, onConfirmDeliver
   const { confirm } = useConfirm();
   const [searchText, setSearchText] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
+  const [confirmOrder, setConfirmOrder] = useState(null);
   const statusRows = Array.isArray(statuses) && statuses.length
     ? statuses
     : ORDER_STATUS_FALLBACK.map((name) => ({ name }));
   const statusOptions = statusRows.map((row) => row.name);
 
   async function handleSaveDelivery(order) {
-    if (
-      !(await confirm({
+    if (order.status !== "Ready_For_Delivery") {
+      const ok = await confirm({
         title: t("confirm.deliverySaveTitle"),
         message: t("confirm.deliverySaveMessage"),
         tone: "primary",
-      }))
-    ) {
+      });
+      if (!ok) return;
+      onConfirmDelivery(order.id, { lossQty: 0 });
       return;
     }
-    onConfirmDelivery(order.id);
+    setConfirmOrder(order);
+  }
+
+  function handleConfirmDeliverySubmit({ lossQty }) {
+    if (!confirmOrder) return;
+    onConfirmDelivery(confirmOrder.id, { lossQty });
+    setConfirmOrder(null);
   }
 
   const rowMeta =
@@ -92,6 +101,8 @@ export function OrdersTable({ orders, statuses, onUpdateStatus, onConfirmDeliver
               <th>{t("orders.producer")}</th>
               <th>{t("orders.delivery")}</th>
               <th>{t("orders.qty")}</th>
+              <th>{t("orders.distributed")}</th>
+              <th>{t("orders.loss")}</th>
               <th>{t("orders.status")}</th>
               <th>{t("orders.orderTotal", { defaultValue: "Total" })}</th>
               <th>{t("orders.saveDelivery")}</th>
@@ -110,6 +121,8 @@ export function OrdersTable({ orders, statuses, onUpdateStatus, onConfirmDeliver
                   <td>
                     <span className="qty-chip">{order.orderedQty}</span>
                   </td>
+                  <td>{order.deliveredQty != null ? order.deliveredQty : t("orders.dash")}</td>
+                  <td>{order.lossQty != null ? order.lossQty : t("orders.dash")}</td>
                   <td>
                     {readOnly ? (
                       <span className="status-chip">{order.status}</span>
@@ -146,6 +159,14 @@ export function OrdersTable({ orders, statuses, onUpdateStatus, onConfirmDeliver
             })}
           </tbody>
       </DataTable>
+
+      {confirmOrder ? (
+        <DeliveryConfirmModal
+          order={confirmOrder}
+          onConfirm={handleConfirmDeliverySubmit}
+          onClose={() => setConfirmOrder(null)}
+        />
+      ) : null}
     </section>
   );
 }

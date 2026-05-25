@@ -128,6 +128,8 @@ export function CustomerOrdersDetailModal({ customer, orders = [], onClose }) {
                 <th>{t("customerOrderHistory.orderId")}</th>
                 <th>{t("orders.item")}</th>
                 <th>{t("orders.qty")}</th>
+                <th>{t("orders.distributed")}</th>
+                <th>{t("orders.loss")}</th>
                 <th>{t("orders.status")}</th>
                 <th>{t("customerOrderHistory.amount")}</th>
                 <th>{t("customerOrderHistory.createdAt")}</th>
@@ -140,6 +142,8 @@ export function CustomerOrdersDetailModal({ customer, orders = [], onClose }) {
                   <td>{order.id}</td>
                   <td>{itemLabel(order)}</td>
                   <td>{order.orderedQty ?? "—"}</td>
+                  <td>{order.deliveredQty != null ? order.deliveredQty : "—"}</td>
+                  <td>{order.lossQty != null ? order.lossQty : "—"}</td>
                   <td>
                     <span className="status-chip">{order.status || "—"}</span>
                   </td>

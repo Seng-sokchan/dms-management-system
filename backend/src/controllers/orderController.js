@@ -77,7 +77,16 @@ const moveOrderStatus = asyncHandler(async (req, res) => {
 });
 
 const confirmDelivery = asyncHandler(async (req, res) => {
-  const order = await orderService.confirmDelivery(req.params.id);
+  const order = await orderService.confirmDelivery(req.params.id, req.body, {
+    user: req.user,
+  });
+  return success(res, order);
+});
+
+const mobileConfirmDelivery = asyncHandler(async (req, res) => {
+  const order = await orderService.confirmDelivery(req.params.id, req.body, {
+    user: req.user,
+  });
   return success(res, order);
 });
 
@@ -115,4 +124,5 @@ module.exports = {
   deleteOrder,
   mobileListOrders,
   mobileUpdateStatus,
+  mobileConfirmDelivery,
 };

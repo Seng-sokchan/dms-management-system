@@ -18,14 +18,22 @@ Base URL: `http://localhost:4000/v1` (production: `https://api.dmscambodia.com/v
 - `PATCH /orders/:id` (assign producer/delivery agent)
 - `PATCH /orders/:id/status`
 - `POST /orders/:id/delivery-confirmation`
-  - body: `{ "deliveredQty": 100, "lossQty": 2, "remainingQty": 3 }`
-  - validation: delivered + loss + remaining must be <= orderedQty
-- `GET/POST /payments`
+  - body: `{ "lossQty": 2 }` — `deliveredQty` is computed as `orderedQty - lossQty`
+  - validation: `0 <= lossQty <= orderedQty`; order must be `Ready_For_Delivery`
+  - roles: Admin, Delivery (Delivery must own the assigned order)
+- `POST /payments/intents` — create PayWay checkout for one order (body: `{ orderId, paymentOption? }`)
+- `GET /payments/:paymentId` — poll payment status (fallback; primary: PayWay webhook + Socket.IO)
+- `GET /orders/:orderId/payment` — latest payment for an order
+- `POST /payments/:paymentId/cancel` — cancel pending intent
+- `POST /webhooks/payway` — PayWay server callback (no auth; configure as PayWay `callback_url`)
+- `PAYWAY_RETURN_DEEPLINK_BASE` — e.g. `dms://payment/result/success` (ABA Mobile opens this after pay; mobile app shows transaction completed UI)
+- PayWay webhooks are stored in `payment_webhook_events` (audit). On deploy run `npm run db:migrate:payway` once; the server also auto-creates missing tables on startup.
 - `GET /dashboard/summary`
 
 ## Mobile Integration Endpoints
 - `GET /mobile/orders` — **Customer** sees orders for their linked customer; **Delivery** sees only orders whose `delivery_agent_id` matches `users.delivery_agent_id` for that login (empty list if the user is not linked to an agent).
 - `POST /mobile/orders/:id/status`
+- `POST /mobile/orders/:id/delivery-confirmation` — same body/rules as web delivery confirmation (for Delivery drivers completing a stop)
 
 ## Demo Users
 - Admin: `admin/admin123`

@@ -6,6 +6,7 @@ import ItemListScreen from "../screens/ItemListScreen";
 import CartScreen from "../screens/CartScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import CustomerTrackingScreen from "../screens/CustomerTrackingScreen";
+import MyOrdersScreen from "../screens/MyOrdersScreen";
 import { AppIcon } from "../components/ui";
 import FloatingTabBar from "../components/navigation/FloatingTabBar";
 import { useFloatingTabScreenOptions, useStackScreenOptions } from "./screenOptions";
@@ -20,6 +21,10 @@ function TabIconProfile({ color, size }) {
 
 function TabIconTracking({ color, size }) {
   return <AppIcon name="map-marker-radius" color={color} size={size} />;
+}
+
+function TabIconOrders({ color, size }) {
+  return <AppIcon name="receipt" color={color} size={size} />;
 }
 
 const Tab = createBottomTabNavigator();
@@ -73,6 +78,11 @@ export default function AuthenticatedTabs() {
         name="NewOrder"
         component={NewOrderNavigator}
         options={{ title: t("nav.order"), tabBarIcon: TabIconNewOrder }}
+      />
+      <Tab.Screen
+        name="MyOrders"
+        component={MyOrdersScreen}
+        options={{ title: t("nav.orders"), tabBarIcon: TabIconOrders }}
       />
       <Tab.Screen
         name="CustomerTracking"

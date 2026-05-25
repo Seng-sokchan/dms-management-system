@@ -1,7 +1,8 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { FlatList, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import OrderPaymentActions from "../components/OrderPaymentActions";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { getAppLocale } from "../i18n/config";
@@ -20,6 +21,7 @@ import { listMobileOrders } from "../services/ordersApi";
 import { getApiErrorMessage } from "../services/apiClient";
 
 export default function DepotOrdersScreen() {
+  const navigation = useNavigation();
   const { token } = useAuth();
   const { t, i18n } = useTranslation();
   const { colors, radii, spacing, typography } = useTheme();
@@ -144,7 +146,10 @@ export default function DepotOrdersScreen() {
 
   return (
     <Screen accessibilityState={loading ? { busy: true } : undefined}>
-      <SectionHeader title={t("depot.ordersTitle")} subtitle={headerSubtitle} />
+      <SectionHeader
+        title={t("depot.ordersTitle")}
+        subtitle={loading ? headerSubtitle : `${headerSubtitle}\n${t("depot.ordersPaymentHint")}`}
+      />
 
       {loading ? (
         <>
@@ -195,7 +200,14 @@ export default function DepotOrdersScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.textMuted} />
         }
         renderItem={({ item }) => (
-          <OrderCard order={item} styles={styles} t={t} locale={getAppLocale(i18n.language)} />
+          <OrderCard
+            order={item}
+            styles={styles}
+            t={t}
+            locale={getAppLocale(i18n.language)}
+            navigation={navigation}
+            token={token}
+          />
         )}
         ListEmptyComponent={
           loadError ? null : (
@@ -208,7 +220,7 @@ export default function DepotOrdersScreen() {
   );
 }
 
-function OrderCard({ order, styles, t, locale }) {
+function OrderCard({ order, styles, t, locale, navigation, token }) {
   const qty = Number(order?.orderedQty || 0);
   const total = Number(order?.amountTotal || 0);
   const skuPart = order.itemSku
@@ -241,6 +253,7 @@ function OrderCard({ order, styles, t, locale }) {
           })}
         </Text>
       )}
+      <OrderPaymentActions order={order} navigation={navigation} token={token} />
     </Card>
   );
 }

@@ -395,6 +395,37 @@ export function OrdersPage({ orders, deliveryAgents = [] }) {
                 onPageSizeChange: setModalTruckOrderPageSize,
               }}
             />
+            <div className="orders-truck-delivery-qty" style={{ marginTop: "1.5rem" }}>
+              <h4 style={{ marginTop: 0 }}>{t("orders.deliveryQtyDetail", { defaultValue: "Delivery quantities" })}</h4>
+              <DataTable className="orders-truck-delivery-qty__table">
+                <thead>
+                  <tr>
+                    <th>{t("orders.orderId", { defaultValue: "Order" })}</th>
+                    <th>{t("orders.customer")}</th>
+                    <th>{t("orders.item")}</th>
+                    <th>{t("orders.qty")}</th>
+                    <th>{t("orders.distributed")}</th>
+                    <th>{t("orders.loss")}</th>
+                    <th>{t("orders.status")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(activeTruck.rows || []).map((order) => (
+                    <tr key={order.id}>
+                      <td>{order.id}</td>
+                      <td>{getCustomerLabel(order, dash)}</td>
+                      <td>{order.itemName || dash}</td>
+                      <td>{order.orderedQty ?? dash}</td>
+                      <td>{order.deliveredQty != null ? order.deliveredQty : dash}</td>
+                      <td>{order.lossQty != null ? order.lossQty : dash}</td>
+                      <td>
+                        <span className="status-chip">{order.status || dash}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </DataTable>
+            </div>
           </section>
         </div>
       ) : null}

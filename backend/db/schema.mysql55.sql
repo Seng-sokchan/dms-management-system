@@ -4,6 +4,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS borrow_material_monthly_installments;
 DROP TABLE IF EXISTS borrow_material_monthly_schedules;
 DROP TABLE IF EXISTS borrow_material_order_loans;
+DROP TABLE IF EXISTS payment_webhook_events;
 DROP TABLE IF EXISTS order_status_history;
 DROP TABLE IF EXISTS payments;
 DROP TABLE IF EXISTS orders;
@@ -226,15 +227,19 @@ CREATE TABLE orders (
   item_id INT UNSIGNED NOT NULL,
   currency VARCHAR(10) NOT NULL DEFAULT 'KHR',
   ordered_qty INT UNSIGNED NOT NULL,
+  delivered_qty INT UNSIGNED NULL,
+  loss_qty INT UNSIGNED NULL,
   unit_price DECIMAL(14,2) NOT NULL,
   producer_id INT UNSIGNED DEFAULT NULL,
   delivery_agent_id INT UNSIGNED DEFAULT NULL,
   delivery_time DATETIME NULL,
   amount_total DECIMAL(14,2) NOT NULL,
+  payment_status ENUM('unpaid','pending','paid','failed') NOT NULL DEFAULT 'unpaid',
   status TINYINT UNSIGNED NOT NULL DEFAULT 1,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NULL,
   PRIMARY KEY (id),
+  KEY idx_orders_payment_status (payment_status),
   KEY idx_orders_status (status),
   KEY idx_orders_created_at (created_at),
   KEY idx_orders_producer_id (producer_id),
@@ -305,6 +310,52 @@ CREATE TABLE order_status_history (
   KEY idx_order_status_history_from_status (from_status),
   KEY idx_order_status_history_to_status (to_status),
   KEY idx_order_status_history_user (changed_by_user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- ABA PayWay payment intents (server-authoritative; webhook confirms paid)
+CREATE TABLE payments (
+  id CHAR(36) NOT NULL,
+  order_id INT UNSIGNED NOT NULL,
+  customer_id INT UNSIGNED NOT NULL,
+  provider VARCHAR(32) NOT NULL DEFAULT 'payway',
+  payway_tran_id VARCHAR(20) NOT NULL,
+  provider_tran_id VARCHAR(64) NULL,
+  amount DECIMAL(18, 2) NOT NULL,
+  currency CHAR(3) NOT NULL DEFAULT 'KHR',
+  status ENUM('pending', 'paid', 'failed', 'expired', 'cancelled') NOT NULL DEFAULT 'pending',
+  payment_option VARCHAR(32) NULL,
+  checkout_url TEXT NULL,
+  deeplink_url TEXT NULL,
+  raw_create_response LONGTEXT NULL,
+  raw_callback_payload LONGTEXT NULL,
+  verified_at DATETIME NULL,
+  paid_at DATETIME NULL,
+  expires_at DATETIME NOT NULL,
+  idempotency_key VARCHAR(64) NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_payments_payway_tran_id (payway_tran_id),
+  UNIQUE KEY uq_payments_idempotency_key (idempotency_key),
+  KEY idx_payments_order_status (order_id, status),
+  KEY idx_payments_customer_created (customer_id, created_at),
+  KEY idx_payments_provider_tran (provider_tran_id),
+  CONSTRAINT fk_payments_order FOREIGN KEY (order_id) REFERENCES orders (id),
+  CONSTRAINT fk_payments_customer FOREIGN KEY (customer_id) REFERENCES customers (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE payment_webhook_events (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  payment_id CHAR(36) NULL,
+  event_key VARCHAR(128) NOT NULL,
+  payload LONGTEXT NOT NULL,
+  processed TINYINT(1) NOT NULL DEFAULT 0,
+  processed_at DATETIME NULL,
+  error TEXT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_payment_webhook_event_key (event_key),
+  KEY idx_payment_webhook_payment (payment_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 DROP PROCEDURE IF EXISTS sp_list_orders;
@@ -854,9 +905,10 @@ LIMIT 1;
 
 CREATE PROCEDURE sp_get_order_by_id(IN p_id INT UNSIGNED)
 SELECT
-  o.id, c.name AS customer_name, o.customer_id, o.item_id, o.currency, o.ordered_qty, o.unit_price,
+  o.id, c.name AS customer_name, o.customer_id, o.item_id, o.currency, o.ordered_qty,
+  o.delivered_qty, o.loss_qty, o.unit_price,
   o.producer_id, o.delivery_agent_id, o.delivery_time,
-  o.amount_total, s.name AS status, o.created_at, o.updated_at,
+  o.amount_total, o.payment_status, s.name AS status, o.created_at, o.updated_at,
   c.phone AS customer_phone,
   p.name AS producer_name,
   da.name AS delivery_agent_name,
@@ -873,9 +925,10 @@ LIMIT 1;
 
 CREATE PROCEDURE sp_list_orders()
 SELECT
-  o.id, c.name AS customer_name, o.customer_id, o.item_id, o.currency, o.ordered_qty, o.unit_price,
+  o.id, c.name AS customer_name, o.customer_id, o.item_id, o.currency, o.ordered_qty,
+  o.delivered_qty, o.loss_qty, o.unit_price,
   o.producer_id, o.delivery_agent_id, o.delivery_time,
-  o.amount_total, s.name AS status, o.created_at, o.updated_at,
+  o.amount_total, o.payment_status, s.name AS status, o.created_at, o.updated_at,
   c.phone AS customer_phone,
   c.latitude AS customer_latitude,
   c.longitude AS customer_longitude,
@@ -952,10 +1005,14 @@ VALUES (p_order_id, p_from_status, p_to_status, p_changed_by_user_id, p_note);
 CREATE PROCEDURE sp_confirm_order_delivery(
   IN p_id INT UNSIGNED,
   IN p_status TINYINT UNSIGNED,
+  IN p_delivered_qty INT UNSIGNED,
+  IN p_loss_qty INT UNSIGNED,
   IN p_updated_at DATETIME
 )
 UPDATE orders
 SET status = p_status,
+    delivered_qty = p_delivered_qty,
+    loss_qty = p_loss_qty,
     updated_at = p_updated_at
 WHERE id = p_id;
 
@@ -1170,10 +1227,12 @@ GROUP BY s.name;
 
 CREATE PROCEDURE sp_dashboard_currency_totals()
 SELECT
-  COALESCE(SUM(o.amount_total), 0) AS total_revenue_khr,
-  0 AS total_collected_khr
+  COALESCE(SUM(CASE WHEN o.currency = 'USD' THEN o.amount_total ELSE 0 END), 0) AS total_revenue_usd,
+  COALESCE(SUM(CASE WHEN o.currency = 'KHR' THEN o.amount_total ELSE 0 END), 0) AS total_revenue_khr,
+  COALESCE(SUM(CASE WHEN p.currency = 'USD' AND p.status = 'paid' THEN p.amount ELSE 0 END), 0) AS total_collected_usd,
+  COALESCE(SUM(CASE WHEN p.currency = 'KHR' AND p.status = 'paid' THEN p.amount ELSE 0 END), 0) AS total_collected_khr
 FROM orders o
-;
+LEFT JOIN payments p ON p.order_id = o.id AND p.status = 'paid';
 
 CREATE PROCEDURE sp_create_producer(IN p_name VARCHAR(255), IN p_phone VARCHAR(30), IN p_capacity_note VARCHAR(255), IN p_updated_at DATETIME)
 BEGIN
@@ -1427,13 +1486,14 @@ SELECT
   (SELECT COUNT(*) FROM producers WHERE is_active = 1) AS producers,
   (SELECT COUNT(*) FROM delivery_agents WHERE is_active = 1) AS deliveryAgents,
   (SELECT COALESCE(SUM(amount_total), 0) FROM orders) AS totalRevenue,
-  0 AS totalCollected,
+  (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE status = 'paid') AS totalCollected,
   0 AS totalDiscrepancy,
-  0 AS totalLossQty,
+  (SELECT COALESCE(SUM(loss_qty), 0) FROM orders) AS totalLossQty,
   0 AS totalRemainingQty;
 
 -- ---------------------------------------------------------------------------
--- Legacy migration scripts consolidated here (single-file DB source)
+-- Legacy idempotent upgrades consolidated here (single-file DB source).
+-- PayWay runtime upgrade: backend/db/payway_schema_upgrade.sql (section 23).
 -- ---------------------------------------------------------------------------
 
 -- 1) Ensure role_menus table + baseline role->menu mappings exist
@@ -1458,11 +1518,11 @@ EXECUTE stmt_role_menus;
 DEALLOCATE PREPARE stmt_role_menus;
 
 INSERT INTO role_menus (role_id, menu_key) VALUES
-(1, 'overview'), (1, 'newOrder'), (1, 'catalogs'), (1, 'items'), (1, 'customerItemPrices'), (1, 'customers'), (1, 'trackingCustomerLocation'), (1, 'depots'), (1, 'customersByDepot'),
+(1, 'overview'), (1, 'newOrder'), (1, 'catalogs'), (1, 'items'), (1, 'customerItemPrices'), (1, 'customers'), (1, 'trackingCustomerLocation'), (1, 'depots'), (1, 'provinces'), (1, 'customersByDepot'),
 (1, 'producers'), (1, 'deliveryAgents'), (1, 'orders'), (1, 'assignOrders'), (1, 'orderMovement'), (1, 'payments'), (1, 'customerOrderHistory'),
 (1, 'users'),
 (1, 'borrowedMaterials'),
-(2, 'overview'), (2, 'newOrder'), (2, 'catalogs'), (2, 'items'), (2, 'customerItemPrices'), (2, 'customers'), (2, 'trackingCustomerLocation'), (2, 'depots'), (2, 'customersByDepot'),
+(2, 'overview'), (2, 'newOrder'), (2, 'catalogs'), (2, 'items'), (2, 'customerItemPrices'), (2, 'customers'), (2, 'trackingCustomerLocation'), (2, 'depots'), (2, 'provinces'), (2, 'customersByDepot'),
 (2, 'producers'), (2, 'deliveryAgents'), (2, 'orders'), (2, 'assignOrders'), (2, 'orderMovement'), (2, 'payments'), (2, 'customerOrderHistory'),
 (2, 'borrowedMaterials'),
 (3, 'overview'), (3, 'deliveryAgents'), (3, 'orders'),
@@ -1956,6 +2016,190 @@ FROM roles r
 WHERE r.name IN ('Admin', 'Owner', 'Depot', 'Customer')
 ON DUPLICATE KEY UPDATE menu_key = VALUES(menu_key);
 
+-- 18d) Provinces master + customers.province_id
+CREATE TABLE IF NOT EXISTS provinces (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  name VARCHAR(120) NOT NULL,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NULL,
+  PRIMARY KEY (id),
+  KEY idx_provinces_name (name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+SET @has_customer_province_id := (
+  SELECT COUNT(*)
+  FROM information_schema.columns
+  WHERE table_schema = DATABASE()
+    AND table_name = 'customers'
+    AND column_name = 'province_id'
+);
+SET @sql_add_customer_province_id := IF(
+  @has_customer_province_id = 0,
+  'ALTER TABLE customers ADD COLUMN province_id INT UNSIGNED NULL AFTER depot_id, ADD KEY idx_customers_province_id (province_id)',
+  'SELECT 1'
+);
+PREPARE stmt_add_customer_province_id FROM @sql_add_customer_province_id;
+EXECUTE stmt_add_customer_province_id;
+DEALLOCATE PREPARE stmt_add_customer_province_id;
+
+INSERT INTO role_menus (role_id, menu_key)
+SELECT r.id, 'provinces'
+FROM roles r
+WHERE r.name IN ('Admin', 'Owner')
+ON DUPLICATE KEY UPDATE menu_key = VALUES(menu_key);
+
+DROP PROCEDURE IF EXISTS sp_get_province_by_id;
+DROP PROCEDURE IF EXISTS sp_list_provinces;
+DROP PROCEDURE IF EXISTS sp_create_province;
+DROP PROCEDURE IF EXISTS sp_update_province;
+DROP PROCEDURE IF EXISTS sp_delete_province;
+
+CREATE PROCEDURE sp_get_province_by_id(IN p_id INT UNSIGNED)
+SELECT id, name
+FROM provinces
+WHERE id = p_id AND is_active = 1
+LIMIT 1;
+
+CREATE PROCEDURE sp_list_provinces()
+SELECT id, name
+FROM provinces
+WHERE is_active = 1
+ORDER BY id DESC;
+
+CREATE PROCEDURE sp_create_province(
+  IN p_name VARCHAR(120),
+  IN p_updated_at DATETIME
+)
+BEGIN
+  INSERT INTO provinces (name, updated_at)
+  VALUES (p_name, p_updated_at);
+  SELECT LAST_INSERT_ID() AS insertId;
+END;
+
+CREATE PROCEDURE sp_update_province(
+  IN p_id INT UNSIGNED,
+  IN p_name VARCHAR(120),
+  IN p_updated_at DATETIME
+)
+BEGIN
+  UPDATE provinces
+  SET name = p_name, updated_at = p_updated_at
+  WHERE id = p_id AND is_active = 1;
+  SELECT ROW_COUNT() AS affectedRows;
+END;
+
+CREATE PROCEDURE sp_delete_province(IN p_id INT UNSIGNED, IN p_updated_at DATETIME)
+BEGIN
+  UPDATE provinces SET is_active = 0, updated_at = p_updated_at WHERE id = p_id AND is_active = 1;
+  SELECT ROW_COUNT() AS affectedRows;
+END;
+
+DROP PROCEDURE IF EXISTS sp_get_customer_by_id;
+DROP PROCEDURE IF EXISTS sp_list_customers;
+DROP PROCEDURE IF EXISTS sp_list_customers_by_depot_id;
+DROP PROCEDURE IF EXISTS sp_list_customers_by_owner_user_id;
+DROP PROCEDURE IF EXISTS sp_get_customer_by_user_id;
+DROP PROCEDURE IF EXISTS sp_create_customer;
+DROP PROCEDURE IF EXISTS sp_update_customer;
+
+CREATE PROCEDURE sp_get_customer_by_id(IN p_id INT UNSIGNED)
+SELECT c.id, c.name, c.phone, u.id AS user_id, u.name AS user_name, u.username AS user_username,
+       c.depot_id, d.name AS depot_name, c.province_id, p.name AS province_name,
+       c.latitude, c.longitude, c.updated_at
+FROM customers c
+LEFT JOIN users u ON u.customer_id = c.id
+LEFT JOIN depots d ON d.id = c.depot_id AND d.is_active = 1
+LEFT JOIN provinces p ON p.id = c.province_id AND p.is_active = 1
+WHERE c.id = p_id AND c.is_active = 1
+LIMIT 1;
+
+CREATE PROCEDURE sp_list_customers()
+SELECT c.id, c.name, c.phone, u.id AS user_id, u.name AS user_name, u.username AS user_username,
+       c.depot_id, d.name AS depot_name, c.province_id, p.name AS province_name,
+       c.latitude, c.longitude, c.updated_at
+FROM customers c
+LEFT JOIN users u ON u.customer_id = c.id
+LEFT JOIN depots d ON d.id = c.depot_id AND d.is_active = 1
+LEFT JOIN provinces p ON p.id = c.province_id AND p.is_active = 1
+WHERE c.is_active = 1
+ORDER BY c.id DESC;
+
+CREATE PROCEDURE sp_list_customers_by_depot_id(IN p_depot_id INT UNSIGNED)
+SELECT c.id, c.name, c.phone, u.id AS user_id, u.name AS user_name, u.username AS user_username,
+       c.depot_id, d.name AS depot_name, c.province_id, p.name AS province_name,
+       c.latitude, c.longitude, c.updated_at
+FROM customers c
+LEFT JOIN users u ON u.customer_id = c.id
+INNER JOIN depots d ON d.id = c.depot_id
+LEFT JOIN provinces p ON p.id = c.province_id AND p.is_active = 1
+WHERE c.is_active = 1 AND d.is_active = 1 AND c.depot_id = p_depot_id
+ORDER BY c.id DESC;
+
+CREATE PROCEDURE sp_list_customers_by_owner_user_id(IN p_owner_user_id INT UNSIGNED)
+SELECT c.id, c.name, c.phone, u.id AS user_id, u.name AS user_name, u.username AS user_username,
+       c.depot_id, d.name AS depot_name, c.province_id, p.name AS province_name,
+       c.latitude, c.longitude, c.updated_at
+FROM customers c
+LEFT JOIN users u ON u.customer_id = c.id
+LEFT JOIN depots d ON d.id = c.depot_id AND d.is_active = 1
+LEFT JOIN provinces p ON p.id = c.province_id AND p.is_active = 1
+WHERE c.is_active = 1
+  AND (
+    c.depot_id IS NULL
+    OR d.owner_user_id = p_owner_user_id
+  )
+ORDER BY c.id DESC;
+
+CREATE PROCEDURE sp_get_customer_by_user_id(IN p_user_id INT UNSIGNED)
+SELECT c.id, c.name, c.phone, u.id AS user_id, u.name AS user_name, u.username AS user_username,
+       c.depot_id, d.name AS depot_name, c.province_id, p.name AS province_name,
+       c.latitude, c.longitude, c.updated_at
+FROM users u
+INNER JOIN customers c ON c.id = u.customer_id AND c.is_active = 1
+LEFT JOIN depots d ON d.id = c.depot_id AND d.is_active = 1
+LEFT JOIN provinces p ON p.id = c.province_id AND p.is_active = 1
+WHERE u.id = p_user_id AND u.is_active = 1
+LIMIT 1;
+
+CREATE PROCEDURE sp_create_customer(
+  IN p_name VARCHAR(255),
+  IN p_phone VARCHAR(30),
+  IN p_depot_id INT UNSIGNED,
+  IN p_province_id INT UNSIGNED,
+  IN p_latitude DECIMAL(10,7),
+  IN p_longitude DECIMAL(10,7),
+  IN p_updated_at DATETIME
+)
+BEGIN
+  INSERT INTO customers (name, phone, depot_id, province_id, latitude, longitude, updated_at)
+  VALUES (p_name, p_phone, p_depot_id, p_province_id, p_latitude, p_longitude, p_updated_at);
+  SELECT LAST_INSERT_ID() AS insertId;
+END;
+
+CREATE PROCEDURE sp_update_customer(
+  IN p_id INT UNSIGNED,
+  IN p_name VARCHAR(255),
+  IN p_phone VARCHAR(30),
+  IN p_depot_id INT UNSIGNED,
+  IN p_province_id INT UNSIGNED,
+  IN p_latitude DECIMAL(10,7),
+  IN p_longitude DECIMAL(10,7),
+  IN p_updated_at DATETIME
+)
+BEGIN
+  UPDATE customers
+  SET name = p_name,
+      phone = p_phone,
+      depot_id = p_depot_id,
+      province_id = p_province_id,
+      latitude = p_latitude,
+      longitude = p_longitude,
+      updated_at = p_updated_at
+  WHERE id = p_id AND is_active = 1;
+  SELECT ROW_COUNT() AS affectedRows;
+END;
+
 -- 19) Borrow material order loans + monthly payment schedules (idempotent)
 SET @has_bmol := (
   SELECT COUNT(*) FROM information_schema.tables
@@ -2402,9 +2646,10 @@ DROP PROCEDURE IF EXISTS sp_update_order_assignment;
 
 CREATE PROCEDURE sp_get_order_by_id(IN p_id INT UNSIGNED)
 SELECT
-  o.id, c.name AS customer_name, o.customer_id, o.item_id, o.currency, o.ordered_qty, o.unit_price,
+  o.id, c.name AS customer_name, o.customer_id, o.item_id, o.currency, o.ordered_qty,
+  o.delivered_qty, o.loss_qty, o.unit_price,
   o.producer_id, o.delivery_agent_id, o.delivery_time,
-  o.amount_total, s.name AS status, o.created_at, o.updated_at,
+  o.amount_total, o.payment_status, s.name AS status, o.created_at, o.updated_at,
   c.phone AS customer_phone,
   p.name AS producer_name,
   da.name AS delivery_agent_name,
@@ -2421,9 +2666,10 @@ LIMIT 1;
 
 CREATE PROCEDURE sp_list_orders()
 SELECT
-  o.id, c.name AS customer_name, o.customer_id, o.item_id, o.currency, o.ordered_qty, o.unit_price,
+  o.id, c.name AS customer_name, o.customer_id, o.item_id, o.currency, o.ordered_qty,
+  o.delivered_qty, o.loss_qty, o.unit_price,
   o.producer_id, o.delivery_agent_id, o.delivery_time,
-  o.amount_total, s.name AS status, o.created_at, o.updated_at,
+  o.amount_total, o.payment_status, s.name AS status, o.created_at, o.updated_at,
   c.phone AS customer_phone,
   c.latitude AS customer_latitude,
   c.longitude AS customer_longitude,
@@ -2504,5 +2750,152 @@ DROP PROCEDURE IF EXISTS sp_delete_truck;
 DROP TABLE IF EXISTS trucks;
 
 DELETE FROM role_menus WHERE menu_key = 'trucks';
+
+-- 23) PayWay payments + webhook audit (see also payway_schema_upgrade.sql)
+CREATE TABLE IF NOT EXISTS payments (
+  id CHAR(36) NOT NULL,
+  order_id INT UNSIGNED NOT NULL,
+  customer_id INT UNSIGNED NOT NULL,
+  provider VARCHAR(32) NOT NULL DEFAULT 'payway',
+  payway_tran_id VARCHAR(20) NOT NULL,
+  provider_tran_id VARCHAR(64) NULL,
+  amount DECIMAL(18, 2) NOT NULL,
+  currency CHAR(3) NOT NULL DEFAULT 'KHR',
+  status ENUM('pending', 'paid', 'failed', 'expired', 'cancelled') NOT NULL DEFAULT 'pending',
+  payment_option VARCHAR(32) NULL,
+  checkout_url TEXT NULL,
+  deeplink_url TEXT NULL,
+  raw_create_response LONGTEXT NULL,
+  raw_callback_payload LONGTEXT NULL,
+  verified_at DATETIME NULL,
+  paid_at DATETIME NULL,
+  expires_at DATETIME NOT NULL,
+  idempotency_key VARCHAR(64) NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_payments_payway_tran_id (payway_tran_id),
+  UNIQUE KEY uq_payments_idempotency_key (idempotency_key),
+  KEY idx_payments_order_status (order_id, status),
+  KEY idx_payments_customer_created (customer_id, created_at),
+  KEY idx_payments_provider_tran (provider_tran_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS payment_webhook_events (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  payment_id CHAR(36) NULL,
+  event_key VARCHAR(128) NOT NULL,
+  payload LONGTEXT NOT NULL,
+  processed TINYINT(1) NOT NULL DEFAULT 0,
+  processed_at DATETIME NULL,
+  error TEXT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_payment_webhook_event_key (event_key),
+  KEY idx_payment_webhook_payment (payment_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+SET @has_orders_payment_status := (
+  SELECT COUNT(*)
+  FROM information_schema.columns
+  WHERE table_schema = DATABASE()
+    AND table_name = 'orders'
+    AND column_name = 'payment_status'
+);
+SET @sql_add_orders_payment_status := IF(
+  @has_orders_payment_status = 0,
+  "ALTER TABLE orders ADD COLUMN payment_status ENUM('unpaid','pending','paid','failed') NOT NULL DEFAULT 'unpaid' AFTER amount_total, ADD KEY idx_orders_payment_status (payment_status)",
+  'SELECT 1'
+);
+PREPARE stmt_add_orders_payment_status FROM @sql_add_orders_payment_status;
+EXECUTE stmt_add_orders_payment_status;
+DEALLOCATE PREPARE stmt_add_orders_payment_status;
+
+-- Allow webhook rows before payment row exists (drop legacy FK if present)
+SET @fk_payment_webhook_name := (
+  SELECT CONSTRAINT_NAME
+  FROM information_schema.TABLE_CONSTRAINTS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'payment_webhook_events'
+    AND CONSTRAINT_TYPE = 'FOREIGN KEY'
+  LIMIT 1
+);
+SET @sql_drop_payment_webhook_fk := IF(
+  @fk_payment_webhook_name IS NOT NULL,
+  CONCAT('ALTER TABLE payment_webhook_events DROP FOREIGN KEY `', @fk_payment_webhook_name, '`'),
+  'SELECT 1'
+);
+PREPARE stmt_drop_payment_webhook_fk FROM @sql_drop_payment_webhook_fk;
+EXECUTE stmt_drop_payment_webhook_fk;
+DEALLOCATE PREPARE stmt_drop_payment_webhook_fk;
+
+ALTER TABLE payment_webhook_events
+  MODIFY payment_id CHAR(36) NULL;
+
+DROP PROCEDURE IF EXISTS sp_get_order_by_id;
+DROP PROCEDURE IF EXISTS sp_list_orders;
+DROP PROCEDURE IF EXISTS sp_dashboard_totals;
+DROP PROCEDURE IF EXISTS sp_dashboard_currency_totals;
+
+CREATE PROCEDURE sp_get_order_by_id(IN p_id INT UNSIGNED)
+SELECT
+  o.id, c.name AS customer_name, o.customer_id, o.item_id, o.currency, o.ordered_qty,
+  o.delivered_qty, o.loss_qty, o.unit_price,
+  o.producer_id, o.delivery_agent_id, o.delivery_time,
+  o.amount_total, o.payment_status, s.name AS status, o.created_at, o.updated_at,
+  c.phone AS customer_phone,
+  p.name AS producer_name,
+  da.name AS delivery_agent_name,
+  it.name AS item_name,
+  it.sku AS item_sku
+FROM orders o
+INNER JOIN customers c ON c.id = o.customer_id
+INNER JOIN items it ON it.id = o.item_id
+INNER JOIN status s ON s.id = o.status
+LEFT JOIN producers p ON p.id = o.producer_id
+LEFT JOIN delivery_agents da ON da.id = o.delivery_agent_id
+WHERE o.id = p_id
+LIMIT 1;
+
+CREATE PROCEDURE sp_list_orders()
+SELECT
+  o.id, c.name AS customer_name, o.customer_id, o.item_id, o.currency, o.ordered_qty,
+  o.delivered_qty, o.loss_qty, o.unit_price,
+  o.producer_id, o.delivery_agent_id, o.delivery_time,
+  o.amount_total, o.payment_status, s.name AS status, o.created_at, o.updated_at,
+  c.phone AS customer_phone,
+  c.latitude AS customer_latitude,
+  c.longitude AS customer_longitude,
+  p.name AS producer_name,
+  da.name AS delivery_agent_name,
+  it.name AS item_name,
+  it.sku AS item_sku
+FROM orders o
+INNER JOIN customers c ON c.id = o.customer_id
+INNER JOIN items it ON it.id = o.item_id
+INNER JOIN status s ON s.id = o.status
+LEFT JOIN producers p ON p.id = o.producer_id
+LEFT JOIN delivery_agents da ON da.id = o.delivery_agent_id
+ORDER BY o.id DESC;
+
+CREATE PROCEDURE sp_dashboard_totals()
+SELECT
+  (SELECT COUNT(*) FROM orders) AS orders,
+  (SELECT COUNT(*) FROM producers WHERE is_active = 1) AS producers,
+  (SELECT COUNT(*) FROM delivery_agents WHERE is_active = 1) AS deliveryAgents,
+  (SELECT COALESCE(SUM(amount_total), 0) FROM orders) AS totalRevenue,
+  (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE status = 'paid') AS totalCollected,
+  0 AS totalDiscrepancy,
+  (SELECT COALESCE(SUM(loss_qty), 0) FROM orders) AS totalLossQty,
+  0 AS totalRemainingQty;
+
+CREATE PROCEDURE sp_dashboard_currency_totals()
+SELECT
+  COALESCE(SUM(CASE WHEN o.currency = 'USD' THEN o.amount_total ELSE 0 END), 0) AS total_revenue_usd,
+  COALESCE(SUM(CASE WHEN o.currency = 'KHR' THEN o.amount_total ELSE 0 END), 0) AS total_revenue_khr,
+  COALESCE(SUM(CASE WHEN p.currency = 'USD' AND p.status = 'paid' THEN p.amount ELSE 0 END), 0) AS total_collected_usd,
+  COALESCE(SUM(CASE WHEN p.currency = 'KHR' AND p.status = 'paid' THEN p.amount ELSE 0 END), 0) AS total_collected_khr
+FROM orders o
+LEFT JOIN payments p ON p.order_id = o.id AND p.status = 'paid';
 
 SET FOREIGN_KEY_CHECKS = 1;

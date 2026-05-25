@@ -1,6 +1,8 @@
 const { Server } = require("socket.io");
 const Redis = require("ioredis");
 const { resolveUserFromAccessToken } = require("../middleware/auth");
+const { setIo } = require("./ioRegistry");
+const { attachPaymentStatusHandlers } = require("./paymentStatusSocket");
 const orderRepository = require("../repositories/orders");
 const customerRepository = require("../repositories/customers");
 
@@ -150,8 +152,11 @@ function attachDeliveryLocationSocket(httpServer) {
     return next();
   });
 
+  setIo(io);
+
   io.on("connection", (socket) => {
     const { user } = socket.data;
+    attachPaymentStatusHandlers(io, socket);
     const customerTrackingRooms = new Set();
 
     socket.on("subscribe:delivery-locations", () => {

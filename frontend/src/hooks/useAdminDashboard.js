@@ -538,9 +538,9 @@ export function useAdminDashboard() {
     }
   }
 
-  async function submitDeliveryConfirmation(orderId) {
+  async function submitDeliveryConfirmation(orderId, payload = { lossQty: 0 }) {
     try {
-      await confirmDeliveryRequest(token, orderId, {});
+      await confirmDeliveryRequest(token, orderId, payload);
       await refresh();
       await showSuccessPopup(i18n.t("success.deliveryConfirmed"));
     } catch (error) {
