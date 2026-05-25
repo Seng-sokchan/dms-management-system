@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../context/ThemeContext";
 import { Card } from "./ui";
@@ -11,10 +11,13 @@ function DeliveryOrderCardInner({
   submittingOrderId,
   onAddToCart,
   onStatusChange,
+  onSelectForNav,
+  canSelectForNav = false,
 }) {
   const { t } = useTranslation();
   const { colors, radii, spacing, typography } = useTheme();
   const isSubmitting = submittingOrderId === item.id;
+  const isSelectableActive = mode === "active" && onSelectForNav && canSelectForNav;
 
   const styles = useMemo(
     () =>
@@ -37,6 +40,11 @@ function DeliveryOrderCardInner({
           fontSize: typography.caption,
           fontWeight: "700",
           overflow: "hidden",
+        },
+        selectHint: {
+          marginBottom: spacing.xs,
+          fontSize: typography.caption,
+          color: colors.textMuted,
         },
         orderTitle: {
           fontSize: typography.h3,
@@ -73,9 +81,12 @@ function DeliveryOrderCardInner({
     [colors, radii, spacing, typography],
   );
 
-  return (
+  const cardContent = (
     <Card style={[styles.orderCard, isActiveNav && styles.orderCardActive]}>
       {isActiveNav ? <Text style={styles.nextStopBadge}>{t("delivery.nextStop")}</Text> : null}
+      {isSelectableActive && !isActiveNav ? (
+        <Text style={styles.selectHint}>{t("delivery.tapToNavigate")}</Text>
+      ) : null}
       <Text style={styles.orderTitle}>#{item.id}</Text>
       <Text style={styles.orderLine}>
         {t("delivery.orderCustomer", { name: item.customerName || "-" })}
@@ -105,6 +116,21 @@ function DeliveryOrderCardInner({
       </View>
     </Card>
   );
+
+  if (isSelectableActive) {
+    return (
+      <Pressable
+        onPress={() => onSelectForNav(item.id)}
+        disabled={isSubmitting}
+        accessibilityRole="button"
+        accessibilityLabel={t("delivery.tapToNavigate")}
+      >
+        {cardContent}
+      </Pressable>
+    );
+  }
+
+  return cardContent;
 }
 
 export const DeliveryOrderCard = React.memo(DeliveryOrderCardInner);

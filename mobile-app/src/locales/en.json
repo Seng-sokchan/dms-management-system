@@ -132,7 +132,17 @@
     "addToCart": "Add to Cart",
     "delivered": "Delivered",
     "orderCustomer": "Customer: {{name}}",
-    "orderStatus": "Status: {{status}}"
+    "orderStatus": "Status: {{status}}",
+    "routeEtaDistance": "{{minutes}} min · {{km}} km",
+    "routeNextStop": "#{{id}} · {{name}}",
+    "routeCustomerFallback": "Customer",
+    "mapTitle": "Navigation",
+    "mapNextStop": "Next stop: #{{id}} — {{name}}",
+    "waitingForGps": "Waiting for GPS to find the nearest stop…",
+    "missingCoordsWarning": "{{count}} order(s) missing coordinates.",
+    "directionsSetupHint": "Add customer lat/lng in admin for directions.",
+    "recenter": "Recenter",
+    "tapToNavigate": "Tap to set as next stop"
   },
   "qr": {
     "title": "Pre-order successful",

@@ -132,7 +132,17 @@
     "addToCart": "បន្ថែមទៅកន្ត្រក",
     "delivered": "បានដឹកជញ្ជូន",
     "orderCustomer": "អតិថិជន: {{name}}",
-    "orderStatus": "ស្ថានភាព: {{status}}"
+    "orderStatus": "ស្ថានភាព: {{status}}",
+    "routeEtaDistance": "{{minutes}} នាទី · {{km}} គ.ម",
+    "routeNextStop": "#{{id}} · {{name}}",
+    "routeCustomerFallback": "អតិថិជន",
+    "mapTitle": "រុករកផ្លូវ",
+    "mapNextStop": "ចំណុចបន្ទាប់: #{{id}} — {{name}}",
+    "waitingForGps": "រង់ចាំ GPS ដើម្បីរកចំណុចជិតបំផុត…",
+    "missingCoordsWarning": "ការបញ្ជាទិញ {{count}} ខាតកូអរដោនេយ។",
+    "directionsSetupHint": "បន្ថែម lat/lng អតិថិជននៅក្នុង admin សម្រាប់ទិសដៅ។",
+    "recenter": "មើលទីតាំងខ្ញុំ",
+    "tapToNavigate": "ចុចដើម្បីកំណត់ជាចំណុចបន្ទាប់"
   },
   "qr": {
     "title": "បញ្ជាទិញជាមុនជោគជ័យ",

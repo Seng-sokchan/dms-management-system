@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import MapViewDirections from "react-native-maps-directions";
 import { GOOGLE_MAPS_API_KEY } from "../config/appConfig";
 import { useTheme } from "../context/ThemeContext";
@@ -8,12 +8,7 @@ import { useTheme } from "../context/ThemeContext";
  */
 export function DeliveryRouteDirections({ origin, destination, onReady, onError }) {
   const { colors } = useTheme();
-  const [routeKey, setRouteKey] = useState(0);
   const apiKey = GOOGLE_MAPS_API_KEY?.trim() || "";
-
-  useEffect(() => {
-    setRouteKey((k) => k + 1);
-  }, [origin?.latitude, origin?.longitude, destination?.latitude, destination?.longitude]);
 
   useEffect(() => {
     if (!origin || !destination) return;
@@ -27,12 +22,12 @@ export function DeliveryRouteDirections({ origin, destination, onReady, onError 
 
   return (
     <MapViewDirections
-      key={routeKey}
       origin={origin}
       destination={destination}
       apikey={apiKey}
       mode="DRIVING"
       precision="high"
+      resetOnChange={false}
       strokeWidth={4}
       strokeColor={colors.primary}
       onReady={(result) => {

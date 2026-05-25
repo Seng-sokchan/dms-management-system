@@ -15,6 +15,7 @@ import { useFocusEffect, useIsFocused, useNavigation } from "@react-navigation/n
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppIcon, OrderCardSkeleton, SkeletonList } from "../components/ui";
 import { DeliveryMapSection } from "../components/DeliveryMapSection";
+import { DeliveryNavRouteBar } from "../components/DeliveryNavRouteBar";
 import {
   DeliveryOrdersBottomSheet,
   getDeliverySheetPeekHeight,
@@ -29,6 +30,7 @@ import {
   getCurrentDriverPositionAsync,
 } from "../utils/driverLocationProvider";
 import {
+  buildRouteSummaryFromDirections,
   getOrderDestination,
   haversineMeters,
   orderHasCustomerCoords,
@@ -45,6 +47,11 @@ const GET_CURRENT_OPTIONS = {
   timeout: 15000,
   maximumAge: 10000,
 };
+
+/** Approximate height of the back pill row (icon + label + padding). */
+const NAV_BACK_ROW_HEIGHT = 44;
+/** Approximate height of the route summary bar below the header. */
+const NAV_ROUTE_BAR_HEIGHT = 52;
 
 export default function DeliveryNavigationScreen() {
   const { token } = useAuth();
@@ -121,12 +128,15 @@ export default function DeliveryNavigationScreen() {
     [],
   );
   const [mapReady, setMapReady] = useState(false);
+  const [routeSummary, setRouteSummary] = useState(null);
 
   const lastNavRecalcLat = useRef(null);
   const lastNavRecalcLng = useRef(null);
   const ordersRef = useRef(orders);
   const directionsOriginRef = useRef(null);
   const directionsDebounceRef = useRef(null);
+  const manualNavLockRef = useRef(false);
+  const manualNavOrderIdRef = useRef(null);
 
   directionsOriginRef.current = directionsOrigin;
   ordersRef.current = orders;
@@ -160,6 +170,25 @@ export default function DeliveryNavigationScreen() {
     const rows = orderList ?? ordersRef.current;
     const loc = location;
     if (!loc) return;
+
+    if (manualNavLockRef.current && manualNavOrderIdRef.current != null) {
+      const lockedId = manualNavOrderIdRef.current;
+      const stillValid = rows.some(
+        (order) =>
+          String(order.id) === String(lockedId) &&
+          order.status === "Ready_For_Delivery" &&
+          orderHasCustomerCoords(order),
+      );
+      if (stillValid) {
+        setActiveNavOrderId(String(lockedId));
+        lastNavRecalcLat.current = loc.latitude;
+        lastNavRecalcLng.current = loc.longitude;
+        return;
+      }
+      manualNavLockRef.current = false;
+      manualNavOrderIdRef.current = null;
+    }
+
     const nearest = pickNearestReadyOrder(rows, loc.latitude, loc.longitude);
     setActiveNavOrderId(nearest ? String(nearest.order.id) : null);
     if (nearest) {
@@ -170,6 +199,7 @@ export default function DeliveryNavigationScreen() {
 
   const handlePositionForNav = useCallback(
     (latitude, longitude) => {
+      if (manualNavLockRef.current) return;
       const prevLat = lastNavRecalcLat.current;
       const prevLng = lastNavRecalcLng.current;
       if (prevLat != null && prevLng != null) {
@@ -183,6 +213,10 @@ export default function DeliveryNavigationScreen() {
     [recomputeActiveNavOrder],
   );
 
+  const handleRouteReady = useCallback((result) => {
+    setRouteSummary(buildRouteSummaryFromDirections(result));
+  }, []);
+
   const { trackingStatus, driverLocation, driverLocationRef, setDriverLocationImmediate } =
     useDeliveryLiveTracking({
       token,
@@ -190,6 +224,26 @@ export default function DeliveryNavigationScreen() {
       mapVisible: true,
       onPositionForNav: handlePositionForNav,
     });
+
+  const handleSelectNavOrder = useCallback(
+    (orderId) => {
+      const order = ordersRef.current.find((row) => String(row.id) === String(orderId));
+      if (!order || !orderHasCustomerCoords(order)) return;
+      manualNavLockRef.current = true;
+      manualNavOrderIdRef.current = String(orderId);
+      setActiveNavOrderId(String(orderId));
+      const loc = driverLocationRef.current;
+      if (loc) {
+        lastNavRecalcLat.current = loc.latitude;
+        lastNavRecalcLng.current = loc.longitude;
+      }
+    },
+    [driverLocationRef],
+  );
+
+  useEffect(() => {
+    setRouteSummary(null);
+  }, [activeNavOrderId, activeDestination?.latitude, activeDestination?.longitude]);
 
   useEffect(() => {
     setDirectionsError("");
@@ -268,6 +322,10 @@ export default function DeliveryNavigationScreen() {
       const orderBefore = ordersRef.current.find((row) => String(row.id) === String(orderId));
 
       if (status === "Recieve_By_Customer") {
+        if (String(orderId) === String(manualNavOrderIdRef.current)) {
+          manualNavLockRef.current = false;
+          manualNavOrderIdRef.current = null;
+        }
         setActiveNavOrderId(null);
       }
 
@@ -353,6 +411,16 @@ export default function DeliveryNavigationScreen() {
   );
 
   useEffect(() => {
+    if (manualNavLockRef.current && manualNavOrderIdRef.current != null) {
+      const lockedStillReady = readyForDeliveryOrders.some(
+        (order) => String(order.id) === String(manualNavOrderIdRef.current),
+      );
+      if (!lockedStillReady) {
+        manualNavLockRef.current = false;
+        manualNavOrderIdRef.current = null;
+      }
+    }
+
     const activeStillReady = readyForDeliveryOrders.some(
       (order) => String(order.id) === String(activeNavOrderId),
     );
@@ -376,9 +444,11 @@ export default function DeliveryNavigationScreen() {
         submittingOrderId={submittingOrderId}
         onAddToCart={() => {}}
         onStatusChange={changeOrderStatus}
+        onSelectForNav={handleSelectNavOrder}
+        canSelectForNav={orderHasCustomerCoords(item)}
       />
     ),
-    [activeNavOrderId, submittingOrderId, changeOrderStatus],
+    [activeNavOrderId, submittingOrderId, changeOrderStatus, handleSelectNavOrder],
   );
 
   const sheetPeekTitle = useMemo(() => {
@@ -387,6 +457,9 @@ export default function DeliveryNavigationScreen() {
     }
     return `${readyForDeliveryOrders.length} active deliver${readyForDeliveryOrders.length === 1 ? "y" : "ies"}`;
   }, [activeNavOrder, readyForDeliveryOrders.length]);
+
+  const routeBarTop = insets.top + spacing.sm + NAV_BACK_ROW_HEIGHT + spacing.sm;
+  const mapOverlayTop = routeBarTop + NAV_ROUTE_BAR_HEIGHT + spacing.xs;
 
   const sheetPeekSubtitle = useMemo(() => {
     if (activeNavOrder) {
@@ -415,6 +488,7 @@ export default function DeliveryNavigationScreen() {
           mapWidth={mapLayout.width}
           mapHeight={mapLayout.height}
           bottomInset={sheetPeekHeight}
+          overlayTopInset={mapOverlayTop}
           driverLocation={driverLocation}
           activeNavOrder={activeNavOrder}
           activeNavOrderId={activeNavOrderId}
@@ -424,6 +498,7 @@ export default function DeliveryNavigationScreen() {
           readyForDeliveryOrders={readyForDeliveryOrders}
           readyOrdersMissingCoordsCount={readyOrdersMissingCoordsCount}
           onDirectionsError={handleDirectionsError}
+          onRouteReady={handleRouteReady}
         />
       ) : (
         <View style={styles.mapPlaceholder}>
@@ -440,6 +515,12 @@ export default function DeliveryNavigationScreen() {
         <AppIcon name="arrow-left" size={22} color={colors.textPrimary} />
         <Text style={styles.backLabel}>{t("delivery.back")}</Text>
       </Pressable>
+
+      <DeliveryNavRouteBar
+        routeSummary={routeSummary}
+        activeNavOrder={activeNavOrder}
+        topOffset={routeBarTop}
+      />
 
       <DeliveryOrdersBottomSheet
         expanded={ordersSheetExpanded}

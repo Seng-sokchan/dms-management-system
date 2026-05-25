@@ -1,10 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import MapView, { Marker } from "react-native-maps";
+import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { AppIcon } from "./ui";
 import { DeliveryRouteDirections } from "./DeliveryRouteDirections";
 import { buildMapRegion, getOrderDestination } from "../utils/deliveryNavigation";
 import { useTheme } from "../context/ThemeContext";
+
+const DRIVER_FOLLOW_DELTA = 0.018;
 
 function DeliveryMapSectionInner({
   driverLocation,
@@ -16,11 +20,14 @@ function DeliveryMapSectionInner({
   readyForDeliveryOrders,
   readyOrdersMissingCoordsCount,
   onDirectionsError,
+  onRouteReady,
   fullScreen = false,
   bottomInset = 0,
+  overlayTopInset = 0,
   mapWidth = 0,
   mapHeight = 0,
 }) {
+  const { t } = useTranslation();
   const { colors, radii, shadows, spacing, typography } = useTheme();
   const styles = useMemo(
     () =>
@@ -70,6 +77,24 @@ function DeliveryMapSectionInner({
           borderRadius: radii.sm,
           overflow: "hidden",
         },
+        recenterButton: {
+          position: "absolute",
+          right: spacing.lg,
+          zIndex: 20,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: spacing.xs,
+          paddingVertical: spacing.sm,
+          paddingHorizontal: spacing.md,
+          borderRadius: radii.pill,
+          backgroundColor: colors.surface,
+          ...shadows.card,
+        },
+        recenterLabel: {
+          fontSize: typography.caption,
+          fontWeight: "700",
+          color: colors.textPrimary,
+        },
         map: {
           flex: 1,
           width: "100%",
@@ -80,13 +105,22 @@ function DeliveryMapSectionInner({
   );
   const mapRef = useRef(null);
   const lastNavTargetKey = useRef(null);
+  const lastFitRouteKey = useRef(null);
   const insets = useSafeAreaInsets();
   const [layoutSize, setLayoutSize] = useState({ width: 0, height: 0 });
+  const [followDriver, setFollowDriver] = useState(true);
 
   const mapRegion = useMemo(
     () => buildMapRegion(driverLocation, activeDestination),
     [driverLocation, activeDestination],
   );
+
+  const navTargetKey = useMemo(() => {
+    const destKey = activeDestination
+      ? `${activeDestination.latitude},${activeDestination.longitude}`
+      : "none";
+    return `${activeNavOrderId || ""}:${destKey}`;
+  }, [activeNavOrderId, activeDestination]);
 
   const otherStops = useMemo(
     () =>
@@ -121,31 +155,75 @@ function DeliveryMapSectionInner({
     [bottomInset, fullScreen, insets.bottom, insets.top],
   );
 
+  const animateToDriver = useCallback(() => {
+    if (!mapRef.current || !driverLocation) return;
+    mapRef.current.animateToRegion(
+      {
+        latitude: driverLocation.latitude,
+        longitude: driverLocation.longitude,
+        latitudeDelta: DRIVER_FOLLOW_DELTA,
+        longitudeDelta: DRIVER_FOLLOW_DELTA,
+      },
+      400,
+    );
+  }, [driverLocation]);
+
+  const handleRouteReady = useCallback(
+    (result) => {
+      onRouteReady?.(result);
+      if (navTargetKey !== lastFitRouteKey.current) {
+        lastFitRouteKey.current = navTargetKey;
+        fitRouteOnMap(result);
+        setFollowDriver(false);
+      }
+    },
+    [fitRouteOnMap, navTargetKey, onRouteReady],
+  );
+
   useEffect(() => {
-    const destKey = activeDestination
-      ? `${activeDestination.latitude},${activeDestination.longitude}`
-      : "none";
-    const navKey = `${activeNavOrderId || ""}:${destKey}`;
-    if (navKey === lastNavTargetKey.current) return;
-    lastNavTargetKey.current = navKey;
+    if (navTargetKey === lastNavTargetKey.current) return;
+    lastNavTargetKey.current = navTargetKey;
+    lastFitRouteKey.current = null;
     if (!mapRef.current || !mapRegion) return;
     mapRef.current.animateToRegion(mapRegion, 450);
-  }, [activeNavOrderId, activeDestination, mapRegion]);
+    setFollowDriver(true);
+  }, [navTargetKey, mapRegion]);
+
+  useEffect(() => {
+    if (!fullScreen || !followDriver || !driverLocation) return undefined;
+    animateToDriver();
+    return undefined;
+  }, [driverLocation, followDriver, fullScreen, animateToDriver]);
+
+  const handleRecenter = useCallback(() => {
+    setFollowDriver(true);
+    if (driverLocation) {
+      animateToDriver();
+    } else if (mapRef.current && mapRegion) {
+      mapRef.current.animateToRegion(mapRegion, 450);
+    }
+  }, [animateToDriver, driverLocation, mapRegion]);
+
+  const handlePanDrag = useCallback(() => {
+    setFollowDriver(false);
+  }, []);
 
   const warnings = [];
   if (readyOrdersMissingCoordsCount > 0) {
-    warnings.push(`${readyOrdersMissingCoordsCount} order(s) missing coordinates.`);
+    warnings.push(t("delivery.missingCoordsWarning", { count: readyOrdersMissingCoordsCount }));
   }
   if (showNoCoordsWarning) {
-    warnings.push("Add customer lat/lng in admin for directions.");
+    warnings.push(t("delivery.directionsSetupHint"));
   }
   if (directionsError) {
     warnings.push(directionsError);
   }
 
+  const showDriverMarker = !fullScreen && driverLocation;
+
   const mapMarkers = (
     <>
-      {driverLocation ? (
+      {showDriverMarker ? (
         <Marker
           coordinate={driverLocation}
           pinColor="#111111"
@@ -175,7 +253,7 @@ function DeliveryMapSectionInner({
         <DeliveryRouteDirections
           origin={directionsOrigin}
           destination={activeDestination}
-          onReady={fitRouteOnMap}
+          onReady={handleRouteReady}
           onError={onDirectionsError}
         />
       ) : null}
@@ -202,36 +280,55 @@ function DeliveryMapSectionInner({
             style={{ width: resolvedWidth, height: resolvedHeight }}
             initialRegion={mapRegion}
             loadingEnabled
-            showsUserLocation={false}
+            showsUserLocation
             showsMyLocationButton={false}
             toolbarEnabled={false}
+            onPanDrag={handlePanDrag}
           >
             {mapMarkers}
           </MapView>
         ) : null}
         {warnings.length > 0 ? (
           <Text
-            style={[styles.mapOverlayWarning, { top: insets.top + 56 }]}
+            style={[
+              styles.mapOverlayWarning,
+              { top: overlayTopInset > 0 ? overlayTopInset : insets.top + 56 },
+            ]}
             numberOfLines={2}
           >
             {warnings[0]}
           </Text>
         ) : null}
+        <Pressable
+          style={[
+            styles.recenterButton,
+            {
+              bottom: Math.max(bottomInset + insets.bottom + spacing.md, spacing.xl),
+            },
+          ]}
+          onPress={handleRecenter}
+          accessibilityRole="button"
+          accessibilityLabel={t("delivery.recenter")}
+        >
+          <AppIcon name="crosshairs-gps" size={20} color={colors.textPrimary} />
+          <Text style={styles.recenterLabel}>{t("delivery.recenter")}</Text>
+        </Pressable>
       </View>
     );
   }
 
   return (
     <View style={styles.mapSection}>
-      <Text style={styles.mapSectionTitle}>Navigation</Text>
+      <Text style={styles.mapSectionTitle}>{t("delivery.mapTitle")}</Text>
       {activeNavOrder ? (
         <Text style={styles.mapSectionLead}>
-          Next stop: #{activeNavOrder.id} — {activeNavOrder.customerName || "Customer"}
+          {t("delivery.mapNextStop", {
+            id: activeNavOrder.id,
+            name: activeNavOrder.customerName || t("delivery.routeCustomerFallback"),
+          })}
         </Text>
       ) : (
-        <Text style={styles.mapSectionLead}>
-          Waiting for GPS to find the nearest stop…
-        </Text>
+        <Text style={styles.mapSectionLead}>{t("delivery.waitingForGps")}</Text>
       )}
       {warnings.map((msg) => (
         <Text key={msg} style={styles.mapWarning}>
@@ -239,7 +336,12 @@ function DeliveryMapSectionInner({
         </Text>
       ))}
       <View style={styles.mapWrap}>
-        <MapView ref={mapRef} style={styles.map} initialRegion={mapRegion}>
+        <MapView
+          ref={mapRef}
+          style={styles.map}
+          initialRegion={mapRegion}
+          onPanDrag={handlePanDrag}
+        >
           {mapMarkers}
         </MapView>
       </View>

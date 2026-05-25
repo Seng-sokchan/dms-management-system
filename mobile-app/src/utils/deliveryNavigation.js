@@ -98,3 +98,26 @@ export function buildMapRegion(driver, destination, fallbackRegion = PHNOM_PENH_
 
   return fallbackRegion;
 }
+
+/** Display km from Directions API (`distance` is already in km). */
+export function formatRouteDistanceKm(km) {
+  const n = Number(km);
+  if (!Number.isFinite(n) || n < 0) return null;
+  if (n < 1) return n.toFixed(1);
+  return n >= 10 ? String(Math.round(n)) : n.toFixed(1);
+}
+
+/** Display minutes from Directions API (`duration` is already in minutes). */
+export function formatRouteDurationMin(minutes) {
+  const n = Number(minutes);
+  if (!Number.isFinite(n) || n < 0) return null;
+  return String(Math.max(1, Math.round(n)));
+}
+
+export function buildRouteSummaryFromDirections(result) {
+  if (!result) return null;
+  const km = formatRouteDistanceKm(result.distance);
+  const minutes = formatRouteDurationMin(result.duration);
+  if (km == null || minutes == null) return null;
+  return { distanceKm: result.distance, durationMin: result.duration, kmLabel: km, minutesLabel: minutes };
+}
