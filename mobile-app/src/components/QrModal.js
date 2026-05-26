@@ -6,7 +6,7 @@ import { useTheme } from "../context/ThemeContext";
 
 export default function QrModal({ visible, qrValue, onClose }) {
   const { t } = useTranslation();
-  const { colors, radii, spacing, typography } = useTheme();
+  const { colors, layout, radii, sizes, spacing, typography } = useTheme();
 
   const styles = useMemo(
     () =>
@@ -20,7 +20,7 @@ export default function QrModal({ visible, qrValue, onClose }) {
         },
         card: {
           width: "100%",
-          maxWidth: 360,
+          maxWidth: layout.modalMaxWidth,
           backgroundColor: colors.surface,
           borderRadius: radii.xl,
           padding: spacing.xl,
@@ -56,7 +56,7 @@ export default function QrModal({ visible, qrValue, onClose }) {
           borderRadius: radii.pill,
           paddingVertical: spacing.md,
           paddingHorizontal: spacing.xxl,
-          minWidth: 120,
+          minWidth: sizes.modalButtonMinWidth,
         },
         buttonPressed: {
           opacity: 0.9,
@@ -68,7 +68,7 @@ export default function QrModal({ visible, qrValue, onClose }) {
           textAlign: "center",
         },
       }),
-    [colors, radii, spacing, typography],
+    [colors, layout.modalMaxWidth, radii, sizes.modalButtonMinWidth, spacing, typography],
   );
 
   return (

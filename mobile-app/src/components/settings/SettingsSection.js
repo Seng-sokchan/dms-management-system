@@ -16,7 +16,7 @@ const LANG_OPTIONS = [
   { id: "km", labelKey: "language.km" },
 ];
 
-function OptionRow({ label, selected, onPress, colors, styles }) {
+function OptionRow({ label, selected, onPress, styles }) {
   return (
     <Pressable
       onPress={onPress}
@@ -34,36 +34,36 @@ function OptionRow({ label, selected, onPress, colors, styles }) {
 
 export default function SettingsSection() {
   const { t, i18n } = useTranslation();
-  const { colors, preference, setPreference } = useTheme();
+  const { colors, preference, setPreference, spacing, typography, radii } = useTheme();
   const currentLang = i18n.language?.startsWith("km") ? "km" : "en";
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
         sectionTitle: {
-          fontSize: 14,
+          fontSize: typography.body,
           fontWeight: "700",
           color: colors.textPrimary,
-          marginBottom: 12,
+          marginBottom: spacing.md,
         },
         rowLabel: {
-          fontSize: 12,
+          fontSize: typography.caption,
           fontWeight: "600",
           color: colors.textMuted,
           textTransform: "uppercase",
           letterSpacing: 0.5,
-          marginBottom: 8,
+          marginBottom: spacing.sm,
         },
         pillRow: {
           flexDirection: "row",
-          gap: 8,
-          marginBottom: 20,
+          gap: spacing.sm,
+          marginBottom: spacing.xl,
         },
         pill: {
           flex: 1,
-          paddingVertical: 10,
-          paddingHorizontal: 8,
-          borderRadius: 999,
+          paddingVertical: spacing.sm,
+          paddingHorizontal: spacing.sm,
+          borderRadius: radii.pill,
           borderWidth: 1,
           borderColor: colors.border,
           backgroundColor: colors.surfaceSoft,
@@ -74,7 +74,7 @@ export default function SettingsSection() {
           borderColor: colors.primary,
         },
         pillText: {
-          fontSize: 13,
+          fontSize: typography.bodySmall,
           fontWeight: "600",
           color: colors.textSecondary,
         },
@@ -85,12 +85,12 @@ export default function SettingsSection() {
           flexDirection: "row",
           alignItems: "center",
           justifyContent: "space-between",
-          paddingVertical: 12,
-          paddingHorizontal: 12,
-          borderRadius: 12,
+          paddingVertical: spacing.md,
+          paddingHorizontal: spacing.md,
+          borderRadius: radii.md,
           borderWidth: 1,
           borderColor: colors.border,
-          marginBottom: 8,
+          marginBottom: spacing.sm,
           backgroundColor: colors.surfaceSoft,
         },
         langRowSelected: {
@@ -98,7 +98,7 @@ export default function SettingsSection() {
           backgroundColor: colors.surfaceMuted,
         },
         langLabel: {
-          fontSize: 15,
+          fontSize: typography.body,
           fontWeight: "600",
           color: colors.textPrimary,
         },
@@ -106,16 +106,16 @@ export default function SettingsSection() {
           fontWeight: "700",
         },
         checkmark: {
-          fontSize: 16,
+          fontSize: typography.h3,
           fontWeight: "700",
           color: colors.primary,
         },
       }),
-    [colors],
+    [colors, radii, spacing, typography],
   );
 
   return (
-    <Card style={{ marginTop: 16 }}>
+    <Card style={{ marginTop: spacing.lg }}>
       <Text style={styles.sectionTitle}>{t("settings.title")}</Text>
 
       <Text style={styles.rowLabel}>{t("settings.theme")}</Text>
@@ -141,7 +141,6 @@ export default function SettingsSection() {
           label={t(opt.labelKey)}
           selected={currentLang === opt.id}
           onPress={() => changeAppLanguage(opt.id)}
-          colors={colors}
           styles={styles}
         />
       ))}

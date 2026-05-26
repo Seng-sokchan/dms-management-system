@@ -245,6 +245,7 @@ function attachDeliveryLocationSocket(httpServer) {
       const updatedAt = new Date().toISOString();
       const body = {
         userId: user.sub,
+        deliveryAgentId: agentId,
         name: user.name,
         username: user.username,
         latitude: loc.latitude,

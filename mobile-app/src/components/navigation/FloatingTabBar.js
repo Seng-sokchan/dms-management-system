@@ -3,8 +3,6 @@ import { View, Text, Pressable, StyleSheet, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../../context/ThemeContext";
 
-const BAR_HEIGHT = 64;
-
 function TabItem({ route, isFocused, options, navigation, descriptors, floatingTabBar, styles }) {
   const { tabBarAccessibilityLabel, tabBarTestID } = descriptors[route.key].options;
   const label =
@@ -68,13 +66,17 @@ function isTabBarHidden(descriptors, route) {
   const nested = route.state;
   if (!nested?.routes?.length) return false;
   const nestedRoute = nested.routes[nested.index ?? 0];
-  return nestedRoute?.name === "DeliveryNavigation";
+  return (
+    nestedRoute?.name === "DeliveryNavigation" ||
+    nestedRoute?.name === "DeliveryCart" ||
+    nestedRoute?.name === "DepotBatchCart"
+  );
 }
 
 /** Floating pill bottom tab bar */
 export default function FloatingTabBar({ state, descriptors, navigation }) {
   const insets = useSafeAreaInsets();
-  const { floatingTabBar } = useTheme();
+  const { floatingTabBar, layout, sizes, typography } = useTheme();
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -91,8 +93,8 @@ export default function FloatingTabBar({ state, descriptors, navigation }) {
           alignItems: "center",
           justifyContent: "space-around",
           width: "100%",
-          maxWidth: 400,
-          minHeight: BAR_HEIGHT,
+          maxWidth: layout.isTablet ? layout.contentMaxWidth : layout.modalMaxWidth,
+          minHeight: sizes.tabBarHeight,
           paddingHorizontal: 8,
           paddingVertical: 8,
           borderRadius: 999,
@@ -115,10 +117,10 @@ export default function FloatingTabBar({ state, descriptors, navigation }) {
           justifyContent: "center",
           gap: 4,
           paddingVertical: 4,
-          minWidth: 56,
+          minWidth: sizes.tabItemMinWidth,
         },
         tabLabel: {
-          fontSize: 11,
+          fontSize: typography.caption,
           letterSpacing: 0.1,
         },
         tabLabelActive: {
@@ -130,7 +132,7 @@ export default function FloatingTabBar({ state, descriptors, navigation }) {
           fontWeight: "500",
         },
       }),
-    [floatingTabBar],
+    [floatingTabBar, layout, sizes, typography.caption],
   );
 
   const focusedRoute = state.routes[state.index];
@@ -169,4 +171,10 @@ export default function FloatingTabBar({ state, descriptors, navigation }) {
 }
 
 /** Reserve space so screen content clears the floating bar */
-export const FLOATING_TAB_BAR_OFFSET = BAR_HEIGHT + 28;
+export function useFloatingTabBarOffset() {
+  const { sizes } = useTheme();
+  return sizes.tabBarOffset;
+}
+
+/** @deprecated Use useFloatingTabBarOffset() from useTheme().sizes.tabBarOffset */
+export const FLOATING_TAB_BAR_OFFSET = 92;

@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useTheme } from "../../context/ThemeContext";
 
-export default function SectionHeader({ title, subtitle, rightAction }) {
+export default function SectionHeader({ title, subtitle, leftAction, rightAction }) {
   const { colors, spacing, typography } = useTheme();
   const styles = useMemo(
     () =>
@@ -14,9 +14,12 @@ export default function SectionHeader({ title, subtitle, rightAction }) {
           marginBottom: spacing.md,
           marginTop: spacing.sm,
         },
+        side: {
+          flexShrink: 0,
+        },
         content: {
           flex: 1,
-          marginRight: spacing.md,
+          marginHorizontal: spacing.sm,
         },
         title: {
           fontSize: typography.h2,
@@ -36,11 +39,12 @@ export default function SectionHeader({ title, subtitle, rightAction }) {
 
   return (
     <View style={styles.row}>
-      <View style={styles.content}>
+      {leftAction ? <View style={styles.side}>{leftAction}</View> : null}
+      <View style={[styles.content, !leftAction && { marginLeft: 0 }, !rightAction && { marginRight: 0 }]}>
         <Text style={styles.title}>{title}</Text>
         {!!subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
       </View>
-      {rightAction}
+      {rightAction ? <View style={styles.side}>{rightAction}</View> : null}
     </View>
   );
 }

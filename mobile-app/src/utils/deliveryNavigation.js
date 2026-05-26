@@ -121,3 +121,44 @@ export function buildRouteSummaryFromDirections(result) {
   if (km == null || minutes == null) return null;
   return { distanceKm: result.distance, durationMin: result.duration, kmLabel: km, minutesLabel: minutes };
 }
+
+function coordPair(point) {
+  const lat = parseCoord(point?.latitude);
+  const lng = parseCoord(point?.longitude);
+  if (lat == null || lng == null) return null;
+  return `${lat},${lng}`;
+}
+
+/**
+ * Driving route via Google Directions REST API (no map required).
+ * @returns {Promise<{ distance: number, duration: number }>} distance in km, duration in minutes
+ */
+export async function fetchDrivingRoute(origin, destination, apiKey, { signal } = {}) {
+  const originPair = coordPair(origin);
+  const destPair = coordPair(destination);
+  const key = typeof apiKey === "string" ? apiKey.trim() : "";
+  if (!originPair || !destPair) {
+    throw new Error("Invalid origin or destination");
+  }
+  if (!key) {
+    throw new Error("Google Maps API key is missing");
+  }
+
+  const url =
+    `https://maps.googleapis.com/maps/api/directions/json` +
+    `?origin=${encodeURIComponent(originPair)}` +
+    `&destination=${encodeURIComponent(destPair)}` +
+    `&mode=driving&key=${encodeURIComponent(key)}`;
+
+  const res = await fetch(url, { signal });
+  const data = await res.json();
+  const leg = data?.routes?.[0]?.legs?.[0];
+  if (data?.status !== "OK" || !leg) {
+    throw new Error(data?.error_message || data?.status || "Could not load driving directions");
+  }
+
+  return {
+    distance: leg.distance.value / 1000,
+    duration: leg.duration.value / 60,
+  };
+}

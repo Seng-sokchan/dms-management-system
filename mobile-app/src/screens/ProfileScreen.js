@@ -1,10 +1,10 @@
 import React, { useMemo } from "react";
-import { StyleSheet, Text } from "react-native";
+import { Pressable, StyleSheet, Text } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import SettingsSection from "../components/settings/SettingsSection";
-import { AppIcon, Card, PrimaryButton, Screen, SectionHeader } from "../components/ui";
+import { AppIcon, Card, Screen, SectionHeader } from "../components/ui";
 
 function pickLabel(user, key) {
   if (!user) return "—";
@@ -21,11 +21,25 @@ function roleSubtitle(role, t) {
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
   const { t } = useTranslation();
-  const { colors, spacing, typography } = useTheme();
+  const { colors, radii, spacing, typography } = useTheme();
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
+        signOutButton: {
+          flexDirection: "row",
+          alignItems: "center",
+          gap: spacing.xs,
+          paddingVertical: spacing.xs,
+          paddingHorizontal: spacing.sm,
+          borderRadius: radii.pill,
+          backgroundColor: colors.surfaceSoft,
+        },
+        signOutLabel: {
+          fontSize: typography.bodySmall,
+          fontWeight: "600",
+          color: colors.textPrimary,
+        },
         fieldLabel: {
           fontSize: typography.caption,
           fontWeight: "600",
@@ -42,17 +56,28 @@ export default function ProfileScreen() {
           fontWeight: "600",
           color: colors.textPrimary,
         },
-        signOut: {
-          marginTop: spacing.xl,
-          alignSelf: "stretch",
-        },
       }),
-    [colors, spacing, typography],
+    [colors, radii, spacing, typography],
   );
 
   return (
     <Screen>
-      <SectionHeader title={t("profile.title")} subtitle={roleSubtitle(user?.role, t)} />
+      <SectionHeader
+        title={t("profile.title")}
+        subtitle={roleSubtitle(user?.role, t)}
+        rightAction={
+          <Pressable
+            onPress={logout}
+            hitSlop={8}
+            style={styles.signOutButton}
+            accessibilityRole="button"
+            accessibilityLabel={t("profile.signOut")}
+          >
+            <AppIcon name="logout" size={18} color={colors.textPrimary} />
+            <Text style={styles.signOutLabel}>{t("profile.signOut")}</Text>
+          </Pressable>
+        }
+      />
       <Card>
         <Text style={styles.fieldLabel}>{t("profile.username")}</Text>
         <Text style={styles.fieldValue}>{pickLabel(user, "username")}</Text>
@@ -64,12 +89,6 @@ export default function ProfileScreen() {
         <Text style={styles.fieldValue}>{pickLabel(user, "email")}</Text>
       </Card>
       <SettingsSection />
-      <PrimaryButton
-        title={t("profile.signOut")}
-        onPress={logout}
-        style={styles.signOut}
-        icon={<AppIcon name="logout" size={18} color={colors.onPrimary} />}
-      />
     </Screen>
   );
 }

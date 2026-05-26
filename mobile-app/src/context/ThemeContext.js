@@ -1,7 +1,14 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { Appearance } from "react-native";
+import { Appearance, useWindowDimensions } from "react-native";
 import { getThemePreference, setThemePreference } from "../services/preferencesStorage";
 import { darkColors, getFloatingTabBar, getShadows, lightColors } from "../theme/palettes";
+import {
+  getLayoutMetrics,
+  getSemanticSizes,
+  scaleRadii,
+  scaleSpacing,
+  scaleTypography,
+} from "../theme/responsive";
 import { radii, spacing, typography } from "../theme/tokens";
 
 const ThemeContext = createContext(null);
@@ -15,6 +22,7 @@ export function ThemeProvider({ children, initialPreference = "system" }) {
   const [preference, setPreferenceState] = useState(initialPreference);
   const [systemScheme, setSystemScheme] = useState(() => Appearance.getColorScheme() || "light");
   const [hydrated, setHydrated] = useState(false);
+  const { width, height } = useWindowDimensions();
 
   useEffect(() => {
     let cancelled = false;
@@ -41,6 +49,12 @@ export function ThemeProvider({ children, initialPreference = "system" }) {
   const shadows = getShadows();
   const floatingTabBar = getFloatingTabBar(colors);
 
+  const layout = useMemo(() => getLayoutMetrics({ width, height }), [width, height]);
+  const sizes = useMemo(() => getSemanticSizes({ width, height }), [width, height]);
+  const scaledSpacing = useMemo(() => scaleSpacing(spacing, width), [width]);
+  const scaledTypography = useMemo(() => scaleTypography(typography, width), [width]);
+  const scaledRadii = useMemo(() => scaleRadii(radii, width), [width]);
+
   const setPreference = useCallback(async (next) => {
     setPreferenceState(next);
     await setThemePreference(next);
@@ -56,11 +70,26 @@ export function ThemeProvider({ children, initialPreference = "system" }) {
       colors,
       shadows,
       floatingTabBar,
-      spacing,
-      radii,
-      typography,
+      spacing: scaledSpacing,
+      radii: scaledRadii,
+      typography: scaledTypography,
+      layout,
+      sizes,
     }),
-    [preference, setPreference, resolvedMode, hydrated, colors, shadows, floatingTabBar],
+    [
+      preference,
+      setPreference,
+      resolvedMode,
+      hydrated,
+      colors,
+      shadows,
+      floatingTabBar,
+      scaledSpacing,
+      scaledRadii,
+      scaledTypography,
+      layout,
+      sizes,
+    ],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

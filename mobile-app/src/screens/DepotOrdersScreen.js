@@ -226,7 +226,6 @@ function OrderCard({ order, styles, t, locale, navigation, token }) {
   const skuPart = order.itemSku
     ? t("depot.orderItemSku", { sku: order.itemSku })
     : "";
-
   return (
     <Card style={styles.orderCard}>
       <View style={styles.orderHeader}>
@@ -246,6 +245,11 @@ function OrderCard({ order, styles, t, locale, navigation, token }) {
           currency: order.currency || "KHR",
         })}
       </Text>
+      {!!order.deliveryAgentName && (
+        <Text style={styles.orderLine}>
+          {t("depot.orderDriver", { name: order.deliveryAgentName })}
+        </Text>
+      )}
       {!!order.createdAt && (
         <Text style={styles.orderMeta}>
           {t("depot.orderCreated", {

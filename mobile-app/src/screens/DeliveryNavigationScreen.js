@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   ActivityIndicator,
   Alert,
-  Dimensions,
   FlatList,
   InteractionManager,
   Pressable,
@@ -64,7 +63,7 @@ export default function DeliveryNavigationScreen() {
   const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
-  const { colors, radii, shadows, spacing, typography } = useTheme();
+  const { colors, layout, radii, shadows, spacing, typography } = useTheme();
 
   const styles = useMemo(
     () =>
@@ -130,8 +129,8 @@ export default function DeliveryNavigationScreen() {
   const [ordersSheetExpanded, setOrdersSheetExpanded] = useState(false);
   const [mapLayout, setMapLayout] = useState({ width: 0, height: 0 });
   const sheetPeekHeight = useMemo(
-    () => getDeliverySheetPeekHeight(Dimensions.get("window").height),
-    [],
+    () => getDeliverySheetPeekHeight(layout.windowHeight),
+    [layout.windowHeight],
   );
   const [mapReady, setMapReady] = useState(false);
   const [routeSummary, setRouteSummary] = useState(null);

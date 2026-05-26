@@ -1,35 +1,26 @@
 import React, { useCallback, useMemo, useRef, useState } from "react";
-import { Alert, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, FlatList, Pressable, StyleSheet, Text } from "react-native";
 import { useTranslation } from "react-i18next";
 import Geolocation from "@react-native-community/geolocation";
-import MapView, { Marker } from "react-native-maps";
 import { useFocusEffect } from "@react-navigation/native";
 import { io } from "socket.io-client";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
+import DeliveryProgressCard from "../components/DeliveryProgressCard";
 import { Card, Screen, SectionHeader, TrackingChipsSkeleton } from "../components/ui";
+import { useDeliveryRouteProgress } from "../hooks/useDeliveryRouteProgress";
 import { getApiErrorMessage } from "../services/apiClient";
 import { listMobileOrders } from "../services/ordersApi";
 import { getSocketBaseUrl } from "../services/socketUrl";
 import { ensureLocationPermission } from "../utils/locationPermission";
+import { parseCoord } from "../utils/deliveryNavigation";
 
 const TRACKABLE_STATUS = "Ready_For_Delivery";
-const PHNOM_PENH_REGION = {
-  latitude: 11.5564,
-  longitude: 104.9282,
-  latitudeDelta: 0.25,
-  longitudeDelta: 0.25,
-};
-
-function parseCoord(value) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : null;
-}
 
 export default function CustomerTrackingScreen() {
   const { token } = useAuth();
   const { t } = useTranslation();
-  const { colors, radii, shadows, spacing, typography } = useTheme();
+  const { colors, radii, spacing, typography } = useTheme();
   const socketRef = useRef(null);
   const [orders, setOrders] = useState([]);
   const [selectedOrderId, setSelectedOrderId] = useState("");
@@ -74,14 +65,6 @@ export default function CustomerTrackingScreen() {
         orderChipTitleActive: { color: colors.onPrimary },
         orderChipSub: { color: colors.textMuted, marginTop: 2, fontSize: typography.caption },
         orderChipSubActive: { color: colors.onPrimary, opacity: 0.72 },
-        mapWrap: {
-          flex: 1,
-          marginTop: spacing.sm,
-          borderRadius: radii.xl,
-          overflow: "hidden",
-          backgroundColor: colors.surface,
-        },
-        map: { flex: 1, minHeight: 220 },
         errorText: {
           color: colors.danger,
           marginTop: spacing.sm,
@@ -96,6 +79,19 @@ export default function CustomerTrackingScreen() {
     () => orders.filter((row) => row?.status === TRACKABLE_STATUS && row?.deliveryAgentId),
     [orders],
   );
+
+  const selectedOrder = useMemo(
+    () => trackableOrders.find((row) => String(row.id) === String(selectedOrderId)),
+    [trackableOrders, selectedOrderId],
+  );
+
+  const { progressRows, resetRoute } = useDeliveryRouteProgress({
+    origin: driverLocation,
+    destination: myLocation,
+    driverName: driverLocation?.name || selectedOrder?.deliveryAgentName,
+    audience: "customer",
+    orderStatus: selectedOrder?.status,
+  });
 
   const subscribeSelectedOrder = useCallback(
     (orderId) => {
@@ -215,16 +211,6 @@ export default function CustomerTrackingScreen() {
     }, [selectedOrderId, subscribeSelectedOrder]),
   );
 
-  const mapRegion = useMemo(() => {
-    if (driverLocation) {
-      return { ...driverLocation, latitudeDelta: 0.04, longitudeDelta: 0.04 };
-    }
-    if (myLocation) {
-      return { ...myLocation, latitudeDelta: 0.08, longitudeDelta: 0.08 };
-    }
-    return PHNOM_PENH_REGION;
-  }, [driverLocation, myLocation]);
-
   const renderOrder = ({ item }) => {
     const isActive = String(item.id) === String(selectedOrderId);
     return (
@@ -232,6 +218,7 @@ export default function CustomerTrackingScreen() {
         onPress={() => {
           setSelectedOrderId(String(item.id));
           setDriverLocation(null);
+          resetRoute();
         }}
         style={[styles.orderChip, isActive && styles.orderChipActive]}
       >
@@ -276,20 +263,9 @@ export default function CustomerTrackingScreen() {
         </Text>
       </Card>
 
-      <View style={[styles.mapWrap, shadows.card]}>
-        <MapView style={styles.map} initialRegion={mapRegion} region={mapRegion}>
-          {driverLocation ? (
-            <Marker
-              coordinate={driverLocation}
-              title={driverLocation.name || t("tracking.driver")}
-              description={t("tracking.liveLocation")}
-            />
-          ) : null}
-          {myLocation ? (
-            <Marker coordinate={myLocation} pinColor={colors.primary} title={t("tracking.you")} />
-          ) : null}
-        </MapView>
-      </View>
+      {selectedOrder ? (
+        <DeliveryProgressCard title={t("tracking.progress.title")} rows={progressRows} />
+      ) : null}
 
       {error ? (
         <Pressable onPress={() => Alert.alert(t("tracking.title"), error)}>

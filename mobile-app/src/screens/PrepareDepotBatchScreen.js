@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigation } from "@react-navigation/native";
 import {
-  Alert,
   FlatList,
   Modal,
   Pressable,
@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 import { useAuth } from "../context/AuthContext";
+import { useDepotBatchCart } from "../context/DepotBatchCartContext";
 import { useTheme } from "../context/ThemeContext";
 import {
   AppIcon,
@@ -26,11 +27,8 @@ import {
 } from "../components/ui";
 import { fetchCustomers } from "../services/customersApi";
 import { fetchItems } from "../services/itemsApi";
-import { createDepotBatch } from "../services/ordersApi";
 import { getApiErrorMessage } from "../services/apiClient";
-import { radii, spacing, typography } from "../theme/tokens";
-
-function createStyles(colors) {
+function createStyles({ colors, radii, spacing, typography, sizes, layout }) {
   return StyleSheet.create({
     centered: {
       flex: 1,
@@ -59,126 +57,44 @@ function createStyles(colors) {
     retryButton: {
       marginTop: spacing.md,
       alignSelf: "flex-start",
-      minWidth: 120,
+      minWidth: sizes.modalButtonMinWidth,
     },
     list: {
-      paddingBottom: spacing.xxl,
+      paddingBottom: spacing.md,
     },
-    customerCard: {
-      marginBottom: spacing.md,
+    customerRow: {
+      marginBottom: spacing.sm,
     },
-    customerHeader: {
+    customerRowInner: {
       flexDirection: "row",
       alignItems: "center",
-      justifyContent: "space-between",
       gap: spacing.md,
     },
     customerName: {
-      fontSize: typography.h3,
+      fontSize: typography.body,
       fontWeight: "700",
       color: colors.textPrimary,
     },
     customerMeta: {
-      marginTop: spacing.xs,
+      marginTop: 2,
       color: colors.textSecondary,
       fontSize: typography.bodySmall,
     },
-    addBtn: {
+    cartHeaderBtn: {
       flexDirection: "row",
       alignItems: "center",
       gap: spacing.xs,
       backgroundColor: colors.surfaceSoft,
-      borderColor: colors.border,
       borderWidth: 1,
+      borderColor: colors.border,
       borderRadius: radii.pill,
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm,
     },
-    addBtnText: {
+    cartHeaderBtnText: {
       color: colors.textPrimary,
       fontSize: typography.bodySmall,
       fontWeight: "600",
-    },
-    noLines: {
-      marginTop: spacing.md,
-      color: colors.textMuted,
-      fontSize: typography.bodySmall,
-    },
-    linesWrap: {
-      marginTop: spacing.md,
-      gap: spacing.sm,
-    },
-    lineRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.sm,
-      paddingVertical: spacing.xs,
-    },
-    lineName: {
-      color: colors.textPrimary,
-      fontWeight: "600",
-      fontSize: typography.body,
-    },
-    lineSku: {
-      color: colors.textSecondary,
-      fontSize: typography.caption,
-      marginTop: 2,
-    },
-    qtyWrap: {
-      flexDirection: "row",
-      alignItems: "center",
-      backgroundColor: colors.surfaceSoft,
-      borderRadius: radii.pill,
-      borderWidth: 1,
-      borderColor: colors.border,
-      paddingHorizontal: spacing.xs,
-    },
-    qtyBtn: {
-      width: 28,
-      height: 28,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    qtyButtonText: {
-      color: colors.textPrimary,
-      fontWeight: "700",
-      fontSize: 16,
-    },
-    qtyInput: {
-      minWidth: 32,
-      textAlign: "center",
-      fontWeight: "700",
-      color: colors.textPrimary,
-      paddingVertical: 0,
-    },
-    removeLine: {
-      paddingHorizontal: spacing.xs,
-    },
-    clearLink: {
-      alignSelf: "flex-end",
-      paddingVertical: spacing.xs,
-    },
-    clearLinkText: {
-      color: colors.danger,
-      fontSize: typography.caption,
-      fontWeight: "600",
-    },
-    footer: {
-      marginTop: spacing.sm,
-      paddingTop: spacing.md,
-      borderTopWidth: 1,
-      borderColor: colors.border,
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-    },
-    total: {
-      fontWeight: "700",
-      fontSize: typography.body,
-      color: colors.textPrimary,
-    },
-    submitButton: {
-      minWidth: 150,
     },
     modalOverlay: {
       flex: 1,
@@ -193,6 +109,9 @@ function createStyles(colors) {
       paddingTop: spacing.lg,
       paddingBottom: spacing.xl,
       maxHeight: "75%",
+      width: "100%",
+      maxWidth: layout.isTablet ? layout.contentMaxWidth : undefined,
+      alignSelf: layout.isTablet ? "center" : undefined,
     },
     modalHeader: {
       flexDirection: "row",
@@ -259,19 +178,23 @@ function createStyles(colors) {
  * carts are flattened to one `{ lines: [...] }` payload sent to /orders/depot-batch.
  */
 export default function PrepareDepotBatchScreen() {
+  const navigation = useNavigation();
   const { token } = useAuth();
   const { t } = useTranslation();
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const theme = useTheme();
+  const { colors, sizes } = theme;
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const listPaddingBottom = sizes.tabBarOffset;
+  const {
+    cartByCustomer,
+    totalLines: cartTotalLines,
+    addLine,
+  } = useDepotBatchCart();
   const [customers, setCustomers] = useState([]);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-
-  /** Map<customerId, Array<{ itemId, orderedQty }>> */
-  const [cartByCustomer, setCartByCustomer] = useState({});
 
   /** Modal state for picking an item to add to a particular customer's cart */
   const [pickerCustomerId, setPickerCustomerId] = useState("");
@@ -305,125 +228,38 @@ export default function PrepareDepotBatchScreen() {
     void load();
   }
 
-  const itemsById = useMemo(() => {
-    const map = new Map();
-    for (const item of items) map.set(String(item.id), item);
-    return map;
-  }, [items]);
-
-  const customersWithCart = useMemo(
-    () =>
-      customers.filter(
-        (customer) => (cartByCustomer[String(customer.id)] || []).length > 0,
-      ),
-    [customers, cartByCustomer],
-  );
-
-  const totalLines = useMemo(
-    () =>
-      Object.values(cartByCustomer).reduce(
-        (acc, lines) => acc + (Array.isArray(lines) ? lines.length : 0),
-        0,
-      ),
-    [cartByCustomer],
-  );
-
-  function addLine(customerId, itemId) {
-    setCartByCustomer((prev) => {
-      const key = String(customerId);
-      const existing = Array.isArray(prev[key]) ? prev[key] : [];
-      if (existing.some((row) => String(row.itemId) === String(itemId))) {
-        return prev;
-      }
-      return {
-        ...prev,
-        [key]: [...existing, { itemId: String(itemId), orderedQty: 1 }],
-      };
-    });
+  function openDepotCart() {
+    navigation.navigate("DepotBatchCart");
   }
-
-  function updateLineQty(customerId, itemId, nextQty) {
-    setCartByCustomer((prev) => {
-      const key = String(customerId);
-      const existing = Array.isArray(prev[key]) ? prev[key] : [];
-      const cleaned = existing.map((row) =>
-        String(row.itemId) === String(itemId)
-          ? { ...row, orderedQty: Math.max(1, Number(nextQty) || 1) }
-          : row,
-      );
-      return { ...prev, [key]: cleaned };
-    });
-  }
-
-  function removeLine(customerId, itemId) {
-    setCartByCustomer((prev) => {
-      const key = String(customerId);
-      const existing = Array.isArray(prev[key]) ? prev[key] : [];
-      const filtered = existing.filter((row) => String(row.itemId) !== String(itemId));
-      const next = { ...prev };
-      if (filtered.length === 0) delete next[key];
-      else next[key] = filtered;
-      return next;
-    });
-  }
-
-  function clearCart(customerId) {
-    setCartByCustomer((prev) => {
-      const next = { ...prev };
-      delete next[String(customerId)];
-      return next;
-    });
-  }
-
-  async function handleSubmit() {
-    const flattened = [];
-    for (const [customerId, lines] of Object.entries(cartByCustomer)) {
-      if (!Array.isArray(lines)) continue;
-      for (const line of lines) {
-        flattened.push({
-          customerId: String(customerId),
-          itemId: String(line.itemId),
-          orderedQty: Number(line.orderedQty) || 1,
-          currency: "KHR",
-        });
-      }
-    }
-    if (flattened.length === 0) {
-      Alert.alert(t("depot.batchEmptyTitle"), t("depot.batchEmptyMessage"));
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      const created = await createDepotBatch(token, flattened);
-      const count = Array.isArray(created) ? created.length : flattened.length;
-      Alert.alert(
-        t("depot.batchSuccessTitle"),
-        t("depot.batchSuccessDetail", { count, customers: customersWithCart.length }),
-      );
-      setCartByCustomer({});
-    } catch (error) {
-      Alert.alert(
-        t("depot.batchFailedTitle"),
-        getApiErrorMessage(error, t("depot.batchFailedDefault")),
-      );
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  const prepareSubtitle = loading
-    ? t("depot.loadingData")
-    : totalLines > 0
-      ? t("depot.prepareSubtitleLines", {
-          lines: totalLines,
-          customers: customersWithCart.length,
-        })
-      : t("depot.prepareSubtitleEmpty");
 
   return (
     <Screen accessibilityState={loading ? { busy: true } : undefined}>
-        <SectionHeader title={t("depot.prepareTitle")} subtitle={prepareSubtitle} />
+        <SectionHeader
+          title={t("depot.prepareTitle")}
+          rightAction={
+            <Pressable style={styles.cartHeaderBtn} onPress={openDepotCart}>
+              <AppIcon name="cart-outline" size={18} color={colors.textPrimary} />
+              <Text style={styles.cartHeaderBtnText}>{t("depot.openCart")}</Text>
+              {cartTotalLines > 0 ? (
+                <View
+                  style={{
+                    minWidth: 20,
+                    height: 20,
+                    borderRadius: 10,
+                    backgroundColor: colors.primary,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    paddingHorizontal: 4,
+                  }}
+                >
+                  <Text style={{ color: colors.onPrimary, fontSize: 11, fontWeight: "700" }}>
+                    {cartTotalLines > 99 ? "99+" : cartTotalLines}
+                  </Text>
+                </View>
+              ) : null}
+            </Pressable>
+          }
+        />
 
         {loading ? <SkeletonList count={3} ItemComponent={DepotCustomerCardSkeleton} /> : null}
 
@@ -447,7 +283,7 @@ export default function PrepareDepotBatchScreen() {
         <FlatList
           data={customers}
           keyExtractor={(customer) => String(customer.id)}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[styles.list, { paddingBottom: listPaddingBottom }]}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -456,16 +292,11 @@ export default function PrepareDepotBatchScreen() {
             />
           }
           renderItem={({ item: customer }) => (
-            <CustomerCard
+            <CustomerListRow
               customer={customer}
-              lines={cartByCustomer[String(customer.id)] || []}
-              itemsById={itemsById}
               styles={styles}
               colors={colors}
-              onAddItem={() => setPickerCustomerId(String(customer.id))}
-              onChangeQty={(itemId, qty) => updateLineQty(customer.id, itemId, qty)}
-              onRemoveLine={(itemId) => removeLine(customer.id, itemId)}
-              onClear={() => clearCart(customer.id)}
+              onPress={() => setPickerCustomerId(String(customer.id))}
             />
           )}
           ListEmptyComponent={
@@ -475,21 +306,6 @@ export default function PrepareDepotBatchScreen() {
             />
           }
         />
-        ) : null}
-
-        {!loading ? (
-        <View style={styles.footer}>
-          <Text style={styles.total}>{t("depot.total", { count: totalLines })}</Text>
-          <PrimaryButton
-            title={t("depot.submitBatch")}
-            tone="success"
-            onPress={handleSubmit}
-            loading={submitting}
-            disabled={totalLines === 0}
-            style={styles.submitButton}
-            icon={<AppIcon name="check-circle-outline" size={18} color={colors.onPrimary} />}
-          />
-        </View>
         ) : null}
 
         <ItemPickerModal
@@ -512,82 +328,22 @@ export default function PrepareDepotBatchScreen() {
   );
 }
 
-function CustomerCard({
-  customer,
-  lines,
-  itemsById,
-  styles,
-  colors,
-  onAddItem,
-  onChangeQty,
-  onRemoveLine,
-  onClear,
-}) {
+function CustomerListRow({ customer, styles, colors, onPress }) {
   const { t } = useTranslation();
-  const hasLines = lines.length > 0;
   return (
-    <Card style={styles.customerCard}>
-      <View style={styles.customerHeader}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.customerName}>{customer.name || t("depot.unnamed")}</Text>
-          <Text style={styles.customerMeta}>
-            {customer.phone ? customer.phone : t("depot.noPhone")}
-          </Text>
+    <Pressable onPress={onPress}>
+      <Card style={styles.customerRow}>
+        <View style={styles.customerRowInner}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.customerName}>{customer.name || t("depot.unnamed")}</Text>
+            <Text style={styles.customerMeta}>
+              {customer.phone ? customer.phone : t("depot.noPhone")}
+            </Text>
+          </View>
+          <AppIcon name="chevron-right" size={22} color={colors.textMuted} />
         </View>
-        <Pressable style={styles.addBtn} onPress={onAddItem}>
-          <AppIcon name="plus" size={16} color={colors.textPrimary} />
-          <Text style={styles.addBtnText}>{t("depot.addItem")}</Text>
-        </Pressable>
-      </View>
-
-      {hasLines ? (
-        <View style={styles.linesWrap}>
-          {lines.map((line) => {
-            const item = itemsById.get(String(line.itemId));
-            return (
-              <View key={String(line.itemId)} style={styles.lineRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.lineName}>{item?.name || `Item #${line.itemId}`}</Text>
-                  {!!item?.sku && <Text style={styles.lineSku}>SKU: {item.sku}</Text>}
-                </View>
-                <View style={styles.qtyWrap}>
-                  <Pressable
-                    style={styles.qtyBtn}
-                    onPress={() => onChangeQty(line.itemId, Number(line.orderedQty) - 1)}
-                  >
-                    <Text style={styles.qtyButtonText}>-</Text>
-                  </Pressable>
-                  <TextInput
-                    style={styles.qtyInput}
-                    keyboardType="number-pad"
-                    value={String(line.orderedQty)}
-                    onChangeText={(text) => onChangeQty(line.itemId, text.replace(/[^0-9]/g, ""))}
-                  />
-                  <Pressable
-                    style={styles.qtyBtn}
-                    onPress={() => onChangeQty(line.itemId, Number(line.orderedQty) + 1)}
-                  >
-                    <Text style={styles.qtyButtonText}>+</Text>
-                  </Pressable>
-                </View>
-                <Pressable
-                  onPress={() => onRemoveLine(line.itemId)}
-                  style={styles.removeLine}
-                  hitSlop={8}
-                >
-                  <AppIcon name="close" size={16} color={colors.danger} />
-                </Pressable>
-              </View>
-            );
-          })}
-          <Pressable style={styles.clearLink} onPress={onClear}>
-            <Text style={styles.clearLinkText}>{t("depot.clearCustomer")}</Text>
-          </Pressable>
-        </View>
-      ) : (
-        <Text style={styles.noLines}>{t("depot.noLines")}</Text>
-      )}
-    </Card>
+      </Card>
+    </Pressable>
   );
 }
 

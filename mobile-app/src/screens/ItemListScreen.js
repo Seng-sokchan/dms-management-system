@@ -158,10 +158,7 @@ export default function ItemListScreen({ navigation }) {
             <Text style={styles.itemSku}>{t("catalog.sku", { sku: item.sku || t("common.dash") })}</Text>
             <PrimaryButton
               title={t("catalog.addToCart")}
-              onPress={() => {
-                addItem(item);
-                Alert.alert(t("catalog.addedTitle"), t("catalog.addedMessage", { name: item.name }));
-              }}
+              onPress={() => addItem(item)}
               style={styles.addButton}
               icon={<AppIcon name="cart-plus" size={18} color={colors.onPrimary} />}
             />

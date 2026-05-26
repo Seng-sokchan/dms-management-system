@@ -1,1 +1,5 @@
-export { default as FloatingTabBar, FLOATING_TAB_BAR_OFFSET } from "./FloatingTabBar";
+export {
+  default as FloatingTabBar,
+  FLOATING_TAB_BAR_OFFSET,
+  useFloatingTabBarOffset,
+} from "./FloatingTabBar";

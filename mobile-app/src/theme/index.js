@@ -4,6 +4,18 @@ import { getShadows, getFloatingTabBar } from "./palettes";
 
 /** Static tokens (mode-independent) */
 export { spacing, radii, typography } from "./tokens";
+export {
+  BASE_WIDTH,
+  CONTENT_MAX_WIDTH,
+  MODAL_MAX_WIDTH,
+  TABLET_MIN_WIDTH,
+  getLayoutMetrics,
+  getSemanticSizes,
+  horizontalScale,
+  moderateScale,
+  verticalScale,
+} from "./responsive";
+export { useResponsiveLayout } from "../hooks/useResponsiveLayout";
 
 export { useTheme } from "../context/ThemeContext";
 export { useThemedStyles } from "./useThemedStyles";

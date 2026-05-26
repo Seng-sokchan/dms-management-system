@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from "react";
-import { Alert, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, FlatList, Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
-import QrModal from "../components/QrModal";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import { useTheme } from "../context/ThemeContext";
@@ -13,10 +12,16 @@ export default function CartScreen({ navigation }) {
   const { items, updateQuantity, removeItem, clearCart } = useCart();
   const { token, user } = useAuth();
   const { t } = useTranslation();
-  const { colors, radii, spacing, typography } = useTheme();
+  const { colors, layout, radii, sizes, spacing, typography } = useTheme();
   const [submitting, setSubmitting] = useState(false);
-  const [showQr, setShowQr] = useState(false);
-  const [qrValue, setQrValue] = useState("");
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  function closeSuccessAndGoBack() {
+    setShowSuccess(false);
+    if (navigation?.canGoBack?.()) {
+      navigation.goBack();
+    }
+  }
 
   const totalQty = useMemo(
     () => items.reduce((acc, item) => acc + Number(item.quantity || 0), 0),
@@ -26,6 +31,45 @@ export default function CartScreen({ navigation }) {
   const styles = useMemo(
     () =>
       StyleSheet.create({
+        overlay: {
+          flex: 1,
+          backgroundColor: "rgba(0,0,0,0.45)",
+          padding: spacing.lg,
+          justifyContent: "center",
+        },
+        modalCard: {
+          width: "100%",
+          maxWidth: layout.modalMaxWidth,
+          alignSelf: "center",
+          backgroundColor: colors.surface,
+          borderRadius: radii.lg,
+          padding: spacing.lg,
+        },
+        successIconWrap: {
+          width: sizes.iconLg,
+          height: sizes.iconLg,
+          borderRadius: sizes.iconLg / 2,
+          backgroundColor: colors.successSoft ?? colors.surfaceSoft,
+          alignItems: "center",
+          justifyContent: "center",
+          alignSelf: "center",
+        },
+        modalTitle: {
+          marginTop: spacing.md,
+          textAlign: "center",
+          fontSize: typography.h3,
+          fontWeight: "800",
+          color: colors.textPrimary,
+        },
+        modalMessage: {
+          marginTop: spacing.sm,
+          textAlign: "center",
+          fontSize: typography.body,
+          color: colors.textSecondary,
+        },
+        modalActions: {
+          marginTop: spacing.lg,
+        },
         row: {
           flexDirection: "row",
           justifyContent: "space-between",
@@ -58,18 +102,18 @@ export default function CartScreen({ navigation }) {
           paddingHorizontal: spacing.xs,
         },
         qtyBtn: {
-          width: 32,
-          height: 32,
+          width: sizes.qtyButton,
+          height: sizes.qtyButton,
           alignItems: "center",
           justifyContent: "center",
         },
         qtyButtonText: {
           color: colors.textPrimary,
           fontWeight: "700",
-          fontSize: 18,
+          fontSize: sizes.qtyText,
         },
         qty: {
-          minWidth: 28,
+          minWidth: sizes.qtyButtonSm,
           textAlign: "center",
           fontWeight: "700",
           color: colors.textPrimary,
@@ -95,10 +139,10 @@ export default function CartScreen({ navigation }) {
           color: colors.textPrimary,
         },
         preOrderButton: {
-          minWidth: 140,
+          minWidth: sizes.buttonMinWidth,
         },
       }),
-    [colors, radii, spacing, typography],
+    [colors, layout.modalMaxWidth, radii, sizes, spacing, typography],
   );
 
   async function handlePreOrder() {
@@ -108,18 +152,9 @@ export default function CartScreen({ navigation }) {
     }
     setSubmitting(true);
     try {
-      const createdOrders = await preOrderCart(token, user, items);
-      const orderIds = createdOrders.map((order) => order?.id).filter(Boolean);
-      setQrValue(
-        JSON.stringify({
-          type: "PRE_ORDER",
-          orderIds,
-          createdAt: new Date().toISOString(),
-        }),
-      );
-      setShowQr(true);
+      await preOrderCart(token, user, items);
       clearCart();
-      Alert.alert(t("cart.preOrderReadyTitle"), t("cart.preOrderReadyMessage"));
+      setShowSuccess(true);
     } catch (error) {
       Alert.alert(t("cart.preOrderFailedTitle"), getApiErrorMessage(error, t("cart.preOrderFailedDefault")));
     } finally {
@@ -131,6 +166,25 @@ export default function CartScreen({ navigation }) {
 
   return (
     <Screen>
+      <Modal
+        visible={showSuccess}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowSuccess(false)}
+      >
+        <Pressable style={styles.overlay} onPress={() => setShowSuccess(false)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <View style={styles.successIconWrap}>
+              <AppIcon name="check" size={26} color={colors.success ?? colors.primary} />
+            </View>
+            <Text style={styles.modalTitle}>{t("cart.preOrderReadyTitle")}</Text>
+            <Text style={styles.modalMessage}>{t("cart.preOrderReadyMessage")}</Text>
+            <View style={styles.modalActions}>
+              <PrimaryButton title="OK" onPress={closeSuccessAndGoBack} />
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
       <SectionHeader title={t("cart.title")} subtitle={t(subtitleKey, { count: totalQty })} />
       <FlatList
         data={items}
@@ -182,14 +236,6 @@ export default function CartScreen({ navigation }) {
           icon={<AppIcon name="qrcode" size={18} color={colors.onPrimary} />}
         />
       </View>
-      <QrModal
-        visible={showQr}
-        qrValue={qrValue}
-        onClose={() => {
-          setShowQr(false);
-          navigation.navigate("ItemListScreen");
-        }}
-      />
     </Screen>
   );
 }

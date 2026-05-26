@@ -22,6 +22,7 @@ function DeliveryCartCardInner({
   submitting,
   onStartDelivery,
   onRemoveFromCart,
+  showStartButton = true,
 }) {
   const { t } = useTranslation();
   const { colors } = useTheme();
@@ -123,13 +124,15 @@ function DeliveryCartCardInner({
         </ScrollView>
       ) : null}
 
-      <PrimaryButton
-        title={t("delivery.startDelivery")}
-        onPress={onStartDelivery}
-        loading={submitting}
-        disabled={!canStartDelivery || submitting}
-        style={styles.startButton}
-      />
+      {showStartButton ? (
+        <PrimaryButton
+          title={t("delivery.startDelivery")}
+          onPress={onStartDelivery}
+          loading={submitting}
+          disabled={!canStartDelivery || submitting}
+          style={styles.startButton}
+        />
+      ) : null}
     </Card>
   );
 }

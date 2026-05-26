@@ -28,7 +28,7 @@ export default function DeliveryConfirmationModal({
   onCancel,
 }) {
   const { t } = useTranslation();
-  const { colors, radii, spacing, typography } = useTheme();
+  const { colors, layout, radii, spacing, typography } = useTheme();
   const [lossText, setLossText] = useState("0");
   const [fieldError, setFieldError] = useState("");
 
@@ -56,7 +56,7 @@ export default function DeliveryConfirmationModal({
         },
         card: {
           width: "100%",
-          maxWidth: 400,
+          maxWidth: layout.modalMaxWidth,
           backgroundColor: colors.surface,
           borderRadius: radii.xl,
           padding: spacing.lg,
@@ -117,7 +117,7 @@ export default function DeliveryConfirmationModal({
           fontWeight: "600",
         },
       }),
-    [colors, radii, spacing, typography],
+    [colors, layout.modalMaxWidth, radii, spacing, typography],
   );
 
   function validate() {

@@ -2,43 +2,23 @@ import React, { useCallback, useMemo, useRef, useState } from "react";
 import { Alert, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
-import { OrderCardSkeleton, Screen, SectionHeader, SkeletonList } from "../components/ui";
+import { AppIcon, OrderCardSkeleton, Screen, SectionHeader, SkeletonList } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
+import { useDeliveryCart } from "../context/DeliveryCartContext";
 import { useTheme } from "../context/ThemeContext";
-import { DeliveryCartCard } from "../components/DeliveryCartCard";
 import { DeliveryOrderCard } from "../components/DeliveryOrderCard";
-import { listMobileOrders, updateMobileOrderStatus } from "../services/ordersApi";
-import {
-  ensureDriverLocationReady,
-  getCurrentDriverPositionAsync,
-} from "../utils/driverLocationProvider";
+import { listMobileOrders } from "../services/ordersApi";
 
 const SENT_TO_FACTORY = "Sent_To_Factory";
-
-const GET_CURRENT_OPTIONS = {
-  enableHighAccuracy: true,
-  timeout: 15000,
-  maximumAge: 10000,
-};
-
-function pruneCartIds(cartIds, orderList) {
-  const pendingIds = new Set(
-    orderList
-      .filter((order) => order.status === SENT_TO_FACTORY)
-      .map((order) => String(order.id)),
-  );
-  return cartIds.filter((id) => pendingIds.has(String(id)));
-}
 
 export default function DeliveryTrackingScreen() {
   const { token } = useAuth();
   const navigation = useNavigation();
   const { t } = useTranslation();
-  const { colors, radii, spacing, typography } = useTheme();
+  const { colors, radii, spacing, typography, sizes } = useTheme();
+  const { cartOrderIds, cartCount, addToCart, pruneCartIds } = useDeliveryCart();
   const [orders, setOrders] = useState([]);
-  const [cartOrderIds, setCartOrderIds] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [batchSubmitting, setBatchSubmitting] = useState(false);
   const ordersRef = useRef(orders);
 
   ordersRef.current = orders;
@@ -47,6 +27,36 @@ export default function DeliveryTrackingScreen() {
     () =>
       StyleSheet.create({
         container: { flex: 1, paddingBottom: spacing.sm },
+        cartHeaderBtn: {
+          flexDirection: "row",
+          alignItems: "center",
+          gap: spacing.xs,
+          backgroundColor: colors.surfaceSoft,
+          borderWidth: 1,
+          borderColor: colors.border,
+          borderRadius: radii.pill,
+          paddingHorizontal: spacing.md,
+          paddingVertical: spacing.sm,
+        },
+        cartHeaderBtnText: {
+          color: colors.textPrimary,
+          fontSize: typography.bodySmall,
+          fontWeight: "600",
+        },
+        cartBadge: {
+          minWidth: 20,
+          height: 20,
+          borderRadius: 10,
+          backgroundColor: colors.primary,
+          alignItems: "center",
+          justifyContent: "center",
+          paddingHorizontal: 4,
+        },
+        cartBadgeText: {
+          color: colors.onPrimary,
+          fontSize: 11,
+          fontWeight: "700",
+        },
         continueCard: {
           marginBottom: spacing.md,
           padding: spacing.lg,
@@ -73,14 +83,14 @@ export default function DeliveryTrackingScreen() {
           color: colors.textSecondary,
         },
         list: { flex: 1 },
-        listContent: { paddingBottom: spacing.xl, gap: spacing.md },
+        listContent: { paddingBottom: sizes.tabBarOffset, gap: spacing.md },
         emptyText: {
           marginTop: spacing.lg,
           color: colors.textSecondary,
           fontSize: typography.body,
         },
       }),
-    [colors, radii, spacing, typography],
+    [colors, radii, sizes.tabBarOffset, spacing, typography],
   );
 
   const pendingOrders = useMemo(
@@ -89,11 +99,6 @@ export default function DeliveryTrackingScreen() {
   );
 
   const cartOrderIdSet = useMemo(() => new Set(cartOrderIds.map(String)), [cartOrderIds]);
-
-  const cartOrders = useMemo(
-    () => pendingOrders.filter((order) => cartOrderIdSet.has(String(order.id))),
-    [pendingOrders, cartOrderIdSet],
-  );
 
   const availablePending = useMemo(
     () => pendingOrders.filter((order) => !cartOrderIdSet.has(String(order.id))),
@@ -105,19 +110,10 @@ export default function DeliveryTrackingScreen() {
     [orders],
   );
 
-  const canStartDelivery =
-    pendingOrders.length > 0 && cartOrders.length === pendingOrders.length;
-
   const listOrders = useMemo(
     () => availablePending.map((order) => ({ ...order, listMode: "pending" })),
     [availablePending],
   );
-
-  const applyOrdersAndPruneCart = useCallback((list) => {
-    setOrders(list);
-    setCartOrderIds((prev) => pruneCartIds(prev, list));
-    return list;
-  }, []);
 
   const loadOrders = useCallback(
     async ({ silent = false } = {}) => {
@@ -127,7 +123,9 @@ export default function DeliveryTrackingScreen() {
       try {
         const rows = await listMobileOrders(accessToken);
         const list = Array.isArray(rows) ? rows : [];
-        return applyOrdersAndPruneCart(list);
+        setOrders(list);
+        pruneCartIds(list);
+        return list;
       } catch {
         if (!silent) {
           Alert.alert(t("delivery.ordersAlertTitle"), t("delivery.ordersLoadFailed"));
@@ -137,61 +135,18 @@ export default function DeliveryTrackingScreen() {
         if (!silent) setLoading(false);
       }
     },
-    [applyOrdersAndPruneCart, token, t],
+    [pruneCartIds, token, t],
   );
 
-  const addToCart = useCallback((orderId) => {
-    const id = String(orderId);
-    const order = ordersRef.current.find((row) => String(row.id) === id);
-    if (!order || order.status !== SENT_TO_FACTORY) return;
-    setCartOrderIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
-  }, []);
-
-  const removeFromCart = useCallback((orderId) => {
-    const id = String(orderId);
-    setCartOrderIds((prev) => prev.filter((entry) => String(entry) !== id));
-  }, []);
-
-  const startDeliveryBatch = useCallback(async () => {
-    if (!canStartDelivery || batchSubmitting) return;
-
-    const accessToken = typeof token === "string" ? token.trim() : "";
-    if (!accessToken) return;
-
-    const idsToStart = cartOrders.map((order) => String(order.id));
-    if (idsToStart.length === 0) return;
-
-    setBatchSubmitting(true);
-    const startedIds = [];
-
-    try {
-      for (const orderId of idsToStart) {
-        await updateMobileOrderStatus(accessToken, orderId, "Ready_For_Delivery");
-        startedIds.push(orderId);
-      }
-
-      setCartOrderIds([]);
-      await loadOrders({ silent: true });
-      await ensureDriverLocationReady();
-      try {
-        await getCurrentDriverPositionAsync(GET_CURRENT_OPTIONS);
-      } catch {
-        // Navigation screen will retry GPS
-      }
-
-      navigation.navigate("DeliveryNavigation");
-    } catch {
-      await loadOrders({ silent: true });
-      if (startedIds.length > 0) {
-        setCartOrderIds(idsToStart.filter((id) => !startedIds.includes(id)));
-        Alert.alert(t("delivery.startDeliveryTitle"), t("delivery.startPartialFailed"));
-      } else {
-        Alert.alert(t("delivery.startDeliveryTitle"), t("delivery.startDeliveryFailed"));
-      }
-    } finally {
-      setBatchSubmitting(false);
-    }
-  }, [batchSubmitting, canStartDelivery, cartOrders, loadOrders, navigation, token, t]);
+  const handleAddToCart = useCallback(
+    (orderId) => {
+      const id = String(orderId);
+      const order = ordersRef.current.find((row) => String(row.id) === id);
+      if (!order || order.status !== SENT_TO_FACTORY) return;
+      addToCart(id);
+    },
+    [addToCart],
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -208,11 +163,11 @@ export default function DeliveryTrackingScreen() {
         mode="pending"
         isActiveNav={false}
         submittingOrderId={null}
-        onAddToCart={addToCart}
+        onAddToCart={handleAddToCart}
         onStatusChange={() => {}}
       />
     ),
-    [addToCart],
+    [handleAddToCart],
   );
 
   const continueKey =
@@ -234,16 +189,6 @@ export default function DeliveryTrackingScreen() {
             <Text style={styles.continueAction}>{t("delivery.continueAction")}</Text>
           </Pressable>
         ) : null}
-        {cartOrders.length > 0 ? (
-          <DeliveryCartCard
-            orders={cartOrders}
-            totalPendingCount={pendingOrders.length}
-            canStartDelivery={canStartDelivery}
-            submitting={batchSubmitting}
-            onStartDelivery={startDeliveryBatch}
-            onRemoveFromCart={removeFromCart}
-          />
-        ) : null}
         {availablePending.length > 0 ? (
           <Text style={styles.sectionLabel}>{t("delivery.pendingOrders")}</Text>
         ) : null}
@@ -252,12 +197,6 @@ export default function DeliveryTrackingScreen() {
     [
       readyForDeliveryOrders.length,
       navigation,
-      cartOrders,
-      pendingOrders.length,
-      canStartDelivery,
-      batchSubmitting,
-      startDeliveryBatch,
-      removeFromCart,
       availablePending.length,
       styles,
       t,
@@ -265,19 +204,40 @@ export default function DeliveryTrackingScreen() {
     ],
   );
 
+  const cartOrdersCount = cartCount;
+  const allPendingInCart =
+    pendingOrders.length > 0 && cartOrdersCount === pendingOrders.length;
+
   const listEmpty = loading ? (
     <SkeletonList count={3} ItemComponent={OrderCardSkeleton} itemProps={{ showActions: true }} />
   ) : (
     <Text style={styles.emptyText}>
-      {pendingOrders.length > 0 && cartOrders.length === pendingOrders.length
-        ? t("delivery.allInCart")
-        : t("delivery.noOrders")}
+      {allPendingInCart ? t("delivery.allInCart") : t("delivery.noOrders")}
     </Text>
   );
 
+  const openCart = useCallback(() => {
+    navigation.navigate("DeliveryCart");
+  }, [navigation]);
+
   return (
     <Screen contentStyle={styles.container} accessibilityState={loading ? { busy: true } : undefined}>
-      <SectionHeader title={t("delivery.title")} subtitle={t("delivery.subtitle")} />
+      <SectionHeader
+        title={t("delivery.title")}
+        rightAction={
+          <Pressable style={styles.cartHeaderBtn} onPress={openCart}>
+            <AppIcon name="cart-outline" size={18} color={colors.textPrimary} />
+            <Text style={styles.cartHeaderBtnText}>{t("delivery.openCart")}</Text>
+            {cartOrdersCount > 0 ? (
+              <View style={styles.cartBadge}>
+                <Text style={styles.cartBadgeText}>
+                  {cartOrdersCount > 99 ? "99+" : cartOrdersCount}
+                </Text>
+              </View>
+            ) : null}
+          </Pressable>
+        }
+      />
       <FlatList
         style={styles.list}
         data={loading ? [] : listOrders}

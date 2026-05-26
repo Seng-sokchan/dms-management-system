@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import {
   Animated,
-  Dimensions,
   PanResponder,
   Pressable,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -16,12 +16,12 @@ export const DELIVERY_SHEET_EXPANDED_RATIO = 0.5;
 const SNAP_VELOCITY = 0.35;
 
 export function getDeliverySheetPeekHeight(screenHeight) {
-  const h = screenHeight ?? Dimensions.get("window").height;
+  const h = screenHeight > 0 ? screenHeight : 0;
   return Math.round(h * DELIVERY_SHEET_PEEK_RATIO);
 }
 
 export function getDeliverySheetExpandedHeight(screenHeight) {
-  const h = screenHeight ?? Dimensions.get("window").height;
+  const h = screenHeight > 0 ? screenHeight : 0;
   return Math.round(h * DELIVERY_SHEET_EXPANDED_RATIO);
 }
 
@@ -39,7 +39,8 @@ export function DeliveryOrdersBottomSheet({
   peekSubtitle,
   children,
 }) {
-  const { colors, radii, shadows, spacing, typography } = useTheme();
+  const { colors, radii, shadows, sizes, spacing, typography } = useTheme();
+  const { height: windowHeight } = useWindowDimensions();
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -62,7 +63,7 @@ export function DeliveryOrdersBottomSheet({
           alignItems: "center",
         },
         handle: {
-          width: 40,
+          width: sizes.sheetHandleWidth,
           height: 4,
           borderRadius: radii.pill,
           backgroundColor: colors.border,
@@ -96,10 +97,10 @@ export function DeliveryOrdersBottomSheet({
           paddingHorizontal: spacing.lg,
         },
       }),
-    [colors, radii, shadows, spacing, typography],
+    [colors, radii, shadows, sizes.sheetHandleWidth, spacing, typography],
   );
   const insets = useSafeAreaInsets();
-  const screenHeight = Dimensions.get("window").height;
+  const screenHeight = windowHeight;
   const peekHeight = useMemo(
     () => getDeliverySheetPeekHeight(screenHeight),
     [screenHeight],

@@ -1,6 +1,7 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useTranslation } from "react-i18next";
+import { DepotBatchCartProvider } from "../context/DepotBatchCartContext";
 import DepotNavigator from "./DepotNavigator";
 import OrderPaymentScreen from "../screens/OrderPaymentScreen";
 import PaymentResultScreen from "../screens/PaymentResultScreen";
@@ -13,6 +14,7 @@ export default function DepotRootNavigator() {
   const { t } = useTranslation();
 
   return (
+    <DepotBatchCartProvider>
     <Stack.Navigator screenOptions={stackScreenOptions}>
       <Stack.Screen name="Tabs" component={DepotNavigator} options={{ headerShown: false }} />
       <Stack.Screen
@@ -26,5 +28,6 @@ export default function DepotRootNavigator() {
         options={{ title: t("payment.resultTitle") }}
       />
     </Stack.Navigator>
+    </DepotBatchCartProvider>
   );
 }

@@ -28,7 +28,7 @@ function DeliveryMapSectionInner({
   mapHeight = 0,
 }) {
   const { t } = useTranslation();
-  const { colors, radii, shadows, spacing, typography } = useTheme();
+  const { colors, radii, shadows, sizes, spacing, typography } = useTheme();
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -58,7 +58,7 @@ function DeliveryMapSectionInner({
         },
         mapWrap: {
           marginTop: spacing.sm,
-          height: 260,
+          height: sizes.mapEmbeddedHeight,
           borderRadius: radii.xl,
           overflow: "hidden",
           backgroundColor: colors.surface,
@@ -98,10 +98,10 @@ function DeliveryMapSectionInner({
         map: {
           flex: 1,
           width: "100%",
-          minHeight: 220,
+          minHeight: sizes.mapMinHeight,
         },
       }),
-    [colors, radii, shadows, spacing, typography],
+    [colors, radii, shadows, sizes.mapEmbeddedHeight, sizes.mapMinHeight, spacing, typography],
   );
   const mapRef = useRef(null);
   const lastNavTargetKey = useRef(null);

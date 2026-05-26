@@ -1,8 +1,5 @@
 import { useMemo } from "react";
-import { StyleSheet } from "react-native";
 import { useTheme } from "../context/ThemeContext";
-import { FLOATING_TAB_BAR_OFFSET } from "../components/navigation/FloatingTabBar";
-
 export function useStackScreenOptions() {
   const { colors, typography } = useTheme();
 
@@ -30,7 +27,8 @@ export function useStackScreenOptions() {
 }
 
 export function useFloatingTabScreenOptions() {
-  const { colors } = useTheme();
+  const { colors, sizes } = useTheme();
+  const tabBarOffset = sizes.tabBarOffset;
 
   return useMemo(
     () => ({
@@ -40,15 +38,15 @@ export function useFloatingTabScreenOptions() {
         backgroundColor: "transparent",
         borderTopWidth: 0,
         elevation: 0,
-        height: FLOATING_TAB_BAR_OFFSET,
+        height: tabBarOffset,
       },
       sceneContainerStyle: {
         flex: 1,
         backgroundColor: colors.background,
-        paddingBottom: FLOATING_TAB_BAR_OFFSET,
+        paddingBottom: tabBarOffset,
       },
     }),
-    [colors.background],
+    [colors.background, tabBarOffset],
   );
 }
 

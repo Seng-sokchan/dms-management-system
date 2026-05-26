@@ -45,7 +45,7 @@ export default function PaymentResultScreen({ route, navigation }) {
   );
   const { token, user } = useAuth();
   const { t } = useTranslation();
-  const { colors, spacing, typography, radii } = useTheme();
+  const { colors, sizes, spacing, typography, radii } = useTheme();
   const [resolvedPaymentId, setResolvedPaymentId] = React.useState(paymentIdParam || null);
 
   useEffect(() => {
@@ -89,16 +89,16 @@ export default function PaymentResultScreen({ route, navigation }) {
           paddingVertical: spacing.md,
         },
         checkCircle: {
-          width: 56,
-          height: 56,
-          borderRadius: 28,
+          width: sizes.iconLg,
+          height: sizes.iconLg,
+          borderRadius: sizes.iconLg / 2,
           borderWidth: 2,
           alignItems: "center",
           justifyContent: "center",
           marginBottom: spacing.md,
         },
         checkMark: {
-          fontSize: 28,
+          fontSize: sizes.successIconText,
           fontWeight: "800",
         },
         badgeLabel: {
@@ -147,7 +147,7 @@ export default function PaymentResultScreen({ route, navigation }) {
           backgroundColor: colors.surfaceMuted,
         },
       }),
-    [colors, radii, spacing, typography],
+    [colors, radii, sizes, spacing, typography],
   );
 
   const statusLabel = t(`payment.result.${statusKey}`, statusKey);

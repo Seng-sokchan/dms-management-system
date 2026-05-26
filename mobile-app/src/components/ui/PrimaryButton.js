@@ -12,7 +12,7 @@ export default function PrimaryButton({
   tone = "primary",
   icon,
 }) {
-  const { colors, radii, spacing, typography } = useTheme();
+  const { colors, radii, sizes, spacing, typography } = useTheme();
   const isDisabled = disabled || loading;
   const backgroundColor = tone === "success" ? colors.success : colors.primary;
   const pressedColor = tone === "success" ? colors.successPressed : colors.primaryPressed;
@@ -21,7 +21,7 @@ export default function PrimaryButton({
     () =>
       StyleSheet.create({
         button: {
-          minHeight: 44,
+          minHeight: sizes.touchTarget,
           borderRadius: radii.pill,
           paddingHorizontal: spacing.lg,
           alignItems: "center",
@@ -46,7 +46,7 @@ export default function PrimaryButton({
           opacity: 0.65,
         },
       }),
-    [colors.onPrimary, radii.pill, spacing, typography.button],
+    [colors.onPrimary, radii.pill, sizes.touchTarget, spacing, typography.button],
   );
 
   return (

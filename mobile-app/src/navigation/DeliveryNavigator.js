@@ -3,8 +3,10 @@ import { useTranslation } from "react-i18next";
 import { getFocusedRouteNameFromRoute } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { DeliveryCartProvider } from "../context/DeliveryCartContext";
 import { useTheme } from "../context/ThemeContext";
 import DeliveryTrackingScreen from "../screens/DeliveryTrackingScreen";
+import DeliveryCartScreen from "../screens/DeliveryCartScreen";
 import DeliveryNavigationScreen from "../screens/DeliveryNavigationScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import { AppIcon } from "../components/ui";
@@ -24,9 +26,9 @@ const LiveStack = createNativeStackNavigator();
 
 function deliveryLiveTabOptions({ route }, floatingTabScreenOptions, colors) {
   const nestedRoute = getFocusedRouteNameFromRoute(route);
-  const onMapScreen = nestedRoute === "DeliveryNavigation";
+  const hideTabBar = nestedRoute === "DeliveryNavigation" || nestedRoute === "DeliveryCart";
 
-  if (onMapScreen) {
+  if (hideTabBar) {
     return {
       tabBarStyle: { display: "none" },
       sceneContainerStyle: {
@@ -60,6 +62,11 @@ function DeliveryLiveStack() {
         options={{ headerShown: false }}
       />
       <LiveStack.Screen
+        name="DeliveryCart"
+        component={DeliveryCartScreen}
+        options={{ headerShown: false, animation: "slide_from_right" }}
+      />
+      <LiveStack.Screen
         name="DeliveryNavigation"
         component={DeliveryNavigationScreen}
         options={{ headerShown: false, animation: "slide_from_right" }}
@@ -74,6 +81,7 @@ export default function DeliveryNavigator() {
   const { t } = useTranslation();
 
   return (
+    <DeliveryCartProvider>
     <Tab.Navigator
       screenOptions={floatingTabScreenOptions}
       tabBar={(props) => <FloatingTabBar {...props} />}
@@ -94,5 +102,6 @@ export default function DeliveryNavigator() {
         options={{ title: t("nav.profile"), tabBarLabel: t("nav.profile"), tabBarIcon: TabIconProfile }}
       />
     </Tab.Navigator>
+    </DeliveryCartProvider>
   );
 }

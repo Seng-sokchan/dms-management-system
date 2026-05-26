@@ -14,7 +14,7 @@ export default function OrderPaymentScreen({ route, navigation }) {
   const order = route.params?.order;
   const { token, user } = useAuth();
   const { t } = useTranslation();
-  const { colors, spacing, typography } = useTheme();
+  const { colors, sizes, spacing, typography } = useTheme();
   const [submitting, setSubmitting] = useState(false);
   const [khqrVisible, setKhqrVisible] = useState(false);
   const [khqrSession, setKhqrSession] = useState(null);
@@ -41,7 +41,7 @@ export default function OrderPaymentScreen({ route, navigation }) {
         },
         outlineButton: {
           marginTop: spacing.md,
-          minHeight: 44,
+          minHeight: sizes.touchTarget,
           borderRadius: 999,
           borderWidth: 1.5,
           borderColor: colors.primary,
@@ -57,7 +57,7 @@ export default function OrderPaymentScreen({ route, navigation }) {
         },
         outlineButtonDisabled: { opacity: 0.5 },
       }),
-    [colors, spacing, typography],
+    [colors, sizes.touchTarget, spacing, typography],
   );
 
   const handlePay = async () => {

@@ -44,7 +44,7 @@ export default function KhqrPaymentModal({
   onPaid,
 }) {
   const { t } = useTranslation();
-  const { colors, radii, spacing, typography } = useTheme();
+  const { colors, layout, radii, sizes, spacing, typography } = useTheme();
   const openedAtRef = useRef(0);
   const paidNotifiedRef = useRef(false);
   const [remainingMs, setRemainingMs] = useState(KHQR_EXPIRY_MS);
@@ -100,7 +100,7 @@ export default function KhqrPaymentModal({
         },
         card: {
           width: "100%",
-          maxWidth: 360,
+          maxWidth: layout.modalMaxWidth,
           backgroundColor: colors.surface,
           borderRadius: radii.xl,
           padding: spacing.xl,
@@ -139,7 +139,7 @@ export default function KhqrPaymentModal({
           borderWidth: StyleSheet.hairlineWidth,
           borderColor: colors.border,
         },
-        qrImage: { width: 220, height: 220 },
+        qrImage: { width: sizes.qrImageSize, height: sizes.qrImageSize },
         statusRow: {
           flexDirection: "row",
           alignItems: "center",
@@ -162,7 +162,7 @@ export default function KhqrPaymentModal({
           borderRadius: radii.pill,
           paddingVertical: spacing.md,
           paddingHorizontal: spacing.xxl,
-          minWidth: 140,
+          minWidth: sizes.buttonMinWidth,
         },
         buttonText: {
           color: colors.onPrimary,
@@ -171,7 +171,7 @@ export default function KhqrPaymentModal({
           textAlign: "center",
         },
       }),
-    [colors, qrExpired, radii, spacing, typography],
+    [colors, layout.modalMaxWidth, qrExpired, radii, sizes, spacing, typography],
   );
 
   const statusLabel = t(`payment.result.${status}`, status);
