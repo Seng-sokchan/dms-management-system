@@ -3,5 +3,5 @@ dist/
 .env
 *.log
 website/app.apk
-frontend/public/app.apk
+#frontend/public/app.apk
 frontend.zip
