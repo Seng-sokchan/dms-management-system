@@ -12,7 +12,11 @@ const source = path.join(
   "release",
   "app-release.apk"
 );
-const dest = path.join(__dirname, "..", "..", "website", "app.apk");
+
+const destinations = [
+  path.join(__dirname, "..", "..", "website", "app.apk"),
+  path.join(__dirname, "..", "..", "frontend", "public", "app.apk"),
+];
 
 if (!fs.existsSync(source)) {
   console.error(
@@ -23,8 +27,10 @@ if (!fs.existsSync(source)) {
   process.exit(1);
 }
 
-fs.mkdirSync(path.dirname(dest), { recursive: true });
-fs.copyFileSync(source, dest);
+const sizeMb = (fs.statSync(source).size / (1024 * 1024)).toFixed(2);
 
-const sizeMb = (fs.statSync(dest).size / (1024 * 1024)).toFixed(2);
-console.log("Copied release APK to website/app.apk (" + sizeMb + " MB)");
+for (const dest of destinations) {
+  fs.mkdirSync(path.dirname(dest), { recursive: true });
+  fs.copyFileSync(source, dest);
+  console.log("Copied release APK to " + path.relative(process.cwd(), dest) + " (" + sizeMb + " MB)");
+}

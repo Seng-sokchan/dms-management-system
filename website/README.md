@@ -24,7 +24,10 @@ npm run android:release
 npm run website:apk
 ```
 
-This copies `android/app/build/outputs/apk/release/app-release.apk` to `website/app.apk`.
+This copies `android/app/build/outputs/apk/release/app-release.apk` to:
+
+- `website/app.apk` (standalone static site)
+- `frontend/public/app.apk` (admin frontend public download at `/download-app`)
 
 ## Preview locally
 

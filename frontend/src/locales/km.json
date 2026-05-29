@@ -47,6 +47,22 @@
     "logIn": "ចូល",
     "signOut": "ចេញ"
   },
+  "downloadApp": {
+    "pageTitle": "DMS Mobile — ទាញយក",
+    "metaDescription": "ទាញយក DMS Mobile — កម្មវិធីប្រព័ន្ធគ្រប់គ្រងការចែកចាយសម្រាប់ Android។",
+    "title": "DMS Mobile",
+    "iconAlt": "រូបតំណាងកម្មវិធី DMS Mobile",
+    "subtitle": "បញ្ជាទិញអតិថិជន និងតាមដានការដឹកជញ្ជូន",
+    "version": "កំណែ {{version}}",
+    "platform": "Android",
+    "download": "ទាញយក APK",
+    "installHeading": "ដំឡើងនៅលើ Android",
+    "step1": "ទាញយក APK ដោយប្រើប៊ូតុងខាងលើ។",
+    "step2": "ប្រសិនបើមានសារសួរ សូមអនុញ្ញាតការដំឡើងពីកម្មវិធីរុករក ឬគ្រប់គ្រងឯកសារ (<strong>ដំឡើងកម្មវិធីមិនស្គាល់</strong>)។",
+    "step3": "បើកឯកសារដែលបានទាញយក ហើយចុច <strong>ដំឡើង</strong>។",
+    "step4": "បើក <strong>DMS Mobile</strong> ហើយចូលដោយប្រើគណនីរបស់អ្នក។",
+    "note": "ឯកសារ APK ត្រូវបានបង្កើត និងចម្លងមុនពេលតំណទាញយកដំណើរការ។ រត់ <code>npm run android:release</code> រួច <code>npm run website:apk</code> ក្នុងថត mobile-app។"
+  },
   "nav": {
     "overview": "ទិដ្ឋភាពរួម",
     "overviewSub": "សូចនាកម្ម & សុខភាព",

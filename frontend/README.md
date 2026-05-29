@@ -33,9 +33,16 @@ React + Vite admin frontend for the Fix Asset order management system.
 - JWT is stored in localStorage (`fix-asset-token`).
 - On `401`, user is logged out and shown a session-expired message.
 
+## Mobile app download (standalone route)
+
+- `/download-app` — independent public page (routed in `main.jsx`, not part of the admin `App` shell or auth flow).
+- APK file: `public/app.apk` (gitignored; copied by `npm run website:apk` in `mobile-app` after `npm run android:release`).
+- Optional env: `VITE_MOBILE_APP_VERSION` (defaults to `0.0.1` on the download page).
+- No links to/from the login or admin routes; share the URL directly.
+
 ## Routing
 
-All pages are top-level routes (not nested child route config):
+Admin routes (in `App.jsx`):
 
 - `/overview`
 - `/create-order`

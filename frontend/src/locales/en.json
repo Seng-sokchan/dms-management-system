@@ -47,6 +47,22 @@
     "logIn": "Log In",
     "signOut": "Sign out"
   },
+  "downloadApp": {
+    "pageTitle": "DMS Mobile — Download",
+    "metaDescription": "Download DMS Mobile — the Distribution Management System app for Android.",
+    "title": "DMS Mobile",
+    "iconAlt": "DMS Mobile app icon",
+    "subtitle": "Distribution Management System — field app for Android",
+    "version": "Version {{version}}",
+    "platform": "Android",
+    "download": "Download APK",
+    "installHeading": "Install on Android",
+    "step1": "Download the APK using the button above.",
+    "step2": "If prompted, allow installs from your browser or file manager (<strong>Install unknown apps</strong>).",
+    "step3": "Open the downloaded file and tap <strong>Install</strong>.",
+    "step4": "Launch <strong>DMS Mobile</strong> and sign in with your account.",
+    "note": "The APK file must be built and copied before the download link works. Run <code>npm run android:release</code> then <code>npm run website:apk</code> in the mobile-app folder."
+  },
   "nav": {
     "overview": "Overview",
     "overviewSub": "KPIs & health",
