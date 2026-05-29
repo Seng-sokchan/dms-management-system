@@ -145,7 +145,7 @@ export default function DepotOrdersScreen() {
   const headerSubtitle = loading ? t("depot.loadingOrders") : subtitle;
 
   return (
-    <Screen accessibilityState={loading ? { busy: true } : undefined}>
+    <Screen busy={loading && orders.length === 0}>
       <SectionHeader
         title={t("depot.ordersTitle")}
         subtitle={loading ? headerSubtitle : `${headerSubtitle}\n${t("depot.ordersPaymentHint")}`}

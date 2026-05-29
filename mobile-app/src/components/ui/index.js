@@ -5,6 +5,7 @@ export { default as Card } from "./Card";
 export { default as DepotCustomerCardSkeleton } from "./DepotCustomerCardSkeleton";
 export { default as EmptyState } from "./EmptyState";
 export { default as InputField } from "./InputField";
+export { default as LoadingOverlay } from "./LoadingOverlay";
 export { default as OrderCardSkeleton } from "./OrderCardSkeleton";
 export { default as PrimaryButton } from "./PrimaryButton";
 export { default as Screen } from "./Screen";

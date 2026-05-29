@@ -2,23 +2,35 @@ import React, { useCallback, useMemo, useRef, useState } from "react";
 import { Alert, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
-import { AppIcon, OrderCardSkeleton, Screen, SectionHeader, SkeletonList } from "../components/ui";
+import { OrderCardSkeleton, Screen, SectionHeader, SkeletonList } from "../components/ui";
+import { DeliveryCartCard } from "../components/DeliveryCartCard";
+import { DeliveryOrderCard } from "../components/DeliveryOrderCard";
 import { useAuth } from "../context/AuthContext";
 import { useDeliveryCart } from "../context/DeliveryCartContext";
 import { useTheme } from "../context/ThemeContext";
-import { DeliveryOrderCard } from "../components/DeliveryOrderCard";
-import { listMobileOrders } from "../services/ordersApi";
+import { listMobileOrders, updateMobileOrderStatus } from "../services/ordersApi";
+import {
+  ensureDriverLocationReady,
+  getCurrentDriverPositionAsync,
+} from "../utils/driverLocationProvider";
 
 const SENT_TO_FACTORY = "Sent_To_Factory";
+
+const GET_CURRENT_OPTIONS = {
+  enableHighAccuracy: true,
+  timeout: 15000,
+  maximumAge: 10000,
+};
 
 export default function DeliveryTrackingScreen() {
   const { token } = useAuth();
   const navigation = useNavigation();
   const { t } = useTranslation();
   const { colors, radii, spacing, typography, sizes } = useTheme();
-  const { cartOrderIds, cartCount, addToCart, pruneCartIds } = useDeliveryCart();
+  const { cartOrderIds, clearCart, addToCart, removeFromCart, pruneCartIds } = useDeliveryCart();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [batchSubmitting, setBatchSubmitting] = useState(false);
   const ordersRef = useRef(orders);
 
   ordersRef.current = orders;
@@ -27,36 +39,6 @@ export default function DeliveryTrackingScreen() {
     () =>
       StyleSheet.create({
         container: { flex: 1, paddingBottom: spacing.sm },
-        cartHeaderBtn: {
-          flexDirection: "row",
-          alignItems: "center",
-          gap: spacing.xs,
-          backgroundColor: colors.surfaceSoft,
-          borderWidth: 1,
-          borderColor: colors.border,
-          borderRadius: radii.pill,
-          paddingHorizontal: spacing.md,
-          paddingVertical: spacing.sm,
-        },
-        cartHeaderBtnText: {
-          color: colors.textPrimary,
-          fontSize: typography.bodySmall,
-          fontWeight: "600",
-        },
-        cartBadge: {
-          minWidth: 20,
-          height: 20,
-          borderRadius: 10,
-          backgroundColor: colors.primary,
-          alignItems: "center",
-          justifyContent: "center",
-          paddingHorizontal: 4,
-        },
-        cartBadgeText: {
-          color: colors.onPrimary,
-          fontSize: 11,
-          fontWeight: "700",
-        },
         continueCard: {
           marginBottom: spacing.md,
           padding: spacing.lg,
@@ -100,6 +82,11 @@ export default function DeliveryTrackingScreen() {
 
   const cartOrderIdSet = useMemo(() => new Set(cartOrderIds.map(String)), [cartOrderIds]);
 
+  const cartOrders = useMemo(
+    () => pendingOrders.filter((order) => cartOrderIdSet.has(String(order.id))),
+    [pendingOrders, cartOrderIdSet],
+  );
+
   const availablePending = useMemo(
     () => pendingOrders.filter((order) => !cartOrderIdSet.has(String(order.id))),
     [pendingOrders, cartOrderIdSet],
@@ -109,6 +96,9 @@ export default function DeliveryTrackingScreen() {
     () => orders.filter((order) => order.status === "Ready_For_Delivery"),
     [orders],
   );
+
+  const canStartDelivery =
+    pendingOrders.length > 0 && cartOrders.length === pendingOrders.length;
 
   const listOrders = useMemo(
     () => availablePending.map((order) => ({ ...order, listMode: "pending" })),
@@ -147,6 +137,55 @@ export default function DeliveryTrackingScreen() {
     },
     [addToCart],
   );
+
+  const startDeliveryBatch = useCallback(async () => {
+    if (!canStartDelivery || batchSubmitting) return;
+
+    const accessToken = typeof token === "string" ? token.trim() : "";
+    if (!accessToken) return;
+
+    const idsToStart = cartOrders.map((order) => String(order.id));
+    if (idsToStart.length === 0) return;
+
+    setBatchSubmitting(true);
+    const startedIds = [];
+
+    try {
+      for (const orderId of idsToStart) {
+        await updateMobileOrderStatus(accessToken, orderId, "Ready_For_Delivery");
+        startedIds.push(orderId);
+      }
+
+      clearCart();
+      await loadOrders({ silent: true });
+      await ensureDriverLocationReady();
+      try {
+        await getCurrentDriverPositionAsync(GET_CURRENT_OPTIONS);
+      } catch {
+        // Navigation screen will retry GPS
+      }
+
+      navigation.navigate("DeliveryNavigation");
+    } catch {
+      await loadOrders({ silent: true });
+      if (startedIds.length > 0) {
+        Alert.alert(t("delivery.startDeliveryTitle"), t("delivery.startPartialFailed"));
+      } else {
+        Alert.alert(t("delivery.startDeliveryTitle"), t("delivery.startDeliveryFailed"));
+      }
+    } finally {
+      setBatchSubmitting(false);
+    }
+  }, [
+    batchSubmitting,
+    canStartDelivery,
+    cartOrders,
+    clearCart,
+    loadOrders,
+    navigation,
+    token,
+    t,
+  ]);
 
   useFocusEffect(
     useCallback(() => {
@@ -189,6 +228,16 @@ export default function DeliveryTrackingScreen() {
             <Text style={styles.continueAction}>{t("delivery.continueAction")}</Text>
           </Pressable>
         ) : null}
+        {cartOrders.length > 0 ? (
+          <DeliveryCartCard
+            orders={cartOrders}
+            totalPendingCount={pendingOrders.length}
+            canStartDelivery={canStartDelivery}
+            submitting={batchSubmitting}
+            onStartDelivery={startDeliveryBatch}
+            onRemoveFromCart={removeFromCart}
+          />
+        ) : null}
         {availablePending.length > 0 ? (
           <Text style={styles.sectionLabel}>{t("delivery.pendingOrders")}</Text>
         ) : null}
@@ -197,6 +246,12 @@ export default function DeliveryTrackingScreen() {
     [
       readyForDeliveryOrders.length,
       navigation,
+      cartOrders,
+      pendingOrders.length,
+      canStartDelivery,
+      batchSubmitting,
+      startDeliveryBatch,
+      removeFromCart,
       availablePending.length,
       styles,
       t,
@@ -204,9 +259,8 @@ export default function DeliveryTrackingScreen() {
     ],
   );
 
-  const cartOrdersCount = cartCount;
   const allPendingInCart =
-    pendingOrders.length > 0 && cartOrdersCount === pendingOrders.length;
+    pendingOrders.length > 0 && cartOrders.length === pendingOrders.length;
 
   const listEmpty = loading ? (
     <SkeletonList count={3} ItemComponent={OrderCardSkeleton} itemProps={{ showActions: true }} />
@@ -216,28 +270,12 @@ export default function DeliveryTrackingScreen() {
     </Text>
   );
 
-  const openCart = useCallback(() => {
-    navigation.navigate("DeliveryCart");
-  }, [navigation]);
+  const busy = (loading && orders.length === 0) || batchSubmitting;
+  const busyMessage = batchSubmitting ? t("delivery.startingDelivery") : undefined;
 
   return (
-    <Screen contentStyle={styles.container} accessibilityState={loading ? { busy: true } : undefined}>
-      <SectionHeader
-        title={t("delivery.title")}
-        rightAction={
-          <Pressable style={styles.cartHeaderBtn} onPress={openCart}>
-            <AppIcon name="cart-outline" size={18} color={colors.textPrimary} />
-            <Text style={styles.cartHeaderBtnText}>{t("delivery.openCart")}</Text>
-            {cartOrdersCount > 0 ? (
-              <View style={styles.cartBadge}>
-                <Text style={styles.cartBadgeText}>
-                  {cartOrdersCount > 99 ? "99+" : cartOrdersCount}
-                </Text>
-              </View>
-            ) : null}
-          </Pressable>
-        }
-      />
+    <Screen contentStyle={styles.container} busy={busy} busyMessage={busyMessage}>
+      <SectionHeader title={t("delivery.title")} subtitle={t("delivery.subtitle")} />
       <FlatList
         style={styles.list}
         data={loading ? [] : listOrders}

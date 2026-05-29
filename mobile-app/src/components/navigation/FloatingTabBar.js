@@ -68,7 +68,6 @@ function isTabBarHidden(descriptors, route) {
   const nestedRoute = nested.routes[nested.index ?? 0];
   return (
     nestedRoute?.name === "DeliveryNavigation" ||
-    nestedRoute?.name === "DeliveryCart" ||
     nestedRoute?.name === "DepotBatchCart"
   );
 }

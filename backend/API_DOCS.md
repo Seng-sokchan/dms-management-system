@@ -32,6 +32,7 @@ Base URL: `http://localhost:4000/v1` (production: `https://api.dmscambodia.com/v
 
 ## Mobile Integration Endpoints
 - `GET /mobile/orders` — **Customer** sees orders for their linked customer; **Delivery** sees only orders whose `delivery_agent_id` matches `users.delivery_agent_id` for that login (empty list if the user is not linked to an agent).
+- `GET /mobile/orders/:id/delivery-location` — latest driver GPS for an order in **Ready_For_Delivery** (Customer: own order; Depot: depot customers; Delivery: assigned agent; Admin/Owner/Logistics: any). Response: `{ deliveryAgentId, lastKnown }`.
 - `POST /mobile/orders/:id/status`
 - `POST /mobile/orders/:id/delivery-confirmation` — same body/rules as web delivery confirmation (for Delivery drivers completing a stop)
 
@@ -48,4 +49,5 @@ Base URL: `http://localhost:4000/v1` (production: `https://api.dmscambodia.com/v
 - `users.delivery_agent_id` (nullable, unique when set) links a **Delivery** login to `delivery_agents.id`; order assignment still uses `orders.delivery_agent_id`.
 - `orders` uses the same single-item structure as current frontend/backend contracts.
 - `order_status_history` exists as optional audit table for future enhancement.
+- `delivery_agent_locations` stores the latest GPS per `delivery_agent_id` (upsert, throttled writes) while drivers emit `delivery:location` over Socket.IO.
 - Initialize DB with: `npm run db:init` (uses `.env` DB credentials).

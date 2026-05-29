@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
@@ -22,6 +22,7 @@ export default function ProfileScreen() {
   const { user, logout } = useAuth();
   const { t } = useTranslation();
   const { colors, radii, spacing, typography } = useTheme();
+  const [signingOut, setSigningOut] = useState(false);
 
   const styles = useMemo(
     () =>
@@ -60,14 +61,25 @@ export default function ProfileScreen() {
     [colors, radii, spacing, typography],
   );
 
+  async function handleSignOut() {
+    if (signingOut) return;
+    setSigningOut(true);
+    try {
+      await logout();
+    } finally {
+      setSigningOut(false);
+    }
+  }
+
   return (
-    <Screen>
+    <Screen busy={signingOut}>
       <SectionHeader
         title={t("profile.title")}
         subtitle={roleSubtitle(user?.role, t)}
         rightAction={
           <Pressable
-            onPress={logout}
+            onPress={handleSignOut}
+            disabled={signingOut}
             hitSlop={8}
             style={styles.signOutButton}
             accessibilityRole="button"

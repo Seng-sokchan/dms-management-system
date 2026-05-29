@@ -165,7 +165,7 @@ export default function CartScreen({ navigation }) {
   const subtitleKey = totalQty === 1 ? "cart.subtitle" : "cart.subtitle_plural";
 
   return (
-    <Screen>
+    <Screen busy={submitting} busyMessage={t("cart.preOrder")}>
       <Modal
         visible={showSuccess}
         transparent

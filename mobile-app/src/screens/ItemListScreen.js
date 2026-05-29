@@ -122,7 +122,7 @@ export default function ItemListScreen({ navigation }) {
   }
 
   return (
-    <Screen accessibilityState={loading ? { busy: true } : undefined}>
+    <Screen busy={loading && items.length === 0} busyMessage={t("catalog.loading")}>
       <SectionHeader
         title={t("catalog.title")}
         subtitle={t("catalog.subtitle")}

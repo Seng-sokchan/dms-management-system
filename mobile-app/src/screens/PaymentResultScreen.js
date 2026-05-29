@@ -171,7 +171,7 @@ export default function PaymentResultScreen({ route, navigation }) {
   };
 
   return (
-    <Screen>
+    <Screen busy={loading && !payment} busyMessage={t("payment.loading")}>
       <SectionHeader
         title={isPaid ? t("payment.completedTitle") : t("payment.resultTitle")}
         subtitle={isPaid ? t("payment.completedSubtitle") : undefined}

@@ -1,5 +1,13 @@
 import React, { useMemo, useState } from "react";
-import { Alert, KeyboardAvoidingView, Platform, StyleSheet, Text, View } from "react-native";
+import {
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
@@ -28,6 +36,12 @@ export default function LoginScreen() {
         brandWrap: {
           marginBottom: spacing.xl,
           alignItems: "center",
+        },
+        logo: {
+          width: 88,
+          height: 88,
+          borderRadius: radii.lg,
+          marginBottom: spacing.md,
         },
         brandTitle: {
           fontSize: typography.h1,
@@ -80,12 +94,23 @@ export default function LoginScreen() {
   }
 
   return (
-    <Screen contentStyle={styles.container} edges={["top", "left", "right", "bottom"]}>
+    <Screen
+      contentStyle={styles.container}
+      edges={["top", "left", "right", "bottom"]}
+      busy={loading}
+      busyMessage={t("auth.signIn")}
+    >
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <View style={styles.brandWrap}>
+          <Image
+            source={require("../../assets/images/logo.png")}
+            style={styles.logo}
+            accessibilityLabel={t("auth.brandTitle")}
+            resizeMode="cover"
+          />
           <Text style={styles.brandTitle}>{t("auth.brandTitle")}</Text>
           <Text style={styles.brandSubtitle}>{t("auth.brandSubtitle")}</Text>
         </View>

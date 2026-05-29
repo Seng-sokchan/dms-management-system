@@ -5,6 +5,8 @@ DROP TABLE IF EXISTS borrow_material_monthly_installments;
 DROP TABLE IF EXISTS borrow_material_monthly_schedules;
 DROP TABLE IF EXISTS borrow_material_order_loans;
 DROP TABLE IF EXISTS payment_webhook_events;
+DROP TABLE IF EXISTS delivery_agent_locations;
+DROP TABLE IF EXISTS delivery_location_points;
 DROP TABLE IF EXISTS order_status_history;
 DROP TABLE IF EXISTS payments;
 DROP TABLE IF EXISTS orders;
@@ -310,6 +312,15 @@ CREATE TABLE order_status_history (
   KEY idx_order_status_history_from_status (from_status),
   KEY idx_order_status_history_to_status (to_status),
   KEY idx_order_status_history_user (changed_by_user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE delivery_agent_locations (
+  delivery_agent_id INT UNSIGNED NOT NULL,
+  latitude DECIMAL(10,7) NOT NULL,
+  longitude DECIMAL(10,7) NOT NULL,
+  accuracy DECIMAL(8,2) DEFAULT NULL,
+  recorded_at DATETIME NOT NULL,
+  PRIMARY KEY (delivery_agent_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- ABA PayWay payment intents (server-authoritative; webhook confirms paid)

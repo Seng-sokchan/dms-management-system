@@ -7,11 +7,12 @@ import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import DeliveryProgressCard from "../components/DeliveryProgressCard";
 import { Card, Screen, SectionHeader, TrackingChipsSkeleton } from "../components/ui";
+import { useDeliveryLocationHistory } from "../hooks/useDeliveryLocationHistory";
 import { useDeliveryRouteProgress } from "../hooks/useDeliveryRouteProgress";
 import { getApiErrorMessage } from "../services/apiClient";
 import { listMobileOrders } from "../services/ordersApi";
 import { getSocketBaseUrl } from "../services/socketUrl";
-import { getOrderDestination, parseCoord } from "../utils/deliveryNavigation";
+import { getOrderDestination } from "../utils/deliveryNavigation";
 
 const TRACKABLE_STATUS = "Ready_For_Delivery";
 
@@ -21,11 +22,11 @@ export default function DepotTrackingScreen({ route }) {
   const { t } = useTranslation();
   const { colors, radii, spacing, typography } = useTheme();
   const socketRef = useRef(null);
+  const applyLiveRef = useRef(null);
   const [orders, setOrders] = useState([]);
   const [selectedOrderId, setSelectedOrderId] = useState(
     initialOrderId != null ? String(initialOrderId) : "",
   );
-  const [driverLocation, setDriverLocation] = useState(null);
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [socketState, setSocketState] = useState("idle");
   const [error, setError] = useState("");
@@ -90,10 +91,39 @@ export default function DepotTrackingScreen({ route }) {
     [selectedOrder],
   );
 
-  const { progressRows, resetRoute } = useDeliveryRouteProgress({
+  const driverName = selectedOrder?.deliveryAgentName || t("tracking.driver");
+
+  const {
+    lastKnown,
+    loading: historyLoading,
+    error: historyError,
+    isStale,
+    applyLiveLocation,
+    reset: resetHistory,
+  } = useDeliveryLocationHistory({
+    token,
+    orderId: selectedOrderId,
+    deliveryAgentId: selectedOrder?.deliveryAgentId,
+    driverName,
+    enabled: Boolean(selectedOrderId && selectedOrder),
+  });
+
+  applyLiveRef.current = applyLiveLocation;
+
+  const driverLocation = useMemo(() => {
+    if (!lastKnown) return null;
+    return {
+      latitude: lastKnown.latitude,
+      longitude: lastKnown.longitude,
+      updatedAt: lastKnown.recordedAt,
+      name: lastKnown.name || driverName,
+    };
+  }, [driverName, lastKnown]);
+
+  const { progressRows, resetRoute, isLoadingRoute } = useDeliveryRouteProgress({
     origin: driverLocation,
     destination: customerLocation,
-    driverName: driverLocation?.name || selectedOrder?.deliveryAgentName,
+    driverName: driverLocation?.name || driverName,
     audience: "depot",
     customerName: selectedOrder?.customerName,
     orderStatus: selectedOrder?.status,
@@ -127,7 +157,7 @@ export default function DepotTrackingScreen({ route }) {
             const stillVisible = trackable.some((row) => String(row.id) === String(selectedOrderId));
             if (!stillVisible) {
               setSelectedOrderId(trackable[0]?.id ? String(trackable[0].id) : "");
-              setDriverLocation(null);
+              resetHistory();
             }
           }
         } catch (err) {
@@ -142,7 +172,7 @@ export default function DepotTrackingScreen({ route }) {
       return () => {
         cancelled = true;
       };
-    }, [initialOrderId, selectedOrderId, token, t]),
+    }, [initialOrderId, resetHistory, selectedOrderId, token, t]),
   );
 
   useFocusEffect(
@@ -165,30 +195,7 @@ export default function DepotTrackingScreen({ route }) {
       });
       socket.on("disconnect", () => setSocketState("disconnected"));
       socket.on("delivery:location", (payload) => {
-        const latitude = parseCoord(payload?.latitude);
-        const longitude = parseCoord(payload?.longitude);
-        if (latitude == null || longitude == null) return;
-
-        const payloadAgentId = payload?.deliveryAgentId;
-        const orderAgentId = selectedOrder?.deliveryAgentId;
-        if (
-          orderAgentId &&
-          payloadAgentId &&
-          String(payloadAgentId) !== String(orderAgentId)
-        ) {
-          return;
-        }
-
-        setDriverLocation({
-          latitude,
-          longitude,
-          updatedAt: payload?.updatedAt || "",
-          name:
-            payload?.name ||
-            payload?.username ||
-            selectedOrder?.deliveryAgentName ||
-            t("tracking.driver"),
-        });
+        applyLiveRef.current?.(payload);
       });
       socket.on("connect_error", (err) => {
         setSocketState("error");
@@ -200,12 +207,11 @@ export default function DepotTrackingScreen({ route }) {
         socket.removeAllListeners();
         socket.disconnect();
       };
-    }, [selectedOrder?.deliveryAgentId, selectedOrder?.deliveryAgentName, subscribeWatcher, token, t]),
+    }, [subscribeWatcher, token, t]),
   );
 
   useFocusEffect(
     useCallback(() => {
-      setDriverLocation(null);
       subscribeWatcher();
       return () => {};
     }, [selectedOrderId, subscribeWatcher]),
@@ -218,7 +224,7 @@ export default function DepotTrackingScreen({ route }) {
       <Pressable
         onPress={() => {
           setSelectedOrderId(String(item.id));
-          setDriverLocation(null);
+          resetHistory();
           resetRoute();
         }}
         style={[styles.orderChip, isActive && styles.orderChipActive]}
@@ -233,14 +239,27 @@ export default function DepotTrackingScreen({ route }) {
     );
   };
 
-  const connectionLabel =
-    socketState === "connected" ? t("tracking.live") : socketState;
+  const connectionLabel = useMemo(() => {
+    if (socketState === "connected" && lastKnown && !isStale) {
+      return t("tracking.live");
+    }
+    if (lastKnown && isStale) {
+      return t("tracking.lastKnownShort");
+    }
+    if (socketState === "connected") {
+      return t("tracking.live");
+    }
+    return socketState;
+  }, [isStale, lastKnown, socketState, t]);
+
+  const displayError = error || historyError;
+
+  const busy =
+    (loadingOrders && orders.length === 0)
+    || (Boolean(selectedOrderId) && (historyLoading || isLoadingRoute));
 
   return (
-    <Screen
-      contentStyle={styles.container}
-      accessibilityState={loadingOrders ? { busy: true } : undefined}
-    >
+    <Screen contentStyle={styles.container} busy={busy}>
       <SectionHeader title={t("depot.trackingTitle")} subtitle={t("depot.trackingSubtitle")} />
 
       <Card style={styles.ordersCard}>
@@ -268,9 +287,9 @@ export default function DepotTrackingScreen({ route }) {
         <DeliveryProgressCard title={t("tracking.progress.title")} rows={progressRows} />
       ) : null}
 
-      {error ? (
-        <Pressable onPress={() => Alert.alert(t("depot.trackingTitle"), error)}>
-          <Text style={styles.errorText}>{error}</Text>
+      {displayError ? (
+        <Pressable onPress={() => Alert.alert(t("depot.trackingTitle"), displayError)}>
+          <Text style={styles.errorText}>{displayError}</Text>
         </Pressable>
       ) : null}
     </Screen>

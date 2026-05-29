@@ -1,12 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
-import MapView, { Marker } from "react-native-maps";
+import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppIcon } from "./ui";
 import { DeliveryRouteDirections } from "./DeliveryRouteDirections";
 import { buildMapRegion, getOrderDestination } from "../utils/deliveryNavigation";
 import { useTheme } from "../context/ThemeContext";
+import { getGoogleMapStyle } from "../theme/mapStyles";
 
 const DRIVER_FOLLOW_DELTA = 0.018;
 
@@ -28,7 +29,10 @@ function DeliveryMapSectionInner({
   mapHeight = 0,
 }) {
   const { t } = useTranslation();
-  const { colors, radii, shadows, sizes, spacing, typography } = useTheme();
+  const { colors, isDark, radii, resolvedMode, shadows, sizes, spacing, typography } = useTheme();
+  const mapStyle = useMemo(() => getGoogleMapStyle(isDark), [isDark]);
+  const mapProvider = Platform.OS === "android" ? PROVIDER_GOOGLE : undefined;
+  const mapUserInterfaceStyle = isDark ? "dark" : "light";
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -276,9 +280,13 @@ function DeliveryMapSectionInner({
       <View style={styles.fullscreenRoot} onLayout={handleLayout}>
         {canRenderMap ? (
           <MapView
+            key={`delivery-map-${resolvedMode}`}
             ref={mapRef}
+            provider={mapProvider}
             style={{ width: resolvedWidth, height: resolvedHeight }}
             initialRegion={mapRegion}
+            customMapStyle={mapStyle}
+            userInterfaceStyle={mapUserInterfaceStyle}
             loadingEnabled
             showsUserLocation
             showsMyLocationButton={false}
@@ -337,9 +345,13 @@ function DeliveryMapSectionInner({
       ))}
       <View style={styles.mapWrap}>
         <MapView
+          key={`delivery-map-embedded-${resolvedMode}`}
           ref={mapRef}
+          provider={mapProvider}
           style={styles.map}
           initialRegion={mapRegion}
+          customMapStyle={mapStyle}
+          userInterfaceStyle={mapUserInterfaceStyle}
           onPanDrag={handlePanDrag}
         >
           {mapMarkers}

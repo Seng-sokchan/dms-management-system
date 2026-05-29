@@ -6,7 +6,6 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { DeliveryCartProvider } from "../context/DeliveryCartContext";
 import { useTheme } from "../context/ThemeContext";
 import DeliveryTrackingScreen from "../screens/DeliveryTrackingScreen";
-import DeliveryCartScreen from "../screens/DeliveryCartScreen";
 import DeliveryNavigationScreen from "../screens/DeliveryNavigationScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import { AppIcon } from "../components/ui";
@@ -26,7 +25,7 @@ const LiveStack = createNativeStackNavigator();
 
 function deliveryLiveTabOptions({ route }, floatingTabScreenOptions, colors) {
   const nestedRoute = getFocusedRouteNameFromRoute(route);
-  const hideTabBar = nestedRoute === "DeliveryNavigation" || nestedRoute === "DeliveryCart";
+  const hideTabBar = nestedRoute === "DeliveryNavigation";
 
   if (hideTabBar) {
     return {
@@ -60,11 +59,6 @@ function DeliveryLiveStack() {
         name="DeliveryHome"
         component={DeliveryTrackingScreen}
         options={{ headerShown: false }}
-      />
-      <LiveStack.Screen
-        name="DeliveryCart"
-        component={DeliveryCartScreen}
-        options={{ headerShown: false, animation: "slide_from_right" }}
       />
       <LiveStack.Screen
         name="DeliveryNavigation"

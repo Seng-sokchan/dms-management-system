@@ -8,12 +8,12 @@ import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import DeliveryProgressCard from "../components/DeliveryProgressCard";
 import { Card, Screen, SectionHeader, TrackingChipsSkeleton } from "../components/ui";
+import { useDeliveryLocationHistory } from "../hooks/useDeliveryLocationHistory";
 import { useDeliveryRouteProgress } from "../hooks/useDeliveryRouteProgress";
 import { getApiErrorMessage } from "../services/apiClient";
 import { listMobileOrders } from "../services/ordersApi";
 import { getSocketBaseUrl } from "../services/socketUrl";
 import { ensureLocationPermission } from "../utils/locationPermission";
-import { parseCoord } from "../utils/deliveryNavigation";
 
 const TRACKABLE_STATUS = "Ready_For_Delivery";
 
@@ -22,9 +22,10 @@ export default function CustomerTrackingScreen() {
   const { t } = useTranslation();
   const { colors, radii, spacing, typography } = useTheme();
   const socketRef = useRef(null);
+  const applyLiveRef = useRef(null);
+  const applySubscribeRef = useRef(null);
   const [orders, setOrders] = useState([]);
   const [selectedOrderId, setSelectedOrderId] = useState("");
-  const [driverLocation, setDriverLocation] = useState(null);
   const [myLocation, setMyLocation] = useState(null);
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [socketState, setSocketState] = useState("idle");
@@ -85,10 +86,41 @@ export default function CustomerTrackingScreen() {
     [trackableOrders, selectedOrderId],
   );
 
-  const { progressRows, resetRoute } = useDeliveryRouteProgress({
+  const driverName = selectedOrder?.deliveryAgentName || t("tracking.driver");
+
+  const {
+    lastKnown,
+    loading: historyLoading,
+    error: historyError,
+    isStale,
+    applyLiveLocation,
+    applySubscribeLastKnown,
+    reset: resetHistory,
+  } = useDeliveryLocationHistory({
+    token,
+    orderId: selectedOrderId,
+    deliveryAgentId: selectedOrder?.deliveryAgentId,
+    driverName,
+    enabled: Boolean(selectedOrderId && selectedOrder),
+  });
+
+  applyLiveRef.current = applyLiveLocation;
+  applySubscribeRef.current = applySubscribeLastKnown;
+
+  const driverLocation = useMemo(() => {
+    if (!lastKnown) return null;
+    return {
+      latitude: lastKnown.latitude,
+      longitude: lastKnown.longitude,
+      updatedAt: lastKnown.recordedAt,
+      name: lastKnown.name || driverName,
+    };
+  }, [driverName, lastKnown]);
+
+  const { progressRows, resetRoute, isLoadingRoute } = useDeliveryRouteProgress({
     origin: driverLocation,
     destination: myLocation,
-    driverName: driverLocation?.name || selectedOrder?.deliveryAgentName,
+    driverName: driverLocation?.name || driverName,
     audience: "customer",
     orderStatus: selectedOrder?.status,
   });
@@ -98,11 +130,13 @@ export default function CustomerTrackingScreen() {
       if (!orderId || !socketRef.current?.connected) return;
       socketRef.current.emit("subscribe:customer-order-tracking", { orderId }, (ack) => {
         if (!ack?.ok) {
-          setDriverLocation(null);
           setError(ack?.error || t("tracking.subscribeError"));
           return;
         }
         setError("");
+        if (ack?.lastKnown) {
+          applySubscribeRef.current?.(ack.lastKnown);
+        }
       });
     },
     [t],
@@ -133,7 +167,7 @@ export default function CustomerTrackingScreen() {
             );
             if (!stillVisible) {
               setSelectedOrderId("");
-              setDriverLocation(null);
+              resetHistory();
             }
           }
         } catch (err) {
@@ -161,7 +195,7 @@ export default function CustomerTrackingScreen() {
       return () => {
         cancelled = true;
       };
-    }, [selectedOrderId, token, t]),
+    }, [resetHistory, selectedOrderId, token, t]),
   );
 
   useFocusEffect(
@@ -182,15 +216,7 @@ export default function CustomerTrackingScreen() {
       });
       socket.on("disconnect", () => setSocketState("disconnected"));
       socket.on("delivery:location", (payload) => {
-        const latitude = parseCoord(payload?.latitude);
-        const longitude = parseCoord(payload?.longitude);
-        if (latitude == null || longitude == null) return;
-        setDriverLocation({
-          latitude,
-          longitude,
-          updatedAt: payload?.updatedAt || "",
-          name: payload?.name || payload?.username || t("tracking.driver"),
-        });
+        applyLiveRef.current?.(payload);
       });
       socket.on("connect_error", (err) => {
         setSocketState("error");
@@ -217,7 +243,7 @@ export default function CustomerTrackingScreen() {
       <Pressable
         onPress={() => {
           setSelectedOrderId(String(item.id));
-          setDriverLocation(null);
+          resetHistory();
           resetRoute();
         }}
         style={[styles.orderChip, isActive && styles.orderChipActive]}
@@ -232,14 +258,27 @@ export default function CustomerTrackingScreen() {
     );
   };
 
-  const connectionLabel =
-    socketState === "connected" ? t("tracking.live") : socketState;
+  const connectionLabel = useMemo(() => {
+    if (socketState === "connected" && lastKnown && !isStale) {
+      return t("tracking.live");
+    }
+    if (lastKnown && isStale) {
+      return t("tracking.lastKnownShort");
+    }
+    if (socketState === "connected") {
+      return t("tracking.live");
+    }
+    return socketState;
+  }, [isStale, lastKnown, socketState, t]);
+
+  const displayError = error || historyError;
+
+  const busy =
+    (loadingOrders && orders.length === 0)
+    || (Boolean(selectedOrderId) && (historyLoading || isLoadingRoute));
 
   return (
-    <Screen
-      contentStyle={styles.container}
-      accessibilityState={loadingOrders ? { busy: true } : undefined}
-    >
+    <Screen contentStyle={styles.container} busy={busy}>
       <SectionHeader title={t("tracking.title")} subtitle={t("tracking.subtitle")} />
 
       <Card style={styles.ordersCard}>
@@ -267,9 +306,9 @@ export default function CustomerTrackingScreen() {
         <DeliveryProgressCard title={t("tracking.progress.title")} rows={progressRows} />
       ) : null}
 
-      {error ? (
-        <Pressable onPress={() => Alert.alert(t("tracking.title"), error)}>
-          <Text style={styles.errorText}>{error}</Text>
+      {displayError ? (
+        <Pressable onPress={() => Alert.alert(t("tracking.title"), displayError)}>
+          <Text style={styles.errorText}>{displayError}</Text>
         </Pressable>
       ) : null}
     </Screen>

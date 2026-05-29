@@ -65,6 +65,7 @@ async function run() {
   const schemaSql = fs.readFileSync(schemaPath, "utf8");
   await dbConn.query(schemaSql);
 
+  await dbConn.query("DELETE FROM delivery_agent_locations");
   await dbConn.query("DELETE FROM order_status_history");
   await dbConn.query("DELETE FROM borrow_material_monthly_installments");
   await dbConn.query("DELETE FROM borrow_material_monthly_schedules");

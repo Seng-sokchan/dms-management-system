@@ -5,6 +5,7 @@ const { setIo } = require("./ioRegistry");
 const { attachPaymentStatusHandlers } = require("./paymentStatusSocket");
 const orderRepository = require("../repositories/orders");
 const customerRepository = require("../repositories/customers");
+const deliveryLocationService = require("../services/deliveryLocationService");
 
 const DELIVERY_WATCHERS_ROOM = "delivery-location-watchers";
 const DELIVERY_AGENT_ROOM_PREFIX = "delivery-agent:";
@@ -208,7 +209,12 @@ function attachDeliveryLocationSocket(httpServer) {
       const room = getDeliveryAgentRoom(order.deliveryAgentId);
       socket.join(room);
       customerTrackingRooms.add(room);
-      if (typeof ack === "function") ack({ ok: true, room });
+      const lastKnown = await deliveryLocationService.resolveLastKnown(
+        order.deliveryAgentId,
+        redis,
+        order.deliveryAgentName,
+      );
+      if (typeof ack === "function") ack({ ok: true, room, lastKnown });
     });
 
     socket.on("delivery:location", async (payload, ack) => {
@@ -265,6 +271,18 @@ function attachDeliveryLocationSocket(httpServer) {
             console.warn("[redis] set failed: %s", code || err?.message || err);
           }
         }
+      }
+      try {
+        await deliveryLocationService.persistLatestLocation({
+          deliveryAgentId: agentId,
+          latitude: loc.latitude,
+          longitude: loc.longitude,
+          accuracy: loc.accuracy,
+          recordedAt: updatedAt,
+        });
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn("[delivery-location] persist failed: %s", err?.message || err);
       }
       io.to(DELIVERY_WATCHERS_ROOM).emit("delivery:location", body);
       io.to(getDeliveryAgentRoom(agentId)).emit("delivery:location", body);

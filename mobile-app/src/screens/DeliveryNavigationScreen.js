@@ -12,7 +12,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { useFocusEffect, useIsFocused, useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { AppIcon, OrderCardSkeleton, SkeletonList } from "../components/ui";
+import { AppIcon, LoadingOverlay, OrderCardSkeleton, SkeletonList } from "../components/ui";
 import { DeliveryMapSection } from "../components/DeliveryMapSection";
 import { DeliveryNavRouteBar } from "../components/DeliveryNavRouteBar";
 import {
@@ -556,9 +556,13 @@ export default function DeliveryNavigationScreen() {
     return label;
   }, [activeNavOrder, readyForDeliveryOrders.length, trackingStatus, t]);
 
+  const busy = (loading && orders.length === 0) || submittingOrderId != null;
+  const busyMessage = submittingOrderId != null ? t("delivery.confirmSubmit") : undefined;
+
   return (
     <View
       style={styles.root}
+      accessibilityState={busy ? { busy: true } : undefined}
       onLayout={(event) => {
         const { width, height } = event.nativeEvent.layout;
         if (width > 0 && height > 0) {
@@ -643,6 +647,8 @@ export default function DeliveryNavigationScreen() {
         onConfirm={handleConfirmDelivery}
         onCancel={() => setConfirmOrder(null)}
       />
+
+      <LoadingOverlay visible={busy} message={busyMessage} />
     </View>
   );
 }

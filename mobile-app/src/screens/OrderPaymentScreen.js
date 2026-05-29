@@ -135,7 +135,7 @@ export default function OrderPaymentScreen({ route, navigation }) {
   }
 
   return (
-    <Screen>
+    <Screen busy={submitting} busyMessage={t("payment.starting")}>
       <SectionHeader title={t("payment.checkoutTitle")} subtitle={t("payment.checkoutSubtitle")} />
       <Card>
         <Text style={{ color: colors.textMuted }}>{t("payment.orderLabel", { id: order.id })}</Text>

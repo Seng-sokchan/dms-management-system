@@ -1,4 +1,4 @@
-# DMS Mobile App (Android, no Expo)
+# DMS App (Android, no Expo)
 
 React Native CLI app for **Customer** users:
 - Login / logout

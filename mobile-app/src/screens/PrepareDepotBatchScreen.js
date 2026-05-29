@@ -233,7 +233,7 @@ export default function PrepareDepotBatchScreen() {
   }
 
   return (
-    <Screen accessibilityState={loading ? { busy: true } : undefined}>
+    <Screen busy={loading && customers.length === 0}>
         <SectionHeader
           title={t("depot.prepareTitle")}
           rightAction={

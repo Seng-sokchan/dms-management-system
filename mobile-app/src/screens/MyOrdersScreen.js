@@ -81,13 +81,13 @@ export default function MyOrdersScreen() {
   );
 
   return (
-    <Screen>
+    <Screen busy={loading && orders.length === 0} busyMessage={t("payment.loading")}>
       <SectionHeader title={t("payment.myOrdersTitle")} subtitle={t("payment.myOrdersSubtitle")} />
       <FlatList
         data={orders}
         keyExtractor={(item) => String(item.id)}
         renderItem={renderItem}
-        refreshing={loading}
+        refreshing={loading && orders.length > 0}
         onRefresh={loadOrders}
         ListEmptyComponent={
           <EmptyState

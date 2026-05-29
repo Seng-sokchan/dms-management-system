@@ -25,6 +25,7 @@ const {
   mobileUpdateStatus,
   mobileConfirmDelivery,
 } = require("../controllers/orderController");
+const { mobileGetOrderDeliveryLocation } = require("../controllers/deliveryLocationController");
 const { requireAuth, requireRoles } = require("../middleware/auth");
 const { validate } = require("../validators/validate");
 const {
@@ -107,6 +108,12 @@ router.delete(
 router.get("/dashboard/summary", requireAuth, dashboardSummary);
 
 router.get("/mobile/orders", requireAuth, mobileListOrders);
+router.get(
+  "/mobile/orders/:id/delivery-location",
+  requireAuth,
+  validate({ params: orderIdParamsSchema }),
+  mobileGetOrderDeliveryLocation,
+);
 router.post(
   "/mobile/orders/:id/status",
   requireAuth,

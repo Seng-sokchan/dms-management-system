@@ -2,12 +2,16 @@ import React, { useMemo } from "react";
 import { StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../context/ThemeContext";
+import LoadingOverlay from "./LoadingOverlay";
 
 export default function Screen({
   children,
   style,
   contentStyle,
   edges = ["top", "left", "right"],
+  busy = false,
+  busyMessage,
+  accessibilityState,
   ...rest
 }) {
   const { colors, spacing, layout } = useTheme();
@@ -32,11 +36,22 @@ export default function Screen({
     [colors.background, spacing.lg, layout.isTablet, layout.contentMaxWidth],
   );
 
+  const mergedAccessibilityState = {
+    ...accessibilityState,
+    ...(busy ? { busy: true } : {}),
+  };
+
   return (
-    <SafeAreaView style={[styles.safeArea, style]} edges={edges} {...rest}>
+    <SafeAreaView
+      style={[styles.safeArea, style]}
+      edges={edges}
+      accessibilityState={mergedAccessibilityState}
+      {...rest}
+    >
       <View style={[styles.content, contentStyle]}>
         <View style={styles.inner}>{children}</View>
       </View>
+      <LoadingOverlay visible={busy} message={busyMessage} />
     </SafeAreaView>
   );
 }

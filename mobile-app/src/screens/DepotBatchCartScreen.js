@@ -210,7 +210,7 @@ export default function DepotBatchCartScreen() {
   }
 
   return (
-    <Screen>
+    <Screen busy={submitting} busyMessage={t("depot.submitBatch")}>
       <SectionHeader
         title={t("depot.cartTitle")}
         subtitle={t("depot.cartSubtitle", { lines: totalLines, customers: customerCount })}
