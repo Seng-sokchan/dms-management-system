@@ -129,7 +129,10 @@
   },
   "overview": {
     "title": "Overview",
-    "lead": "Revenue, fulfillment, and network snapshot."
+    "lead": "Revenue, fulfillment, and network snapshot.",
+    "lastUpdated": "Last updated: {{time}}",
+    "lastUpdatedFallback": "not available yet",
+    "refreshing": "Refreshing data... Last updated: {{lastUpdated}}"
   },
   "createOrder": {
     "title": "New order",
@@ -645,6 +648,8 @@
     "totalOrdersHint": "All rows in orders",
     "revenue": "Revenue",
     "revenueHint": "Booked order totals",
+    "lifecycleProgress": "Lifecycle progress",
+    "lifecycleProgressHint": "{{delivered}} delivered of {{total}} orders",
     "collected": "Collected",
     "collectedHint": "Payments applied to orders",
     "outstanding": "Outstanding",
@@ -653,7 +658,9 @@
     "byPayment": "Orders by payment state",
     "deliveryNetwork": "Delivery & network",
     "discrepancy": "Discrepancy units",
+    "discrepancyRate": "Discrepancy rate",
     "lossUnits": "Loss units",
+    "lossRate": "Loss rate",
     "remainingUnits": "Remaining units",
     "agentCount": "Delivery agents",
     "producerCount": "Producers"

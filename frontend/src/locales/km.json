@@ -129,7 +129,10 @@
   },
   "overview": {
     "title": "ទិដ្ឋភាពរួម",
-    "lead": "ចំណូល ការអនុវត្ត និងទិដ្ឋភាពបណ្ដាញ។"
+    "lead": "ចំណូល ការអនុវត្ត និងទិដ្ឋភាពបណ្ដាញ។",
+    "lastUpdated": "បានធ្វើបច្ចុប្បន្នភាពចុងក្រោយ៖ {{time}}",
+    "lastUpdatedFallback": "មិនទាន់មានទិន្នន័យ",
+    "refreshing": "កំពុងធ្វើបច្ចុប្បន្នភាពទិន្នន័យ... បានធ្វើបច្ចុប្បន្នភាពចុងក្រោយ៖ {{lastUpdated}}"
   },
   "createOrder": {
     "title": "ការកម្មង់ថ្មី",
@@ -645,6 +648,8 @@
     "totalOrdersHint": "គ្រប់ជួរក្នុងតារាងការកម្មង់",
     "revenue": "ចំណូល",
     "revenueHint": "សរុបចំណូលបានកក់",
+    "lifecycleProgress": "វឌ្ឍនភាពវដ្តការងារ",
+    "lifecycleProgressHint": "បានដឹកជូន {{delivered}} ក្នុងចំណោមការកម្មង់ {{total}}",
     "collected": "ប្រមូលបាន",
     "collectedHint": "ការទូទាត់អនុវត្តលើការកម្មង់",
     "outstanding": "ជំពាក់",
@@ -653,7 +658,9 @@
     "byPayment": "ការកម្មង់តាមស្ថានទូទាត់",
     "deliveryNetwork": "ដឹកជញ្ជូន & បណ្ដាញ",
     "discrepancy": "ឯកតាមិនត្រឹម",
+    "discrepancyRate": "អត្រាមិនត្រឹម",
     "lossUnits": "ឯកតាខាត",
+    "lossRate": "អត្រាខាត",
     "remainingUnits": "ឯកតានៅសល់",
     "agentCount": "ភ្នាក់ងារដឹកជញ្ជូន",
     "producerCount": "អ្នកផលិត"

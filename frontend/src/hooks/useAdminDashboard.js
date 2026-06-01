@@ -70,6 +70,8 @@ export function useAdminDashboard() {
   const [flash, setFlash] = useState(null);
   const dashboardBootstrapDoneRef = useRef(false);
   const [isDashboardBootstrapping, setIsDashboardBootstrapping] = useState(() => !!getStoredToken());
+  const [isOverviewRefreshing, setIsOverviewRefreshing] = useState(false);
+  const [overviewLastUpdatedAt, setOverviewLastUpdatedAt] = useState(null);
 
   const setToken = useCallback((next) => {
     setTokenState(next);
@@ -180,7 +182,9 @@ export function useAdminDashboard() {
   const refresh = useCallback(async () => {
     if (!token) return;
     const isInitialSessionLoad = !dashboardBootstrapDoneRef.current;
+    const shouldShowInlineRefresh = dashboardBootstrapDoneRef.current;
     if (isInitialSessionLoad) setIsDashboardBootstrapping(true);
+    if (shouldShowInlineRefresh) setIsOverviewRefreshing(true);
     try {
       const data = await fetchDashboardData(token, location.pathname);
       setUser(data.user);
@@ -214,10 +218,12 @@ export function useAdminDashboard() {
             }
           : { byCustomer: [], byDepot: [] },
       );
+      setOverviewLastUpdatedAt(new Date().toISOString());
       dashboardBootstrapDoneRef.current = true;
     } catch (error) {
       if (error?.response?.status === 401) {
         dashboardBootstrapDoneRef.current = false;
+        setOverviewLastUpdatedAt(null);
         setToken("");
         setUser(null);
         setSummary(null);
@@ -246,6 +252,7 @@ export function useAdminDashboard() {
       showError(getErrorMessage(error, "errors.loadData"));
     } finally {
       if (isInitialSessionLoad) setIsDashboardBootstrapping(false);
+      if (shouldShowInlineRefresh) setIsOverviewRefreshing(false);
     }
   }, [token, location.pathname, setToken, showError]);
 
@@ -886,6 +893,8 @@ export function useAdminDashboard() {
     auth,
     token,
     isDashboardBootstrapping,
+    isOverviewRefreshing,
+    overviewLastUpdatedAt,
     user,
     summary,
     statuses,

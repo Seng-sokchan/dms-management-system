@@ -5,6 +5,17 @@
   gap: 1rem;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   align-items: stretch;
+  position: relative;
+}
+
+.summary-grid.is-refreshing::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: var(--radius);
+  background: linear-gradient(110deg, transparent 0%, rgba(59, 130, 246, 0.06) 50%, transparent 100%);
+  animation: dashboard-refresh-wave 1.2s ease-in-out infinite;
 }
 
 .stat-card {
@@ -43,7 +54,7 @@
 }
 
 .stat-card--accent::before { background: linear-gradient(90deg, #3b82f6, #06b6d4); }
-.stat-card--accent .stat-label, .stat-card--accent .stat-hint { color: #4e6280; }
+.stat-card--accent .stat-label, .stat-card--accent .stat-hint { color: #9fb2cf; }
 .stat-card--accent .stat-value { color: #fff; }
 
 .stat-label {
@@ -74,6 +85,22 @@
   color: var(--text-muted);
 }
 
+.stat-currency-mark {
+  margin-right: 0.12em;
+  font-weight: inherit;
+}
+
+.stat-card--revenue .stat-value--khr {
+  font-size: 2.05rem;
+}
+
+.stat-card--revenue .stat-subvalue--usd {
+  margin-top: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-faint);
+}
+
 .stat-hint {
   margin: 0.55rem 0 0;
   font-size: 0.72rem;
@@ -94,6 +121,10 @@
 .insight-card:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow);
+}
+
+.insight-card--warning {
+  border-color: #f59e0b;
 }
 
 @media (min-width: 900px) { .insight-card { grid-column: span 2; } }
@@ -131,6 +162,11 @@
   border-color: var(--border-strong);
 }
 
+.insight-list li.is-warning {
+  border-color: #f59e0b;
+  background: #fff7ed;
+}
+
 .insight-list strong {
   font-size: 1.15rem;
   color: var(--text);
@@ -161,15 +197,20 @@
   100% { background-position: -100% 50%; }
 }
 
-@media (max-width: 768px) {
-  .summary-grid { grid-template-columns: 1fr 1fr; }
+@keyframes dashboard-refresh-wave {
+  0% { opacity: 0.25; }
+  50% { opacity: 0.8; }
+  100% { opacity: 0.25; }
 }
 
-@media (max-width: 600px) {
-  .summary-grid { grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+@media (max-width: 768px) {
+  .summary-grid { grid-template-columns: 1fr; gap: 0.8rem; }
+  .insight-list { grid-template-columns: 1fr 1fr; }
 }
 
 @media (max-width: 420px) {
   .summary-grid { grid-template-columns: 1fr; }
   .stat-value { font-size: 1.65rem; }
+  .stat-card--revenue .stat-value--khr { font-size: 1.8rem; }
+  .insight-list { grid-template-columns: 1fr; }
 }

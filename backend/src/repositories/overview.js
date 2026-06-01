@@ -18,8 +18,8 @@ async function getDashboardSummary() {
 
   const totals = totalsRows[0] || {};
   const currencyTotals = currencyTotalsRows[0] || {};
-  const totalRevenueUsd = Number(totals.totalRevenue || 0);
-  const totalCollectedUsd = Number(totals.totalCollected || 0);
+  const totalRevenueUsd = Number(currencyTotals.total_revenue_usd || 0);
+  const totalCollectedUsd = Number(currencyTotals.total_collected_usd || 0);
   const outstandingUsd = totalRevenueUsd - totalCollectedUsd;
   const totalRevenueKhr = Number(currencyTotals.total_revenue_khr || 0);
   const totalCollectedKhr = Number(currencyTotals.total_collected_khr || 0);

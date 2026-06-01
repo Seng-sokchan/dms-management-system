@@ -33,6 +33,8 @@ function App() {
     auth,
     token,
     isDashboardBootstrapping,
+    isOverviewRefreshing,
+    overviewLastUpdatedAt,
     user,
     summary,
     statuses,
@@ -241,7 +243,12 @@ function App() {
         path="/overview"
         element={withLayout(
           canAccessPath(user, "/overview") ? (
-            <OverviewPage summary={summary} statuses={statuses} />
+            <OverviewPage
+              summary={summary}
+              statuses={statuses}
+              isRefreshing={isOverviewRefreshing}
+              lastUpdatedAt={overviewLastUpdatedAt}
+            />
           ) : (
             renderDeniedRoute()
           ),
