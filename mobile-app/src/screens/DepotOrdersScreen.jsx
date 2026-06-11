@@ -62,7 +62,7 @@ export default function DepotOrdersScreen() {
   const navigation = useNavigation();
   const { token } = useAuth();
   const { t, i18n } = useTranslation();
-  const { colors, radii, spacing, typography } = useTheme();
+  const { colors, radii, sizes, spacing, typography } = useTheme();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -105,7 +105,7 @@ export default function DepotOrdersScreen() {
           fontSize: typography.bodySmall,
         },
         retryButton: { marginTop: spacing.md, alignSelf: "flex-start" },
-        list: { paddingBottom: spacing.xxl },
+        list: { paddingBottom: sizes.tabBarOffset + spacing.md },
         orderCard: { marginBottom: spacing.md },
         orderHeader: {
           flexDirection: "row",
@@ -134,16 +134,17 @@ export default function DepotOrdersScreen() {
           fontSize: typography.caption,
           marginTop: spacing.sm,
         },
-        batchSubtitle: {
-          color: colors.textSecondary,
-          fontSize: typography.bodySmall,
-          marginBottom: spacing.sm,
-        },
         batchTotal: {
           color: colors.textPrimary,
           fontSize: typography.body,
           fontWeight: "700",
           marginTop: spacing.sm,
+        },
+        batchPayLine: {
+          color: colors.textSecondary,
+          fontSize: typography.body,
+          fontWeight: "600",
+          marginTop: spacing.xs,
         },
         batchDivider: {
           marginTop: spacing.md,
@@ -152,7 +153,7 @@ export default function DepotOrdersScreen() {
           borderTopColor: colors.border,
         },
       }),
-    [colors, radii, spacing, typography],
+    [colors, radii, sizes.tabBarOffset, spacing, typography],
   );
 
   const load = useCallback(async () => {
@@ -300,42 +301,46 @@ export default function DepotOrdersScreen() {
   );
 }
 
+function sumBatchAmountDue(orders) {
+  return (orders || []).reduce((sum, order) => {
+    const status = order?.paymentStatus || "unpaid";
+    if (status === "paid") return sum;
+    return sum + Number(order?.amountTotal || 0);
+  }, 0);
+}
+
 function BatchOrderCard({ batchId, orders, styles, t, locale, navigation, token }) {
   const totalAmount = orders.reduce((sum, order) => sum + Number(order?.amountTotal || 0), 0);
+  const totalQuantity = orders.reduce((sum, order) => sum + Number(order?.orderedQty || 0), 0);
+  const amountDue = sumBatchAmountDue(orders);
+  const amountPaid = Math.max(0, totalAmount - amountDue);
   const currency = orders[0]?.currency || "KHR";
-  const createdAt = orders
-    .map((order) => order.createdAt)
-    .filter(Boolean)
-    .sort()[0];
 
   return (
     <Card style={styles.orderCard}>
       <View style={styles.orderHeader}>
         <Text style={styles.orderTitle}>{t("depot.batchGroupTitle")}</Text>
-        <Text style={styles.orderStatus}>
-          {t(orders.length === 1 ? "depot.batchGroupCount" : "depot.batchGroupCount_plural", {
-            count: orders.length,
-          })}
-        </Text>
       </View>
-      <Text style={styles.batchSubtitle}>{t("depot.batchGroupSubtitle", { id: batchId.slice(0, 8) })}</Text>
-      {orders.map((order) => (
-        <Text key={order.id} style={styles.orderLine}>
-          #{order.id} · {order.customerName || "-"} · {order.itemName || "-"} ·{" "}
-          {Number(order.amountTotal || 0).toLocaleString(locale)} {order.currency || currency}
-        </Text>
-      ))}
       <Text style={styles.batchTotal}>
-        {t("depot.batchGroupTotal", {
-          total: totalAmount.toLocaleString(locale),
-          currency,
+        {t(totalQuantity === 1 ? "depot.batchTotalQuantity" : "depot.batchTotalQuantity_plural", {
+          qty: totalQuantity.toLocaleString(locale),
         })}
       </Text>
-      {createdAt ? (
-        <Text style={styles.orderMeta}>
-          {t("depot.orderCreated", { date: formatDate(createdAt, locale) })}
+      {amountDue > 0 ? (
+        <Text style={styles.batchPayLine}>
+          {t("depot.batchToPay", {
+            amount: amountDue.toLocaleString(locale),
+            currency,
+          })}
         </Text>
-      ) : null}
+      ) : (
+        <Text style={styles.batchPayLine}>
+          {t("depot.batchPaidAmount", {
+            amount: amountPaid.toLocaleString(locale),
+            currency,
+          })}
+        </Text>
+      )}
       <View style={styles.batchDivider} />
       <DepotBatchPaymentActions
         batchId={batchId}

@@ -13,7 +13,7 @@ export default function MyOrdersScreen() {
   const { token } = useAuth();
   const navigation = useNavigation();
   const { t } = useTranslation();
-  const { colors, radii, spacing, typography } = useTheme();
+  const { colors, radii, sizes, spacing, typography } = useTheme();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -38,8 +38,9 @@ export default function MyOrdersScreen() {
           fontSize: typography.bodySmall,
         },
         card: { marginBottom: spacing.md },
+        list: { paddingBottom: sizes.tabBarOffset + spacing.md, flexGrow: 1 },
       }),
-    [colors, spacing, typography],
+    [colors, sizes.tabBarOffset, spacing, typography],
   );
 
   const loadOrders = useCallback(async () => {
@@ -96,7 +97,7 @@ export default function MyOrdersScreen() {
             message={loading ? t("payment.loading") : t("payment.noOrdersHint")}
           />
         }
-        contentContainerStyle={{ paddingBottom: spacing.xl, flexGrow: 1 }}
+        contentContainerStyle={styles.list}
       />
     </Screen>
   );

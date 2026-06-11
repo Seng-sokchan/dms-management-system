@@ -33,7 +33,7 @@ export default function ItemListScreen({ navigation }) {
   const { token } = useAuth();
   const { addItem, totalItems } = useCart();
   const { t } = useTranslation();
-  const { colors, radii, spacing, typography } = useTheme();
+  const { colors, radii, sizes, spacing, typography } = useTheme();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -74,7 +74,7 @@ export default function ItemListScreen({ navigation }) {
           alignSelf: "flex-start",
         },
         list: {
-          paddingBottom: spacing.xxl,
+          paddingBottom: sizes.tabBarOffset + spacing.md,
         },
         card: {
           marginBottom: spacing.md,
@@ -94,7 +94,7 @@ export default function ItemListScreen({ navigation }) {
           alignSelf: "flex-start",
         },
       }),
-    [colors, radii, spacing, typography],
+    [colors, radii, sizes.tabBarOffset, spacing, typography],
   );
 
   const loadItems = useCallback(async () => {

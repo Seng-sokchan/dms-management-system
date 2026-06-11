@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Alert, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, FlatList, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
@@ -85,6 +85,9 @@ export default function BatchOrderPaymentScreen({ route, navigation }) {
           fontWeight: "700",
         },
         outlineButtonDisabled: { opacity: 0.5 },
+        scrollContent: {
+          paddingBottom: spacing.xxl,
+        },
       }),
     [colors, sizes.touchTarget, spacing, typography],
   );
@@ -174,56 +177,63 @@ export default function BatchOrderPaymentScreen({ route, navigation }) {
 
   return (
     <Screen busy={submitting} busyMessage={t("payment.starting")}>
-      <SectionHeader
-        title={t("depot.batchCheckoutTitle")}
-        subtitle={t("depot.batchCheckoutSubtitle", { count: orders.length })}
-      />
-      <Card>
-        <Text style={{ color: colors.textMuted }}>
-          {t("depot.batchCheckoutLabel", { count: orders.length })}
-        </Text>
-        <Text style={styles.amount}>{amountLabel}</Text>
-        <Text style={styles.note}>{t("payment.secureNote")}</Text>
-      </Card>
-
-      <Card style={{ marginTop: spacing.md }}>
-        <FlatList
-          data={orders}
-          keyExtractor={(item) => String(item.id)}
-          scrollEnabled={false}
-          renderItem={({ item }) => (
-            <View style={styles.lineRow}>
-              <Text style={styles.lineTitle}>
-                {t("payment.orderLabel", { id: item.id })}
-              </Text>
-              <Text style={styles.lineMeta}>
-                {item.customerName || "-"} · {item.itemName || "-"}
-              </Text>
-              <Text style={styles.lineMeta}>{formatAmount(item.amountTotal, item.currency)}</Text>
-            </View>
-          )}
-        />
-      </Card>
-
-      <PrimaryButton
-        title={submitting ? t("payment.starting") : t("depot.payBatch")}
-        onPress={handlePay}
-        disabled={submitting}
-        style={{ marginTop: spacing.lg }}
-      />
-      <Pressable
-        onPress={handleKhqrPay}
-        disabled={submitting}
-        style={({ pressed }) => [
-          styles.outlineButton,
-          submitting && styles.outlineButtonDisabled,
-          pressed && !submitting && styles.outlineButtonPressed,
-        ]}
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
       >
-        <Text style={styles.outlineButtonText}>
-          {submitting ? t("payment.starting") : t("payment.payWithKhqr")}
-        </Text>
-      </Pressable>
+        <SectionHeader
+          title={t("depot.batchCheckoutTitle")}
+          subtitle={t("depot.batchCheckoutSubtitle", { count: orders.length })}
+        />
+        <Card>
+          <Text style={{ color: colors.textMuted }}>
+            {t("depot.batchCheckoutLabel", { count: orders.length })}
+          </Text>
+          <Text style={styles.amount}>{amountLabel}</Text>
+          <Text style={styles.note}>{t("payment.secureNote")}</Text>
+        </Card>
+
+        <PrimaryButton
+          title={submitting ? t("payment.starting") : t("payment.payWithAba")}
+          onPress={handlePay}
+          disabled={submitting}
+          style={{ marginTop: spacing.lg }}
+        />
+        <Pressable
+          onPress={handleKhqrPay}
+          disabled={submitting}
+          style={({ pressed }) => [
+            styles.outlineButton,
+            submitting && styles.outlineButtonDisabled,
+            pressed && !submitting && styles.outlineButtonPressed,
+          ]}
+        >
+          <Text style={styles.outlineButtonText}>
+            {submitting ? t("payment.starting") : t("payment.payWithKhqr")}
+          </Text>
+        </Pressable>
+
+        <Card style={{ marginTop: spacing.lg }}>
+          <FlatList
+            data={orders}
+            keyExtractor={(item) => String(item.id)}
+            scrollEnabled={false}
+            renderItem={({ item }) => (
+              <View style={styles.lineRow}>
+                <Text style={styles.lineTitle}>
+                  {t("payment.orderLabel", { id: item.id })}
+                </Text>
+                <Text style={styles.lineMeta}>
+                  {item.customerName || "-"} · {item.itemName || "-"}
+                </Text>
+                <Text style={styles.lineMeta}>
+                  {t("depot.batchOrderQuantity", { qty: Number(item.orderedQty || 0) })}
+                </Text>
+              </View>
+            )}
+          />
+        </Card>
+      </ScrollView>
 
       <KhqrPaymentModal
         visible={khqrVisible}

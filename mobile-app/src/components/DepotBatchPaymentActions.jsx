@@ -59,14 +59,16 @@ export default function DepotBatchPaymentActions({ batchId, orders, navigation, 
       ? t("depot.batchPaymentMixed")
       : t(`payment.status.${paymentState.badge}`, paymentState.badge);
 
+  const showActionsBelowBadge =
+    paymentState.canPay || paymentState.showPending || paymentState.mixed;
+
   return (
     <View>
       <View
         style={{
           flexDirection: "row",
           justifyContent: "flex-end",
-          marginBottom:
-            paymentState.canPay || paymentState.showPending || paymentState.mixed ? spacing.sm : 0,
+          marginBottom: showActionsBelowBadge ? spacing.sm : 0,
         }}
       >
         <View style={[styles.badge, isPaid && styles.badgePaid]}>
