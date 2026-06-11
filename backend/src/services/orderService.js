@@ -20,6 +20,7 @@ const lookupRepository = require("../repositories/lookups");
 const overviewRepository = require("../repositories/overview");
 const { getPool } = require("../db/pool");
 const { BadRequestError, NotFoundError, ForbiddenError } = require("../errors");
+const crypto = require("node:crypto");
 const telegramService = require("./telegramService");
 
 /** New orders always use this producer; delivery agent is set later via assign. */
@@ -308,6 +309,7 @@ async function createDepotBatch({ user, lines }) {
 
   const pool = getPool();
   const conn = await pool.getConnection();
+  const batchId = crypto.randomUUID();
   try {
     await conn.beginTransaction();
     for (const customerId of uniqueCustomerIds) {
@@ -316,7 +318,9 @@ async function createDepotBatch({ user, lines }) {
 
     const orders = [];
     for (const row of rowsToInsert) {
-      orders.push(await orderRepository.createOrder(row, conn));
+      orders.push(
+        await orderRepository.createOrder({ ...row, depotBatchId: batchId }, conn),
+      );
     }
     await conn.commit();
     return orders;

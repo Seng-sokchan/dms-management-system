@@ -40,6 +40,8 @@ function StatusBadge({ tone, label, colors, styles }) {
 export default function PaymentResultScreen({ route, navigation }) {
   const paymentIdParam = route.params?.paymentId;
   const orderIdParam = route.params?.orderId;
+  const batchIdParam = route.params?.batchId;
+  const orderIdsParam = Array.isArray(route.params?.orderIds) ? route.params.orderIds : null;
   const fromAbaReturn = Boolean(
     route.params?.fromAbaReturn || route.params?.fromAba === "1" || route.params?.fromAba === 1,
   );
@@ -152,7 +154,11 @@ export default function PaymentResultScreen({ route, navigation }) {
 
   const statusLabel = t(`payment.result.${statusKey}`, statusKey);
   const hint = isPaid
-    ? t("payment.completedHint")
+    ? batchIdParam || (orderIdsParam && orderIdsParam.length > 1)
+      ? t("depot.batchPaymentCompletedHint", {
+          count: orderIdsParam?.length || payment?.orderIds?.length || 0,
+        })
+      : t("payment.completedHint")
     : fromAbaReturn && !isTerminal
       ? t("payment.confirmingAfterAba")
       : isTerminal
@@ -198,10 +204,23 @@ export default function PaymentResultScreen({ route, navigation }) {
               </Text>
             ) : null}
             <Text style={styles.hint}>{hint}</Text>
-            {payment?.orderId ? (
+            {payment?.orderId && !(batchIdParam || (orderIdsParam && orderIdsParam.length > 1)) ? (
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>{t("payment.orderNumberLabel")}</Text>
                 <Text style={styles.detailValue}>#{payment.orderId}</Text>
+              </View>
+            ) : null}
+            {batchIdParam || (orderIdsParam && orderIdsParam.length > 1) || (payment?.orderIds?.length > 1) ? (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>{t("depot.batchGroupTitle")}</Text>
+                <Text style={styles.detailValue}>
+                  {t(
+                    (orderIdsParam?.length || payment?.orderIds?.length || 0) === 1
+                      ? "depot.batchGroupCount"
+                      : "depot.batchGroupCount_plural",
+                    { count: orderIdsParam?.length || payment?.orderIds?.length || 0 },
+                  )}
+                </Text>
               </View>
             ) : null}
             {isPaid && payment?.paidAt ? (

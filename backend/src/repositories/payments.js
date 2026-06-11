@@ -129,6 +129,59 @@ async function setOrderPaymentStatus(orderId, paymentStatus, executor) {
   ]);
 }
 
+async function setOrdersPaymentStatus(orderIds, paymentStatus, executor) {
+  const db = executor || getPool();
+  const ids = (Array.isArray(orderIds) ? orderIds : [])
+    .map((id) => Number(id))
+    .filter((id) => Number.isFinite(id) && id > 0);
+  if (!ids.length) return;
+  const placeholders = ids.map(() => "?").join(", ");
+  await db.query(
+    `UPDATE orders SET payment_status = ?, updated_at = NOW() WHERE id IN (${placeholders})`,
+    [paymentStatus, ...ids],
+  );
+}
+
+async function insertPaymentOrders(paymentId, orderIds, executor) {
+  const db = executor || getPool();
+  for (const orderId of orderIds) {
+    await db.query(
+      "INSERT INTO payment_orders (payment_id, order_id) VALUES (?, ?)",
+      [String(paymentId), Number(orderId)],
+    );
+  }
+}
+
+async function listOrderIdsByPaymentId(paymentId, executor) {
+  const db = executor || getPool();
+  const [rows] = await db.query(
+    "SELECT order_id FROM payment_orders WHERE payment_id = ? ORDER BY order_id ASC",
+    [String(paymentId)],
+  );
+  return rows.map((row) => String(row.order_id));
+}
+
+async function findPendingBatchPaymentByDepotBatchId(depotBatchId, executor) {
+  const db = executor || getPool();
+  const [rows] = await db.query(
+    `SELECT p.* FROM payments p
+     INNER JOIN payment_orders po ON po.payment_id = p.id
+     INNER JOIN orders o ON o.id = po.order_id
+     WHERE o.depot_batch_id = ?
+       AND p.status = 'pending'
+       AND p.expires_at > NOW()
+     ORDER BY p.created_at DESC
+     LIMIT 1`,
+    [String(depotBatchId)],
+  );
+  return rows[0] ? mapPayment(rows[0]) : null;
+}
+
+async function deletePaymentOrdersByPaymentId(paymentId, executor) {
+  const db = executor || getPool();
+  await db.query("DELETE FROM payment_orders WHERE payment_id = ?", [String(paymentId)]);
+}
+
 function buildWebhookEventKey(tranId, status, apv) {
   const raw = `${tranId}:${String(status ?? "")}:${String(apv ?? "")}`;
   if (raw.length <= 120) return raw;
@@ -216,7 +269,12 @@ async function expirePendingPayments(executor) {
      WHERE status = 'pending' AND expires_at <= NOW()`,
   );
   for (const row of rows) {
-    await setOrderPaymentStatus(row.order_id, "unpaid", db);
+    const orderIds = await listOrderIdsByPaymentId(row.id, db);
+    if (orderIds.length > 0) {
+      await setOrdersPaymentStatus(orderIds, "unpaid", db);
+    } else {
+      await setOrderPaymentStatus(row.order_id, "unpaid", db);
+    }
   }
   return rows.length;
 }
@@ -227,9 +285,14 @@ module.exports = {
   getPaymentById,
   getPaymentByPaywayTranId,
   findPendingPaymentByOrderId,
+  findPendingBatchPaymentByDepotBatchId,
   getLatestPaymentByOrderId,
   updatePayment,
   setOrderPaymentStatus,
+  setOrdersPaymentStatus,
+  insertPaymentOrders,
+  listOrderIdsByPaymentId,
+  deletePaymentOrdersByPaymentId,
   buildWebhookEventKey,
   insertWebhookEvent,
   markWebhookEventProcessed,

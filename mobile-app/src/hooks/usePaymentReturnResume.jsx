@@ -38,6 +38,8 @@ export function usePaymentReturnResume({ enabled = false } = {}) {
             const ok = await navigateToPaymentResultDeferred({
               paymentId: pending.paymentId,
               orderId: pending.orderId,
+              batchId: pending.batchId,
+              orderIds: pending.orderIds,
               fromAbaReturn: true,
               role: pending.role,
             });

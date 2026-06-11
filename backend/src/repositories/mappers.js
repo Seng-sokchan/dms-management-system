@@ -24,6 +24,7 @@ function mapOrder(row) {
     deliveryAgentName: row.delivery_agent_name != null ? row.delivery_agent_name : null,
     amountTotal: Number(row.amount_total),
     paymentStatus: row.payment_status || "unpaid",
+    depotBatchId: row.depot_batch_id != null ? String(row.depot_batch_id) : null,
     status: row.status,
     createdAt: row.created_at,
     updatedAt: row.updated_at,

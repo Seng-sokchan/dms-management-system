@@ -14,8 +14,15 @@ const orderIdPaymentParamsSchema = z.object({
   orderId: z.coerce.number().int().positive(),
 });
 
+const createBatchPaymentIntentSchema = z.object({
+  batchId: z.string().uuid(),
+  paymentOption: z.string().max(32).optional(),
+  idempotencyKey: z.string().max(64).optional(),
+});
+
 module.exports = {
   createPaymentIntentSchema,
+  createBatchPaymentIntentSchema,
   paymentIdParamsSchema,
   orderIdPaymentParamsSchema,
 };

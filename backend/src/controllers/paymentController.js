@@ -22,8 +22,14 @@ const cancelPayment = asyncHandler(async (req, res) => {
   return success(res, data);
 });
 
+const createBatchPaymentIntent = asyncHandler(async (req, res) => {
+  const data = await paymentService.createBatchPaymentIntent(req.body, { user: req.user });
+  return created(res, data);
+});
+
 module.exports = {
   createPaymentIntent,
+  createBatchPaymentIntent,
   getPayment,
   getOrderPayment,
   cancelPayment,

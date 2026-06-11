@@ -44,6 +44,7 @@ async function createPurchase({
   returnParams,
   customer,
   itemLabel,
+  items,
 }) {
   const cfg = assertPaywayConfigured();
   const reqTime = formatPaywayReqTime();
@@ -55,9 +56,17 @@ async function createPurchase({
     throw err;
   }
 
-  const itemsB64 = encodeItemsBase64([
-    { name: itemLabel || "Order", quantity: 1, price: amountStr },
-  ]);
+  const purchaseItems = Array.isArray(items) && items.length > 0
+    ? items
+    : [{ name: itemLabel || "Order", quantity: 1, price: amountStr }];
+
+  const itemsB64 = encodeItemsBase64(
+    purchaseItems.map((entry) => ({
+      name: entry.name || "Order",
+      quantity: entry.quantity ?? 1,
+      price: entry.price,
+    })),
+  );
 
   const hashFields = {
     req_time: reqTime,

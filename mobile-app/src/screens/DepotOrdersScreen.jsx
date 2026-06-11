@@ -2,6 +2,7 @@ import React, { useCallback, useMemo, useState } from "react";
 import { FlatList, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import DepotBatchPaymentActions from "../components/DepotBatchPaymentActions";
 import OrderPaymentActions from "../components/OrderPaymentActions";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
@@ -19,6 +20,43 @@ import {
 } from "../components/ui";
 import { listMobileOrders } from "../services/ordersApi";
 import { getApiErrorMessage } from "../services/apiClient";
+
+function groupDepotOrders(orders) {
+  const batchMap = new Map();
+  const singles = [];
+
+  for (const order of orders) {
+    const batchId = order?.depotBatchId;
+    if (batchId) {
+      if (!batchMap.has(batchId)) batchMap.set(batchId, []);
+      batchMap.get(batchId).push(order);
+    } else {
+      singles.push({ type: "single", order });
+    }
+  }
+
+  const sections = [];
+  for (const [batchId, batchOrders] of batchMap.entries()) {
+    sections.push({ type: "batch", batchId, orders: batchOrders });
+  }
+  for (const item of singles) {
+    sections.push(item);
+  }
+
+  sections.sort((a, b) => {
+    const idA =
+      a.type === "batch"
+        ? Math.max(...a.orders.map((order) => Number(order.id) || 0))
+        : Number(a.order.id) || 0;
+    const idB =
+      b.type === "batch"
+        ? Math.max(...b.orders.map((order) => Number(order.id) || 0))
+        : Number(b.order.id) || 0;
+    return idB - idA;
+  });
+
+  return sections;
+}
 
 export default function DepotOrdersScreen() {
   const navigation = useNavigation();
@@ -96,6 +134,23 @@ export default function DepotOrdersScreen() {
           fontSize: typography.caption,
           marginTop: spacing.sm,
         },
+        batchSubtitle: {
+          color: colors.textSecondary,
+          fontSize: typography.bodySmall,
+          marginBottom: spacing.sm,
+        },
+        batchTotal: {
+          color: colors.textPrimary,
+          fontSize: typography.body,
+          fontWeight: "700",
+          marginTop: spacing.sm,
+        },
+        batchDivider: {
+          marginTop: spacing.md,
+          marginBottom: spacing.sm,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          borderTopColor: colors.border,
+        },
       }),
     [colors, radii, spacing, typography],
   );
@@ -135,6 +190,9 @@ export default function DepotOrdersScreen() {
     return Array.from(map.entries());
   }, [orders]);
 
+  const listSections = useMemo(() => groupDepotOrders(orders), [orders]);
+  const locale = getAppLocale(i18n.language);
+
   const subtitle =
     orders.length > 0
       ? t(orders.length === 1 ? "depot.ordersSubtitleCount" : "depot.ordersSubtitleCount_plural", {
@@ -143,6 +201,35 @@ export default function DepotOrdersScreen() {
       : t("depot.ordersSubtitleEmpty");
 
   const headerSubtitle = loading ? t("depot.loadingOrders") : subtitle;
+
+  const renderSection = useCallback(
+    ({ item }) => {
+      if (item.type === "batch") {
+        return (
+          <BatchOrderCard
+            batchId={item.batchId}
+            orders={item.orders}
+            styles={styles}
+            t={t}
+            locale={locale}
+            navigation={navigation}
+            token={token}
+          />
+        );
+      }
+      return (
+        <OrderCard
+          order={item.order}
+          styles={styles}
+          t={t}
+          locale={locale}
+          navigation={navigation}
+          token={token}
+        />
+      );
+    },
+    [locale, navigation, styles, t, token],
+  );
 
   return (
     <Screen busy={loading && orders.length === 0}>
@@ -191,41 +278,79 @@ export default function DepotOrdersScreen() {
       )}
 
       {!loading ? (
-      <FlatList
-        data={orders}
-        keyExtractor={(order) => String(order.id)}
-        contentContainerStyle={styles.list}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.textMuted} />
-        }
-        renderItem={({ item }) => (
-          <OrderCard
-            order={item}
-            styles={styles}
-            t={t}
-            locale={getAppLocale(i18n.language)}
-            navigation={navigation}
-            token={token}
-          />
-        )}
-        ListEmptyComponent={
-          loadError ? null : (
-            <EmptyState title={t("depot.noOrdersTitle")} subtitle={t("depot.noOrdersSubtitle")} />
-          )
-        }
-      />
+        <FlatList
+          data={listSections}
+          keyExtractor={(item) =>
+            item.type === "batch" ? `batch-${item.batchId}` : `order-${item.order.id}`
+          }
+          contentContainerStyle={styles.list}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.textMuted} />
+          }
+          renderItem={renderSection}
+          ListEmptyComponent={
+            loadError ? null : (
+              <EmptyState title={t("depot.noOrdersTitle")} subtitle={t("depot.noOrdersSubtitle")} />
+            )
+          }
+        />
       ) : null}
     </Screen>
+  );
+}
+
+function BatchOrderCard({ batchId, orders, styles, t, locale, navigation, token }) {
+  const totalAmount = orders.reduce((sum, order) => sum + Number(order?.amountTotal || 0), 0);
+  const currency = orders[0]?.currency || "KHR";
+  const createdAt = orders
+    .map((order) => order.createdAt)
+    .filter(Boolean)
+    .sort()[0];
+
+  return (
+    <Card style={styles.orderCard}>
+      <View style={styles.orderHeader}>
+        <Text style={styles.orderTitle}>{t("depot.batchGroupTitle")}</Text>
+        <Text style={styles.orderStatus}>
+          {t(orders.length === 1 ? "depot.batchGroupCount" : "depot.batchGroupCount_plural", {
+            count: orders.length,
+          })}
+        </Text>
+      </View>
+      <Text style={styles.batchSubtitle}>{t("depot.batchGroupSubtitle", { id: batchId.slice(0, 8) })}</Text>
+      {orders.map((order) => (
+        <Text key={order.id} style={styles.orderLine}>
+          #{order.id} · {order.customerName || "-"} · {order.itemName || "-"} ·{" "}
+          {Number(order.amountTotal || 0).toLocaleString(locale)} {order.currency || currency}
+        </Text>
+      ))}
+      <Text style={styles.batchTotal}>
+        {t("depot.batchGroupTotal", {
+          total: totalAmount.toLocaleString(locale),
+          currency,
+        })}
+      </Text>
+      {createdAt ? (
+        <Text style={styles.orderMeta}>
+          {t("depot.orderCreated", { date: formatDate(createdAt, locale) })}
+        </Text>
+      ) : null}
+      <View style={styles.batchDivider} />
+      <DepotBatchPaymentActions
+        batchId={batchId}
+        orders={orders}
+        navigation={navigation}
+        token={token}
+      />
+    </Card>
   );
 }
 
 function OrderCard({ order, styles, t, locale, navigation, token }) {
   const qty = Number(order?.orderedQty || 0);
   const total = Number(order?.amountTotal || 0);
-  const skuPart = order.itemSku
-    ? t("depot.orderItemSku", { sku: order.itemSku })
-    : "";
+  const skuPart = order.itemSku ? t("depot.orderItemSku", { sku: order.itemSku }) : "";
   return (
     <Card style={styles.orderCard}>
       <View style={styles.orderHeader}>

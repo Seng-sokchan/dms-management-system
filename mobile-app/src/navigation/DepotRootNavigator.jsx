@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { DepotBatchCartProvider } from "../context/DepotBatchCartContext";
 import DepotNavigator from "./DepotNavigator";
 import OrderPaymentScreen from "../screens/OrderPaymentScreen";
+import BatchOrderPaymentScreen from "../screens/BatchOrderPaymentScreen";
 import PaymentResultScreen from "../screens/PaymentResultScreen";
 import { useStackScreenOptions } from "./screenOptions";
 
@@ -21,6 +22,11 @@ export default function DepotRootNavigator() {
         name="OrderPayment"
         component={OrderPaymentScreen}
         options={{ title: t("payment.checkoutTitle") }}
+      />
+      <Stack.Screen
+        name="BatchOrderPayment"
+        component={BatchOrderPaymentScreen}
+        options={{ title: t("depot.batchCheckoutTitle") }}
       />
       <Stack.Screen
         name="PaymentResult"

@@ -9,6 +9,7 @@
     "db:init": "node src/db/initDatabase.js",
     "db:migrate:payway": "node src/db/runPaywayMigration.js",
     "db:migrate:delivery-qty": "node src/db/runDeliveryQtyMigration.js",
+    "db:migrate:depot-batch-payment": "node src/db/runDepotBatchPaymentMigration.js",
     "payments:reconcile": "node src/jobs/reconcilePayments.js"
   },
   "keywords": [],

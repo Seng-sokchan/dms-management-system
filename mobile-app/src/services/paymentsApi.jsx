@@ -1,5 +1,14 @@
 import { apiClient, authConfig, unwrapApiData } from "./apiClient";
 
+export async function createBatchPaymentIntent(token, { batchId, paymentOption }) {
+  const response = await apiClient.post(
+    "/payments/batch-intents",
+    { batchId: String(batchId), paymentOption },
+    authConfig(token),
+  );
+  return unwrapApiData(response.data);
+}
+
 export async function createPaymentIntent(token, { orderId, paymentOption }) {
   const response = await apiClient.post(
     "/payments/intents",

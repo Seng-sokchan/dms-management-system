@@ -1,5 +1,6 @@
 const customerRepository = require("../repositories/customers");
 const depotRepository = require("../repositories/depots");
+const paymentRepository = require("../repositories/payments");
 
 const CUSTOMER_ROOM_PREFIX = "customer:";
 const DEPOT_ROOM_PREFIX = "depot:";
@@ -68,9 +69,12 @@ async function emitPaymentStatus(payment) {
   const io = getIo();
   if (!io || !payment) return;
 
+  const orderIds = await paymentRepository.listOrderIdsByPaymentId(payment.id);
+
   const payload = {
     paymentId: payment.id,
     orderId: payment.orderId,
+    orderIds: orderIds.length > 0 ? orderIds.map((id) => Number(id)) : undefined,
     status: payment.status,
     paidAt: payment.paidAt,
     amount: payment.amount,

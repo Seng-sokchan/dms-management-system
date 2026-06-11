@@ -1,6 +1,7 @@
 const express = require("express");
 const {
   createPaymentIntent,
+  createBatchPaymentIntent,
   getPayment,
   getOrderPayment,
   cancelPayment,
@@ -9,6 +10,7 @@ const { requireAuth } = require("../middleware/auth");
 const { validate } = require("../validators/validate");
 const {
   createPaymentIntentSchema,
+  createBatchPaymentIntentSchema,
   paymentIdParamsSchema,
   orderIdPaymentParamsSchema,
 } = require("../validators/payment.validator");
@@ -20,6 +22,13 @@ router.post(
   requireAuth,
   validate({ body: createPaymentIntentSchema }),
   createPaymentIntent,
+);
+
+router.post(
+  "/payments/batch-intents",
+  requireAuth,
+  validate({ body: createBatchPaymentIntentSchema }),
+  createBatchPaymentIntent,
 );
 
 router.get(

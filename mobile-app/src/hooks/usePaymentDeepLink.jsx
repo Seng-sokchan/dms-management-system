@@ -40,6 +40,8 @@ async function handlePaymentReturnUrl(url, enabled) {
   const ok = await navigateToPaymentResultDeferred({
     paymentId,
     orderId: pending?.orderId,
+    batchId: pending?.batchId,
+    orderIds: pending?.orderIds,
     fromAbaReturn: parsed.fromAbaReturn !== false,
     role: pending?.role || "Customer",
   });

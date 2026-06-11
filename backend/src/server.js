@@ -4,6 +4,7 @@ const { checkDbConnection } = require("./db/pool");
 const { ensurePaywaySchema } = require("./db/ensurePaywaySchema");
 const { ensureDeliveryQtySchema } = require("./db/ensureDeliveryQtySchema");
 const { ensureDeliveryLocationSchema } = require("./db/ensureDeliveryLocationSchema");
+const { ensureDepotBatchPaymentSchema } = require("./db/ensureDepotBatchPaymentSchema");
 const { attachDeliveryLocationSocket } = require("./socket/deliveryLocationSocket");
 
 loadEnv();
@@ -16,6 +17,7 @@ async function start() {
     ensurePaywaySchema(),
     ensureDeliveryQtySchema(),
     ensureDeliveryLocationSchema(),
+    ensureDepotBatchPaymentSchema(),
   ]);
 
   const port = Number(process.env.PORT || 4000);

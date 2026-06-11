@@ -50,7 +50,14 @@ function isAlreadyOnPaymentResult(paymentId) {
 /**
  * Open PaymentResult on the customer/depot root stack (works after ABA return or app resume).
  */
-export function navigateToPaymentResult({ paymentId, orderId, fromAbaReturn, role = "Customer" }) {
+export function navigateToPaymentResult({
+  paymentId,
+  orderId,
+  batchId,
+  orderIds,
+  fromAbaReturn,
+  role = "Customer",
+}) {
   if (!paymentId || !navigationRef.isReady()) return false;
 
   if (isAlreadyOnPaymentResult(paymentId)) return true;
@@ -62,6 +69,8 @@ export function navigateToPaymentResult({ paymentId, orderId, fromAbaReturn, rol
   const params = {
     paymentId: String(paymentId),
     orderId: orderId != null ? Number(orderId) : undefined,
+    batchId: batchId != null ? String(batchId) : undefined,
+    orderIds: Array.isArray(orderIds) ? orderIds.map((id) => Number(id)) : undefined,
     fromAbaReturn: fromAbaReturn !== false,
   };
 

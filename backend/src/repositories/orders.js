@@ -114,7 +114,15 @@ async function createOrder(payload, executor) {
     order.updatedAt,
   ]);
   const meta = getProcedureMeta(rowsRaw);
-  return getOrderById(meta.insertId, executor);
+  const created = await getOrderById(meta.insertId, executor);
+  if (order.depotBatchId && created?.id) {
+    await db.query("UPDATE orders SET depot_batch_id = ? WHERE id = ?", [
+      String(order.depotBatchId),
+      created.id,
+    ]);
+    return getOrderById(created.id, executor);
+  }
+  return created;
 }
 
 function toSqlIntOrNull(v) {
@@ -250,9 +258,35 @@ async function deleteOrder(id) {
   return { affectedRows: Number(meta.affectedRows || 0), order };
 }
 
+async function listOrdersByDepotBatchId(depotBatchId, executor) {
+  const db = resolveExecutor(executor);
+  const [rows] = await db.query(
+    `SELECT o.id, c.name AS customer_name, o.customer_id, o.item_id, o.currency, o.ordered_qty,
+            o.delivered_qty, o.loss_qty, o.unit_price,
+            o.producer_id, o.delivery_agent_id, o.delivery_time,
+            o.amount_total, o.payment_status, o.depot_batch_id, s.name AS status, o.created_at, o.updated_at,
+            c.phone AS customer_phone,
+            p.name AS producer_name,
+            da.name AS delivery_agent_name,
+            it.name AS item_name,
+            it.sku AS item_sku
+     FROM orders o
+     INNER JOIN customers c ON c.id = o.customer_id
+     INNER JOIN items it ON it.id = o.item_id
+     INNER JOIN status s ON s.id = o.status
+     LEFT JOIN producers p ON p.id = o.producer_id
+     LEFT JOIN delivery_agents da ON da.id = o.delivery_agent_id
+     WHERE o.depot_batch_id = ?
+     ORDER BY o.id ASC`,
+    [String(depotBatchId)],
+  );
+  return rows.map(mapOrder);
+}
+
 module.exports = {
   listOrders,
   getOrderById,
+  listOrdersByDepotBatchId,
   listFactoryNotificationOrdersByOrderId,
   countNonTerminalOrdersByCustomer,
   createOrder,
