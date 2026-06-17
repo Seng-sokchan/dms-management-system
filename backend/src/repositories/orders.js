@@ -1,42 +1,93 @@
-const { getPool } = require("../db/pool");
+const crypto = require("node:crypto");
+const { getPool } = require("../../database/pool");
 const { nowIso } = require("../utils");
 const { mapOrder } = require("./mappers");
 const { unwrapProcedureRows, getProcedureMeta } = require("./unwrap");
 const { getStatusIdByName } = require("./lookups");
+const V = require("./sql/readViews");
+const {
+  ORDER_DETAIL_LIST_SELECT,
+  ORDER_DETAIL_FROM,
+  PAYMENT_STATUS_EXPR,
+} = require("./sql/orderQueries");
 
 function resolveExecutor(executor) {
   return executor || getPool();
 }
 
+async function createMasterOrder(depotBatchId, executor) {
+  const db = resolveExecutor(executor);
+  const batchId = depotBatchId ? String(depotBatchId) : crypto.randomUUID();
+  const ts = nowIso();
+  const [result] = await db.query(
+    "INSERT INTO orders (depot_batch_id, created_at, updated_at) VALUES (?, ?, ?)",
+    [batchId, ts, ts],
+  );
+  return { id: result.insertId, depotBatchId: batchId };
+}
+
+async function getMasterOrderIdForDetailId(detailId, executor) {
+  const db = resolveExecutor(executor);
+  const [rows] = await db.query(
+    "SELECT order_id FROM order_details WHERE id = ? LIMIT 1",
+    [Number(detailId)],
+  );
+  return rows[0]?.order_id != null ? Number(rows[0].order_id) : null;
+}
+
+async function getMasterOrderByDepotBatchId(depotBatchId, executor) {
+  const db = resolveExecutor(executor);
+  const [rows] = await db.query(
+    "SELECT id, depot_batch_id, created_at, updated_at FROM orders WHERE depot_batch_id = ? LIMIT 1",
+    [String(depotBatchId)],
+  );
+  return rows[0]
+    ? {
+        id: Number(rows[0].id),
+        depotBatchId: rows[0].depot_batch_id ? String(rows[0].depot_batch_id) : null,
+        createdAt: rows[0].created_at,
+        updatedAt: rows[0].updated_at,
+      }
+    : null;
+}
+
+async function listOrderDetailIdsByMasterOrderId(masterOrderId, executor) {
+  const db = resolveExecutor(executor);
+  const [rows] = await db.query(
+    "SELECT id FROM order_details WHERE order_id = ? ORDER BY id ASC",
+    [Number(masterOrderId)],
+  );
+  return rows.map((row) => String(row.id));
+}
+
 async function listOrders() {
-  const [rows] = await getPool().query("CALL sp_list_orders()");
-  return unwrapProcedureRows(rows).map(mapOrder);
+  const [rows] = await getPool().query(`SELECT * FROM ${V.ORDERS} ORDER BY id DESC`);
+  return rows.map(mapOrder);
 }
 
 async function getOrderById(id, executor) {
   const db = resolveExecutor(executor);
-  const [rows] = await db.query("CALL sp_get_order_by_id(?)", [id]);
-  const resultRows = unwrapProcedureRows(rows);
-  return resultRows[0] ? mapOrder(resultRows[0]) : null;
+  const [rows] = await db.query(`SELECT * FROM ${V.ORDERS} WHERE id = ? LIMIT 1`, [id]);
+  return rows[0] ? mapOrder(rows[0]) : null;
 }
 
 async function listFactoryNotificationOrdersByOrderId(id) {
   const [rows] = await getPool().query(
     `SELECT
-       o.id,
+       od.id,
        c.name AS customer_name,
-       o.customer_id,
-       o.item_id,
-       o.currency,
-       o.ordered_qty,
-       o.unit_price,
-       o.producer_id,
-       o.delivery_agent_id,
-       o.delivery_time,
-       o.amount_total,
+       od.customer_id,
+       od.item_id,
+       od.currency,
+       od.ordered_qty,
+       od.unit_price,
+       od.producer_id,
+       od.delivery_agent_id,
+       od.delivery_time,
+       od.amount_total,
        s.name AS status,
-       o.created_at,
-       o.updated_at,
+       od.created_at,
+       od.updated_at,
        c.phone AS customer_phone,
        c.province_id AS customer_province_id,
        pr.name AS customer_province_name,
@@ -46,41 +97,52 @@ async function listFactoryNotificationOrdersByOrderId(id) {
        da.name AS delivery_agent_name,
        it.name AS item_name,
        it.sku AS item_sku
-     FROM orders source
-     INNER JOIN orders o ON (
-       o.id = source.id
+     FROM order_details source
+     INNER JOIN order_details od ON (
+       od.id = source.id
        OR (
          source.delivery_agent_id IS NOT NULL
-         AND o.status = source.status
-         AND o.delivery_agent_id = source.delivery_agent_id
+         AND od.status = source.status
+         AND od.delivery_agent_id = source.delivery_agent_id
        )
      )
-     INNER JOIN customers c ON c.id = o.customer_id
-     INNER JOIN items it ON it.id = o.item_id
-     INNER JOIN status s ON s.id = o.status
+     INNER JOIN customers c ON c.id = od.customer_id
+     INNER JOIN items it ON it.id = od.item_id
+     INNER JOIN status s ON s.id = od.status
      LEFT JOIN provinces pr ON pr.id = c.province_id AND pr.is_active = 1
-     LEFT JOIN producers p ON p.id = o.producer_id
-     LEFT JOIN delivery_agents da ON da.id = o.delivery_agent_id
+     LEFT JOIN producers p ON p.id = od.producer_id
+     LEFT JOIN delivery_agents da ON da.id = od.delivery_agent_id
      WHERE source.id = ?
-     ORDER BY c.name, it.name, o.id`,
+     ORDER BY c.name, it.name, od.id`,
     [id],
   );
   return rows.map(mapOrder);
 }
 
-/** Terminal status name in DB: order is complete (delivered). */
 const TERMINAL_ORDER_STATUS_NAME = "Recieve_By_Customer";
 
-/**
- * Count orders for this customer that are not yet delivered (not terminal status).
- */
 async function countNonTerminalOrdersByCustomer(customerId, executor) {
   const db = resolveExecutor(executor);
   const [rows] = await db.query(
     `SELECT COUNT(*) AS cnt
-     FROM orders o
-     INNER JOIN status s ON s.id = o.status
-     WHERE o.customer_id = ? AND s.name <> ?`,
+     FROM order_details od
+     INNER JOIN status s ON s.id = od.status
+     WHERE od.customer_id = ? AND s.name <> ?`,
+    [Number(customerId), TERMINAL_ORDER_STATUS_NAME],
+  );
+  return Number(rows[0]?.cnt || 0);
+}
+
+async function countUnpaidReceivedOrdersByCustomer(customerId, executor) {
+  const db = resolveExecutor(executor);
+  const [rows] = await db.query(
+    `SELECT COUNT(*) AS cnt
+     FROM order_details od
+     INNER JOIN orders om ON om.id = od.order_id
+     INNER JOIN status s ON s.id = od.status
+     WHERE od.customer_id = ?
+       AND s.name = ?
+       AND (${PAYMENT_STATUS_EXPR}) IN ('unpaid', 'pending')`,
     [Number(customerId), TERMINAL_ORDER_STATUS_NAME],
   );
   return Number(rows[0]?.cnt || 0);
@@ -102,27 +164,40 @@ async function createOrder(payload, executor) {
   if (!statusId) {
     throw new Error("Status not found");
   }
-  const [rowsRaw] = await db.query("CALL sp_create_order(?, ?, ?, ?, ?, ?, ?, ?, ?)", [
-    customerId,
-    itemId,
-    order.orderedQty,
-    order.unitPrice,
-    order.currency || "KHR",
-    producerId,
-    order.amountTotal,
-    statusId,
-    order.updatedAt,
-  ]);
-  const meta = getProcedureMeta(rowsRaw);
-  const created = await getOrderById(meta.insertId, executor);
-  if (order.depotBatchId && created?.id) {
-    await db.query("UPDATE orders SET depot_batch_id = ? WHERE id = ?", [
-      String(order.depotBatchId),
-      created.id,
-    ]);
-    return getOrderById(created.id, executor);
+
+  let masterOrderId = null;
+  if (order.masterOrderId) {
+    masterOrderId = Number(order.masterOrderId);
+  } else if (order.depotBatchId) {
+    const existing = await getMasterOrderByDepotBatchId(order.depotBatchId, executor);
+    if (existing) {
+      masterOrderId = existing.id;
+    } else {
+      const master = await createMasterOrder(order.depotBatchId, executor);
+      masterOrderId = master.id;
+    }
+  } else {
+    const master = await createMasterOrder(null, executor);
+    masterOrderId = master.id;
   }
-  return created;
+
+  const [rowsRaw] = await db.query(
+    "CALL sp_create_order_detail(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    [
+      masterOrderId,
+      customerId,
+      itemId,
+      order.orderedQty,
+      order.unitPrice,
+      order.currency || "KHR",
+      producerId,
+      order.amountTotal,
+      statusId,
+      order.updatedAt,
+    ],
+  );
+  const meta = getProcedureMeta(rowsRaw);
+  return getOrderById(meta.insertId, executor);
 }
 
 function toSqlIntOrNull(v) {
@@ -208,7 +283,7 @@ async function updateOrderStatuses(ids, status, { changedByUserId = null, note =
       if (!before) continue;
 
       const fromStatusId = await getStatusIdByName(before.status, conn);
-      await conn.query("UPDATE orders SET status = ?, updated_at = ? WHERE id = ?", [
+      await conn.query("UPDATE order_details SET status = ?, updated_at = ? WHERE id = ?", [
         toStatusId,
         nowIso(),
         id,
@@ -261,34 +336,26 @@ async function deleteOrder(id) {
 async function listOrdersByDepotBatchId(depotBatchId, executor) {
   const db = resolveExecutor(executor);
   const [rows] = await db.query(
-    `SELECT o.id, c.name AS customer_name, o.customer_id, o.item_id, o.currency, o.ordered_qty,
-            o.delivered_qty, o.loss_qty, o.unit_price,
-            o.producer_id, o.delivery_agent_id, o.delivery_time,
-            o.amount_total, o.payment_status, o.depot_batch_id, s.name AS status, o.created_at, o.updated_at,
-            c.phone AS customer_phone,
-            p.name AS producer_name,
-            da.name AS delivery_agent_name,
-            it.name AS item_name,
-            it.sku AS item_sku
-     FROM orders o
-     INNER JOIN customers c ON c.id = o.customer_id
-     INNER JOIN items it ON it.id = o.item_id
-     INNER JOIN status s ON s.id = o.status
-     LEFT JOIN producers p ON p.id = o.producer_id
-     LEFT JOIN delivery_agents da ON da.id = o.delivery_agent_id
-     WHERE o.depot_batch_id = ?
-     ORDER BY o.id ASC`,
+    `SELECT ${ORDER_DETAIL_LIST_SELECT}
+     ${ORDER_DETAIL_FROM}
+     WHERE om.depot_batch_id = ?
+     ORDER BY od.id ASC`,
     [String(depotBatchId)],
   );
   return rows.map(mapOrder);
 }
 
 module.exports = {
+  createMasterOrder,
+  getMasterOrderIdForDetailId,
+  getMasterOrderByDepotBatchId,
+  listOrderDetailIdsByMasterOrderId,
   listOrders,
   getOrderById,
   listOrdersByDepotBatchId,
   listFactoryNotificationOrdersByOrderId,
   countNonTerminalOrdersByCustomer,
+  countUnpaidReceivedOrdersByCustomer,
   createOrder,
   updateOrderAssignment,
   updateOrderStatus,

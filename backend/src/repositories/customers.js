@@ -1,38 +1,48 @@
-const { getPool } = require("../db/pool");
+const { getPool } = require("../../database/pool");
 const { nowIso } = require("../utils");
 const { mapCustomer } = require("./mappers");
-const { unwrapProcedureRows, getProcedureMeta } = require("./unwrap");
+const { getProcedureMeta } = require("./unwrap");
+const V = require("./sql/readViews");
 
 function resolveExecutor(executor) {
   return executor || getPool();
 }
 
 async function listCustomers() {
-  const [rows] = await getPool().query("CALL sp_list_customers()");
-  return unwrapProcedureRows(rows).map(mapCustomer);
+  const [rows] = await getPool().query(`SELECT * FROM ${V.CUSTOMERS} ORDER BY id DESC`);
+  return rows.map(mapCustomer);
 }
 
 async function listCustomersByDepotId(depotId) {
-  const [rows] = await getPool().query("CALL sp_list_customers_by_depot_id(?)", [depotId]);
-  return unwrapProcedureRows(rows).map(mapCustomer);
+  const [rows] = await getPool().query(
+    `SELECT * FROM ${V.CUSTOMERS} WHERE depot_id = ? ORDER BY id DESC`,
+    [depotId],
+  );
+  return rows.map(mapCustomer);
 }
 
 async function listCustomersByOwnerUserId(ownerUserId) {
-  const [rows] = await getPool().query("CALL sp_list_customers_by_owner_user_id(?)", [ownerUserId]);
-  return unwrapProcedureRows(rows).map(mapCustomer);
+  const [rows] = await getPool().query(
+    `SELECT * FROM ${V.CUSTOMERS}
+     WHERE depot_id IS NULL OR depot_owner_user_id = ?
+     ORDER BY id DESC`,
+    [ownerUserId],
+  );
+  return rows.map(mapCustomer);
 }
 
 async function getCustomerById(id, executor) {
   const db = resolveExecutor(executor);
-  const [rows] = await db.query("CALL sp_get_customer_by_id(?)", [id]);
-  const resultRows = unwrapProcedureRows(rows);
-  return resultRows[0] ? mapCustomer(resultRows[0]) : null;
+  const [rows] = await db.query(`SELECT * FROM ${V.CUSTOMERS} WHERE id = ? LIMIT 1`, [id]);
+  return rows[0] ? mapCustomer(rows[0]) : null;
 }
 
 async function getCustomerByUserId(userId) {
-  const [rows] = await getPool().query("CALL sp_get_customer_by_user_id(?)", [userId]);
-  const resultRows = unwrapProcedureRows(rows);
-  return resultRows[0] ? mapCustomer(resultRows[0]) : null;
+  const [rows] = await getPool().query(
+    `SELECT * FROM ${V.CUSTOMERS} WHERE user_id = ? LIMIT 1`,
+    [userId],
+  );
+  return rows[0] ? mapCustomer(rows[0]) : null;
 }
 
 /**

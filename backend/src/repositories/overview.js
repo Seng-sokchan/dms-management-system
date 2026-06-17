@@ -1,15 +1,12 @@
-const { getPool } = require("../db/pool");
+const { getPool } = require("../../database/pool");
 const { listOrderStatuses } = require("./lookups");
-const { unwrapProcedureRows } = require("./unwrap");
+const V = require("./sql/readViews");
 
 async function getDashboardSummary() {
   const statusDefinitions = await listOrderStatuses();
-  const [statusRowsRaw] = await getPool().query("CALL sp_list_dashboard_status_summary()");
-  const statusRows = unwrapProcedureRows(statusRowsRaw);
-  const [totalsRowsRaw] = await getPool().query("CALL sp_dashboard_totals()");
-  const totalsRows = unwrapProcedureRows(totalsRowsRaw);
-  const [currencyTotalsRaw] = await getPool().query("CALL sp_dashboard_currency_totals()");
-  const currencyTotalsRows = unwrapProcedureRows(currencyTotalsRaw);
+  const [statusRows] = await getPool().query(`SELECT * FROM ${V.DASHBOARD_STATUS_SUMMARY}`);
+  const [totalsRows] = await getPool().query(`SELECT * FROM ${V.DASHBOARD_TOTALS}`);
+  const [currencyTotalsRows] = await getPool().query(`SELECT * FROM ${V.DASHBOARD_CURRENCY_TOTALS}`);
 
   const statusSummary = statusDefinitions.reduce((acc, row) => ({ ...acc, [row.name]: 0 }), {});
   statusRows.forEach((row) => {

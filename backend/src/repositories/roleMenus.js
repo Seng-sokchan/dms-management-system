@@ -1,18 +1,17 @@
-const { getPool } = require("../db/pool");
+const { getPool } = require("../../database/pool");
 const { DEFAULT_MENUS_BY_ROLE } = require("../constants/roleMenus");
-const { unwrapProcedureRows } = require("./unwrap");
+const V = require("./sql/readViews");
 
 async function getRoleIdByName(name) {
-  const [rows] = await getPool().query("CALL sp_get_role_id_by_name(?)", [name]);
-  const resultRows = unwrapProcedureRows(rows);
-  return resultRows[0] ? resultRows[0].id : null;
+  const [rows] = await getPool().query(`SELECT id FROM ${V.ROLES} WHERE name = ? LIMIT 1`, [name]);
+  return rows[0] ? rows[0].id : null;
 }
 
 async function listMenuKeysForRoleName(roleName) {
-  const [rowsRaw] = await getPool().query("CALL sp_list_role_menu_keys_by_role_name(?)", [
-    roleName,
-  ]);
-  const rows = unwrapProcedureRows(rowsRaw);
+  const [rows] = await getPool().query(
+    `SELECT menu_key FROM ${V.ROLE_MENUS} WHERE role_name = ? ORDER BY menu_key DESC`,
+    [roleName],
+  );
   if (rows.length) {
     return rows.map((row) => row.menu_key);
   }
@@ -20,10 +19,8 @@ async function listMenuKeysForRoleName(roleName) {
 }
 
 async function listRoleMenusMap() {
-  const [rolesRaw] = await getPool().query("CALL sp_list_roles()");
-  const roles = unwrapProcedureRows(rolesRaw);
-  const [rowsRaw] = await getPool().query("CALL sp_list_role_menus()");
-  const rows = unwrapProcedureRows(rowsRaw);
+  const [roles] = await getPool().query(`SELECT id, name FROM ${V.ROLES} ORDER BY id DESC`);
+  const [rows] = await getPool().query(`SELECT role_name, menu_key FROM ${V.ROLE_MENUS}`);
   const byRole = {};
   for (const r of roles) {
     byRole[r.name] = [];

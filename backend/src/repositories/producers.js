@@ -1,17 +1,17 @@
-const { getPool } = require("../db/pool");
+const { getPool } = require("../../database/pool");
 const { nowIso } = require("../utils");
 const { mapProducer } = require("./mappers");
 const { unwrapProcedureRows, getProcedureMeta } = require("./unwrap");
+const V = require("./sql/readViews");
 
 async function listProducers() {
-  const [rows] = await getPool().query("CALL sp_list_producers()");
-  return unwrapProcedureRows(rows).map(mapProducer);
+  const [rows] = await getPool().query(`SELECT * FROM ${V.PRODUCERS} ORDER BY id DESC`);
+  return rows.map(mapProducer);
 }
 
 async function getProducerById(id) {
-  const [rows] = await getPool().query("CALL sp_get_producer_by_id(?)", [id]);
-  const resultRows = unwrapProcedureRows(rows);
-  return resultRows[0] ? mapProducer(resultRows[0]) : null;
+  const [rows] = await getPool().query(`SELECT * FROM ${V.PRODUCERS} WHERE id = ? LIMIT 1`, [id]);
+  return rows[0] ? mapProducer(rows[0]) : null;
 }
 
 async function createProducer(payload) {
@@ -26,19 +26,15 @@ async function createProducer(payload) {
 }
 
 async function updateProducer(id, payload) {
-  const name = String(payload.name || "").trim();
-  const phone = String(payload.phone || "").trim();
-  const capacityNote = (payload.capacityNote && String(payload.capacityNote).trim()) || "";
   const [rowsRaw] = await getPool().query("CALL sp_update_producer(?, ?, ?, ?, ?)", [
     id,
-    name,
-    phone,
-    capacityNote,
+    payload.name,
+    payload.phone,
+    payload.capacityNote || "",
     nowIso(),
   ]);
   const meta = getProcedureMeta(rowsRaw);
-  if (!Number(meta.affectedRows || 0)) return null;
-  return getProducerById(id);
+  return Number(meta.affectedRows || 0) > 0 ? getProducerById(id) : null;
 }
 
 async function deleteProducer(id) {

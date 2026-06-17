@@ -1,4 +1,4 @@
-const { getPool } = require("../db/pool");
+const { getPool } = require("../../database/pool");
 const {
   listCustomers: listCustomersDb,
   listCustomersByDepotId,

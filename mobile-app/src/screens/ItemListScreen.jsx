@@ -16,6 +16,8 @@ import {
 } from "../components/ui";
 import { fetchItems } from "../services/itemsApi";
 import { getApiErrorMessage } from "../services/apiClient";
+import { useOrderPlacementGate } from "../hooks/useOrderPlacementGate";
+import { navigateToOrderPayment } from "../utils/orderPlacementGate";
 
 function CartHeaderButton({ navigation, totalItems, styles }) {
   const { t } = useTranslation();
@@ -38,6 +40,7 @@ export default function ItemListScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState("");
+  const { blockerOrder } = useOrderPlacementGate();
 
   const styles = useMemo(
     () =>
@@ -93,6 +96,21 @@ export default function ItemListScreen({ navigation }) {
           marginTop: spacing.md,
           alignSelf: "flex-start",
         },
+        blockNotice: {
+          marginBottom: spacing.md,
+          backgroundColor: colors.warningSoft ?? colors.surfaceSoft,
+        },
+        blockNoticeText: {
+          color: colors.textSecondary,
+          fontSize: typography.bodySmall,
+          lineHeight: 20,
+        },
+        blockNoticeLink: {
+          marginTop: spacing.sm,
+          color: colors.primary,
+          fontWeight: "700",
+          fontSize: typography.bodySmall,
+        },
       }),
     [colors, radii, sizes.tabBarOffset, spacing, typography],
   );
@@ -128,6 +146,14 @@ export default function ItemListScreen({ navigation }) {
         subtitle={t("catalog.subtitle")}
         rightAction={<CartHeaderButton navigation={navigation} totalItems={totalItems} styles={styles} />}
       />
+      {blockerOrder ? (
+        <Card style={styles.blockNotice}>
+          <Text style={styles.blockNoticeText}>{t("cart.unpaidReceivedBanner")}</Text>
+          <Pressable onPress={() => navigateToOrderPayment(navigation, blockerOrder)}>
+            <Text style={styles.blockNoticeLink}>{t("cart.unpaidReceivedPayNow")}</Text>
+          </Pressable>
+        </Card>
+      ) : null}
       {loading ? (
         <SkeletonList count={4} ItemComponent={CatalogCardSkeleton} />
       ) : null}

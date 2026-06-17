@@ -1,17 +1,22 @@
-const { getPool } = require("../db/pool");
+const { getPool } = require("../../database/pool");
 const { nowIso } = require("../utils");
 const { mapDepotItemPrice } = require("./mappers");
-const { unwrapProcedureRows, getProcedureMeta } = require("./unwrap");
+const { getProcedureMeta } = require("./unwrap");
+const V = require("./sql/readViews");
 
 async function listDepotItemPrices() {
-  const [rows] = await getPool().query("CALL sp_list_depot_item_prices()");
-  return unwrapProcedureRows(rows).map(mapDepotItemPrice);
+  const [rows] = await getPool().query(`SELECT * FROM ${V.DEPOT_ITEM_PRICES} ORDER BY id DESC`);
+  return rows.map(mapDepotItemPrice);
 }
 
 async function getDepotItemPrice(depotId, itemId, currency) {
-  const [rows] = await getPool().query("CALL sp_get_depot_item_price(?, ?, ?)", [depotId, itemId, currency]);
-  const resultRows = unwrapProcedureRows(rows);
-  return resultRows[0] ? mapDepotItemPrice(resultRows[0]) : null;
+  const [rows] = await getPool().query(
+    `SELECT * FROM ${V.DEPOT_ITEM_PRICES}
+     WHERE depot_id = ? AND item_id = ? AND currency = ?
+     LIMIT 1`,
+    [depotId, itemId, currency],
+  );
+  return rows[0] ? mapDepotItemPrice(rows[0]) : null;
 }
 
 async function upsertDepotItemPrice(payload) {

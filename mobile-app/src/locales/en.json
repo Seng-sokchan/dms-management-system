@@ -80,7 +80,11 @@
     "remove": "Remove",
     "total": "Total · {{count}}",
     "preOrder": "Pre-Order",
-    "sku": "SKU: {{sku}}"
+    "sku": "SKU: {{sku}}",
+    "unpaidReceivedBlockTitle": "Payment required",
+    "unpaidReceivedBlockMessage": "Order #{{id}} was delivered but is not paid yet. Pay it before placing a new order.",
+    "unpaidReceivedPayNow": "Pay now",
+    "unpaidReceivedBanner": "You have an unpaid delivered order. Pay it before placing a new order."
   },
   "tracking": {
     "title": "Tracking",

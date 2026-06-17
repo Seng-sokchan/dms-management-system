@@ -17,6 +17,7 @@ import { bootstrapI18n } from "./src/i18n/config";
 import i18n from "./src/i18n/config";
 import { navigationRef } from "./src/navigation/paymentReturnNavigation";
 import { usePaymentDeepLink } from "./src/hooks/usePaymentDeepLink";
+import { usePaymentReturnResume } from "./src/hooks/usePaymentReturnResume";
 
 const Stack = createNativeStackNavigator();
 
@@ -37,6 +38,7 @@ function AppNavigator() {
   const paymentHandlersEnabled = Boolean(token) && navReady;
 
   usePaymentDeepLink({ enabled: paymentHandlersEnabled });
+  usePaymentReturnResume({ enabled: paymentHandlersEnabled });
 
   if (isLoading) {
     return (

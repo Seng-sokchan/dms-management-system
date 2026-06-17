@@ -1,17 +1,17 @@
-const { getPool } = require("../db/pool");
+const { getPool } = require("../../database/pool");
 const { nowIso } = require("../utils");
 const { mapDelivery } = require("./mappers");
-const { unwrapProcedureRows, getProcedureMeta } = require("./unwrap");
+const { getProcedureMeta } = require("./unwrap");
+const V = require("./sql/readViews");
 
 async function listDeliveryAgents() {
-  const [rows] = await getPool().query("CALL sp_list_delivery_agents()");
-  return unwrapProcedureRows(rows).map(mapDelivery);
+  const [rows] = await getPool().query(`SELECT * FROM ${V.DELIVERY_AGENTS} ORDER BY id DESC`);
+  return rows.map(mapDelivery);
 }
 
 async function getDeliveryAgentById(id) {
-  const [rows] = await getPool().query("CALL sp_get_delivery_agent_by_id(?)", [id]);
-  const resultRows = unwrapProcedureRows(rows);
-  return resultRows[0] ? mapDelivery(resultRows[0]) : null;
+  const [rows] = await getPool().query(`SELECT * FROM ${V.DELIVERY_AGENTS} WHERE id = ? LIMIT 1`, [id]);
+  return rows[0] ? mapDelivery(rows[0]) : null;
 }
 
 async function createDeliveryAgent(payload) {
@@ -26,19 +26,15 @@ async function createDeliveryAgent(payload) {
 }
 
 async function updateDeliveryAgent(id, payload) {
-  const name = String(payload.name || "").trim();
-  const phone = String(payload.phone || "").trim();
-  const vehicleType = String(payload.vehicleType || "").trim();
   const [rowsRaw] = await getPool().query("CALL sp_update_delivery_agent(?, ?, ?, ?, ?)", [
     id,
-    name,
-    phone,
-    vehicleType,
+    payload.name,
+    payload.phone,
+    payload.vehicleType,
     nowIso(),
   ]);
   const meta = getProcedureMeta(rowsRaw);
-  if (!Number(meta.affectedRows || 0)) return null;
-  return getDeliveryAgentById(id);
+  return Number(meta.affectedRows || 0) > 0 ? getDeliveryAgentById(id) : null;
 }
 
 async function deleteDeliveryAgent(id) {

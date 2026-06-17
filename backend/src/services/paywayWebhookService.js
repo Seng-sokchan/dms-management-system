@@ -1,5 +1,7 @@
-const { getPool } = require("../db/pool");
+const { getPool } = require("../../database/pool");
 const paymentRepository = require("../repositories/payments");
+const paymentIntentRepository = require("../repositories/paymentIntents");
+const orderRepository = require("../repositories/orders");
 const paywayClient = require("../integrations/payway/paywayClient");
 const { normalizePaywayCallback } = require("../integrations/payway/paywayWebhookNormalize");
 const { emitPaymentStatus } = require("../socket/paymentStatusSocket");
@@ -15,36 +17,50 @@ function isPaywaySuccessStatus(status) {
   return false;
 }
 
-async function recordWebhookEvent({ paymentId, tranId, status, apv, payload, processed, error }) {
-  const eventKey = paymentRepository.buildWebhookEventKey(tranId, status, apv);
+async function promoteIntentToPayment(intent, providerTranId, rawCallbackPayload) {
+  const pool = getPool();
+  const conn = await pool.getConnection();
   try {
-    return await paymentRepository.insertWebhookEvent({
-      paymentId: paymentId || null,
-      eventKey,
-      payload,
-      processed: Boolean(processed),
-      processedAt: processed ? new Date() : null,
-      error: error || null,
-    });
+    await conn.beginTransaction();
+    const existing = await paymentRepository.getPaymentById(intent.id, conn);
+    if (existing) {
+      await conn.commit();
+      return existing;
+    }
+
+    const now = new Date();
+    const payment = await paymentRepository.insertPayment(
+      {
+        id: intent.id,
+        orderId: intent.orderId,
+        customerId: intent.customerId,
+        paywayTranId: intent.paywayTranId,
+        providerTranId: providerTranId || intent.paywayTranId,
+        amount: intent.amount,
+        currency: intent.currency,
+        rawCallbackPayload,
+        verifiedAt: now,
+        paidAt: now,
+      },
+      conn,
+    );
+    await paymentIntentRepository.deleteIntentById(intent.id, conn);
+    await conn.commit();
+    return payment;
   } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error("[payway-webhook] payment_webhook_events insert failed", {
-      code: err.code,
-      message: err.message,
-      paymentId,
-      eventKey,
-    });
+    await conn.rollback();
     throw err;
+  } finally {
+    conn.release();
   }
 }
 
 /**
- * Process PayWay server pushback (callback_url). Never trust return deeplink alone.
+ * Process PayWay server pushback (callback_url).
  */
 async function processCallback(body) {
   const normalized = normalizePaywayCallback(body);
   const tranId = normalized.tranId;
-  const apv = normalized.apv;
   const status = normalized.status;
   const merchantRef = normalized.merchantRef;
   const payload = normalized.raw || body;
@@ -56,152 +72,60 @@ async function processCallback(body) {
     throw err;
   }
 
-  let payment = await paymentRepository.getPaymentByPaywayTranId(tranId);
-  if (!payment && merchantRef) {
-    payment = await paymentRepository.getPaymentById(merchantRef);
+  const existingPaid = await paymentRepository.getPaymentByPaywayTranId(tranId);
+  if (existingPaid) {
+    return { paymentId: existingPaid.id, status: "paid", duplicate: true };
   }
 
-  const webhookInsert = await recordWebhookEvent({
-    paymentId: payment?.id,
-    tranId,
-    status,
-    apv,
-    payload,
-    processed: false,
-  });
+  let intent =
+    (await paymentIntentRepository.getIntentByPaywayTranId(tranId)) ||
+    (merchantRef ? await paymentIntentRepository.getIntentById(merchantRef) : null);
 
-  if (!payment) {
-    await paymentRepository.markWebhookEventProcessed(
-      paymentRepository.buildWebhookEventKey(tranId, status, apv),
-      "payment_not_found",
-    );
+  if (!intent) {
     const err = new Error("Payment not found for callback");
     err.code = "PAYMENT_NOT_FOUND";
     err.status = 404;
     throw err;
   }
 
-  if (webhookInsert.duplicate) {
-    payment = await paymentRepository.getPaymentById(payment.id);
-    if (payment.status === "paid") {
-      return { paymentId: payment.id, status: payment.status, duplicate: true };
-    }
-  }
-
-  const eventKey = paymentRepository.buildWebhookEventKey(tranId, status, apv);
-
-  await paymentRepository.updatePayment(payment.id, {
-    providerTranId: tranId,
-    rawCallbackPayload: payload,
-  });
-
   if (!isPaywaySuccessStatus(status)) {
-    const updated = await finalizeFailed(payment.id, payment.orderId);
-    await paymentRepository.markWebhookEventProcessed(eventKey, null);
-    emitPaymentStatus(updated);
-    return { paymentId: updated.id, status: updated.status, failed: true };
+    await paymentIntentRepository.deleteIntentById(intent.id);
+    return { paymentId: intent.id, status: "unpaid", failed: true };
   }
 
   const checkResult = await paywayClient.checkTransaction(tranId);
   if (!paywayClient.isApprovedCheckResponse(checkResult)) {
-    await paymentRepository.markWebhookEventProcessed(
-      eventKey,
-      "Check transaction did not confirm APPROVED",
-    );
     return {
-      paymentId: payment.id,
-      status: payment.status,
+      paymentId: intent.id,
+      status: "pending",
       pendingVerification: true,
     };
   }
 
-  const updated = await finalizePaid(payment.id, payment.orderId, tranId);
-  await paymentRepository.markWebhookEventProcessed(eventKey, null);
+  const updated = await promoteIntentToPayment(intent, tranId, payload);
   emitPaymentStatus(updated);
-  return { paymentId: updated.id, status: updated.status, paid: true };
+  return { paymentId: updated.id, status: "paid", paid: true };
 }
 
-async function finalizePaid(paymentId, orderId, providerTranId) {
-  const linkedOrderIds = await paymentRepository.listOrderIdsByPaymentId(paymentId);
-  const orderIdsToMark =
-    linkedOrderIds.length > 0 ? linkedOrderIds : [String(orderId)];
-
-  const pool = getPool();
-  const conn = await pool.getConnection();
+async function reconcilePendingIntent(intent) {
+  if (!intent?.paywayTranId) return intent;
   try {
-    await conn.beginTransaction();
-    const now = new Date();
-    await paymentRepository.updatePayment(
-      paymentId,
-      {
-        status: "paid",
-        providerTranId,
-        verifiedAt: now,
-        paidAt: now,
-      },
-      conn,
-    );
-    await paymentRepository.setOrdersPaymentStatus(orderIdsToMark, "paid", conn);
-    await conn.commit();
-  } catch (err) {
-    await conn.rollback();
-    throw err;
-  } finally {
-    conn.release();
-  }
-
-  return paymentRepository.getPaymentById(paymentId);
-}
-
-async function finalizeFailed(paymentId, orderId) {
-  const linkedOrderIds = await paymentRepository.listOrderIdsByPaymentId(paymentId);
-  const orderIdsToMark =
-    linkedOrderIds.length > 0 ? linkedOrderIds : [String(orderId)];
-
-  const pool = getPool();
-  const conn = await pool.getConnection();
-  try {
-    await conn.beginTransaction();
-    await paymentRepository.updatePayment(paymentId, { status: "failed" }, conn);
-    await paymentRepository.setOrdersPaymentStatus(orderIdsToMark, "failed", conn);
-    await conn.commit();
-  } catch (err) {
-    await conn.rollback();
-    throw err;
-  } finally {
-    conn.release();
-  }
-  return paymentRepository.getPaymentById(paymentId);
-}
-
-/**
- * Reconcile stuck pending payments via Check Transaction API.
- */
-async function reconcilePendingPayment(payment) {
-  if (!payment?.paywayTranId) return payment;
-  try {
-    const checkResult = await paywayClient.checkTransaction(payment.paywayTranId);
+    const checkResult = await paywayClient.checkTransaction(intent.paywayTranId);
     if (paywayClient.isApprovedCheckResponse(checkResult)) {
-      await recordWebhookEvent({
-        paymentId: payment.id,
-        tranId: payment.paywayTranId,
-        status: "reconcile",
-        apv: "",
-        payload: { source: "reconcile", checkResult },
-        processed: true,
+      return promoteIntentToPayment(intent, intent.paywayTranId, {
+        source: "reconcile",
+        checkResult,
       });
-      return finalizePaid(payment.id, payment.orderId, payment.paywayTranId);
     }
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.warn("[payway-reconcile] check failed", payment.id, err.message);
+    console.warn("[payway-reconcile] check failed", intent.id, err.message);
   }
-  return payment;
+  return intent;
 }
 
 module.exports = {
   processCallback,
-  finalizePaid,
-  finalizeFailed,
-  reconcilePendingPayment,
+  promoteIntentToPayment,
+  reconcilePendingIntent,
 };

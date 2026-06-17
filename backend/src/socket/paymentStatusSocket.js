@@ -1,6 +1,6 @@
 const customerRepository = require("../repositories/customers");
 const depotRepository = require("../repositories/depots");
-const paymentRepository = require("../repositories/payments");
+const orderRepository = require("../repositories/orders");
 
 const CUSTOMER_ROOM_PREFIX = "customer:";
 const DEPOT_ROOM_PREFIX = "depot:";
@@ -13,9 +13,6 @@ function depotRoom(depotId) {
   return `${DEPOT_ROOM_PREFIX}${depotId}`;
 }
 
-/**
- * Join customer or depot payment status rooms on connect.
- */
 function attachPaymentStatusHandlers(io, socket) {
   const { user } = socket.data;
 
@@ -69,13 +66,13 @@ async function emitPaymentStatus(payment) {
   const io = getIo();
   if (!io || !payment) return;
 
-  const orderIds = await paymentRepository.listOrderIdsByPaymentId(payment.id);
+  const orderDetailIds = await orderRepository.listOrderDetailIdsByMasterOrderId(payment.orderId);
 
   const payload = {
     paymentId: payment.id,
     orderId: payment.orderId,
-    orderIds: orderIds.length > 0 ? orderIds.map((id) => Number(id)) : undefined,
-    status: payment.status,
+    orderIds: orderDetailIds.length > 0 ? orderDetailIds.map((id) => Number(id)) : undefined,
+    status: payment.status || "paid",
     paidAt: payment.paidAt,
     amount: payment.amount,
     currency: payment.currency,

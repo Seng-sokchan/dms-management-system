@@ -20,6 +20,7 @@ import {
 } from "../components/ui";
 import { listMobileOrders } from "../services/ordersApi";
 import { getApiErrorMessage } from "../services/apiClient";
+import { usePaymentCompletionRefresh } from "../hooks/usePaymentCompletionRefresh";
 
 function groupDepotOrders(orders) {
   const batchMap = new Map();
@@ -176,6 +177,10 @@ export default function DepotOrdersScreen() {
       void load();
     }, [load]),
   );
+
+  usePaymentCompletionRefresh(() => {
+    void load();
+  });
 
   function onRefresh() {
     setRefreshing(true);

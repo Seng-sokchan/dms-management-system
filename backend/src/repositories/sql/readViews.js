@@ -1,0 +1,26 @@
+/** Database views for read queries (replaces sp_get_* / sp_list_* procedures). */
+
+module.exports = {
+  USERS: "v_users",
+  PRODUCERS: "v_producers",
+  DELIVERY_AGENTS: "v_delivery_agents",
+  DEPOTS: "v_depots",
+  PROVINCES: "v_provinces",
+  CUSTOMERS: "v_customers",
+  CATALOGS: "v_catalogs",
+  ITEMS: "v_items",
+  CUSTOMER_ITEM_PRICES: "v_customer_item_prices",
+  DEPOT_ITEM_PRICES: "v_depot_item_prices",
+  ORDERS: "v_orders",
+  STATUSES: "v_statuses",
+  ROLES: "v_roles",
+  ROLE_MENUS: "v_role_menus",
+  BORROW_MATERIALS: "v_borrow_materials",
+  CUSTOMER_BORROWED_MATERIALS: "v_customer_borrowed_materials",
+  BORROW_MATERIAL_ORDER_LOANS: "v_borrow_material_order_loans",
+  BORROW_MATERIAL_MONTHLY_SCHEDULES: "v_borrow_material_monthly_schedules",
+  BORROW_MATERIAL_MONTHLY_INSTALLMENTS: "v_borrow_material_monthly_installments",
+  DASHBOARD_STATUS_SUMMARY: "v_dashboard_status_summary",
+  DASHBOARD_TOTALS: "v_dashboard_totals",
+  DASHBOARD_CURRENCY_TOTALS: "v_dashboard_currency_totals",
+};

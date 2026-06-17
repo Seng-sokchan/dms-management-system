@@ -1,24 +1,23 @@
-const { getPool } = require("../db/pool");
-const { nowIso } = require("../utils");
+const { getPool } = require("../../database/pool");
 const { mapCatalog } = require("./mappers");
 const { unwrapProcedureRows, getProcedureMeta } = require("./unwrap");
+const { nowIso } = require("../utils");
+const V = require("./sql/readViews");
 
 async function listCatalogs() {
-  const [rows] = await getPool().query("CALL sp_list_catalogs()");
-  return unwrapProcedureRows(rows).map(mapCatalog);
+  const [rows] = await getPool().query(`SELECT * FROM ${V.CATALOGS} ORDER BY id DESC`);
+  return rows.map(mapCatalog);
 }
 
 async function getCatalogById(id) {
-  const [rows] = await getPool().query("CALL sp_get_catalog_by_id(?)", [id]);
-  const resultRows = unwrapProcedureRows(rows);
-  return resultRows[0] ? mapCatalog(resultRows[0]) : null;
+  const [rows] = await getPool().query(`SELECT * FROM ${V.CATALOGS} WHERE id = ? LIMIT 1`, [id]);
+  return rows[0] ? mapCatalog(rows[0]) : null;
 }
 
 async function createCatalog(payload) {
-  const name = String(payload.name || "").trim();
   const [rowsRaw] = await getPool().query("CALL sp_create_catalog(?, ?, ?)", [
-    name,
-    (payload.note && String(payload.note)) || "",
+    payload.name,
+    payload.note || "",
     nowIso(),
   ]);
   const meta = getProcedureMeta(rowsRaw);
@@ -26,17 +25,14 @@ async function createCatalog(payload) {
 }
 
 async function updateCatalog(id, payload) {
-  const name = String(payload.name || "").trim();
-  const note = (payload.note && String(payload.note).trim()) || "";
   const [rowsRaw] = await getPool().query("CALL sp_update_catalog(?, ?, ?, ?)", [
     id,
-    name,
-    note,
+    payload.name,
+    payload.note || "",
     nowIso(),
   ]);
   const meta = getProcedureMeta(rowsRaw);
-  if (!Number(meta.affectedRows || 0)) return null;
-  return getCatalogById(id);
+  return Number(meta.affectedRows || 0) > 0 ? getCatalogById(id) : null;
 }
 
 async function deleteCatalog(id) {

@@ -8,6 +8,7 @@ import OrderPaymentActions, { formatPaymentAmount } from "../components/OrderPay
 import { Card, EmptyState, Screen, SectionHeader } from "../components/ui";
 import { getApiErrorMessage } from "../services/apiClient";
 import { listMobileOrders } from "../services/ordersApi";
+import { usePaymentCompletionRefresh } from "../hooks/usePaymentCompletionRefresh";
 
 export default function MyOrdersScreen() {
   const { token } = useAuth();
@@ -61,6 +62,10 @@ export default function MyOrdersScreen() {
       void loadOrders();
     }, [loadOrders]),
   );
+
+  usePaymentCompletionRefresh(() => {
+    void loadOrders();
+  });
 
   const renderItem = ({ item }) => (
     <Card style={styles.card}>

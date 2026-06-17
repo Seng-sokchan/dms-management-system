@@ -1,9 +1,9 @@
 import { useEffect, useRef } from "react";
 import { AppState } from "react-native";
 import { useAuth } from "../context/AuthContext";
-import { navigateToPaymentResultDeferred } from "../navigation/paymentReturnNavigation";
 import { getPendingPaymentReturn } from "../services/paymentPendingStorage";
 import { markPaymentReturnHandled, wasPaymentReturnHandled } from "../services/paymentReturnHandled";
+import { resolvePaymentReturnNavigation } from "../utils/paymentReturnRouting";
 
 const RESUME_DELAY_MS = 900;
 
@@ -35,12 +35,13 @@ export function usePaymentReturnResume({ enabled = false } = {}) {
             if (!pending?.paymentId) return;
             if (wasPaymentReturnHandled(pending.paymentId)) return;
 
-            const ok = await navigateToPaymentResultDeferred({
+            const ok = await resolvePaymentReturnNavigation(token, {
               paymentId: pending.paymentId,
               orderId: pending.orderId,
               batchId: pending.batchId,
               orderIds: pending.orderIds,
-              fromAbaReturn: true,
+              order: pending.order,
+              orders: pending.orders,
               role: pending.role,
             });
             if (ok) {

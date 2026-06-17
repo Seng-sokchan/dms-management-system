@@ -80,7 +80,11 @@
     "remove": "លុប",
     "total": "សរុប · {{count}}",
     "preOrder": "បញ្ជាទិញជាមុន",
-    "sku": "SKU: {{sku}}"
+    "sku": "SKU: {{sku}}",
+    "unpaidReceivedBlockTitle": "ត្រូវការបង់ប្រាក់",
+    "unpaidReceivedBlockMessage": "ការបញ្ជាទិញ #{{id}} ត្រូវបានដឹកជញ្ជូនហើយ ប៉ុន្តែមិនទាន់បង់ទេ។ សូមបង់មុនពេលបញ្ជាទិញថ្មី។",
+    "unpaidReceivedPayNow": "បង់ឥឡូវ",
+    "unpaidReceivedBanner": "អ្នកមានការបញ្ជាទិញដែលដឹកជញ្ជូនហើយ ប៉ុន្តែមិនទាន់បង់ទេ។ សូមបង់មុនពេលបញ្ជាទិញថ្មី។"
   },
   "tracking": {
     "title": "តាមដាន",

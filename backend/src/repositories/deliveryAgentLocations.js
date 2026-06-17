@@ -1,4 +1,4 @@
-const { getPool } = require("../db/pool");
+const { getPool } = require("../../database/pool");
 
 function mapLocation(row) {
   if (!row) return null;

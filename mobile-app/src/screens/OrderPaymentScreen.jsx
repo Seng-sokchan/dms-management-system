@@ -1,14 +1,17 @@
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import KhqrPaymentModal from "../components/KhqrPaymentModal";
 import { Card, PrimaryButton, Screen, SectionHeader } from "../components/ui";
+import { usePaymentStatus } from "../hooks/usePaymentStatus";
 import { getApiErrorMessage } from "../services/apiClient";
-import { createPaymentIntent } from "../services/paymentsApi";
+import { createPaymentIntent, getOrderPayment } from "../services/paymentsApi";
 import { setPendingPaymentReturn } from "../services/paymentPendingStorage";
 import { openAbaPaywayCheckout } from "../utils/openAbaPayway";
+import { createKhqrIntentWithRetry, hasKhqrData } from "../utils/createKhqrIntent";
+import { isIntentExpired } from "../utils/paymentReturnRouting";
 
 export default function OrderPaymentScreen({ route, navigation }) {
   const order = route.params?.order;
@@ -18,11 +21,44 @@ export default function OrderPaymentScreen({ route, navigation }) {
   const [submitting, setSubmitting] = useState(false);
   const [khqrVisible, setKhqrVisible] = useState(false);
   const [khqrSession, setKhqrSession] = useState(null);
+  const [activePaymentId, setActivePaymentId] = useState(null);
 
   const amountLabel =
     order?.currency === "KHR"
       ? `${Math.round(Number(order?.amountTotal)).toLocaleString()} KHR`
       : `${Number(order?.amountTotal).toFixed(2)} USD`;
+
+  const { status: polledStatus } = usePaymentStatus(activePaymentId, {
+    autoRefresh: Boolean(activePaymentId) && !khqrVisible,
+  });
+
+  const goToPaymentSuccess = useCallback(
+    (paymentId) => {
+      if (!paymentId || !order?.id) return;
+      navigation.replace("PaymentResult", {
+        paymentId,
+        orderId: order.id,
+        fromAbaReturn: false,
+      });
+    },
+    [navigation, order?.id],
+  );
+
+  useEffect(() => {
+    if (!token || !order?.id) return;
+    void getOrderPayment(token, order.id).then((data) => {
+      const paymentId = data?.payment?.paymentId;
+      if (data?.paymentStatus === "pending" && paymentId) {
+        setActivePaymentId(paymentId);
+      }
+    });
+  }, [order?.id, token]);
+
+  useEffect(() => {
+    if (polledStatus === "paid" && activePaymentId) {
+      goToPaymentSuccess(activePaymentId);
+    }
+  }, [activePaymentId, goToPaymentSuccess, polledStatus]);
 
   const styles = useMemo(
     () =>
@@ -60,6 +96,21 @@ export default function OrderPaymentScreen({ route, navigation }) {
     [colors, sizes.touchTarget, spacing, typography],
   );
 
+  const openKhqrSession = (intent) => {
+    if (isIntentExpired(intent?.expiresAt)) {
+      Alert.alert(t("payment.intentFailed"), t("payment.intentFailed"));
+      return;
+    }
+    setActivePaymentId(intent.paymentId);
+    setKhqrSession({
+      paymentId: intent.paymentId,
+      qrString: intent.qrString,
+      qrImageUrl: intent.qrImageUrl,
+      expiresAt: intent.expiresAt,
+    });
+    setKhqrVisible(true);
+  };
+
   const handlePay = async () => {
     if (!token || !order?.id) return;
     setSubmitting(true);
@@ -69,9 +120,17 @@ export default function OrderPaymentScreen({ route, navigation }) {
         paymentOption: "abapay_deeplink",
       });
 
+      if (isIntentExpired(intent?.expiresAt)) {
+        Alert.alert(t("payment.intentFailed"), t("payment.intentFailed"));
+        return;
+      }
+
+      setActivePaymentId(intent.paymentId);
+
       await setPendingPaymentReturn({
         paymentId: intent.paymentId,
         orderId: order.id,
+        order,
         role: user?.role || "Customer",
       });
 
@@ -87,22 +146,19 @@ export default function OrderPaymentScreen({ route, navigation }) {
     if (!token || !order?.id) return;
     setSubmitting(true);
     try {
-      const intent = await createPaymentIntent(token, {
-        orderId: order.id,
-        paymentOption: "abapay_khqr",
-      });
+      const intent = await createKhqrIntentWithRetry(token, () =>
+        createPaymentIntent(token, {
+          orderId: order.id,
+          paymentOption: "abapay_khqr",
+        }),
+      );
 
-      if (!intent?.qrString && !intent?.qrImageUrl) {
+      if (!hasKhqrData(intent)) {
         Alert.alert(t("payment.intentFailed"), t("payment.khqrNoData"));
         return;
       }
 
-      setKhqrSession({
-        paymentId: intent.paymentId,
-        qrString: intent.qrString,
-        qrImageUrl: intent.qrImageUrl,
-      });
-      setKhqrVisible(true);
+      openKhqrSession(intent);
     } catch (err) {
       Alert.alert(t("payment.intentFailed"), getApiErrorMessage(err, t("payment.intentFailed")));
     } finally {
@@ -113,11 +169,7 @@ export default function OrderPaymentScreen({ route, navigation }) {
   const handleKhqrPaid = () => {
     if (!khqrSession?.paymentId) return;
     setKhqrVisible(false);
-    navigation.replace("PaymentResult", {
-      paymentId: khqrSession.paymentId,
-      orderId: order.id,
-      fromAbaReturn: false,
-    });
+    goToPaymentSuccess(khqrSession.paymentId);
     setKhqrSession(null);
   };
 
@@ -171,6 +223,7 @@ export default function OrderPaymentScreen({ route, navigation }) {
         paymentId={khqrSession?.paymentId}
         qrString={khqrSession?.qrString}
         qrImageUrl={khqrSession?.qrImageUrl}
+        expiresAt={khqrSession?.expiresAt}
         amountLabel={amountLabel}
         onClose={handleKhqrClose}
         onPaid={handleKhqrPaid}

@@ -1,8 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Linking } from "react-native";
-import { navigateToPaymentResultDeferred } from "../navigation/paymentReturnNavigation";
+import { useAuth } from "../context/AuthContext";
 import { getPendingPaymentReturn } from "../services/paymentPendingStorage";
 import { markPaymentReturnHandled, wasPaymentReturnHandled } from "../services/paymentReturnHandled";
+import { resolvePaymentReturnNavigation } from "../utils/paymentReturnRouting";
 
 const PAYMENT_SUCCESS_PATH = "/payment/result/success";
 
@@ -27,46 +28,53 @@ function parsePaymentReturnUrl(url) {
   }
 }
 
-async function handlePaymentReturnUrl(url, enabled) {
-  if (!enabled) return;
-  const parsed = parsePaymentReturnUrl(url);
-  if (!parsed?.paymentId) return;
-  if (wasPaymentReturnHandled(parsed.paymentId)) return;
-
-  const pending = await getPendingPaymentReturn();
-  const paymentId = parsed.paymentId || pending?.paymentId;
-  if (!paymentId) return;
-
-  const ok = await navigateToPaymentResultDeferred({
-    paymentId,
-    orderId: pending?.orderId,
-    batchId: pending?.batchId,
-    orderIds: pending?.orderIds,
-    fromAbaReturn: parsed.fromAbaReturn !== false,
-    role: pending?.role || "Customer",
-  });
-  if (ok) {
-    markPaymentReturnHandled(paymentId);
-  }
-}
-
 /**
  * Role-aware handler for dms://payment/result/success (React Navigation linking disabled).
  */
 export function usePaymentDeepLink({ enabled = false } = {}) {
+  const { token } = useAuth();
+  const tokenRef = useRef(token);
+  tokenRef.current = token;
+
   useEffect(() => {
     if (!enabled) return undefined;
 
+    const handlePaymentReturnUrl = async (url) => {
+      const authToken = tokenRef.current;
+      if (!authToken) return;
+
+      const parsed = parsePaymentReturnUrl(url);
+      if (!parsed?.paymentId) return;
+      if (wasPaymentReturnHandled(parsed.paymentId)) return;
+
+      const pending = await getPendingPaymentReturn();
+      const paymentId = parsed.paymentId || pending?.paymentId;
+      if (!paymentId) return;
+
+      const ok = await resolvePaymentReturnNavigation(authToken, {
+        paymentId,
+        orderId: pending?.orderId,
+        batchId: pending?.batchId,
+        orderIds: pending?.orderIds,
+        order: pending?.order,
+        orders: pending?.orders,
+        role: pending?.role || "Customer",
+      });
+      if (ok) {
+        markPaymentReturnHandled(paymentId);
+      }
+    };
+
     const runInitial = () => {
       void Linking.getInitialURL().then((url) => {
-        if (url) void handlePaymentReturnUrl(url, enabled);
+        if (url) void handlePaymentReturnUrl(url);
       });
     };
 
     const initialTimer = setTimeout(runInitial, 200);
 
     const sub = Linking.addEventListener("url", ({ url }) => {
-      void handlePaymentReturnUrl(url, enabled);
+      void handlePaymentReturnUrl(url);
     });
 
     return () => {

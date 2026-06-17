@@ -18,7 +18,7 @@ const deliveryAgentRepository = require("../repositories/deliveryAgents");
 const producerRepository = require("../repositories/producers");
 const lookupRepository = require("../repositories/lookups");
 const overviewRepository = require("../repositories/overview");
-const { getPool } = require("../db/pool");
+const { getPool } = require("../../database/pool");
 const { BadRequestError, NotFoundError, ForbiddenError } = require("../errors");
 const crypto = require("node:crypto");
 const telegramService = require("./telegramService");
@@ -26,8 +26,8 @@ const telegramService = require("./telegramService");
 /** New orders always use this producer; delivery agent is set later via assign. */
 const DEFAULT_NEW_ORDER_PRODUCER_ID = "1";
 
-const PENDING_ORDERS_MESSAGE =
-  "Complete all previous orders (delivered to customer) before placing new orders.";
+const UNPAID_RECEIVED_ORDERS_MESSAGE =
+  "Pay for your received order before placing a new order.";
 
 const STATUS_UPDATE_ROLES = new Set(["Admin", "Owner", "Logistics", "Delivery"]);
 const STATUS_OWNER_BY_TARGET = {
@@ -129,10 +129,10 @@ async function getDashboardSummary() {
 // Mutations
 // ---------------------------------------------------------------------------
 
-async function assertNoNonTerminalOrdersForCustomer(customerId, executor) {
-  const n = await orderRepository.countNonTerminalOrdersByCustomer(customerId, executor);
+async function assertCustomerCanPlaceNewOrder(customerId, executor) {
+  const n = await orderRepository.countUnpaidReceivedOrdersByCustomer(customerId, executor);
   if (n > 0) {
-    throw new BadRequestError(PENDING_ORDERS_MESSAGE);
+    throw new BadRequestError(UNPAID_RECEIVED_ORDERS_MESSAGE);
   }
 }
 
@@ -144,7 +144,7 @@ async function create(payload) {
   const customer = await customerRepository.getCustomerById(payload.customerId);
   if (!customer) throw new BadRequestError("Customer not found");
 
-  await assertNoNonTerminalOrdersForCustomer(payload.customerId);
+  await assertCustomerCanPlaceNewOrder(payload.customerId);
 
   const item = await itemRepository.getItemById(payload.itemId);
   if (!item) throw new BadRequestError("Item not found");
@@ -176,7 +176,7 @@ async function create(payload) {
 /**
  * Create multiple orders for one customer in a single transaction.
  * Same validation as {@link create} per line; fails entirely if any line is invalid
- * or the customer has non-terminal orders at commit time.
+ * or the customer has unpaid received orders at commit time.
  */
 async function createBatch({ customerId, lines }) {
   const producer = await producerRepository.getProducerById(DEFAULT_NEW_ORDER_PRODUCER_ID);
@@ -215,11 +215,12 @@ async function createBatch({ customerId, lines }) {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
-    await assertNoNonTerminalOrdersForCustomer(customerId, conn);
+    await assertCustomerCanPlaceNewOrder(customerId, conn);
 
+    const master = await orderRepository.createMasterOrder(null, conn);
     const orders = [];
     for (const row of rowsToInsert) {
-      orders.push(await orderRepository.createOrder(row, conn));
+      orders.push(await orderRepository.createOrder({ ...row, masterOrderId: master.id }, conn));
     }
     await conn.commit();
     return orders;
@@ -238,7 +239,7 @@ async function createBatch({ customerId, lines }) {
  * contains lines for any number of customers belonging to their depot. The
  * service forces depot scoping for Depot callers (every customerId in the
  * payload must belong to the caller's depot). Admin/Owner callers may target
- * any customer. Each customer must still satisfy `assertNoNonTerminalOrdersForCustomer`.
+ * any customer. Each customer must still satisfy `assertCustomerCanPlaceNewOrder`.
  */
 async function createDepotBatch({ user, lines }) {
   if (!Array.isArray(lines) || lines.length === 0) {
@@ -313,7 +314,7 @@ async function createDepotBatch({ user, lines }) {
   try {
     await conn.beginTransaction();
     for (const customerId of uniqueCustomerIds) {
-      await assertNoNonTerminalOrdersForCustomer(customerId, conn);
+      await assertCustomerCanPlaceNewOrder(customerId, conn);
     }
 
     const orders = [];

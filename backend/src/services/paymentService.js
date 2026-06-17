@@ -1,5 +1,6 @@
 const crypto = require("node:crypto");
 const paymentRepository = require("../repositories/payments");
+const paymentIntentRepository = require("../repositories/paymentIntents");
 const orderRepository = require("../repositories/orders");
 const customerRepository = require("../repositories/customers");
 const depotRepository = require("../repositories/depots");
@@ -10,46 +11,77 @@ const {
   buildPaymentReturnUrl,
   formatReturnDeeplinkForPayway,
 } = require("../integrations/payway/paywayReturnDeeplink");
-const { getPool } = require("../db/pool");
 const paywayWebhookService = require("./paywayWebhookService");
 const { emitPaymentStatus } = require("../socket/paymentStatusSocket");
 const { BadRequestError, ForbiddenError, NotFoundError } = require("../errors");
-const INTENT_TTL_MINUTES = 30;
+
+const INTENT_TTL_MINUTES = 5;
 
 function generatePaywayTranId() {
   return crypto.randomBytes(10).toString("hex");
 }
 
-/** Plain dms:// URL for mobile Linking (API response `returnDeeplink`). */
 function buildReturnDeeplink(paymentId) {
   return buildPaymentReturnUrl(paymentId);
+}
+
+function mapIntentResponse(intent, extra = {}) {
+  return {
+    paymentId: intent.id,
+    orderId: Number(intent.orderId),
+    status: "pending",
+    amount: intent.amount,
+    currency: intent.currency,
+    checkoutUrl: intent.checkoutUrl,
+    deeplinkUrl: intent.deeplinkUrl,
+    qrString: intent.qrString || null,
+    qrImageUrl: intent.checkoutUrl || null,
+    returnDeeplink: buildReturnDeeplink(intent.id),
+    expiresAt: intent.expiresAt,
+    paidAt: null,
+    playStoreUrl: null,
+    appStoreUrl: null,
+    ...extra,
+  };
 }
 
 function mapPaymentResponse(payment, extra = {}) {
   return {
     paymentId: payment.id,
     orderId: Number(payment.orderId),
-    status: payment.status,
+    status: payment.status || "paid",
     amount: payment.amount,
     currency: payment.currency,
-    checkoutUrl: payment.checkoutUrl || null,
-    deeplinkUrl: payment.deeplinkUrl || null,
+    checkoutUrl: null,
+    deeplinkUrl: null,
     returnDeeplink: buildReturnDeeplink(payment.id),
-    expiresAt: payment.expiresAt,
+    expiresAt: null,
     paidAt: payment.paidAt,
-    playStoreUrl: payment.playStoreUrl || null,
-    appStoreUrl: payment.appStoreUrl || null,
+    playStoreUrl: null,
+    appStoreUrl: null,
     ...extra,
   };
 }
 
-async function mapPaymentResponseWithOrders(payment, extra = {}) {
-  const orderIds = await paymentRepository.listOrderIdsByPaymentId(payment.id);
-  const mapped = mapPaymentResponse(payment, extra);
-  if (orderIds.length > 0) {
-    mapped.orderIds = orderIds.map((id) => Number(id));
+async function mapPaymentResponseWithOrders(paymentOrIntent, extra = {}) {
+  const masterOrderId = paymentOrIntent.orderId;
+  const orderDetailIds = await orderRepository.listOrderDetailIdsByMasterOrderId(masterOrderId);
+  const mapper =
+    paymentOrIntent.status === "pending"
+      ? (row) => mapIntentResponse(row, extra)
+      : (row) => mapPaymentResponse(row, extra);
+  const mapped = mapper(paymentOrIntent);
+  if (orderDetailIds.length > 0) {
+    mapped.orderIds = orderDetailIds.map((id) => Number(id));
   }
   return mapped;
+}
+
+async function resolveMasterOrderId(orderOrDetailId, executor) {
+  const order = await orderRepository.getOrderById(orderOrDetailId, executor);
+  if (!order) return null;
+  if (order.masterOrderId) return Number(order.masterOrderId);
+  return orderRepository.getMasterOrderIdForDetailId(orderOrDetailId, executor);
 }
 
 async function assertCanPayOrder(order, user) {
@@ -104,19 +136,82 @@ function paywayBuyerFromCustomer(customer, fallbackName = "Customer") {
   };
 }
 
+async function resolveReusablePendingIntent(existing, paymentOption) {
+  if (!existing) return null;
+  const wantsKhqr = paymentIntentRepository.isKhqrOption(paymentOption);
+  const isKhqrIntent = existing.channel === "khqr" || Boolean(existing.qrString);
+  if (wantsKhqr === isKhqrIntent) {
+    return existing;
+  }
+  await paymentIntentRepository.deleteIntentById(existing.id);
+  return null;
+}
+
+async function insertIntentRow({
+  paymentId,
+  masterOrderId,
+  customerId,
+  paywayTranId,
+  amount,
+  currency,
+  paymentOption,
+  checkoutUrl,
+  deeplinkUrl,
+  qrString,
+  paywayResponse,
+  returnParams,
+  expiresAt,
+  idempotencyKey,
+  executor,
+}) {
+  const base = {
+    id: paymentId,
+    orderId: masterOrderId,
+    customerId,
+    paywayTranId,
+    amount,
+    currency,
+    rawCreateResponse: paywayResponse,
+    returnParams,
+    expiresAt,
+    idempotencyKey,
+  };
+  if (paymentIntentRepository.isKhqrOption(paymentOption)) {
+    return paymentIntentRepository.insertKhqrIntent(
+      {
+        ...base,
+        qrString,
+        qrImageUrl: checkoutUrl,
+      },
+      executor,
+    );
+  }
+  return paymentIntentRepository.insertAbaIntent(
+    {
+      ...base,
+      checkoutUrl,
+      deeplinkUrl,
+    },
+    executor,
+  );
+}
+
 async function createPaymentIntent({ orderId, paymentOption, idempotencyKey }, { user }) {
   assertPaywayConfigured();
 
   const order = await orderRepository.getOrderById(orderId);
   const orderCustomer = await assertCanPayOrder(order, user);
+  const masterOrderId = await resolveMasterOrderId(orderId);
+  if (!masterOrderId) throw new NotFoundError("Order not found");
 
   if (order.paymentStatus === "paid") {
     throw new BadRequestError("Order is already paid");
   }
 
-  const existing = await paymentRepository.findPendingPaymentByOrderId(orderId);
-  if (existing) {
-    return mapPaymentResponse(existing);
+  const existing = await paymentIntentRepository.findPendingIntentByMasterOrderId(masterOrderId);
+  const reusable = await resolveReusablePendingIntent(existing, paymentOption);
+  if (reusable) {
+    return mapIntentResponse(reusable);
   }
 
   const paymentId = crypto.randomUUID();
@@ -154,27 +249,25 @@ async function createPaymentIntent({ orderId, paymentOption, idempotencyKey }, {
     );
   }
 
-  const payment = await paymentRepository.insertPayment({
-    id: paymentId,
-    orderId,
+  const intent = await insertIntentRow({
+    paymentId,
+    masterOrderId,
     customerId: order.customerId,
     paywayTranId,
     amount: order.amountTotal,
     currency: order.currency,
-    status: "pending",
-    paymentOption: paymentOption || "abapay_deeplink",
+    paymentOption,
     checkoutUrl,
     deeplinkUrl,
-    rawCreateResponse: paywayResponse,
+    qrString,
+    paywayResponse,
+    returnParams,
     expiresAt,
     idempotencyKey: idempotencyKey || `intent-${orderId}-${Date.now()}`,
   });
 
-  await paymentRepository.setOrderPaymentStatus(orderId, "pending");
-
-  const mapped = mapPaymentResponse(payment);
   return {
-    ...mapped,
+    ...mapIntentResponse(intent),
     playStoreUrl,
     appStoreUrl,
     qrString: qrString || null,
@@ -182,17 +275,19 @@ async function createPaymentIntent({ orderId, paymentOption, idempotencyKey }, {
   };
 }
 
-async function buildBatchIntentResponse(payment, batchId, orders, paywayExtras = {}) {
+async function buildBatchIntentResponse(intent, batchId, orders, paywayExtras = {}) {
   const orderIds = orders?.length
     ? orders.map((order) => Number(order.id))
-    : (await paymentRepository.listOrderIdsByPaymentId(payment.id)).map((id) => Number(id));
-  const mapped = mapPaymentResponse(payment, { batchId, orderIds });
+    : (await orderRepository.listOrderDetailIdsByMasterOrderId(intent.orderId)).map(
+        (id) => Number(id),
+      );
+  const mapped = mapIntentResponse(intent, { batchId, orderIds });
   return {
     ...mapped,
     playStoreUrl: paywayExtras.playStoreUrl || null,
     appStoreUrl: paywayExtras.appStoreUrl || null,
-    qrString: paywayExtras.qrString || null,
-    qrImageUrl: paywayExtras.qrImageUrl || null,
+    qrString: paywayExtras.qrString ?? mapped.qrString ?? null,
+    qrImageUrl: paywayExtras.qrImageUrl ?? mapped.qrImageUrl ?? null,
   };
 }
 
@@ -209,7 +304,7 @@ async function createBatchPaymentIntent({ batchId, paymentOption, idempotencyKey
     throw new ForbiddenError("Depot profile not found");
   }
 
-  const orders = await orderRepository.listOrdersByDepotBatchId(batchId);
+  let orders = await orderRepository.listOrdersByDepotBatchId(batchId);
   if (!orders.length) {
     throw new NotFoundError("No orders found for this batch");
   }
@@ -222,17 +317,18 @@ async function createBatchPaymentIntent({ batchId, paymentOption, idempotencyKey
     throw new BadRequestError("Some orders in this batch are already paid");
   }
 
-  const existingPending = await paymentRepository.findPendingBatchPaymentByDepotBatchId(batchId);
+  const existingPending = await paymentIntentRepository.findPendingIntentByDepotBatchId(batchId);
+  const reusableBatch = await resolveReusablePendingIntent(existingPending, paymentOption);
+  if (reusableBatch) {
+    return buildBatchIntentResponse(reusableBatch, batchId, orders);
+  }
+
   if (existingPending) {
-    return buildBatchIntentResponse(existingPending, batchId, orders);
+    orders = await orderRepository.listOrdersByDepotBatchId(batchId);
   }
 
   if (orders.some((order) => order.paymentStatus === "pending")) {
     throw new BadRequestError("Some orders in this batch already have a pending payment");
-  }
-
-  if (orders.some((order) => order.paymentStatus === "failed")) {
-    throw new BadRequestError("Some orders in this batch have a failed payment status");
   }
 
   if (orders.some((order) => (order.paymentStatus || "unpaid") !== "unpaid")) {
@@ -246,6 +342,7 @@ async function createBatchPaymentIntent({ batchId, paymentOption, idempotencyKey
   const currency = [...currencies][0];
   const totalAmount = orders.reduce((sum, order) => sum + Number(order.amountTotal || 0), 0);
   const firstOrder = orders[0];
+  const masterOrderId = Number(firstOrder.masterOrderId);
   const orderIds = orders.map((order) => order.id);
 
   const paymentId = crypto.randomUUID();
@@ -300,40 +397,24 @@ async function createBatchPaymentIntent({ batchId, paymentOption, idempotencyKey
     );
   }
 
-  const pool = getPool();
-  const conn = await pool.getConnection();
-  let payment;
-  try {
-    await conn.beginTransaction();
-    payment = await paymentRepository.insertPayment(
-      {
-        id: paymentId,
-        orderId: firstOrder.id,
-        customerId: firstOrder.customerId,
-        paywayTranId,
-        amount: totalAmount,
-        currency,
-        status: "pending",
-        paymentOption: paymentOption || "abapay_deeplink",
-        checkoutUrl,
-        deeplinkUrl,
-        rawCreateResponse: paywayResponse,
-        expiresAt,
-        idempotencyKey: idempotencyKey || `batch-${batchId}-${Date.now()}`,
-      },
-      conn,
-    );
-    await paymentRepository.insertPaymentOrders(paymentId, orderIds, conn);
-    await paymentRepository.setOrdersPaymentStatus(orderIds, "pending", conn);
-    await conn.commit();
-  } catch (err) {
-    await conn.rollback().catch(() => {});
-    throw err;
-  } finally {
-    conn.release();
-  }
+  const intent = await insertIntentRow({
+    paymentId,
+    masterOrderId,
+    customerId: firstOrder.customerId,
+    paywayTranId,
+    amount: totalAmount,
+    currency,
+    paymentOption,
+    checkoutUrl,
+    deeplinkUrl,
+    qrString,
+    paywayResponse,
+    returnParams,
+    expiresAt,
+    idempotencyKey: idempotencyKey || `batch-${batchId}-${Date.now()}`,
+  });
 
-  return buildBatchIntentResponse(payment, batchId, orders, {
+  return buildBatchIntentResponse(intent, batchId, orders, {
     playStoreUrl,
     appStoreUrl,
     qrString: qrString || null,
@@ -342,63 +423,85 @@ async function createBatchPaymentIntent({ batchId, paymentOption, idempotencyKey
 }
 
 async function getPaymentById(paymentId, { user }) {
-  let payment = await paymentRepository.getPaymentById(paymentId);
-  if (!payment) throw new NotFoundError("Payment not found");
-
-  const order = await orderRepository.getOrderById(payment.orderId);
-  await assertCanPayOrder(order, user);
-
-  if (payment.status === "pending" && payment.paywayTranId) {
-    const reconciled = await paywayWebhookService.reconcilePendingPayment(payment);
-    if (reconciled?.status === "paid" && reconciled.status !== payment.status) {
-      emitPaymentStatus(reconciled);
-    }
-    payment = reconciled;
+  let paid = await paymentRepository.getPaymentById(paymentId);
+  if (paid) {
+    const order = await orderRepository.getOrderById(
+      (await orderRepository.listOrderDetailIdsByMasterOrderId(paid.orderId))[0] || paid.orderId,
+    );
+    if (order) await assertCanPayOrder(order, user);
+    return mapPaymentResponseWithOrders(paid);
   }
 
-  return mapPaymentResponseWithOrders(payment);
+  let intent = await paymentIntentRepository.getIntentById(paymentId);
+  if (!intent) throw new NotFoundError("Payment not found");
+
+  const order = await orderRepository.getOrderById(
+    (await orderRepository.listOrderDetailIdsByMasterOrderId(intent.orderId))[0] || intent.orderId,
+  );
+  if (order) await assertCanPayOrder(order, user);
+
+  const reconciled = await paywayWebhookService.reconcilePendingIntent(intent);
+  if (reconciled?.status === "paid") {
+    emitPaymentStatus(reconciled);
+    return mapPaymentResponseWithOrders(reconciled);
+  }
+
+  return mapPaymentResponseWithOrders(intent);
 }
 
 async function getLatestPaymentForOrder(orderId, { user }) {
   const order = await orderRepository.getOrderById(orderId);
   await assertCanPayOrder(order, user);
 
-  const payment = await paymentRepository.getLatestPaymentByOrderId(orderId);
-  if (!payment) {
+  const masterOrderId = await resolveMasterOrderId(orderId);
+  const paid = masterOrderId
+    ? await paymentRepository.getLatestPaymentByMasterOrderId(masterOrderId)
+    : null;
+  if (paid) {
     return {
       orderId: Number(orderId),
-      paymentStatus: order.paymentStatus || "unpaid",
-      payment: null,
+      paymentStatus: "paid",
+      payment: await mapPaymentResponseWithOrders(paid),
+    };
+  }
+
+  const intent = masterOrderId
+    ? await paymentIntentRepository.findPendingIntentByMasterOrderId(masterOrderId)
+    : null;
+  if (intent) {
+    return {
+      orderId: Number(orderId),
+      paymentStatus: "pending",
+      payment: await mapPaymentResponseWithOrders(intent),
     };
   }
 
   return {
     orderId: Number(orderId),
-    paymentStatus: order.paymentStatus || payment.status,
-    payment: await mapPaymentResponseWithOrders(payment),
+    paymentStatus: order?.paymentStatus || "unpaid",
+    payment: null,
   };
 }
 
 async function cancelPayment(paymentId, { user }) {
-  const payment = await paymentRepository.getPaymentById(paymentId);
-  if (!payment) throw new NotFoundError("Payment not found");
-  if (payment.status !== "pending") {
-    throw new BadRequestError("Only pending payments can be cancelled");
+  const intent = await paymentIntentRepository.getIntentById(paymentId);
+  if (!intent) {
+    const paid = await paymentRepository.getPaymentById(paymentId);
+    if (paid) throw new BadRequestError("Paid payments cannot be cancelled");
+    throw new NotFoundError("Payment not found");
   }
 
-  const order = await orderRepository.getOrderById(payment.orderId);
+  const order = await orderRepository.getOrderById(
+    (await orderRepository.listOrderDetailIdsByMasterOrderId(intent.orderId))[0] || intent.orderId,
+  );
   await assertCanPayOrder(order, user);
 
-  const linkedOrderIds = await paymentRepository.listOrderIdsByPaymentId(paymentId);
-  await paymentRepository.updatePayment(paymentId, { status: "cancelled" });
-  if (linkedOrderIds.length > 0) {
-    await paymentRepository.setOrdersPaymentStatus(linkedOrderIds, "unpaid");
-  } else {
-    await paymentRepository.setOrderPaymentStatus(payment.orderId, "unpaid");
-  }
-
-  const updated = await paymentRepository.getPaymentById(paymentId);
-  return mapPaymentResponseWithOrders(updated);
+  await paymentIntentRepository.deleteIntentById(paymentId);
+  return {
+    paymentId,
+    status: "cancelled",
+    orderId: Number(intent.orderId),
+  };
 }
 
 module.exports = {
@@ -408,4 +511,5 @@ module.exports = {
   getLatestPaymentForOrder,
   cancelPayment,
   mapPaymentResponse,
+  resolveMasterOrderId,
 };

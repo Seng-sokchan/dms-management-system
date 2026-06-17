@@ -1,30 +1,37 @@
-const { getPool } = require("../db/pool");
+const { getPool } = require("../../database/pool");
 const { nowIso } = require("../utils");
 const {
   mapBorrowMaterialMonthlySchedule,
   mapBorrowMaterialMonthlyInstallment,
 } = require("./mappers");
-const { unwrapProcedureRows, getProcedureMeta } = require("./unwrap");
+const { getProcedureMeta } = require("./unwrap");
+const V = require("./sql/readViews");
 
 async function listAllBorrowMaterialMonthlySchedules() {
-  const [rows] = await getPool().query("CALL sp_list_all_borrow_material_monthly_schedules()");
-  return unwrapProcedureRows(rows).map(mapBorrowMaterialMonthlySchedule);
+  const [rows] = await getPool().query(
+    `SELECT * FROM ${V.BORROW_MATERIAL_MONTHLY_SCHEDULES} ORDER BY id DESC`,
+  );
+  return rows.map(mapBorrowMaterialMonthlySchedule);
 }
 
 async function getBorrowMaterialMonthlyScheduleById(scheduleId, customerId) {
-  const [rows] = await getPool().query("CALL sp_get_borrow_material_monthly_schedule_by_id(?, ?)", [
-    Number(scheduleId),
-    Number(customerId),
-  ]);
-  const resultRows = unwrapProcedureRows(rows);
-  return resultRows[0] ? mapBorrowMaterialMonthlySchedule(resultRows[0]) : null;
+  const [rows] = await getPool().query(
+    `SELECT * FROM ${V.BORROW_MATERIAL_MONTHLY_SCHEDULES}
+     WHERE id = ? AND customer_id = ?
+     LIMIT 1`,
+    [Number(scheduleId), Number(customerId)],
+  );
+  return rows[0] ? mapBorrowMaterialMonthlySchedule(rows[0]) : null;
 }
 
 async function listBorrowMaterialMonthlyInstallments(scheduleId) {
-  const [rows] = await getPool().query("CALL sp_list_borrow_material_monthly_installments(?)", [
-    Number(scheduleId),
-  ]);
-  return unwrapProcedureRows(rows).map(mapBorrowMaterialMonthlyInstallment);
+  const [rows] = await getPool().query(
+    `SELECT * FROM ${V.BORROW_MATERIAL_MONTHLY_INSTALLMENTS}
+     WHERE schedule_id = ?
+     ORDER BY period_no ASC`,
+    [Number(scheduleId)],
+  );
+  return rows.map(mapBorrowMaterialMonthlyInstallment);
 }
 
 async function createBorrowMaterialMonthlySchedule(payload) {

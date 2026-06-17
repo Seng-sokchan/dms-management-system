@@ -1,16 +1,22 @@
-const { getPool } = require("../db/pool");
+const { getPool } = require("../../database/pool");
 const { nowIso } = require("../utils");
 const { mapBorrowMaterialOrderLoan } = require("./mappers");
-const { unwrapProcedureRows, getProcedureMeta } = require("./unwrap");
+const { getProcedureMeta } = require("./unwrap");
+const V = require("./sql/readViews");
 
 async function listAllBorrowMaterialOrderLoans() {
-  const [rows] = await getPool().query("CALL sp_list_all_borrow_material_order_loans()");
-  return unwrapProcedureRows(rows).map(mapBorrowMaterialOrderLoan);
+  const [rows] = await getPool().query(
+    `SELECT * FROM ${V.BORROW_MATERIAL_ORDER_LOANS} ORDER BY id DESC`,
+  );
+  return rows.map(mapBorrowMaterialOrderLoan);
 }
 
 async function getBorrowMaterialOrderLoanById(id) {
-  const list = await listAllBorrowMaterialOrderLoans();
-  return list.find((row) => String(row.id) === String(id)) || null;
+  const [rows] = await getPool().query(
+    `SELECT * FROM ${V.BORROW_MATERIAL_ORDER_LOANS} WHERE id = ? LIMIT 1`,
+    [id],
+  );
+  return rows[0] ? mapBorrowMaterialOrderLoan(rows[0]) : null;
 }
 
 async function createBorrowMaterialOrderLoan(payload) {

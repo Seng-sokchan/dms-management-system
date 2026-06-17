@@ -1,34 +1,41 @@
-const { getPool } = require("../db/pool");
+const { getPool } = require("../../database/pool");
 const { nowIso } = require("../utils");
 const { mapDepot } = require("./mappers");
-const { unwrapProcedureRows, getProcedureMeta } = require("./unwrap");
+const { getProcedureMeta } = require("./unwrap");
+const V = require("./sql/readViews");
 
 async function listDepots() {
-  const [rows] = await getPool().query("CALL sp_list_depots()");
-  return unwrapProcedureRows(rows).map(mapDepot);
+  const [rows] = await getPool().query(`SELECT * FROM ${V.DEPOTS} ORDER BY id DESC`);
+  return rows.map(mapDepot);
 }
 
 async function getDepotById(id) {
-  const [rows] = await getPool().query("CALL sp_get_depot_by_id(?)", [id]);
-  const resultRows = unwrapProcedureRows(rows);
-  return resultRows[0] ? mapDepot(resultRows[0]) : null;
+  const [rows] = await getPool().query(`SELECT * FROM ${V.DEPOTS} WHERE id = ? LIMIT 1`, [id]);
+  return rows[0] ? mapDepot(rows[0]) : null;
 }
 
 async function getDepotByOwnerUserId(ownerUserId) {
-  const [rows] = await getPool().query("CALL sp_get_depot_by_owner_user_id(?)", [ownerUserId]);
-  const resultRows = unwrapProcedureRows(rows);
-  return resultRows[0] ? mapDepot(resultRows[0]) : null;
+  const [rows] = await getPool().query(
+    `SELECT * FROM ${V.DEPOTS} WHERE owner_user_id = ? ORDER BY created_at DESC LIMIT 1`,
+    [ownerUserId],
+  );
+  return rows[0] ? mapDepot(rows[0]) : null;
 }
 
 async function listDepotsByOwnerUserId(ownerUserId) {
-  const [rows] = await getPool().query("CALL sp_list_depots_by_owner_user_id(?)", [ownerUserId]);
-  return unwrapProcedureRows(rows).map(mapDepot);
+  const [rows] = await getPool().query(
+    `SELECT * FROM ${V.DEPOTS} WHERE owner_user_id = ? ORDER BY id DESC`,
+    [ownerUserId],
+  );
+  return rows.map(mapDepot);
 }
 
 async function getDepotByDepotUserId(depotUserId) {
-  const [rows] = await getPool().query("CALL sp_get_depot_by_depot_user_id(?)", [depotUserId]);
-  const resultRows = unwrapProcedureRows(rows);
-  return resultRows[0] ? mapDepot(resultRows[0]) : null;
+  const [rows] = await getPool().query(
+    `SELECT * FROM ${V.DEPOTS} WHERE depot_user_id = ? LIMIT 1`,
+    [depotUserId],
+  );
+  return rows[0] ? mapDepot(rows[0]) : null;
 }
 
 async function createDepot(payload) {

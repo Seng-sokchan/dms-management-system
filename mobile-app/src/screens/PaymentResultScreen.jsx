@@ -5,7 +5,6 @@ import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { Card, PrimaryButton, Screen, SectionHeader } from "../components/ui";
 import { usePaymentStatus } from "../hooks/usePaymentStatus";
-import { getOrderPayment } from "../services/paymentsApi";
 import { clearPendingPaymentReturn } from "../services/paymentPendingStorage";
 
 function formatPaidAmount(amount, currency) {
@@ -17,22 +16,13 @@ function formatPaidAmount(amount, currency) {
   return `${n.toFixed(2)} USD`;
 }
 
-function StatusBadge({ tone, label, colors, styles }) {
-  const bg =
-    tone === "success"
-      ? "rgba(22, 163, 74, 0.12)"
-      : tone === "danger"
-        ? "rgba(220, 38, 38, 0.12)"
-        : colors.surfaceMuted;
-  const fg = tone === "success" ? colors.success : tone === "danger" ? colors.danger : colors.textPrimary;
+function StatusBadge({ label, colors, styles }) {
   return (
-    <View style={[styles.badge, { backgroundColor: bg }]}>
-      {tone === "success" ? (
-        <View style={[styles.checkCircle, { borderColor: colors.success }]}>
-          <Text style={[styles.checkMark, { color: colors.success }]}>✓</Text>
-        </View>
-      ) : null}
-      <Text style={[styles.badgeLabel, { color: fg }]}>{label}</Text>
+    <View style={[styles.badge, { backgroundColor: "rgba(22, 163, 74, 0.12)" }]}>
+      <View style={[styles.checkCircle, { borderColor: colors.success }]}>
+        <Text style={[styles.checkMark, { color: colors.success }]}>✓</Text>
+      </View>
+      <Text style={[styles.badgeLabel, { color: colors.success }]}>{label}</Text>
     </View>
   );
 }
@@ -42,42 +32,41 @@ export default function PaymentResultScreen({ route, navigation }) {
   const orderIdParam = route.params?.orderId;
   const batchIdParam = route.params?.batchId;
   const orderIdsParam = Array.isArray(route.params?.orderIds) ? route.params.orderIds : null;
-  const fromAbaReturn = Boolean(
-    route.params?.fromAbaReturn || route.params?.fromAba === "1" || route.params?.fromAba === 1,
-  );
-  const { token, user } = useAuth();
+  const { user } = useAuth();
   const { t } = useTranslation();
-  const { colors, sizes, spacing, typography, radii } = useTheme();
-  const [resolvedPaymentId, setResolvedPaymentId] = React.useState(paymentIdParam || null);
+  const { colors, sizes, spacing, typography } = useTheme();
 
-  useEffect(() => {
-    if (resolvedPaymentId || !token || !orderIdParam) return;
-    void getOrderPayment(token, orderIdParam).then((data) => {
-      if (data?.payment?.paymentId) {
-        setResolvedPaymentId(data.payment.paymentId);
-      }
-    });
-  }, [orderIdParam, resolvedPaymentId, token]);
-
-  const { status, payment, loading, error } = usePaymentStatus(resolvedPaymentId, {
+  const { status, payment, loading, error } = usePaymentStatus(paymentIdParam, {
     autoRefresh: true,
   });
 
-  const statusKey = status || "pending";
-  const isPaid = statusKey === "paid";
-  const isFailed = statusKey === "failed" || statusKey === "expired" || statusKey === "cancelled";
-  const isTerminal = isPaid || isFailed;
+  const isPaid = status === "paid";
 
   useEffect(() => {
-    if (isTerminal) void clearPendingPaymentReturn();
-  }, [isTerminal]);
+    if (loading || !paymentIdParam) return;
+    if (isPaid) {
+      void clearPendingPaymentReturn();
+      return;
+    }
+    if (batchIdParam) {
+      navigation.replace("BatchOrderPayment", {
+        batchId: batchIdParam,
+        orders: orderIdsParam?.map((id) => ({ id })) || [],
+      });
+      return;
+    }
+    if (orderIdParam) {
+      navigation.replace("OrderPayment", { order: { id: orderIdParam } });
+      return;
+    }
+    navigation.goBack();
+  }, [batchIdParam, isPaid, loading, navigation, orderIdParam, orderIdsParam, paymentIdParam]);
 
   useLayoutEffect(() => {
-    let title = t("payment.resultTitle");
-    if (isPaid) title = t("payment.completedTitle");
-    else if (fromAbaReturn && !isTerminal) title = t("payment.confirmingTitle");
-    navigation.setOptions({ title });
-  }, [fromAbaReturn, isPaid, isTerminal, navigation, t]);
+    navigation.setOptions({
+      title: isPaid ? t("payment.completedTitle") : t("payment.loading"),
+    });
+  }, [isPaid, navigation, t]);
 
   const styles = useMemo(
     () =>
@@ -115,12 +104,6 @@ export default function PaymentResultScreen({ route, navigation }) {
           color: colors.textPrimary,
           textAlign: "center",
         },
-        meta: {
-          marginTop: spacing.xs,
-          color: colors.textMuted,
-          fontSize: typography.bodySmall,
-          textAlign: "center",
-        },
         hint: {
           marginTop: spacing.sm,
           color: colors.textMuted,
@@ -142,28 +125,17 @@ export default function PaymentResultScreen({ route, navigation }) {
           fontSize: typography.bodySmall,
           fontWeight: "600",
         },
-        pendingPulse: {
-          marginTop: spacing.md,
-          padding: spacing.md,
-          borderRadius: radii.md,
-          backgroundColor: colors.surfaceMuted,
-        },
       }),
-    [colors, radii, sizes, spacing, typography],
+    [colors, sizes, spacing, typography],
   );
 
-  const statusLabel = t(`payment.result.${statusKey}`, statusKey);
-  const hint = isPaid
-    ? batchIdParam || (orderIdsParam && orderIdsParam.length > 1)
+  const statusLabel = t("payment.result.paid");
+  const hint =
+    batchIdParam || (orderIdsParam && orderIdsParam.length > 1)
       ? t("depot.batchPaymentCompletedHint", {
           count: orderIdsParam?.length || payment?.orderIds?.length || 0,
         })
-      : t("payment.completedHint")
-    : fromAbaReturn && !isTerminal
-      ? t("payment.confirmingAfterAba")
-      : isTerminal
-        ? t("payment.resultTerminalHint")
-        : t("payment.resultPendingHint");
+      : t("payment.completedHint");
 
   const goBackToOrders = () => {
     if (user?.role === "Depot") {
@@ -176,81 +148,65 @@ export default function PaymentResultScreen({ route, navigation }) {
     navigation.navigate("Tabs", { screen: "MyOrders" });
   };
 
+  if (!isPaid) {
+    return (
+      <Screen busy busyMessage={t("payment.loading")}>
+        <View style={styles.hero}>
+          <ActivityIndicator color={colors.primary} />
+        </View>
+      </Screen>
+    );
+  }
+
   return (
     <Screen busy={loading && !payment} busyMessage={t("payment.loading")}>
       <SectionHeader
-        title={isPaid ? t("payment.completedTitle") : t("payment.resultTitle")}
-        subtitle={isPaid ? t("payment.completedSubtitle") : undefined}
+        title={t("payment.completedTitle")}
+        subtitle={t("payment.completedSubtitle")}
       />
       <Card>
-        {loading && !payment ? (
-          <View style={styles.hero}>
-            <ActivityIndicator color={colors.primary} />
-            <Text style={[styles.hint, { marginTop: spacing.md }]}>
-              {fromAbaReturn ? t("payment.confirmingAfterAba") : t("payment.resultPendingHint")}
+        <StatusBadge label={statusLabel} colors={colors} styles={styles} />
+        {payment?.amount != null ? (
+          <Text style={styles.amount}>
+            {formatPaidAmount(payment.amount, payment.currency)}
+          </Text>
+        ) : null}
+        <Text style={styles.hint}>{hint}</Text>
+        {payment?.orderId && !(batchIdParam || (orderIdsParam && orderIdsParam.length > 1)) ? (
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>{t("payment.orderNumberLabel")}</Text>
+            <Text style={styles.detailValue}>#{payment.orderId}</Text>
+          </View>
+        ) : null}
+        {batchIdParam || (orderIdsParam && orderIdsParam.length > 1) || (payment?.orderIds?.length > 1) ? (
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>{t("depot.batchGroupTitle")}</Text>
+            <Text style={styles.detailValue}>
+              {t(
+                (orderIdsParam?.length || payment?.orderIds?.length || 0) === 1
+                  ? "depot.batchGroupCount"
+                  : "depot.batchGroupCount_plural",
+                { count: orderIdsParam?.length || payment?.orderIds?.length || 0 },
+              )}
             </Text>
           </View>
-        ) : (
-          <>
-            <StatusBadge
-              tone={isPaid ? "success" : isFailed ? "danger" : "neutral"}
-              label={statusLabel}
-              colors={colors}
-              styles={styles}
-            />
-            {isPaid && payment?.amount != null ? (
-              <Text style={styles.amount}>
-                {formatPaidAmount(payment.amount, payment.currency)}
-              </Text>
-            ) : null}
-            <Text style={styles.hint}>{hint}</Text>
-            {payment?.orderId && !(batchIdParam || (orderIdsParam && orderIdsParam.length > 1)) ? (
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>{t("payment.orderNumberLabel")}</Text>
-                <Text style={styles.detailValue}>#{payment.orderId}</Text>
-              </View>
-            ) : null}
-            {batchIdParam || (orderIdsParam && orderIdsParam.length > 1) || (payment?.orderIds?.length > 1) ? (
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>{t("depot.batchGroupTitle")}</Text>
-                <Text style={styles.detailValue}>
-                  {t(
-                    (orderIdsParam?.length || payment?.orderIds?.length || 0) === 1
-                      ? "depot.batchGroupCount"
-                      : "depot.batchGroupCount_plural",
-                    { count: orderIdsParam?.length || payment?.orderIds?.length || 0 },
-                  )}
-                </Text>
-              </View>
-            ) : null}
-            {isPaid && payment?.paidAt ? (
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>{t("payment.paidAtLabel")}</Text>
-                <Text style={styles.detailValue}>
-                  {new Date(payment.paidAt).toLocaleString()}
-                </Text>
-              </View>
-            ) : null}
-            {fromAbaReturn && !isTerminal && !loading ? (
-              <View style={styles.pendingPulse}>
-                <ActivityIndicator color={colors.primary} size="small" />
-                <Text style={[styles.hint, { marginTop: spacing.sm, textAlign: "center" }]}>
-                  {t("payment.confirmingAfterAba")}
-                </Text>
-              </View>
-            ) : null}
-            {error ? <Text style={styles.error}>{error}</Text> : null}
-          </>
-        )}
+        ) : null}
+        {payment?.paidAt ? (
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>{t("payment.paidAtLabel")}</Text>
+            <Text style={styles.detailValue}>
+              {new Date(payment.paidAt).toLocaleString()}
+            </Text>
+          </View>
+        ) : null}
+        {error ? <Text style={styles.error}>{error}</Text> : null}
       </Card>
-      {isTerminal ? (
-        <PrimaryButton
-          title={t("payment.backToOrders")}
-          onPress={goBackToOrders}
-          tone={isPaid ? "success" : undefined}
-          style={{ marginTop: spacing.lg }}
-        />
-      ) : null}
+      <PrimaryButton
+        title={t("payment.backToOrders")}
+        onPress={goBackToOrders}
+        tone="success"
+        style={{ marginTop: spacing.lg }}
+      />
     </Screen>
   );
 }

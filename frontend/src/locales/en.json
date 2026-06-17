@@ -38,7 +38,7 @@
     "title": "Admin Panel",
     "welcome": "Welcome",
     "loginHeading": "Login",
-    "blurb": "Sign in to manage orders, delivery, and payments. Demo: admin / admin123, owner / owner123, logistics / logistics123, delivery / delivery123, customer1 / customer123",
+    "blurb": "Sign in to manage orders, delivery, and payments. Demo: admin / admin123, owner / owner123, depot1 / depot123, logistics / logistics123",
     "username": "Username",
     "password": "Password",
     "placeholderUsername": "Enter your username",

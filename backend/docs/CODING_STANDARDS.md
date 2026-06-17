@@ -258,7 +258,7 @@ domain objects (via `mappers.js`), never raw MySQL rows.
 
 ```js
 // src/repositories/orders.js
-const { getPool } = require("../db/pool");
+const { getPool } = require("../../database/pool");
 const { mapOrder } = require("./mappers");
 const { unwrapProcedureRows } = require("./unwrap");
 

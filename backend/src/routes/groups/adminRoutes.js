@@ -1,4 +1,4 @@
-const userManagementRoutes = require("../userManagementRoutes");
-const roleMenuRoutes = require("../roleMenuRoutes");
+const userManagementRoutes = require("./admin/userManagementRoutes");
+const roleMenuRoutes = require("./admin/roleMenuRoutes");
 
 module.exports = [userManagementRoutes, roleMenuRoutes];

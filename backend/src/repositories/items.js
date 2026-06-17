@@ -1,27 +1,24 @@
-const { getPool } = require("../db/pool");
+const { getPool } = require("../../database/pool");
 const { nowIso } = require("../utils");
 const { mapItem } = require("./mappers");
-const { unwrapProcedureRows, getProcedureMeta } = require("./unwrap");
+const { getProcedureMeta } = require("./unwrap");
+const V = require("./sql/readViews");
 
 async function listItems() {
-  const [rows] = await getPool().query("CALL sp_list_items()");
-  return unwrapProcedureRows(rows).map(mapItem);
+  const [rows] = await getPool().query(`SELECT * FROM ${V.ITEMS} ORDER BY id DESC`);
+  return rows.map(mapItem);
 }
 
 async function getItemById(id) {
-  const [rows] = await getPool().query("CALL sp_get_item_by_id(?)", [id]);
-  const resultRows = unwrapProcedureRows(rows);
-  return resultRows[0] ? mapItem(resultRows[0]) : null;
+  const [rows] = await getPool().query(`SELECT * FROM ${V.ITEMS} WHERE id = ? LIMIT 1`, [id]);
+  return rows[0] ? mapItem(rows[0]) : null;
 }
 
 async function createItem(payload) {
-  const name = String(payload.name || "").trim();
-  const sku = (payload.sku && String(payload.sku).trim()) || "";
-  const catalogId = Number(payload.catalogId);
   const [rowsRaw] = await getPool().query("CALL sp_create_item(?, ?, ?, ?)", [
-    catalogId,
-    name,
-    sku,
+    payload.catalogId,
+    payload.name,
+    payload.sku || "",
     nowIso(),
   ]);
   const meta = getProcedureMeta(rowsRaw);
@@ -29,19 +26,15 @@ async function createItem(payload) {
 }
 
 async function updateItem(id, payload) {
-  const name = String(payload.name || "").trim();
-  const sku = (payload.sku && String(payload.sku).trim()) || "";
-  const catalogId = String(payload.catalogId || "").trim();
   const [rowsRaw] = await getPool().query("CALL sp_update_item(?, ?, ?, ?, ?)", [
     id,
-    catalogId,
-    name,
-    sku,
+    payload.catalogId,
+    payload.name,
+    payload.sku || "",
     nowIso(),
   ]);
   const meta = getProcedureMeta(rowsRaw);
-  if (!Number(meta.affectedRows || 0)) return null;
-  return getItemById(id);
+  return Number(meta.affectedRows || 0) > 0 ? getItemById(id) : null;
 }
 
 async function deleteItem(id) {

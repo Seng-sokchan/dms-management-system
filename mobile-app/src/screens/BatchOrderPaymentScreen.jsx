@@ -1,14 +1,17 @@
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, FlatList, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import KhqrPaymentModal from "../components/KhqrPaymentModal";
 import { Card, PrimaryButton, Screen, SectionHeader } from "../components/ui";
+import { usePaymentStatus } from "../hooks/usePaymentStatus";
 import { getApiErrorMessage } from "../services/apiClient";
-import { createBatchPaymentIntent } from "../services/paymentsApi";
+import { createBatchPaymentIntent, getOrderPayment } from "../services/paymentsApi";
 import { setPendingPaymentReturn } from "../services/paymentPendingStorage";
 import { openAbaPaywayCheckout } from "../utils/openAbaPayway";
+import { createKhqrIntentWithRetry, hasKhqrData } from "../utils/createKhqrIntent";
+import { isIntentExpired } from "../utils/paymentReturnRouting";
 
 function formatAmount(amount, currency) {
   const n = Number(amount);
@@ -29,6 +32,7 @@ export default function BatchOrderPaymentScreen({ route, navigation }) {
   const [submitting, setSubmitting] = useState(false);
   const [khqrVisible, setKhqrVisible] = useState(false);
   const [khqrSession, setKhqrSession] = useState(null);
+  const [activePaymentId, setActivePaymentId] = useState(null);
 
   const currency = orders[0]?.currency || "KHR";
   const totalAmount = useMemo(
@@ -37,6 +41,41 @@ export default function BatchOrderPaymentScreen({ route, navigation }) {
   );
   const amountLabel = formatAmount(totalAmount, currency);
   const orderIds = useMemo(() => orders.map((order) => order.id), [orders]);
+
+  const { status: polledStatus } = usePaymentStatus(activePaymentId, {
+    autoRefresh: Boolean(activePaymentId) && !khqrVisible,
+  });
+
+  const goToPaymentSuccess = useCallback(
+    (paymentId) => {
+      if (!paymentId) return;
+      navigation.replace("PaymentResult", {
+        paymentId,
+        orderId: orderIds[0] ?? null,
+        batchId,
+        orderIds,
+        fromAbaReturn: false,
+      });
+    },
+    [batchId, navigation, orderIds],
+  );
+
+  useEffect(() => {
+    const firstOrderId = orderIds[0];
+    if (!token || !firstOrderId) return;
+    void getOrderPayment(token, firstOrderId).then((data) => {
+      const paymentId = data?.payment?.paymentId;
+      if (data?.paymentStatus === "pending" && paymentId) {
+        setActivePaymentId(paymentId);
+      }
+    });
+  }, [orderIds, token]);
+
+  useEffect(() => {
+    if (polledStatus === "paid" && activePaymentId) {
+      goToPaymentSuccess(activePaymentId);
+    }
+  }, [activePaymentId, goToPaymentSuccess, polledStatus]);
 
   const styles = useMemo(
     () =>
@@ -97,17 +136,40 @@ export default function BatchOrderPaymentScreen({ route, navigation }) {
     return createBatchPaymentIntent(token, { batchId, paymentOption });
   };
 
+  const openKhqrSession = (intent) => {
+    if (isIntentExpired(intent?.expiresAt)) {
+      Alert.alert(t("payment.intentFailed"), t("payment.intentFailed"));
+      return;
+    }
+    setActivePaymentId(intent.paymentId);
+    setKhqrSession({
+      paymentId: intent.paymentId,
+      qrString: intent.qrString,
+      qrImageUrl: intent.qrImageUrl,
+      expiresAt: intent.expiresAt,
+    });
+    setKhqrVisible(true);
+  };
+
   const handlePay = async () => {
     if (!token || !batchId) return;
     setSubmitting(true);
     try {
       const intent = await startCheckout("abapay_deeplink");
 
+      if (isIntentExpired(intent?.expiresAt)) {
+        Alert.alert(t("payment.intentFailed"), t("payment.intentFailed"));
+        return;
+      }
+
+      setActivePaymentId(intent.paymentId);
+
       await setPendingPaymentReturn({
         paymentId: intent.paymentId,
         orderId: orderIds[0] ?? null,
         batchId,
         orderIds,
+        orders,
         role: user?.role || "Depot",
       });
 
@@ -126,19 +188,14 @@ export default function BatchOrderPaymentScreen({ route, navigation }) {
     if (!token || !batchId) return;
     setSubmitting(true);
     try {
-      const intent = await startCheckout("abapay_khqr");
+      const intent = await createKhqrIntentWithRetry(token, () => startCheckout("abapay_khqr"));
 
-      if (!intent?.qrString && !intent?.qrImageUrl) {
+      if (!hasKhqrData(intent)) {
         Alert.alert(t("payment.intentFailed"), t("payment.khqrNoData"));
         return;
       }
 
-      setKhqrSession({
-        paymentId: intent.paymentId,
-        qrString: intent.qrString,
-        qrImageUrl: intent.qrImageUrl,
-      });
-      setKhqrVisible(true);
+      openKhqrSession(intent);
     } catch (err) {
       Alert.alert(
         t("depot.batchPaymentFailedTitle"),
@@ -152,13 +209,7 @@ export default function BatchOrderPaymentScreen({ route, navigation }) {
   const handleKhqrPaid = () => {
     if (!khqrSession?.paymentId) return;
     setKhqrVisible(false);
-    navigation.replace("PaymentResult", {
-      paymentId: khqrSession.paymentId,
-      orderId: orderIds[0] ?? null,
-      batchId,
-      orderIds,
-      fromAbaReturn: false,
-    });
+    goToPaymentSuccess(khqrSession.paymentId);
     setKhqrSession(null);
   };
 
@@ -240,6 +291,7 @@ export default function BatchOrderPaymentScreen({ route, navigation }) {
         paymentId={khqrSession?.paymentId}
         qrString={khqrSession?.qrString}
         qrImageUrl={khqrSession?.qrImageUrl}
+        expiresAt={khqrSession?.expiresAt}
         amountLabel={amountLabel}
         onClose={handleKhqrClose}
         onPaid={handleKhqrPaid}

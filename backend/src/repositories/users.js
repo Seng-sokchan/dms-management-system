@@ -1,23 +1,26 @@
-const { getPool } = require("../db/pool");
+const { getPool } = require("../../database/pool");
 const { nowIso } = require("../utils");
 const { mapUser } = require("./mappers");
-const { unwrapProcedureRows, getProcedureMeta } = require("./unwrap");
+const { getProcedureMeta } = require("./unwrap");
 const { getRoleIdByName } = require("./roleMenus");
+const V = require("./sql/readViews");
 
 function resolveExecutor(executor) {
   return executor || getPool();
 }
 
 async function listUsers() {
-  const [rows] = await getPool().query("CALL sp_list_users()");
-  return unwrapProcedureRows(rows).map(mapUser);
+  const [rows] = await getPool().query(`SELECT * FROM ${V.USERS} ORDER BY id DESC`);
+  return rows.map(mapUser);
 }
 
 async function getUserByUsername(username) {
-  const [rows] = await getPool().query("CALL sp_get_user_by_username(?)", [username]);
-  const resultRows = unwrapProcedureRows(rows);
-  if (!resultRows[0]) return null;
-  const row = resultRows[0];
+  const [rows] = await getPool().query(
+    `SELECT * FROM ${V.USERS} WHERE username = ? AND is_active = 1 LIMIT 1`,
+    [username],
+  );
+  if (!rows[0]) return null;
+  const row = rows[0];
   return {
     id: String(row.id),
     name: row.name,
@@ -32,9 +35,8 @@ async function getUserByUsername(username) {
 }
 
 async function getUserById(id) {
-  const [rows] = await getPool().query("CALL sp_get_user_by_id(?)", [id]);
-  const resultRows = unwrapProcedureRows(rows);
-  return resultRows[0] ? mapUser(resultRows[0]) : null;
+  const [rows] = await getPool().query(`SELECT * FROM ${V.USERS} WHERE id = ? LIMIT 1`, [id]);
+  return rows[0] ? mapUser(rows[0]) : null;
 }
 
 async function createUser(payload) {
@@ -92,12 +94,6 @@ async function deactivateUser(id) {
   return Number(meta.affectedRows || 0) > 0;
 }
 
-/**
- * Maintains users.delivery_agent_id via sp_set_delivery_agent_user_link.
- * @param {object|null} executor — connection or pool
- * @param {number|string|null} deliveryAgentId — agent to unlink all users from when userId is null
- * @param {number|string|null} userId — user to unlink when deliveryAgentId is null; or user to link when both set
- */
 async function setDeliveryAgentUserLink(executor, deliveryAgentId, userId) {
   const db = resolveExecutor(executor);
   const aid =

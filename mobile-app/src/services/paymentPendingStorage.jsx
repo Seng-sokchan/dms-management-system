@@ -2,7 +2,15 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const KEY = "dms:pending-payment-return";
 
-export async function setPendingPaymentReturn({ paymentId, orderId, batchId, orderIds, role }) {
+export async function setPendingPaymentReturn({
+  paymentId,
+  orderId,
+  batchId,
+  orderIds,
+  order,
+  orders,
+  role,
+}) {
   if (!paymentId) return;
   await AsyncStorage.setItem(
     KEY,
@@ -11,6 +19,8 @@ export async function setPendingPaymentReturn({ paymentId, orderId, batchId, ord
       orderId: orderId != null ? String(orderId) : null,
       batchId: batchId != null ? String(batchId) : null,
       orderIds: Array.isArray(orderIds) ? orderIds.map(String) : null,
+      order: order || null,
+      orders: Array.isArray(orders) ? orders : null,
       role: role || "Customer",
       savedAt: Date.now(),
     }),

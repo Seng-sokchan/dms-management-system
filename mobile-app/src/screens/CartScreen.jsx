@@ -7,6 +7,8 @@ import { useTheme } from "../context/ThemeContext";
 import { AppIcon, Card, EmptyState, PrimaryButton, Screen, SectionHeader } from "../components/ui";
 import { getApiErrorMessage } from "../services/apiClient";
 import { preOrderCart } from "../services/ordersApi";
+import { useOrderPlacementGate } from "../hooks/useOrderPlacementGate";
+import { navigateToOrderPayment } from "../utils/orderPlacementGate";
 
 export default function CartScreen({ navigation }) {
   const { items, updateQuantity, removeItem, clearCart } = useCart();
@@ -15,6 +17,21 @@ export default function CartScreen({ navigation }) {
   const { colors, layout, radii, sizes, spacing, typography } = useTheme();
   const [submitting, setSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const { blockerOrder, canPlaceOrder } = useOrderPlacementGate();
+
+  function showUnpaidReceivedAlert(order) {
+    Alert.alert(
+      t("cart.unpaidReceivedBlockTitle"),
+      t("cart.unpaidReceivedBlockMessage", { id: order?.id }),
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: t("cart.unpaidReceivedPayNow"),
+          onPress: () => navigateToOrderPayment(navigation, order),
+        },
+      ],
+    );
+  }
 
   function closeSuccessAndGoBack() {
     setShowSuccess(false);
@@ -141,6 +158,24 @@ export default function CartScreen({ navigation }) {
         preOrderButton: {
           minWidth: sizes.buttonMinWidth,
         },
+        preOrderButtonBlocked: {
+          opacity: 0.5,
+        },
+        blockNotice: {
+          marginBottom: spacing.md,
+          backgroundColor: colors.warningSoft ?? colors.surfaceSoft,
+        },
+        blockNoticeText: {
+          color: colors.textSecondary,
+          fontSize: typography.bodySmall,
+          lineHeight: 20,
+        },
+        blockNoticeLink: {
+          marginTop: spacing.sm,
+          color: colors.primary,
+          fontWeight: "700",
+          fontSize: typography.bodySmall,
+        },
       }),
     [colors, layout.modalMaxWidth, radii, sizes, spacing, typography],
   );
@@ -148,6 +183,10 @@ export default function CartScreen({ navigation }) {
   async function handlePreOrder() {
     if (!items.length) {
       Alert.alert(t("cart.emptyAlertTitle"), t("cart.emptyAlertMessage"));
+      return;
+    }
+    if (blockerOrder) {
+      showUnpaidReceivedAlert(blockerOrder);
       return;
     }
     setSubmitting(true);
@@ -186,6 +225,14 @@ export default function CartScreen({ navigation }) {
         </Pressable>
       </Modal>
       <SectionHeader title={t("cart.title")} subtitle={t(subtitleKey, { count: totalQty })} />
+      {blockerOrder ? (
+        <Card style={styles.blockNotice}>
+          <Text style={styles.blockNoticeText}>{t("cart.unpaidReceivedBanner")}</Text>
+          <Pressable onPress={() => showUnpaidReceivedAlert(blockerOrder)}>
+            <Text style={styles.blockNoticeLink}>{t("cart.unpaidReceivedPayNow")}</Text>
+          </Pressable>
+        </Card>
+      ) : null}
       <FlatList
         data={items}
         contentContainerStyle={styles.list}
@@ -232,7 +279,8 @@ export default function CartScreen({ navigation }) {
           tone="success"
           onPress={handlePreOrder}
           loading={submitting}
-          style={styles.preOrderButton}
+          disabled={!canPlaceOrder}
+          style={[styles.preOrderButton, !canPlaceOrder ? styles.preOrderButtonBlocked : null]}
           icon={<AppIcon name="qrcode" size={18} color={colors.onPrimary} />}
         />
       </View>

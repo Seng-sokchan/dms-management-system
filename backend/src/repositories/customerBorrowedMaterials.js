@@ -1,16 +1,22 @@
-const { getPool } = require("../db/pool");
+const { getPool } = require("../../database/pool");
 const { nowIso } = require("../utils");
 const { mapCustomerBorrowedMaterial } = require("./mappers");
-const { unwrapProcedureRows, getProcedureMeta } = require("./unwrap");
+const { getProcedureMeta } = require("./unwrap");
+const V = require("./sql/readViews");
 
 async function listCustomerBorrowedMaterialsByCustomer(customerId) {
-  const [rows] = await getPool().query("CALL sp_list_customer_borrowed_materials(?)", [customerId]);
-  return unwrapProcedureRows(rows).map(mapCustomerBorrowedMaterial);
+  const [rows] = await getPool().query(
+    `SELECT * FROM ${V.CUSTOMER_BORROWED_MATERIALS} WHERE customer_id = ? ORDER BY id DESC`,
+    [customerId],
+  );
+  return rows.map(mapCustomerBorrowedMaterial);
 }
 
 async function listAllCustomerBorrowedMaterials() {
-  const [rows] = await getPool().query("CALL sp_list_all_customer_borrowed_materials()");
-  return unwrapProcedureRows(rows).map(mapCustomerBorrowedMaterial);
+  const [rows] = await getPool().query(
+    `SELECT * FROM ${V.CUSTOMER_BORROWED_MATERIALS} ORDER BY id DESC`,
+  );
+  return rows.map(mapCustomerBorrowedMaterial);
 }
 
 async function upsertCustomerBorrowedMaterial(payload) {

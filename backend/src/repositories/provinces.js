@@ -1,23 +1,22 @@
-const { getPool } = require("../db/pool");
+const { getPool } = require("../../database/pool");
 const { nowIso } = require("../utils");
 const { mapProvince } = require("./mappers");
-const { unwrapProcedureRows, getProcedureMeta } = require("./unwrap");
+const { getProcedureMeta } = require("./unwrap");
+const V = require("./sql/readViews");
 
 async function listProvinces() {
-  const [rows] = await getPool().query("CALL sp_list_provinces()");
-  return unwrapProcedureRows(rows).map(mapProvince);
+  const [rows] = await getPool().query(`SELECT * FROM ${V.PROVINCES} ORDER BY id DESC`);
+  return rows.map(mapProvince);
 }
 
 async function getProvinceById(id) {
-  const [rows] = await getPool().query("CALL sp_get_province_by_id(?)", [id]);
-  const resultRows = unwrapProcedureRows(rows);
-  return resultRows[0] ? mapProvince(resultRows[0]) : null;
+  const [rows] = await getPool().query(`SELECT * FROM ${V.PROVINCES} WHERE id = ? LIMIT 1`, [id]);
+  return rows[0] ? mapProvince(rows[0]) : null;
 }
 
 async function createProvince(payload) {
-  const name = String(payload.name || "").trim();
   const [rowsRaw] = await getPool().query("CALL sp_create_province(?, ?)", [
-    name,
+    payload.name,
     nowIso(),
   ]);
   const meta = getProcedureMeta(rowsRaw);
@@ -25,15 +24,13 @@ async function createProvince(payload) {
 }
 
 async function updateProvince(id, payload) {
-  const name = String(payload.name || "").trim();
   const [rowsRaw] = await getPool().query("CALL sp_update_province(?, ?, ?)", [
     id,
-    name,
+    payload.name,
     nowIso(),
   ]);
   const meta = getProcedureMeta(rowsRaw);
-  if (!Number(meta.affectedRows || 0)) return null;
-  return getProvinceById(id);
+  return Number(meta.affectedRows || 0) > 0 ? getProvinceById(id) : null;
 }
 
 async function deleteProvince(id) {

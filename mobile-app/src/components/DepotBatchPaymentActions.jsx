@@ -1,35 +1,28 @@
 import React, { useMemo } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../context/ThemeContext";
-import { useAuth } from "../context/AuthContext";
 import { PrimaryButton } from "./ui";
-import { getOrderPayment } from "../services/paymentsApi";
 
 function resolveBatchPaymentState(orders) {
   const statuses = (orders || []).map((order) => order?.paymentStatus || "unpaid");
   if (!statuses.length) {
-    return { badge: "unpaid", canPay: false, showPending: false, mixed: false };
+    return { badge: "unpaid", canPay: false, mixed: false };
   }
   const allPaid = statuses.every((status) => status === "paid");
   const allUnpaid = statuses.every((status) => status === "unpaid");
   const allPending = statuses.every((status) => status === "pending");
 
   if (allPaid) {
-    return { badge: "paid", canPay: false, showPending: false, mixed: false };
+    return { badge: "paid", canPay: false, mixed: false };
   }
-  if (allPending) {
-    return { badge: "pending", canPay: false, showPending: true, mixed: false };
+  if (allPending || allUnpaid) {
+    return { badge: allPending ? "pending" : "unpaid", canPay: true, mixed: false };
   }
-  if (allUnpaid) {
-    return { badge: "unpaid", canPay: true, showPending: false, mixed: false };
-  }
-  return { badge: "mixed", canPay: false, showPending: false, mixed: true };
+  return { badge: "mixed", canPay: false, mixed: true };
 }
 
-export default function DepotBatchPaymentActions({ batchId, orders, navigation, token: tokenProp }) {
-  const { token: authToken } = useAuth();
-  const token = tokenProp || authToken;
+export default function DepotBatchPaymentActions({ batchId, orders, navigation }) {
   const { t } = useTranslation();
   const { colors, spacing, typography } = useTheme();
   const stackNav = navigation?.getParent?.() || navigation;
@@ -51,7 +44,6 @@ export default function DepotBatchPaymentActions({ batchId, orders, navigation, 
       fontSize: typography.caption,
       color: colors.textMuted,
     },
-    link: { color: colors.primary, fontWeight: "600", marginTop: spacing.sm },
   });
 
   const badgeLabel =
@@ -59,8 +51,7 @@ export default function DepotBatchPaymentActions({ batchId, orders, navigation, 
       ? t("depot.batchPaymentMixed")
       : t(`payment.status.${paymentState.badge}`, paymentState.badge);
 
-  const showActionsBelowBadge =
-    paymentState.canPay || paymentState.showPending || paymentState.mixed;
+  const showActionsBelowBadge = paymentState.canPay || paymentState.mixed;
 
   return (
     <View>
@@ -88,29 +79,6 @@ export default function DepotBatchPaymentActions({ batchId, orders, navigation, 
             })
           }
         />
-      ) : null}
-      {paymentState.showPending ? (
-        <Pressable
-          onPress={async () => {
-            const firstOrder = orders?.[0];
-            if (!firstOrder?.id) return;
-            let paymentId = null;
-            try {
-              const data = await getOrderPayment(token, firstOrder.id);
-              paymentId = data?.payment?.paymentId || null;
-            } catch {
-              paymentId = null;
-            }
-            stackNav?.navigate("PaymentResult", {
-              paymentId,
-              orderId: firstOrder.id,
-              batchId,
-              orderIds: orders.map((order) => order.id),
-            });
-          }}
-        >
-          <Text style={styles.link}>{t("payment.viewPending")}</Text>
-        </Pressable>
       ) : null}
     </View>
   );

@@ -31,32 +31,43 @@ function buildQrImageUri(qrImageUrl, qrString) {
   return `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(payload)}`;
 }
 
+function resolveExpiryMs(expiresAt) {
+  if (expiresAt) {
+    const expires = new Date(expiresAt);
+    if (Number.isFinite(expires.getTime())) {
+      return Math.max(0, expires.getTime() - Date.now());
+    }
+  }
+  return KHQR_EXPIRY_MS;
+}
+
 /**
- * KHQR payment popup: 5-minute QR expiry, status poll every 3s via usePaymentStatus.
+ * KHQR payment popup: intent expiry from backend, status poll via usePaymentStatus.
  */
 export default function KhqrPaymentModal({
   visible,
   paymentId,
   qrString,
   qrImageUrl,
+  expiresAt,
   amountLabel,
   onClose,
   onPaid,
 }) {
   const { t } = useTranslation();
   const { colors, layout, radii, sizes, spacing, typography } = useTheme();
-  const openedAtRef = useRef(0);
   const paidNotifiedRef = useRef(false);
-  const [remainingMs, setRemainingMs] = useState(KHQR_EXPIRY_MS);
-  const [qrExpired, setQrExpired] = useState(false);
+  const [remainingMs, setRemainingMs] = useState(() => resolveExpiryMs(expiresAt));
+  const [qrExpired, setQrExpired] = useState(() => resolveExpiryMs(expiresAt) <= 0);
 
-  const { status, loading, error } = usePaymentStatus(paymentId, {
+  const { status, error } = usePaymentStatus(paymentId, {
     autoRefresh: visible && Boolean(paymentId) && !qrExpired,
   });
 
   const qrUri = useMemo(() => buildQrImageUri(qrImageUrl, qrString), [qrImageUrl, qrString]);
   const isPaid = status === "paid";
   const isFailed = TERMINAL.has(status) && !isPaid;
+  const showStatusRow = isPaid || isFailed;
 
   useEffect(() => {
     if (!visible) {
@@ -64,12 +75,15 @@ export default function KhqrPaymentModal({
       return undefined;
     }
     if (!paymentId) return undefined;
-    openedAtRef.current = Date.now();
-    setQrExpired(false);
-    setRemainingMs(KHQR_EXPIRY_MS);
+
+    const initialMs = resolveExpiryMs(expiresAt);
+    setRemainingMs(initialMs);
+    setQrExpired(initialMs <= 0);
+
+    if (initialMs <= 0) return undefined;
 
     const tick = setInterval(() => {
-      const left = KHQR_EXPIRY_MS - (Date.now() - openedAtRef.current);
+      const left = resolveExpiryMs(expiresAt);
       if (left <= 0) {
         setRemainingMs(0);
         setQrExpired(true);
@@ -80,7 +94,7 @@ export default function KhqrPaymentModal({
     }, 1000);
 
     return () => clearInterval(tick);
-  }, [visible, paymentId]);
+  }, [visible, paymentId, expiresAt]);
 
   useEffect(() => {
     if (!visible || !isPaid || paidNotifiedRef.current) return;
@@ -206,12 +220,14 @@ export default function KhqrPaymentModal({
             )}
           </View>
 
-          <View style={styles.statusRow}>
-            {loading && !isPaid ? <ActivityIndicator size="small" color={colors.primary} /> : null}
-            <Text style={styles.statusText}>
-              {t("payment.khqrChecking", { status: statusLabel })}
-            </Text>
-          </View>
+          {showStatusRow ? (
+            <View style={styles.statusRow}>
+              {isPaid ? <ActivityIndicator size="small" color={colors.primary} /> : null}
+              <Text style={styles.statusText}>
+                {t("payment.khqrChecking", { status: statusLabel })}
+              </Text>
+            </View>
+          ) : null}
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
           <Pressable style={styles.button} onPress={onClose}>
