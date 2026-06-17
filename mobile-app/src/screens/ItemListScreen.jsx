@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text } from "react-native";
+import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
@@ -9,6 +9,7 @@ import {
   Card,
   CatalogCardSkeleton,
   EmptyState,
+  ErrorBanner,
   PrimaryButton,
   Screen,
   SectionHeader,
@@ -33,7 +34,7 @@ function CartHeaderButton({ navigation, totalItems, styles }) {
 
 export default function ItemListScreen({ navigation }) {
   const { token } = useAuth();
-  const { addItem, totalItems } = useCart();
+  const { addItem, totalItems, cartRestored, dismissCartRestored } = useCart();
   const { t } = useTranslation();
   const { colors, radii, sizes, spacing, typography } = useTheme();
   const [items, setItems] = useState([]);
@@ -98,7 +99,7 @@ export default function ItemListScreen({ navigation }) {
         },
         blockNotice: {
           marginBottom: spacing.md,
-          backgroundColor: colors.warningSoft ?? colors.surfaceSoft,
+          backgroundColor: colors.warningSoft,
         },
         blockNoticeText: {
           color: colors.textSecondary,
@@ -107,6 +108,27 @@ export default function ItemListScreen({ navigation }) {
         },
         blockNoticeLink: {
           marginTop: spacing.sm,
+          color: colors.primary,
+          fontWeight: "700",
+          fontSize: typography.bodySmall,
+        },
+        restoredBanner: {
+          marginBottom: spacing.md,
+          backgroundColor: colors.successSoft,
+        },
+        restoredRow: {
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: spacing.sm,
+        },
+        restoredText: {
+          flex: 1,
+          color: colors.textSecondary,
+          fontSize: typography.bodySmall,
+          lineHeight: 20,
+        },
+        restoredDismiss: {
           color: colors.primary,
           fontWeight: "700",
           fontSize: typography.bodySmall,
@@ -123,7 +145,6 @@ export default function ItemListScreen({ navigation }) {
     } catch (error) {
       const message = getApiErrorMessage(error, t("catalog.fetchFailed"));
       setLoadError(message);
-      Alert.alert(t("catalog.syncFailed"), message);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -154,22 +175,28 @@ export default function ItemListScreen({ navigation }) {
           </Pressable>
         </Card>
       ) : null}
+      {cartRestored ? (
+        <Card style={styles.restoredBanner}>
+          <View style={styles.restoredRow}>
+            <Text style={styles.restoredText}>{t("cart.cartRestoredBanner")}</Text>
+            <Pressable onPress={dismissCartRestored} accessibilityRole="button">
+              <Text style={styles.restoredDismiss}>{t("cart.dismiss")}</Text>
+            </Pressable>
+          </View>
+        </Card>
+      ) : null}
       {loading ? (
         <SkeletonList count={4} ItemComponent={CatalogCardSkeleton} />
       ) : null}
       {!loading && !!loadError && (
-        <Card style={styles.errorCard}>
-          <Text style={styles.errorTitle}>{t("catalog.loadErrorTitle")}</Text>
-          <Text style={styles.errorBody}>{loadError}</Text>
-          <PrimaryButton
-            title={t("catalog.tryAgain")}
-            onPress={loadItems}
-            style={styles.retryButton}
-            icon={<AppIcon name="refresh" size={18} color={colors.onPrimary} />}
-          />
-        </Card>
+        <ErrorBanner
+          title={t("catalog.loadErrorTitle")}
+          message={loadError}
+          onRetry={loadItems}
+          retryLabel={t("catalog.tryAgain")}
+        />
       )}
-      {!loading ? (
+      {!loading && !loadError ? (
       <FlatList
         data={items}
         keyExtractor={(item) => String(item.id)}

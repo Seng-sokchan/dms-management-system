@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, StyleSheet, Text, useColorScheme, View } from "react-native";
 import { I18nextProvider, useTranslation } from "react-i18next";
 import { AuthProvider, useAuth } from "./src/context/AuthContext";
 import { ThemeProvider, useTheme } from "./src/context/ThemeContext";
@@ -18,6 +18,7 @@ import i18n from "./src/i18n/config";
 import { navigationRef } from "./src/navigation/paymentReturnNavigation";
 import { usePaymentDeepLink } from "./src/hooks/usePaymentDeepLink";
 import { usePaymentReturnResume } from "./src/hooks/usePaymentReturnResume";
+import { darkColors, lightColors } from "./src/theme/palettes";
 
 const Stack = createNativeStackNavigator();
 
@@ -103,6 +104,16 @@ function AppRoot() {
   );
 }
 
+function BootLoader() {
+  const scheme = useColorScheme();
+  const palette = scheme === "dark" ? darkColors : lightColors;
+  return (
+    <View style={[styles.bootLoader, { backgroundColor: palette.background }]}>
+      <ActivityIndicator size="large" color={palette.textPrimary} />
+    </View>
+  );
+}
+
 export default function App() {
   const [ready, setReady] = useState(false);
 
@@ -115,9 +126,7 @@ export default function App() {
   if (!ready) {
     return (
       <SafeAreaProvider>
-        <View style={styles.bootLoader}>
-          <ActivityIndicator size="large" color="#111" />
-        </View>
+        <BootLoader />
       </SafeAreaProvider>
     );
   }
@@ -145,6 +154,5 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#F7F7F8",
   },
 });

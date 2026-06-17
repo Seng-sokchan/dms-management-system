@@ -41,6 +41,8 @@
     "password": "ពាក្យសម្ងាត់",
     "usernamePlaceholder": "បញ្ចូលឈ្មោះអ្នកប្រើ",
     "passwordPlaceholder": "បញ្ចូលពាក្យសម្ងាត់",
+    "showPassword": "បង្ហាញពាក្យសម្ងាត់",
+    "hidePassword": "លាក់ពាក្យសម្ងាត់",
     "helper": "ប្រើគណនី Customer, Delivery ឬ Depot ដើម្បីបន្ត",
     "signIn": "ចូល",
     "usernameRequired": "ត្រូវការឈ្មោះអ្នកប្រើ",
@@ -84,7 +86,14 @@
     "unpaidReceivedBlockTitle": "ត្រូវការបង់ប្រាក់",
     "unpaidReceivedBlockMessage": "ការបញ្ជាទិញ #{{id}} ត្រូវបានដឹកជញ្ជូនហើយ ប៉ុន្តែមិនទាន់បង់ទេ។ សូមបង់មុនពេលបញ្ជាទិញថ្មី។",
     "unpaidReceivedPayNow": "បង់ឥឡូវ",
-    "unpaidReceivedBanner": "អ្នកមានការបញ្ជាទិញដែលដឹកជញ្ជូនហើយ ប៉ុន្តែមិនទាន់បង់ទេ។ សូមបង់មុនពេលបញ្ជាទិញថ្មី។"
+    "unpaidReceivedBanner": "អ្នកមានការបញ្ជាទិញដែលដឹកជញ្ជូនហើយ ប៉ុន្តែមិនទាន់បង់ទេ។ សូមបង់មុនពេលបញ្ជាទិញថ្មី។",
+    "continueShopping": "បន្តទិញ",
+    "viewMyOrders": "មើលការបញ្ជាទិញរបស់ខ្ញុំ",
+    "cartRestoredBanner": "កន្ត្រករបស់អ្នកត្រូវបានស្តារពីវគ្គមុន។",
+    "dismiss": "បិទ",
+    "decreaseQty": "បន្ថយបរិមាណ {{name}}",
+    "increaseQty": "បន្ថែមបរិមាណ {{name}}",
+    "removeItem": "លុប {{name}} ពីកន្ត្រក"
   },
   "tracking": {
     "title": "តាមដាន",
@@ -106,6 +115,9 @@
     "subscribeError": "មិនអាចជាវការបញ្ជាទិញនេះបាន",
     "loadFailed": "មិនអាចផ្ទុកការបញ្ជាទិញបាន",
     "socketFailed": "ការតភ្ជាប់ socket បរាជ័យ",
+    "socketIdle": "កំពុងតភ្ជាប់…",
+    "socketDisconnected": "បានផ្តាច់",
+    "socketError": "កំហុសការតភ្ជាប់",
     "orderLabel": "#{{id}} · {{name}}",
     "progress": {
       "title": "វឌ្ឍនភាពដឹកជញ្ជូន",
@@ -154,6 +166,8 @@
     "cartCustomer": "អតិថិជន",
     "cartTotal": "សរុប",
     "startDelivery": "ចាប់ផ្តើមដឹកជញ្ជូន",
+    "startDeliveryConfirmTitle": "ចាប់ផ្តើមដឹកជញ្ជូន?",
+    "startDeliveryConfirmMessage": "នេះនឹងសម្គាល់ការបញ្ជាទិញ {{count}} ថារួចរាល់ដឹកជញ្ជូន និងបើករុករកផ្លូវ។",
     "startingDelivery": "កំពុងចាប់ផ្តើមដឹកជញ្ជូន…",
     "remove": "លុប",
     "nextStop": "ចំណុចបន្ទាប់",
@@ -180,7 +194,20 @@
     "confirmSubmit": "បញ្ជាក់",
     "confirmInvalidLoss": "បញ្ចូលបរិមាណបាត់បង់ត្រឹមត្រូវ (០ ឬច្រើនជាង)។",
     "confirmLossExceedsOrdered": "បរិមាណបាត់បង់មិនអាចលើសបរិមាណបញ្ជាបានទេ។",
-    "confirmFailed": "មិនអាចបញ្ជាការដឹកជញ្ជូនបាន។"
+    "confirmFailed": "មិនអាចបញ្ជាការដឹកជញ្ជូនបាន។",
+    "locationTitle": "ទីតាំង",
+    "locationDenied": "ការអនុញ្ញាតទីតាំងត្រូវបានបដិសេធ។ អនុញ្ញាតទីតាំងនៅក្នុងការកំណត់។",
+    "locationUnavailable": "GPS មិនមាន។ បើកទីតាំង (GPS) នៅលើទូរស័ព្ទរបស់អ្នក។",
+    "locationReadFailed": "មិនអាចអាន GPS បាន។ ចេញទៅក្រៅ ឬរង់ចាំមួយភ្លែតហើយព្យាយាមម្តងទៀត។",
+    "locationOffTitle": "ទីតាំងបិទ",
+    "locationOffMessage": "បើកការអនុញ្ញាតទីតាំងនៅក្នុងការកំណត់ប្រព័ន្ធ ដើម្បីចែករំលែកទីតាំងរបស់អ្នក។",
+    "configTitle": "ការកំណត់រចនាសម្ព័ន្ធ",
+    "configMissingApi": "URL មូលដ្ឋាន API ខាត។",
+    "sessionTitle": "វគ្គ",
+    "sessionExpired": "ចូលម្តងទៀតដើម្បីចែករំលែកទីតាំងរបស់អ្នក។",
+    "connectionTitle": "ការតភ្ជាប់",
+    "connectionFailed": "មិនអាចតភ្ជាប់ទៅម៉ាស៊ីនមេតាមដានបាន។",
+    "backToDeliveryList": "ត្រឡប់ទៅបញ្ជីដឹកជញ្ជូន"
   },
   "payment": {
     "myOrdersTitle": "ការបញ្ជាទិញរបស់ខ្ញុំ",
@@ -226,6 +253,7 @@
     "paidAtLabel": "បានបង់នៅ",
     "resultPendingHint": "កំពុងបញ្ជាក់ការបង់ប្រាក់ជាមួយម៉ាស៊ីនមេ…",
     "resultTerminalHint": "អ្នកអាចត្រឡប់ទៅបញ្ជីការបញ្ជាទិញ។",
+    "redirectingUnpaid": "ការបង់ប្រាក់មិនបានបញ្ចប់។ កំពុងត្រឡប់ទៅទំព័របង់ប្រាក់…",
     "refresh": "ផ្ទុកស្ថានភាពម្តងទៀត",
     "backToOrders": "ត្រឡប់ទៅការបញ្ជាទិញ",
     "status": {
@@ -340,6 +368,16 @@
   "common": {
     "tryAgain": "ព្យាយាមម្តងទៀត",
     "dash": "—",
-    "loading": "កំពុងផ្ទុក..."
+    "loading": "កំពុងផ្ទុក...",
+    "cancel": "បោះបង់",
+    "ok": "យល់ព្រម",
+    "openSettings": "បើកការកំណត់"
+  },
+  "orderStatus": {
+    "sentToFactory": "បានផ្ញើទៅរោងចក្រ",
+    "readyForDelivery": "រួចរាល់ដឹកជញ្ជូន",
+    "receivedByCustomer": "អតិថិជនបានទទួល",
+    "delivered": "បានដឹកជញ្ជូន",
+    "cancelled": "បានលុបចោល"
   }
 }

@@ -18,6 +18,7 @@ import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { AppIcon, Card, InputField, PrimaryButton, Screen } from "../components/ui";
 import { getApiErrorMessage } from "../services/apiClient";
+import { getRememberedUsername, setRememberedUsername } from "../services/preferencesStorage";
 const logoImage = require("../../assets/images/logo.png");
 
 export default function LoginScreen() {
@@ -29,9 +30,18 @@ export default function LoginScreen() {
   const scrollRef = useRef(null);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({ username: "", password: "" });
   const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    getRememberedUsername()
+      .then((saved) => {
+        if (saved) setUsername(saved);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
@@ -109,8 +119,11 @@ export default function LoginScreen() {
           lineHeight: 18,
           textAlign: "center",
         },
+        passwordToggle: {
+          padding: spacing.sm,
+        },
       }),
-    [colors.textMuted, colors.textPrimary, isCompact, keyboardVisible, logoSize, spacing, typography.h2],
+    [colors, isCompact, keyboardVisible, logoSize, spacing, typography.caption, typography.h2],
   );
 
   async function handleLogin() {
@@ -126,12 +139,15 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       await login(username.trim(), password);
+      await setRememberedUsername(username.trim());
     } catch (error) {
       Alert.alert(t("auth.loginFailed"), getApiErrorMessage(error, t("auth.loginFailedDefault")));
     } finally {
       setLoading(false);
     }
   }
+
+  const passwordToggleLabel = showPassword ? t("auth.hidePassword") : t("auth.showPassword");
 
   return (
     <Screen
@@ -188,12 +204,26 @@ export default function LoginScreen() {
                   if (errors.password) setErrors((prev) => ({ ...prev, password: "" }));
                 }}
                 placeholder={t("auth.passwordPlaceholder")}
-                secureTextEntry
+                secureTextEntry={!showPassword}
                 returnKeyType="done"
                 onSubmitEditing={handleLogin}
                 onFocus={scrollToFocusedField}
                 style={styles.fieldSpaced}
                 error={errors.password}
+                rightAccessory={
+                  <Pressable
+                    onPress={() => setShowPassword((prev) => !prev)}
+                    style={styles.passwordToggle}
+                    accessibilityRole="button"
+                    accessibilityLabel={passwordToggleLabel}
+                  >
+                    <AppIcon
+                      name={showPassword ? "eye-off-outline" : "eye-outline"}
+                      size={20}
+                      color={colors.textMuted}
+                    />
+                  </Pressable>
+                }
               />
               <Text style={styles.helper}>{t("auth.helper")}</Text>
               <PrimaryButton

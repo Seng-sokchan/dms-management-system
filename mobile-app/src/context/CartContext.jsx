@@ -1,9 +1,47 @@
-import React, { createContext, useContext, useMemo, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import {
+  clearPersistedCart,
+  loadPersistedCart,
+  savePersistedCart,
+} from "../services/cartStorage";
 
 const CartContext = createContext(null);
 
 export function CartProvider({ children }) {
   const [items, setItems] = useState([]);
+  const [hydrated, setHydrated] = useState(false);
+  const [cartRestored, setCartRestored] = useState(false);
+  const skipNextPersist = useRef(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadPersistedCart()
+      .then(({ items: saved, restored }) => {
+        if (cancelled) return;
+        setItems(saved);
+        setCartRestored(restored);
+        setHydrated(true);
+      })
+      .catch(() => {
+        if (!cancelled) setHydrated(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    if (skipNextPersist.current) {
+      skipNextPersist.current = false;
+      return;
+    }
+    void savePersistedCart(items);
+  }, [hydrated, items]);
+
+  function dismissCartRestored() {
+    setCartRestored(false);
+  }
 
   function addItem(item) {
     setItems((prev) => {
@@ -32,8 +70,9 @@ export function CartProvider({ children }) {
     setItems((prev) => prev.filter((entry) => entry.item.id !== itemId));
   }
 
-  function clearCart() {
+  async function clearCart() {
     setItems([]);
+    await clearPersistedCart();
   }
 
   const totalItems = items.reduce((acc, item) => acc + item.quantity, 0);
@@ -41,11 +80,13 @@ export function CartProvider({ children }) {
   const value = useMemo(() => ({
     items,
     totalItems,
+    cartRestored,
+    dismissCartRestored,
     addItem,
     removeItem,
     updateQuantity,
     clearCart,
-  }), [items, totalItems]);
+  }), [items, totalItems, cartRestored]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

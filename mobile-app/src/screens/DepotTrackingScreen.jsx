@@ -1,18 +1,19 @@
 import React, { useCallback, useMemo, useRef, useState } from "react";
-import { Alert, FlatList, Pressable, StyleSheet, Text } from "react-native";
+import { FlatList, Pressable, StyleSheet, Text } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useFocusEffect } from "@react-navigation/native";
 import { io } from "socket.io-client";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import DeliveryProgressCard from "../components/DeliveryProgressCard";
-import { Card, Screen, SectionHeader, TrackingChipsSkeleton } from "../components/ui";
+import { Card, EmptyState, ErrorBanner, Screen, SectionHeader, TrackingChipsSkeleton } from "../components/ui";
 import { useDeliveryLocationHistory } from "../hooks/useDeliveryLocationHistory";
 import { useDeliveryRouteProgress } from "../hooks/useDeliveryRouteProgress";
 import { getApiErrorMessage } from "../services/apiClient";
 import { listMobileOrders } from "../services/ordersApi";
 import { getSocketBaseUrl } from "../services/socketUrl";
 import { getOrderDestination } from "../utils/deliveryNavigation";
+import { getSocketStatusLabel } from "../utils/trackingLabels";
 
 const TRACKABLE_STATUS = "Ready_For_Delivery";
 
@@ -66,12 +67,6 @@ export default function DepotTrackingScreen({ route }) {
         orderChipTitleActive: { color: colors.onPrimary },
         orderChipSub: { color: colors.textMuted, marginTop: 2, fontSize: typography.caption },
         orderChipSubActive: { color: colors.onPrimary, opacity: 0.72 },
-        errorText: {
-          color: colors.danger,
-          marginTop: spacing.sm,
-          fontSize: typography.caption,
-          fontWeight: "600",
-        },
       }),
     [colors, radii, spacing, typography],
   );
@@ -135,44 +130,41 @@ export default function DepotTrackingScreen({ route }) {
     setError("");
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      let cancelled = false;
-
-      async function loadOrders() {
-        setLoadingOrders(true);
-        setError("");
-        try {
-          const rows = await listMobileOrders(token);
-          if (cancelled) return;
-          setOrders(rows);
-          const trackable = rows.filter(
-            (row) => row?.status === TRACKABLE_STATUS && row?.deliveryAgentId,
-          );
-          if (initialOrderId && trackable.some((row) => String(row.id) === String(initialOrderId))) {
-            setSelectedOrderId(String(initialOrderId));
-          } else if (!selectedOrderId && trackable[0]?.id) {
-            setSelectedOrderId(String(trackable[0].id));
-          } else if (selectedOrderId) {
-            const stillVisible = trackable.some((row) => String(row.id) === String(selectedOrderId));
+  const loadOrders = useCallback(async () => {
+    setLoadingOrders(true);
+    setError("");
+    try {
+      const rows = await listMobileOrders(token);
+      setOrders(rows);
+      const trackable = rows.filter(
+        (row) => row?.status === TRACKABLE_STATUS && row?.deliveryAgentId,
+      );
+      if (initialOrderId && trackable.some((row) => String(row.id) === String(initialOrderId))) {
+        setSelectedOrderId(String(initialOrderId));
+      } else {
+        setSelectedOrderId((prev) => {
+          if (!prev && trackable[0]?.id) return String(trackable[0].id);
+          if (prev) {
+            const stillVisible = trackable.some((row) => String(row.id) === String(prev));
             if (!stillVisible) {
-              setSelectedOrderId(trackable[0]?.id ? String(trackable[0].id) : "");
               resetHistory();
+              return trackable[0]?.id ? String(trackable[0].id) : "";
             }
           }
-        } catch (err) {
-          if (!cancelled) setError(getApiErrorMessage(err, t("depot.trackingLoadFailed")));
-        } finally {
-          if (!cancelled) setLoadingOrders(false);
-        }
+          return prev;
+        });
       }
+    } catch (err) {
+      setError(getApiErrorMessage(err, t("depot.trackingLoadFailed")));
+    } finally {
+      setLoadingOrders(false);
+    }
+  }, [initialOrderId, resetHistory, token, t]);
 
+  useFocusEffect(
+    useCallback(() => {
       void loadOrders();
-
-      return () => {
-        cancelled = true;
-      };
-    }, [initialOrderId, resetHistory, selectedOrderId, token, t]),
+    }, [loadOrders]),
   );
 
   useFocusEffect(
@@ -214,7 +206,7 @@ export default function DepotTrackingScreen({ route }) {
     useCallback(() => {
       subscribeWatcher();
       return () => {};
-    }, [selectedOrderId, subscribeWatcher]),
+    }, [subscribeWatcher]),
   );
 
   const renderOrder = ({ item }) => {
@@ -228,6 +220,9 @@ export default function DepotTrackingScreen({ route }) {
           resetRoute();
         }}
         style={[styles.orderChip, isActive && styles.orderChipActive]}
+        accessibilityRole="button"
+        accessibilityState={{ selected: isActive }}
+        accessibilityLabel={t("tracking.orderLabel", { id: item.id, name: item.itemName || "Order" })}
       >
         <Text style={[styles.orderChipTitle, isActive && styles.orderChipTitleActive]}>
           {t("tracking.orderLabel", { id: item.id, name: item.itemName || "Order" })}
@@ -249,7 +244,7 @@ export default function DepotTrackingScreen({ route }) {
     if (socketState === "connected") {
       return t("tracking.live");
     }
-    return socketState;
+    return getSocketStatusLabel(socketState, t);
   }, [isStale, lastKnown, socketState, t]);
 
   const displayError = error || historyError;
@@ -267,7 +262,15 @@ export default function DepotTrackingScreen({ route }) {
         {loadingOrders ? (
           <TrackingChipsSkeleton />
         ) : trackableOrders.length === 0 ? (
-          <Text style={styles.muted}>{t("depot.trackingNoOrders")}</Text>
+          <EmptyState
+            icon="truck-delivery-outline"
+            title={t("depot.trackingNoOrders")}
+            action={
+              <Pressable onPress={() => loadOrders()} accessibilityRole="button">
+                <Text style={{ color: colors.primary, fontWeight: "700" }}>{t("common.tryAgain")}</Text>
+              </Pressable>
+            }
+          />
         ) : (
           <FlatList
             horizontal
@@ -288,9 +291,11 @@ export default function DepotTrackingScreen({ route }) {
       ) : null}
 
       {displayError ? (
-        <Pressable onPress={() => Alert.alert(t("depot.trackingTitle"), displayError)}>
-          <Text style={styles.errorText}>{displayError}</Text>
-        </Pressable>
+        <ErrorBanner
+          title={t("depot.trackingTitle")}
+          message={displayError}
+          onRetry={loadOrders}
+        />
       ) : null}
     </Screen>
   );

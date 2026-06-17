@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useMemo } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
@@ -40,27 +40,38 @@ export default function PaymentResultScreen({ route, navigation }) {
     autoRefresh: true,
   });
 
+  const [redirecting, setRedirecting] = useState(false);
+
   const isPaid = status === "paid";
+
+  useEffect(() => {
+    if (loading || !paymentIdParam || isPaid) return undefined;
+
+    setRedirecting(true);
+    const timer = setTimeout(() => {
+      if (batchIdParam) {
+        navigation.replace("BatchOrderPayment", {
+          batchId: batchIdParam,
+          orders: orderIdsParam?.map((id) => ({ id })) || [],
+        });
+        return;
+      }
+      if (orderIdParam) {
+        navigation.replace("OrderPayment", { order: { id: orderIdParam } });
+        return;
+      }
+      navigation.goBack();
+    }, 1800);
+
+    return () => clearTimeout(timer);
+  }, [batchIdParam, isPaid, loading, navigation, orderIdParam, orderIdsParam, paymentIdParam]);
 
   useEffect(() => {
     if (loading || !paymentIdParam) return;
     if (isPaid) {
       void clearPendingPaymentReturn();
-      return;
     }
-    if (batchIdParam) {
-      navigation.replace("BatchOrderPayment", {
-        batchId: batchIdParam,
-        orders: orderIdsParam?.map((id) => ({ id })) || [],
-      });
-      return;
-    }
-    if (orderIdParam) {
-      navigation.replace("OrderPayment", { order: { id: orderIdParam } });
-      return;
-    }
-    navigation.goBack();
-  }, [batchIdParam, isPaid, loading, navigation, orderIdParam, orderIdsParam, paymentIdParam]);
+  }, [isPaid, loading, paymentIdParam]);
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -150,9 +161,13 @@ export default function PaymentResultScreen({ route, navigation }) {
 
   if (!isPaid) {
     return (
-      <Screen busy busyMessage={t("payment.loading")}>
+      <Screen busy={loading && !redirecting} busyMessage={t("payment.loading")}>
         <View style={styles.hero}>
-          <ActivityIndicator color={colors.primary} />
+          {redirecting ? (
+            <Text style={styles.hint}>{t("payment.redirectingUnpaid")}</Text>
+          ) : (
+            <ActivityIndicator color={colors.primary} />
+          )}
         </View>
       </Screen>
     );

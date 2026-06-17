@@ -2,7 +2,7 @@ import React, { useCallback, useMemo, useRef, useState } from "react";
 import { Alert, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
-import { OrderCardSkeleton, Screen, SectionHeader, SkeletonList } from "../components/ui";
+import { OrderCardSkeleton, EmptyState, ErrorBanner, Screen, SectionHeader, SkeletonList } from "../components/ui";
 import { DeliveryCartCard } from "../components/DeliveryCartCard";
 import { DeliveryOrderCard } from "../components/DeliveryOrderCard";
 import { useAuth } from "../context/AuthContext";
@@ -30,6 +30,7 @@ export default function DeliveryTrackingScreen() {
   const { cartOrderIds, clearCart, addToCart, removeFromCart, pruneCartIds } = useDeliveryCart();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState("");
   const [batchSubmitting, setBatchSubmitting] = useState(false);
   const ordersRef = useRef(orders);
 
@@ -66,11 +67,6 @@ export default function DeliveryTrackingScreen() {
         },
         list: { flex: 1 },
         listContent: { paddingBottom: sizes.tabBarOffset, gap: spacing.md },
-        emptyText: {
-          marginTop: spacing.lg,
-          color: colors.textSecondary,
-          fontSize: typography.body,
-        },
       }),
     [colors, radii, sizes.tabBarOffset, spacing, typography],
   );
@@ -115,11 +111,11 @@ export default function DeliveryTrackingScreen() {
         const list = Array.isArray(rows) ? rows : [];
         setOrders(list);
         pruneCartIds(list);
+        setLoadError("");
         return list;
       } catch {
-        if (!silent) {
-          Alert.alert(t("delivery.ordersAlertTitle"), t("delivery.ordersLoadFailed"));
-        }
+        const message = t("delivery.ordersLoadFailed");
+        setLoadError(message);
         return ordersRef.current;
       } finally {
         if (!silent) setLoading(false);
@@ -138,7 +134,7 @@ export default function DeliveryTrackingScreen() {
     [addToCart],
   );
 
-  const startDeliveryBatch = useCallback(async () => {
+  const executeStartDeliveryBatch = useCallback(async () => {
     if (!canStartDelivery || batchSubmitting) return;
 
     const accessToken = typeof token === "string" ? token.trim() : "";
@@ -186,6 +182,18 @@ export default function DeliveryTrackingScreen() {
     token,
     t,
   ]);
+
+  const startDeliveryBatch = useCallback(() => {
+    if (!canStartDelivery || batchSubmitting) return;
+    Alert.alert(
+      t("delivery.startDeliveryConfirmTitle"),
+      t("delivery.startDeliveryConfirmMessage", { count: cartOrders.length }),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        { text: t("delivery.startDelivery"), onPress: () => void executeStartDeliveryBatch() },
+      ],
+    );
+  }, [batchSubmitting, canStartDelivery, cartOrders.length, executeStartDeliveryBatch, t]);
 
   useFocusEffect(
     useCallback(() => {
@@ -265,9 +273,11 @@ export default function DeliveryTrackingScreen() {
   const listEmpty = loading ? (
     <SkeletonList count={3} ItemComponent={OrderCardSkeleton} itemProps={{ showActions: true }} />
   ) : (
-    <Text style={styles.emptyText}>
-      {allPendingInCart ? t("delivery.allInCart") : t("delivery.noOrders")}
-    </Text>
+    <EmptyState
+      icon="truck-delivery-outline"
+      title={allPendingInCart ? t("delivery.allInCart") : t("delivery.noOrders")}
+      message={allPendingInCart ? undefined : t("delivery.noPending")}
+    />
   );
 
   const busy = (loading && orders.length === 0) || batchSubmitting;
@@ -276,6 +286,13 @@ export default function DeliveryTrackingScreen() {
   return (
     <Screen contentStyle={styles.container} busy={busy} busyMessage={busyMessage}>
       <SectionHeader title={t("delivery.title")} subtitle={t("delivery.subtitle")} />
+      {loadError ? (
+        <ErrorBanner
+          title={t("delivery.ordersAlertTitle")}
+          message={loadError}
+          onRetry={() => loadOrders()}
+        />
+      ) : null}
       <FlatList
         style={styles.list}
         data={loading ? [] : listOrders}

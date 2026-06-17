@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useRef, useState } from "react";
-import { Alert, FlatList, Pressable, StyleSheet, Text } from "react-native";
+import { FlatList, Pressable, StyleSheet, Text } from "react-native";
 import { useTranslation } from "react-i18next";
 import Geolocation from "@react-native-community/geolocation";
 import { useFocusEffect } from "@react-navigation/native";
@@ -7,13 +7,14 @@ import { io } from "socket.io-client";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import DeliveryProgressCard from "../components/DeliveryProgressCard";
-import { Card, Screen, SectionHeader, TrackingChipsSkeleton } from "../components/ui";
+import { Card, EmptyState, ErrorBanner, Screen, SectionHeader, TrackingChipsSkeleton } from "../components/ui";
 import { useDeliveryLocationHistory } from "../hooks/useDeliveryLocationHistory";
 import { useDeliveryRouteProgress } from "../hooks/useDeliveryRouteProgress";
 import { getApiErrorMessage } from "../services/apiClient";
 import { listMobileOrders } from "../services/ordersApi";
 import { getSocketBaseUrl } from "../services/socketUrl";
 import { ensureLocationPermission } from "../utils/locationPermission";
+import { getSocketStatusLabel } from "../utils/trackingLabels";
 
 const TRACKABLE_STATUS = "Ready_For_Delivery";
 
@@ -42,7 +43,6 @@ export default function CustomerTrackingScreen() {
           fontSize: typography.body,
           marginBottom: spacing.sm,
         },
-        muted: { color: colors.textMuted, fontSize: typography.bodySmall, lineHeight: 18 },
         statusLine: {
           marginTop: spacing.md,
           color: colors.textMuted,
@@ -66,12 +66,6 @@ export default function CustomerTrackingScreen() {
         orderChipTitleActive: { color: colors.onPrimary },
         orderChipSub: { color: colors.textMuted, marginTop: 2, fontSize: typography.caption },
         orderChipSubActive: { color: colors.onPrimary, opacity: 0.72 },
-        errorText: {
-          color: colors.danger,
-          marginTop: spacing.sm,
-          fontSize: typography.caption,
-          fontWeight: "600",
-        },
       }),
     [colors, radii, spacing, typography],
   );
@@ -142,60 +136,54 @@ export default function CustomerTrackingScreen() {
     [t],
   );
 
+  const loadOrdersAndLocation = useCallback(async () => {
+    setLoadingOrders(true);
+    setError("");
+    try {
+      const rows = await listMobileOrders(token);
+      setOrders(rows);
+      setSelectedOrderId((prev) => {
+        if (!prev) {
+          const firstId = rows.find(
+            (row) => row?.status === TRACKABLE_STATUS && row?.deliveryAgentId,
+          )?.id;
+          return firstId ? String(firstId) : "";
+        }
+        const stillVisible = rows.some(
+          (row) =>
+            String(row?.id) === String(prev)
+            && row?.status === TRACKABLE_STATUS
+            && row?.deliveryAgentId,
+        );
+        if (!stillVisible) {
+          resetHistory();
+          return "";
+        }
+        return prev;
+      });
+    } catch (err) {
+      setError(getApiErrorMessage(err, t("tracking.loadFailed")));
+    } finally {
+      setLoadingOrders(false);
+    }
+    const ok = await ensureLocationPermission();
+    if (!ok) return;
+    Geolocation.getCurrentPosition(
+      (info) => {
+        setMyLocation({
+          latitude: info.coords.latitude,
+          longitude: info.coords.longitude,
+        });
+      },
+      () => {},
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 },
+    );
+  }, [resetHistory, token, t]);
+
   useFocusEffect(
     useCallback(() => {
-      let cancelled = false;
-
-      async function loadOrdersAndLocation() {
-        setLoadingOrders(true);
-        setError("");
-        try {
-          const rows = await listMobileOrders(token);
-          if (cancelled) return;
-          setOrders(rows);
-          if (!selectedOrderId) {
-            const firstId = rows.find(
-              (row) => row?.status === TRACKABLE_STATUS && row?.deliveryAgentId,
-            )?.id;
-            if (firstId) setSelectedOrderId(String(firstId));
-          } else {
-            const stillVisible = rows.some(
-              (row) =>
-                String(row?.id) === String(selectedOrderId)
-                && row?.status === TRACKABLE_STATUS
-                && row?.deliveryAgentId,
-            );
-            if (!stillVisible) {
-              setSelectedOrderId("");
-              resetHistory();
-            }
-          }
-        } catch (err) {
-          if (!cancelled) setError(getApiErrorMessage(err, t("tracking.loadFailed")));
-        } finally {
-          if (!cancelled) setLoadingOrders(false);
-        }
-        const ok = await ensureLocationPermission();
-        if (!ok || cancelled) return;
-        Geolocation.getCurrentPosition(
-          (info) => {
-            if (cancelled) return;
-            setMyLocation({
-              latitude: info.coords.latitude,
-              longitude: info.coords.longitude,
-            });
-          },
-          () => {},
-          { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 },
-        );
-      }
-
       loadOrdersAndLocation().catch(() => {});
-
-      return () => {
-        cancelled = true;
-      };
-    }, [resetHistory, selectedOrderId, token, t]),
+    }, [loadOrdersAndLocation]),
   );
 
   useFocusEffect(
@@ -247,12 +235,15 @@ export default function CustomerTrackingScreen() {
           resetRoute();
         }}
         style={[styles.orderChip, isActive && styles.orderChipActive]}
+        accessibilityRole="button"
+        accessibilityState={{ selected: isActive }}
+        accessibilityLabel={t("tracking.orderLabel", { id: item.id, name: item.itemName || "Order" })}
       >
         <Text style={[styles.orderChipTitle, isActive && styles.orderChipTitleActive]}>
           {t("tracking.orderLabel", { id: item.id, name: item.itemName || "Order" })}
         </Text>
         <Text style={[styles.orderChipSub, isActive && styles.orderChipSubActive]}>
-          {item.deliveryTime || TRACKABLE_STATUS}
+          {item.deliveryTime || t("orderStatus.readyForDelivery")}
         </Text>
       </Pressable>
     );
@@ -268,7 +259,7 @@ export default function CustomerTrackingScreen() {
     if (socketState === "connected") {
       return t("tracking.live");
     }
-    return socketState;
+    return getSocketStatusLabel(socketState, t);
   }, [isStale, lastKnown, socketState, t]);
 
   const displayError = error || historyError;
@@ -286,7 +277,15 @@ export default function CustomerTrackingScreen() {
         {loadingOrders ? (
           <TrackingChipsSkeleton />
         ) : trackableOrders.length === 0 ? (
-          <Text style={styles.muted}>{t("tracking.noOrders")}</Text>
+          <EmptyState
+            icon="map-marker-radius"
+            title={t("tracking.noOrders")}
+            action={
+              <Pressable onPress={() => loadOrdersAndLocation()} accessibilityRole="button">
+                <Text style={{ color: colors.primary, fontWeight: "700" }}>{t("common.tryAgain")}</Text>
+              </Pressable>
+            }
+          />
         ) : (
           <FlatList
             horizontal
@@ -307,9 +306,11 @@ export default function CustomerTrackingScreen() {
       ) : null}
 
       {displayError ? (
-        <Pressable onPress={() => Alert.alert(t("tracking.title"), displayError)}>
-          <Text style={styles.errorText}>{displayError}</Text>
-        </Pressable>
+        <ErrorBanner
+          title={t("tracking.title")}
+          message={displayError}
+          onRetry={loadOrdersAndLocation}
+        />
       ) : null}
     </Screen>
   );

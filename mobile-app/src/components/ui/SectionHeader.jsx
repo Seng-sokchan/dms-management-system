@@ -41,7 +41,9 @@ export default function SectionHeader({ title, subtitle, leftAction, rightAction
     <View style={styles.row}>
       {leftAction ? <View style={styles.side}>{leftAction}</View> : null}
       <View style={[styles.content, !leftAction && { marginLeft: 0 }, !rightAction && { marginRight: 0 }]}>
-        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.title} accessibilityRole="header">
+          {title}
+        </Text>
         {!!subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
       </View>
       {rightAction ? <View style={styles.side}>{rightAction}</View> : null}

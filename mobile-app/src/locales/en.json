@@ -41,6 +41,8 @@
     "password": "Password",
     "usernamePlaceholder": "Enter your username",
     "passwordPlaceholder": "Enter your password",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
     "helper": "Use your Customer, Delivery, or Depot account to continue",
     "signIn": "Sign In",
     "usernameRequired": "Username is required",
@@ -84,7 +86,14 @@
     "unpaidReceivedBlockTitle": "Payment required",
     "unpaidReceivedBlockMessage": "Order #{{id}} was delivered but is not paid yet. Pay it before placing a new order.",
     "unpaidReceivedPayNow": "Pay now",
-    "unpaidReceivedBanner": "You have an unpaid delivered order. Pay it before placing a new order."
+    "unpaidReceivedBanner": "You have an unpaid delivered order. Pay it before placing a new order.",
+    "continueShopping": "Continue shopping",
+    "viewMyOrders": "View my orders",
+    "cartRestoredBanner": "Your cart was restored from your last session.",
+    "dismiss": "Dismiss",
+    "decreaseQty": "Decrease quantity for {{name}}",
+    "increaseQty": "Increase quantity for {{name}}",
+    "removeItem": "Remove {{name}} from cart"
   },
   "tracking": {
     "title": "Tracking",
@@ -106,6 +115,9 @@
     "subscribeError": "Cannot subscribe to this order",
     "loadFailed": "Failed to load orders",
     "socketFailed": "Socket connection failed",
+    "socketIdle": "Connecting…",
+    "socketDisconnected": "Disconnected",
+    "socketError": "Connection error",
     "orderLabel": "#{{id}} · {{name}}",
     "progress": {
       "title": "Delivery Progress",
@@ -154,6 +166,8 @@
     "cartCustomer": "Customer",
     "cartTotal": "Total",
     "startDelivery": "Start Delivery",
+    "startDeliveryConfirmTitle": "Start delivery?",
+    "startDeliveryConfirmMessage": "This will mark {{count}} order(s) as ready for delivery and open navigation.",
     "startingDelivery": "Starting delivery…",
     "remove": "Remove",
     "nextStop": "Next stop",
@@ -180,7 +194,20 @@
     "confirmSubmit": "Confirm",
     "confirmInvalidLoss": "Enter a valid loss quantity (0 or more).",
     "confirmLossExceedsOrdered": "Loss cannot exceed ordered quantity.",
-    "confirmFailed": "Could not confirm delivery."
+    "confirmFailed": "Could not confirm delivery.",
+    "locationTitle": "Location",
+    "locationDenied": "Location permission is denied. Allow location in Settings.",
+    "locationUnavailable": "GPS is unavailable. Turn on Location (GPS) on your phone.",
+    "locationReadFailed": "Could not read GPS. Move outdoors or wait a moment and try again.",
+    "locationOffTitle": "Location off",
+    "locationOffMessage": "Turn on location permission in system settings to share your position.",
+    "configTitle": "Configuration",
+    "configMissingApi": "API base URL is missing.",
+    "sessionTitle": "Session",
+    "sessionExpired": "Sign in again to share your location.",
+    "connectionTitle": "Connection",
+    "connectionFailed": "Could not connect to tracking server.",
+    "backToDeliveryList": "Back to delivery list"
   },
   "payment": {
     "myOrdersTitle": "My orders",
@@ -226,6 +253,7 @@
     "paidAtLabel": "Paid at",
     "resultPendingHint": "Confirming payment with the server…",
     "resultTerminalHint": "You can return to your orders list.",
+    "redirectingUnpaid": "Payment was not completed. Returning to checkout…",
     "refresh": "Refresh status",
     "backToOrders": "Back to orders",
     "status": {
@@ -340,6 +368,16 @@
   "common": {
     "tryAgain": "Try Again",
     "dash": "—",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "cancel": "Cancel",
+    "ok": "OK",
+    "openSettings": "Open settings"
+  },
+  "orderStatus": {
+    "sentToFactory": "Sent to factory",
+    "readyForDelivery": "Ready for delivery",
+    "receivedByCustomer": "Received by customer",
+    "delivered": "Delivered",
+    "cancelled": "Cancelled"
   }
 }

@@ -598,7 +598,7 @@ export default function DeliveryNavigationScreen() {
         style={[styles.backButton, { top: insets.top + spacing.sm }]}
         onPress={() => navigation.goBack()}
         accessibilityRole="button"
-        accessibilityLabel="Back to delivery list"
+        accessibilityLabel={t("delivery.backToDeliveryList")}
       >
         <AppIcon name="arrow-left" size={22} color={colors.textPrimary} />
         <Text style={styles.backLabel}>{t("delivery.back")}</Text>

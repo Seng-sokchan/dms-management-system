@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { Alert, FlatList, Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
@@ -14,6 +15,7 @@ export default function CartScreen({ navigation }) {
   const { items, updateQuantity, removeItem, clearCart } = useCart();
   const { token, user } = useAuth();
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const { colors, layout, radii, sizes, spacing, typography } = useTheme();
   const [submitting, setSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -24,7 +26,7 @@ export default function CartScreen({ navigation }) {
       t("cart.unpaidReceivedBlockTitle"),
       t("cart.unpaidReceivedBlockMessage", { id: order?.id }),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
           text: t("cart.unpaidReceivedPayNow"),
           onPress: () => navigateToOrderPayment(navigation, order),
@@ -38,6 +40,11 @@ export default function CartScreen({ navigation }) {
     if (navigation?.canGoBack?.()) {
       navigation.goBack();
     }
+  }
+
+  function goToMyOrders() {
+    setShowSuccess(false);
+    navigation.getParent()?.navigate("MyOrders");
   }
 
   const totalQty = useMemo(
@@ -66,7 +73,7 @@ export default function CartScreen({ navigation }) {
           width: sizes.iconLg,
           height: sizes.iconLg,
           borderRadius: sizes.iconLg / 2,
-          backgroundColor: colors.successSoft ?? colors.surfaceSoft,
+          backgroundColor: colors.successSoft,
           alignItems: "center",
           justifyContent: "center",
           alignSelf: "center",
@@ -86,6 +93,7 @@ export default function CartScreen({ navigation }) {
         },
         modalActions: {
           marginTop: spacing.lg,
+          gap: spacing.sm,
         },
         row: {
           flexDirection: "row",
@@ -163,7 +171,7 @@ export default function CartScreen({ navigation }) {
         },
         blockNotice: {
           marginBottom: spacing.md,
-          backgroundColor: colors.warningSoft ?? colors.surfaceSoft,
+          backgroundColor: colors.warningSoft,
         },
         blockNoticeText: {
           color: colors.textSecondary,
@@ -192,7 +200,7 @@ export default function CartScreen({ navigation }) {
     setSubmitting(true);
     try {
       await preOrderCart(token, user, items);
-      clearCart();
+      await clearCart();
       setShowSuccess(true);
     } catch (error) {
       Alert.alert(t("cart.preOrderFailedTitle"), getApiErrorMessage(error, t("cart.preOrderFailedDefault")));
@@ -209,9 +217,9 @@ export default function CartScreen({ navigation }) {
         visible={showSuccess}
         transparent
         animationType="fade"
-        onRequestClose={() => setShowSuccess(false)}
+        onRequestClose={closeSuccessAndGoBack}
       >
-        <Pressable style={styles.overlay} onPress={() => setShowSuccess(false)}>
+        <Pressable style={styles.overlay} onPress={closeSuccessAndGoBack}>
           <Pressable style={styles.modalCard} onPress={() => {}}>
             <View style={styles.successIconWrap}>
               <AppIcon name="check" size={26} color={colors.success ?? colors.primary} />
@@ -219,7 +227,12 @@ export default function CartScreen({ navigation }) {
             <Text style={styles.modalTitle}>{t("cart.preOrderReadyTitle")}</Text>
             <Text style={styles.modalMessage}>{t("cart.preOrderReadyMessage")}</Text>
             <View style={styles.modalActions}>
-              <PrimaryButton title="OK" onPress={closeSuccessAndGoBack} />
+              <PrimaryButton title={t("cart.viewMyOrders")} onPress={goToMyOrders} tone="success" />
+              <PrimaryButton
+                title={t("cart.continueShopping")}
+                onPress={closeSuccessAndGoBack}
+                tone="soft"
+              />
             </View>
           </Pressable>
         </Pressable>
@@ -251,28 +264,38 @@ export default function CartScreen({ navigation }) {
                 <Pressable
                   style={styles.qtyBtn}
                   onPress={() => updateQuantity(entry.item.id, entry.quantity - 1)}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("cart.decreaseQty", { name: entry.item.name })}
                 >
                   <Text style={styles.qtyButtonText}>−</Text>
                 </Pressable>
-                <Text style={styles.qty}>{entry.quantity}</Text>
+                <Text style={styles.qty} accessibilityLabel={String(entry.quantity)}>
+                  {entry.quantity}
+                </Text>
                 <Pressable
                   style={styles.qtyBtn}
                   onPress={() => updateQuantity(entry.item.id, entry.quantity + 1)}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("cart.increaseQty", { name: entry.item.name })}
                 >
                   <Text style={styles.qtyButtonText}>+</Text>
                 </Pressable>
               </View>
-              <Pressable onPress={() => removeItem(entry.item.id)}>
+              <Pressable
+                onPress={() => removeItem(entry.item.id)}
+                accessibilityRole="button"
+                accessibilityLabel={t("cart.removeItem", { name: entry.item.name })}
+              >
                 <Text style={styles.remove}>{t("cart.remove")}</Text>
               </Pressable>
             </View>
           </Card>
         )}
         ListEmptyComponent={
-          <EmptyState title={t("cart.emptyTitle")} subtitle={t("cart.emptySubtitle")} />
+          <EmptyState title={t("cart.emptyTitle")} subtitle={t("cart.emptySubtitle")} icon="cart-outline" />
         }
       />
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
         <Text style={styles.total}>{t("cart.total", { count: totalQty })}</Text>
         <PrimaryButton
           title={t("cart.preOrder")}

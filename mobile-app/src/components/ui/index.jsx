@@ -4,6 +4,7 @@ export { default as CustomerScreen } from "./CustomerScreen";
 export { default as Card } from "./Card";
 export { default as DepotCustomerCardSkeleton } from "./DepotCustomerCardSkeleton";
 export { default as EmptyState } from "./EmptyState";
+export { default as ErrorBanner } from "./ErrorBanner";
 export { default as InputField } from "./InputField";
 export { default as LoadingOverlay } from "./LoadingOverlay";
 export { default as OrderCardSkeleton } from "./OrderCardSkeleton";

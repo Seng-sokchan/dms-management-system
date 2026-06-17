@@ -11,11 +11,19 @@ export default function PrimaryButton({
   textStyle,
   tone = "primary",
   icon,
+  accessibilityLabel,
 }) {
   const { colors, radii, sizes, spacing, typography } = useTheme();
   const isDisabled = disabled || loading;
-  const backgroundColor = tone === "success" ? colors.success : colors.primary;
-  const pressedColor = tone === "success" ? colors.successPressed : colors.primaryPressed;
+  const backgroundColor =
+    tone === "success" ? colors.success : tone === "soft" ? colors.surfaceSoft : colors.primary;
+  const pressedColor =
+    tone === "success"
+      ? colors.successPressed
+      : tone === "soft"
+        ? colors.surfaceMuted
+        : colors.primaryPressed;
+  const labelColor = tone === "soft" ? colors.textPrimary : colors.onPrimary;
 
   const styles = useMemo(
     () =>
@@ -38,7 +46,7 @@ export default function PrimaryButton({
           alignItems: "center",
         },
         text: {
-          color: colors.onPrimary,
+          color: labelColor,
           fontSize: typography.button,
           fontWeight: "700",
         },
@@ -46,13 +54,16 @@ export default function PrimaryButton({
           opacity: 0.65,
         },
       }),
-    [colors.onPrimary, radii.pill, sizes.touchTarget, spacing, typography.button],
+    [labelColor, radii.pill, sizes.touchTarget, spacing, typography.button],
   );
 
   return (
     <Pressable
       onPress={onPress}
       disabled={isDisabled}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel || title}
+      accessibilityState={{ disabled: isDisabled, busy: Boolean(loading) }}
       style={({ pressed }) => [
         styles.button,
         { backgroundColor: pressed ? pressedColor : backgroundColor },
@@ -61,7 +72,7 @@ export default function PrimaryButton({
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={colors.onPrimary} />
+        <ActivityIndicator color={labelColor} />
       ) : (
         <View style={styles.contentRow}>
           {icon ? <View style={styles.iconSlot}>{icon}</View> : null}

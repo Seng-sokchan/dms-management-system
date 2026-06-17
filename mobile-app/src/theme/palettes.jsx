@@ -14,7 +14,10 @@ export const lightColors = {
   onPrimary: "#FFFFFF",
   success: "#16A34A",
   successPressed: "#15803D",
+  successSoft: "#DCFCE7",
+  warningSoft: "#FEF3C7",
   danger: "#DC2626",
+  dangerSoft: "#FEE2E2",
   overlay: "rgba(17, 17, 17, 0.45)",
 };
 
@@ -34,7 +37,10 @@ export const darkColors = {
   onPrimary: "#111111",
   success: "#22C55E",
   successPressed: "#16A34A",
+  successSoft: "#14532D",
+  warningSoft: "#422006",
   danger: "#EF4444",
+  dangerSoft: "#450A0A",
   overlay: "rgba(0, 0, 0, 0.6)",
 };
 

@@ -1,5 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { getFocusedRouteNameFromRoute } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import ItemListScreen from "../screens/ItemListScreen";
@@ -9,10 +10,32 @@ import CustomerTrackingScreen from "../screens/CustomerTrackingScreen";
 import MyOrdersScreen from "../screens/MyOrdersScreen";
 import { AppIcon } from "../components/ui";
 import FloatingTabBar from "../components/navigation/FloatingTabBar";
+import { useTheme } from "../context/ThemeContext";
 import { useFloatingTabScreenOptions, useStackScreenOptions } from "./screenOptions";
 
+function newOrderTabOptions({ route }, floatingTabScreenOptions, colors) {
+  const nestedRoute = getFocusedRouteNameFromRoute(route);
+  const onCart = nestedRoute === "Cart";
+
+  if (onCart) {
+    return {
+      tabBarStyle: { display: "none" },
+      sceneContainerStyle: {
+        flex: 1,
+        backgroundColor: colors.background,
+        paddingBottom: 0,
+      },
+    };
+  }
+
+  return {
+    tabBarStyle: floatingTabScreenOptions.tabBarStyle,
+    sceneContainerStyle: floatingTabScreenOptions.sceneContainerStyle,
+  };
+}
+
 function TabIconNewOrder({ color, size }) {
-  return <AppIcon name="cart-outline" color={color} size={size} />;
+  return <AppIcon name="store-outline" color={color} size={size} />;
 }
 
 function TabIconProfile({ color, size }) {
@@ -67,6 +90,7 @@ function ProfileNavigator() {
 
 export default function AuthenticatedTabs() {
   const floatingTabScreenOptions = useFloatingTabScreenOptions();
+  const { colors } = useTheme();
   const { t } = useTranslation();
 
   return (
@@ -77,7 +101,11 @@ export default function AuthenticatedTabs() {
       <Tab.Screen
         name="NewOrder"
         component={NewOrderNavigator}
-        options={{ title: t("nav.order"), tabBarIcon: TabIconNewOrder }}
+        options={({ route }) => ({
+          title: t("nav.order"),
+          tabBarIcon: TabIconNewOrder,
+          ...newOrderTabOptions({ route }, floatingTabScreenOptions, colors),
+        })}
       />
       <Tab.Screen
         name="MyOrders"

@@ -1,22 +1,24 @@
 import React, { useCallback, useMemo, useState } from "react";
-import { Alert, FlatList, StyleSheet, Text, View } from "react-native";
+import { FlatList, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import OrderPaymentActions, { formatPaymentAmount } from "../components/OrderPaymentActions";
-import { Card, EmptyState, Screen, SectionHeader } from "../components/ui";
+import { Card, EmptyState, ErrorBanner, Screen, SectionHeader } from "../components/ui";
 import { getApiErrorMessage } from "../services/apiClient";
 import { listMobileOrders } from "../services/ordersApi";
 import { usePaymentCompletionRefresh } from "../hooks/usePaymentCompletionRefresh";
+import { formatOrderStatus } from "../utils/formatOrderStatus";
 
 export default function MyOrdersScreen() {
   const { token } = useAuth();
   const navigation = useNavigation();
   const { t } = useTranslation();
-  const { colors, radii, sizes, spacing, typography } = useTheme();
+  const { sizes, spacing, typography, colors } = useTheme();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState("");
 
   const styles = useMemo(
     () =>
@@ -50,8 +52,9 @@ export default function MyOrdersScreen() {
     try {
       const rows = await listMobileOrders(token);
       setOrders(Array.isArray(rows) ? rows : []);
+      setLoadError("");
     } catch (err) {
-      Alert.alert(t("payment.ordersLoadFailed"), getApiErrorMessage(err));
+      setLoadError(getApiErrorMessage(err, t("payment.ordersLoadFailed")));
     } finally {
       setLoading(false);
     }
@@ -76,7 +79,7 @@ export default function MyOrdersScreen() {
           </Text>
           <Text style={styles.meta}>
             {t("payment.orderMeta", {
-              status: item.status,
+              status: formatOrderStatus(item.status, t),
               amount: formatPaymentAmount(item.amountTotal, item.currency),
             })}
           </Text>
@@ -87,20 +90,29 @@ export default function MyOrdersScreen() {
   );
 
   return (
-    <Screen busy={loading && orders.length === 0} busyMessage={t("payment.loading")}>
+    <Screen busy={loading && orders.length === 0 && !loadError} busyMessage={t("payment.loading")}>
       <SectionHeader title={t("payment.myOrdersTitle")} subtitle={t("payment.myOrdersSubtitle")} />
+      {loadError ? (
+        <ErrorBanner
+          title={t("payment.ordersLoadFailed")}
+          message={loadError}
+          onRetry={loadOrders}
+        />
+      ) : null}
       <FlatList
         data={orders}
         keyExtractor={(item) => String(item.id)}
         renderItem={renderItem}
-        refreshing={loading && orders.length > 0}
+        refreshing={loading}
         onRefresh={loadOrders}
         ListEmptyComponent={
-          <EmptyState
-            icon="receipt"
-            title={t("payment.noOrders")}
-            message={loading ? t("payment.loading") : t("payment.noOrdersHint")}
-          />
+          !loadError ? (
+            <EmptyState
+              icon="receipt"
+              title={t("payment.noOrders")}
+              message={loading ? t("payment.loading") : t("payment.noOrdersHint")}
+            />
+          ) : null
         }
         contentContainerStyle={styles.list}
       />

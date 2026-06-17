@@ -25,6 +25,9 @@ function OptionRow({ label, selected, onPress, styles }) {
         selected && styles.langRowSelected,
         pressed && { opacity: 0.85 },
       ]}
+      accessibilityRole="radio"
+      accessibilityState={{ selected }}
+      accessibilityLabel={label}
     >
       <Text style={[styles.langLabel, selected && styles.langLabelSelected]}>{label}</Text>
       {selected ? <Text style={styles.checkmark}>✓</Text> : null}
@@ -119,16 +122,20 @@ export default function SettingsSection() {
       <Text style={styles.sectionTitle}>{t("settings.title")}</Text>
 
       <Text style={styles.rowLabel}>{t("settings.theme")}</Text>
-      <View style={styles.pillRow}>
+      <View style={styles.pillRow} accessibilityRole="radiogroup">
         {THEME_OPTIONS.map((opt) => {
           const active = preference === opt.id;
+          const label = t(opt.labelKey);
           return (
             <Pressable
               key={opt.id}
               onPress={() => setPreference(opt.id)}
               style={[styles.pill, active && styles.pillActive]}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: active }}
+              accessibilityLabel={label}
             >
-              <Text style={[styles.pillText, active && styles.pillTextActive]}>{t(opt.labelKey)}</Text>
+              <Text style={[styles.pillText, active && styles.pillTextActive]}>{label}</Text>
             </Pressable>
           );
         })}

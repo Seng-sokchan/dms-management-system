@@ -31,7 +31,7 @@ export default function OrderPaymentActions({ order, navigation }) {
       borderRadius: 999,
       backgroundColor: colors.surfaceSoft,
     },
-    badgePaid: { backgroundColor: colors.successSoft || "#e8f5e9" },
+    badgePaid: { backgroundColor: colors.successSoft },
     badgeText: { fontSize: typography.caption, fontWeight: "700", color: colors.textPrimary },
   });
 

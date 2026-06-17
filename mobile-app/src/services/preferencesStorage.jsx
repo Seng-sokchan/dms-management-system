@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export const THEME_STORAGE_KEY = "fix-asset-theme";
 export const LANG_STORAGE_KEY = "fix-asset-lang";
+export const USERNAME_STORAGE_KEY = "dms-remembered-username";
 
 const VALID_THEMES = new Set(["light", "dark", "system"]);
 const VALID_LANGS = new Set(["en", "km"]);
@@ -34,4 +35,21 @@ export async function getLanguagePreference() {
 export async function setLanguagePreference(language) {
   if (!VALID_LANGS.has(language)) return;
   await AsyncStorage.setItem(LANG_STORAGE_KEY, language);
+}
+
+export async function getRememberedUsername() {
+  try {
+    return (await AsyncStorage.getItem(USERNAME_STORAGE_KEY)) || "";
+  } catch {
+    return "";
+  }
+}
+
+export async function setRememberedUsername(username) {
+  const value = typeof username === "string" ? username.trim() : "";
+  if (!value) {
+    await AsyncStorage.removeItem(USERNAME_STORAGE_KEY);
+    return;
+  }
+  await AsyncStorage.setItem(USERNAME_STORAGE_KEY, value);
 }

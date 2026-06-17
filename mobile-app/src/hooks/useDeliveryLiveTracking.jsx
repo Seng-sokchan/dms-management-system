@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Linking, Platform } from "react-native";
 import { io } from "socket.io-client";
+import i18n from "../i18n/config";
 import { getSocketBaseUrl } from "../services/socketUrl";
 import {
   clearDriverWatch,
@@ -126,13 +127,13 @@ export function useDeliveryLiveTracking({
       const code = error?.code;
       const message =
         code === 1
-          ? "Location permission is denied. Allow location in Settings."
+          ? i18n.t("delivery.locationDenied")
           : code === 2
-            ? "GPS is unavailable. Turn on Location (GPS) on your phone."
-            : "Could not read GPS. Move outdoors or wait a moment and try again.";
-      Alert.alert("Location", message, [
-        { text: "Cancel", style: "cancel" },
-        { text: "Open settings", onPress: () => Linking.openSettings() },
+            ? i18n.t("delivery.locationUnavailable")
+            : i18n.t("delivery.locationReadFailed");
+      Alert.alert(i18n.t("delivery.locationTitle"), message, [
+        { text: i18n.t("common.cancel"), style: "cancel" },
+        { text: i18n.t("common.openSettings"), onPress: () => Linking.openSettings() },
       ]);
     }
 
@@ -150,11 +151,11 @@ export function useDeliveryLiveTracking({
       if (!ok) {
         setTrackingStatus("permission_denied");
         Alert.alert(
-          "Location off",
-          "Turn on location permission in system settings to share your position.",
+          i18n.t("delivery.locationOffTitle"),
+          i18n.t("delivery.locationOffMessage"),
           [
-            { text: "Cancel", style: "cancel" },
-            { text: "Open settings", onPress: () => Linking.openSettings() },
+            { text: i18n.t("common.cancel"), style: "cancel" },
+            { text: i18n.t("common.openSettings"), onPress: () => Linking.openSettings() },
           ],
         );
         return;
@@ -163,13 +164,13 @@ export function useDeliveryLiveTracking({
       const baseUrl = getSocketBaseUrl();
       if (!baseUrl) {
         setTrackingStatus("config_error");
-        Alert.alert("Configuration", "API base URL is missing.");
+        Alert.alert(i18n.t("delivery.configTitle"), i18n.t("delivery.configMissingApi"));
         return;
       }
       const accessToken = typeof token === "string" ? token.trim() : "";
       if (!accessToken) {
         setTrackingStatus("session_error");
-        Alert.alert("Session", "Sign in again to share your location.");
+        Alert.alert(i18n.t("delivery.sessionTitle"), i18n.t("delivery.sessionExpired"));
         return;
       }
 
@@ -199,7 +200,10 @@ export function useDeliveryLiveTracking({
       socket.on("connect_error", (err) => {
         if (cancelled) return;
         setTrackingStatus("socket_error");
-        Alert.alert("Connection", err?.message || "Could not connect to tracking server.");
+        Alert.alert(
+          i18n.t("delivery.connectionTitle"),
+          err?.message || i18n.t("delivery.connectionFailed"),
+        );
       });
 
       if (mapVisible) {
