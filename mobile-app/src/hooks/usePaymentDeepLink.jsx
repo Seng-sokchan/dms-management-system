@@ -59,6 +59,7 @@ export function usePaymentDeepLink({ enabled = false } = {}) {
         order: pending?.order,
         orders: pending?.orders,
         role: pending?.role || "Customer",
+        fromAbaReturn: parsed.fromAbaReturn,
       });
       if (ok) {
         markPaymentReturnHandled(paymentId);

@@ -36,7 +36,7 @@ export default function ItemListScreen({ navigation }) {
   const { token } = useAuth();
   const { addItem, totalItems, cartRestored, dismissCartRestored } = useCart();
   const { t } = useTranslation();
-  const { colors, radii, sizes, spacing, typography } = useTheme();
+  const { colors, radii, sizes, spacing, typography, borders } = useTheme();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -54,6 +54,7 @@ export default function ItemListScreen({ navigation }) {
           borderRadius: radii.pill,
           paddingHorizontal: spacing.md,
           paddingVertical: spacing.sm,
+          ...borders.panel,
         },
         badgeText: {
           color: colors.textPrimary,
@@ -134,7 +135,7 @@ export default function ItemListScreen({ navigation }) {
           fontSize: typography.bodySmall,
         },
       }),
-    [colors, radii, sizes.tabBarOffset, spacing, typography],
+    [borders, colors, radii, sizes.tabBarOffset, spacing, typography],
   );
 
   const loadItems = useCallback(async () => {

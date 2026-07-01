@@ -34,12 +34,16 @@ export function AuthProvider({ children }) {
 
   async function login(username, password) {
     const payload = await loginApi({ username, password, client: "mobile" });
-    const role = payload?.user?.role;
-    if (role !== "Customer" && role !== "Delivery" && role !== "Depot") {
-      throw new Error(i18n.t("auth.roleNotAllowed"));
-    }
     const me = await fetchMe(payload.token);
     const nextUser = { ...payload.user, ...me };
+    const clients = nextUser.allowedClients;
+    if (Array.isArray(clients) && clients.length && !clients.includes("mobile")) {
+      throw new Error(i18n.t("auth.roleNotAllowed"));
+    }
+    const mobileMenus = nextUser.allowedMobileMenus;
+    if (Array.isArray(mobileMenus) && mobileMenus.length === 0) {
+      throw new Error(i18n.t("auth.roleNotAllowed"));
+    }
     await saveSession({ token: payload.token, user: nextUser });
     setToken(payload.token);
     setUser(nextUser);

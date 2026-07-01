@@ -6,10 +6,10 @@ import { useAuth } from "../context/AuthContext";
 import { getPayment } from "../services/paymentsApi";
 import { getSocketBaseUrl } from "../services/socketUrl";
 
-const POLL_INTERVAL_MS = 3000;
+const POLL_INTERVAL_MS = 5000;
 const POLL_MAX_MS = 15 * 60 * 1000;
 
-const TERMINAL = new Set(["paid", "failed", "expired", "cancelled"]);
+const TERMINAL = new Set(["paid"]);
 
 /**
  * Realtime payment status: Socket.IO + automatic GET polling (no manual refresh).
@@ -19,7 +19,7 @@ const TERMINAL = new Set(["paid", "failed", "expired", "cancelled"]);
 export function usePaymentStatus(paymentId, options = {}) {
   const { autoRefresh = true } = options;
   const { token } = useAuth();
-  const [status, setStatus] = useState("pending");
+  const [status, setStatus] = useState("unpaid");
   const [payment, setPayment] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");

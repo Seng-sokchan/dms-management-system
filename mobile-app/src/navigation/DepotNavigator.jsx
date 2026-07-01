@@ -8,6 +8,8 @@ import DepotBatchCartScreen from "../screens/DepotBatchCartScreen";
 import DepotOrdersScreen from "../screens/DepotOrdersScreen";
 import DepotTrackingScreen from "../screens/DepotTrackingScreen";
 import ProfileScreen from "../screens/ProfileScreen";
+import { useAuth } from "../context/AuthContext";
+import { useMobileNavigation } from "../hooks/useMobileNavigation";
 import { AppIcon } from "../components/ui";
 import FloatingTabBar from "../components/navigation/FloatingTabBar";
 import { useTheme } from "../context/ThemeContext";
@@ -121,12 +123,15 @@ export default function DepotNavigator() {
   const floatingTabScreenOptions = useFloatingTabScreenOptions();
   const { colors } = useTheme();
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const { hasMenu } = useMobileNavigation(user);
 
   return (
     <Tab.Navigator
       screenOptions={floatingTabScreenOptions}
       tabBar={(props) => <FloatingTabBar {...props} />}
     >
+      {hasMenu("mobile.prepareBatch") ? (
       <Tab.Screen
         name="DepotPrepare"
         component={PrepareNavigator}
@@ -137,21 +142,28 @@ export default function DepotNavigator() {
           ...depotPrepareTabOptions({ route }, floatingTabScreenOptions, colors),
         })}
       />
+      ) : null}
+      {hasMenu("mobile.depotOrders") ? (
       <Tab.Screen
         name="DepotOrdersTab"
         component={OrdersNavigator}
         options={{ title: t("nav.orders"), tabBarLabel: t("nav.orders"), tabBarIcon: TabIconOrders }}
       />
+      ) : null}
+      {hasMenu("mobile.tracking") ? (
       <Tab.Screen
         name="DepotTrackingTab"
         component={TrackingNavigator}
         options={{ title: t("nav.tracking"), tabBarLabel: t("nav.tracking"), tabBarIcon: TabIconTracking }}
       />
+      ) : null}
+      {hasMenu("mobile.profile") ? (
       <Tab.Screen
         name="DepotProfileTab"
         component={ProfileNavigator}
         options={{ title: t("nav.profile"), tabBarLabel: t("nav.profile"), tabBarIcon: TabIconProfile }}
       />
+      ) : null}
     </Tab.Navigator>
   );
 }

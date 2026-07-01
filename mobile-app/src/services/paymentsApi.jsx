@@ -32,3 +32,21 @@ export async function cancelPayment(token, paymentId) {
   const response = await apiClient.post(`/payments/${paymentId}/cancel`, {}, authConfig(token));
   return unwrapApiData(response.data);
 }
+
+export async function startPaymentLiveCheck(token, paymentId) {
+  const response = await apiClient.post(
+    `/payments/${paymentId}/live-check/start`,
+    {},
+    authConfig(token),
+  );
+  return unwrapApiData(response.data);
+}
+
+export async function stopPaymentLiveCheck(token, paymentId) {
+  const response = await apiClient.post(
+    `/payments/${paymentId}/live-check/stop`,
+    {},
+    authConfig(token),
+  );
+  return unwrapApiData(response.data);
+}

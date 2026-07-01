@@ -16,7 +16,7 @@ export function formatPaymentAmount(amount, currency) {
  */
 export default function OrderPaymentActions({ order, navigation }) {
   const { t } = useTranslation();
-  const { colors, spacing, typography } = useTheme();
+  const { colors, spacing, typography, borders } = useTheme();
 
   const paymentStatus = order?.paymentStatus || "unpaid";
   const isPaid = paymentStatus === "paid";
@@ -30,6 +30,7 @@ export default function OrderPaymentActions({ order, navigation }) {
       paddingVertical: spacing.xs,
       borderRadius: 999,
       backgroundColor: colors.surfaceSoft,
+      ...borders.panel,
     },
     badgePaid: { backgroundColor: colors.successSoft },
     badgeText: { fontSize: typography.caption, fontWeight: "700", color: colors.textPrimary },

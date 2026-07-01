@@ -32,7 +32,7 @@ export default function DepotBatchCartScreen() {
   const { token } = useAuth();
   const { t } = useTranslation();
   const theme = useTheme();
-  const { colors, radii, spacing, typography, sizes } = theme;
+  const { colors, radii, spacing, typography, sizes, borders } = theme;
   const insets = useSafeAreaInsets();
   const {
     cartByCustomer,
@@ -75,9 +75,8 @@ export default function DepotBatchCartScreen() {
           alignItems: "center",
           backgroundColor: colors.surfaceSoft,
           borderRadius: radii.pill,
-          borderWidth: 1,
-          borderColor: colors.border,
           paddingHorizontal: spacing.xs,
+          ...borders.panel,
         },
         qtyBtn: {
           width: sizes.qtyButtonSm,
@@ -99,10 +98,9 @@ export default function DepotBatchCartScreen() {
         },
         footer: {
           paddingTop: spacing.md,
-          borderTopWidth: 1,
-          borderColor: colors.border,
           backgroundColor: colors.background,
           gap: spacing.sm,
+          ...borders.dividerTop,
         },
         footerRow: {
           flexDirection: "row",
@@ -129,7 +127,7 @@ export default function DepotBatchCartScreen() {
         },
         actionBtn: { flex: 1 },
       }),
-    [colors, radii, sizes, spacing, typography],
+    [borders, colors, radii, sizes, spacing, typography],
   );
 
   const loadMeta = useCallback(async () => {

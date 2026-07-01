@@ -20,10 +20,13 @@ DROP TABLE IF EXISTS `orders`;
 DROP TABLE IF EXISTS `order_details`;
 DROP TABLE IF EXISTS `order_status_history`;
 DROP TABLE IF EXISTS `payments`;
-DROP TABLE IF EXISTS `payment_with_aba`;
-DROP TABLE IF EXISTS `payment_with_khqr`;
 DROP TABLE IF EXISTS `producers`;
 DROP TABLE IF EXISTS `provinces`;
+DROP TABLE IF EXISTS `role_socket_channels`;
+DROP TABLE IF EXISTS `role_status_permissions`;
+DROP TABLE IF EXISTS `role_clients`;
+DROP TABLE IF EXISTS `status_transitions`;
+DROP TABLE IF EXISTS `menus`;
 DROP TABLE IF EXISTS `roles`;
 DROP TABLE IF EXISTS `role_menus`;
 DROP TABLE IF EXISTS `status`;
@@ -282,48 +285,6 @@ CREATE TABLE `payments` (
   KEY `idx_payments_provider_tran` (`provider_tran_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-CREATE TABLE `payment_with_aba` (
-  `id` char(36) NOT NULL,
-  `order_id` int(10) unsigned NOT NULL,
-  `customer_id` int(10) unsigned NOT NULL,
-  `payway_tran_id` varchar(20) NOT NULL,
-  `amount` decimal(18,2) NOT NULL,
-  `currency` char(3) NOT NULL DEFAULT 'KHR',
-  `deeplink_url` text,
-  `checkout_url` text,
-  `raw_create_response` longtext,
-  `return_params` text,
-  `expires_at` datetime NOT NULL,
-  `idempotency_key` varchar(64) NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` datetime DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_payment_with_aba_payway_tran_id` (`payway_tran_id`),
-  UNIQUE KEY `uq_payment_with_aba_idempotency_key` (`idempotency_key`),
-  KEY `idx_payment_with_aba_order` (`order_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
-CREATE TABLE `payment_with_khqr` (
-  `id` char(36) NOT NULL,
-  `order_id` int(10) unsigned NOT NULL,
-  `customer_id` int(10) unsigned NOT NULL,
-  `payway_tran_id` varchar(20) NOT NULL,
-  `amount` decimal(18,2) NOT NULL,
-  `currency` char(3) NOT NULL DEFAULT 'KHR',
-  `qr_string` text,
-  `qr_image_url` text,
-  `raw_create_response` longtext,
-  `return_params` text,
-  `expires_at` datetime NOT NULL,
-  `idempotency_key` varchar(64) NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` datetime DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_payment_with_khqr_payway_tran_id` (`payway_tran_id`),
-  UNIQUE KEY `uq_payment_with_khqr_idempotency_key` (`idempotency_key`),
-  KEY `idx_payment_with_khqr_order` (`order_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
 CREATE TABLE `producers` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `name` varchar(120) NOT NULL,
@@ -349,9 +310,41 @@ CREATE TABLE `provinces` (
 CREATE TABLE `roles` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `name` varchar(60) NOT NULL,
+  `data_scope` varchar(20) NOT NULL DEFAULT 'none',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_roles_name` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE `menus` (
+  `menu_key` varchar(40) NOT NULL,
+  `sort_order` smallint(5) unsigned NOT NULL DEFAULT '0',
+  `client` varchar(10) NOT NULL DEFAULT 'admin',
+  `access_level` varchar(10) NOT NULL DEFAULT 'view',
+  `is_active` tinyint(1) NOT NULL DEFAULT '1',
+  PRIMARY KEY (`menu_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE `role_clients` (
+  `role_id` int(10) unsigned NOT NULL,
+  `client` varchar(10) NOT NULL,
+  PRIMARY KEY (`role_id`,`client`),
+  KEY `idx_role_clients_client` (`client`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE `role_status_permissions` (
+  `role_id` int(10) unsigned NOT NULL,
+  `to_status_id` tinyint(3) unsigned NOT NULL,
+  `action` varchar(30) NOT NULL DEFAULT 'update_status',
+  PRIMARY KEY (`role_id`,`to_status_id`,`action`),
+  KEY `idx_rsp_to_status` (`to_status_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE `role_socket_channels` (
+  `role_id` int(10) unsigned NOT NULL,
+  `channel_key` varchar(60) NOT NULL,
+  PRIMARY KEY (`role_id`,`channel_key`),
+  KEY `idx_rsc_channel` (`channel_key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE `role_menus` (
@@ -364,9 +357,17 @@ CREATE TABLE `role_menus` (
 CREATE TABLE `status` (
   `id` tinyint(3) unsigned NOT NULL AUTO_INCREMENT,
   `name` varchar(30) NOT NULL,
+  `sort_order` tinyint(3) unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_status_name` (`name`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8;
+
+CREATE TABLE `status_transitions` (
+  `from_status_id` tinyint(3) unsigned NOT NULL,
+  `to_status_id` tinyint(3) unsigned NOT NULL,
+  PRIMARY KEY (`from_status_id`,`to_status_id`),
+  KEY `idx_status_transitions_to` (`to_status_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE `users` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -387,7 +388,6 @@ CREATE TABLE `users` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- Read views (replaces sp_get_* / sp_list_* for queries)
--- Read views (included in schema.mysql55.sql bootstrap + runtime upgrade).
 
 DROP VIEW IF EXISTS v_dashboard_currency_totals;
 DROP VIEW IF EXISTS v_dashboard_totals;
@@ -397,6 +397,11 @@ DROP VIEW IF EXISTS v_borrow_material_monthly_schedules;
 DROP VIEW IF EXISTS v_borrow_material_order_loans;
 DROP VIEW IF EXISTS v_customer_borrowed_materials;
 DROP VIEW IF EXISTS v_borrow_materials;
+DROP VIEW IF EXISTS v_role_socket_channels;
+DROP VIEW IF EXISTS v_role_status_permissions;
+DROP VIEW IF EXISTS v_role_clients;
+DROP VIEW IF EXISTS v_status_transitions;
+DROP VIEW IF EXISTS v_menus;
 DROP VIEW IF EXISTS v_role_menus;
 DROP VIEW IF EXISTS v_roles;
 DROP VIEW IF EXISTS v_statuses;
@@ -540,8 +545,6 @@ SELECT
   od.amount_total,
   CASE
     WHEN EXISTS (SELECT 1 FROM payments p WHERE p.order_id = om.id) THEN 'paid'
-    WHEN EXISTS (SELECT 1 FROM payment_with_aba a WHERE a.order_id = om.id)
-      OR EXISTS (SELECT 1 FROM payment_with_khqr k WHERE k.order_id = om.id) THEN 'pending'
     ELSE 'unpaid'
   END AS payment_status,
   s.name AS status,
@@ -563,17 +566,54 @@ LEFT JOIN producers p ON p.id = od.producer_id
 LEFT JOIN delivery_agents da ON da.id = od.delivery_agent_id;
 
 CREATE VIEW v_statuses AS
-SELECT id, name
+SELECT id, name, sort_order
 FROM status;
 
 CREATE VIEW v_roles AS
-SELECT id, name
+SELECT id, name, data_scope
 FROM roles;
 
+CREATE VIEW v_menus AS
+SELECT menu_key, sort_order, client, access_level, is_active
+FROM menus
+WHERE is_active = 1;
+
 CREATE VIEW v_role_menus AS
-SELECT r.name AS role_name, rm.menu_key, rm.role_id
+SELECT r.name AS role_name, rm.menu_key, rm.role_id, m.client, m.access_level
 FROM role_menus rm
-INNER JOIN roles r ON r.id = rm.role_id;
+INNER JOIN roles r ON r.id = rm.role_id
+INNER JOIN menus m ON m.menu_key = rm.menu_key;
+
+CREATE VIEW v_role_clients AS
+SELECT r.name AS role_name, rc.role_id, rc.client
+FROM role_clients rc
+INNER JOIN roles r ON r.id = rc.role_id;
+
+CREATE VIEW v_role_status_permissions AS
+SELECT
+  r.name AS role_name,
+  rsp.role_id,
+  rsp.to_status_id,
+  s.name AS to_status,
+  rsp.action
+FROM role_status_permissions rsp
+INNER JOIN roles r ON r.id = rsp.role_id
+INNER JOIN status s ON s.id = rsp.to_status_id;
+
+CREATE VIEW v_role_socket_channels AS
+SELECT r.name AS role_name, rsc.role_id, rsc.channel_key
+FROM role_socket_channels rsc
+INNER JOIN roles r ON r.id = rsc.role_id;
+
+CREATE VIEW v_status_transitions AS
+SELECT
+  fs.name AS from_status,
+  ts.name AS to_status,
+  st.from_status_id,
+  st.to_status_id
+FROM status_transitions st
+INNER JOIN status fs ON fs.id = st.from_status_id
+INNER JOIN status ts ON ts.id = st.to_status_id;
 
 CREATE VIEW v_borrow_materials AS
 SELECT id, name, unit, note
@@ -705,6 +745,8 @@ DROP PROCEDURE IF EXISTS sp_delete_order;
 DROP PROCEDURE IF EXISTS sp_delete_order_group;
 DROP PROCEDURE IF EXISTS sp_delete_producer;
 DROP PROCEDURE IF EXISTS sp_delete_province;
+DROP PROCEDURE IF EXISTS sp_delete_all_status_transitions;
+DROP PROCEDURE IF EXISTS sp_add_status_transition;
 DROP PROCEDURE IF EXISTS sp_delete_role_menus_by_role_id;
 DROP PROCEDURE IF EXISTS sp_delete_truck;
 DROP PROCEDURE IF EXISTS sp_insert_order_status_history;
@@ -920,6 +962,13 @@ CREATE PROCEDURE sp_delete_role_menus_by_role_id(IN p_role_id INT UNSIGNED)
 DELETE FROM role_menus WHERE role_id = p_role_id;
 CREATE PROCEDURE sp_add_role_menu(IN p_role_id INT UNSIGNED, IN p_menu_key VARCHAR(40))
 INSERT INTO role_menus (role_id, menu_key) VALUES (p_role_id, p_menu_key);
+CREATE PROCEDURE sp_delete_all_status_transitions()
+DELETE FROM status_transitions;
+CREATE PROCEDURE sp_add_status_transition(
+  IN p_from_status_id TINYINT UNSIGNED,
+  IN p_to_status_id TINYINT UNSIGNED
+)
+INSERT INTO status_transitions (from_status_id, to_status_id) VALUES (p_from_status_id, p_to_status_id);
 CREATE PROCEDURE sp_create_catalog(IN p_name VARCHAR(255), IN p_note VARCHAR(255), IN p_updated_at DATETIME)
 BEGIN
   INSERT INTO catalogs (name, note, updated_at) VALUES (p_name, p_note, p_updated_at);

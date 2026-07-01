@@ -1,8 +1,12 @@
 const deliveryAgentLocationsRepository = require("../repositories/deliveryAgentLocations");
 const orderRepository = require("../repositories/orders");
 const customerRepository = require("../repositories/customers");
-const depotRepository = require("../repositories/depots");
 const { BadRequestError, ForbiddenError, NotFoundError } = require("../errors");
+const {
+  hasDataScope,
+  getDepotForUser,
+} = require("./accessScopeService");
+const { getDataScope } = require("./rulesCache");
 
 const TRACKABLE_STATUS = "Ready_For_Delivery";
 const PERSIST_MIN_INTERVAL_MS = 30000;
@@ -112,7 +116,6 @@ async function resolveLastKnown(deliveryAgentId, redisClient, deliveryAgentName)
 }
 
 async function assertCanTrackOrder(order, user) {
-  const role = user?.role;
   if (!order) {
     throw new NotFoundError("Order not found");
   }
@@ -123,7 +126,9 @@ async function assertCanTrackOrder(order, user) {
     throw new BadRequestError("Delivery agent is not assigned");
   }
 
-  if (role === "Customer") {
+  const scope = getDataScope(user?.role);
+
+  if (scope === "customer") {
     const customer = await customerRepository.getCustomerByUserId(user.sub);
     if (!customer || String(order.customerId) !== String(customer.id)) {
       throw new ForbiddenError("Forbidden");
@@ -131,8 +136,8 @@ async function assertCanTrackOrder(order, user) {
     return;
   }
 
-  if (role === "Depot") {
-    const depot = await depotRepository.getDepotByDepotUserId(user.sub);
+  if (scope === "depot") {
+    const depot = await getDepotForUser(user);
     if (!depot) {
       throw new ForbiddenError("Forbidden");
     }
@@ -144,7 +149,7 @@ async function assertCanTrackOrder(order, user) {
     return;
   }
 
-  if (role === "Delivery") {
+  if (scope === "delivery_agent") {
     const agentId =
       user.deliveryAgentId != null && String(user.deliveryAgentId).trim() !== ""
         ? String(user.deliveryAgentId)
@@ -155,7 +160,7 @@ async function assertCanTrackOrder(order, user) {
     return;
   }
 
-  if (role === "Admin" || role === "Owner" || role === "Logistics") {
+  if (scope === "all" || scope === "owner" || scope === "none") {
     return;
   }
 

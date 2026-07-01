@@ -3,8 +3,6 @@
 const PAYMENT_STATUS_EXPR = `
   CASE
     WHEN EXISTS (SELECT 1 FROM payments p WHERE p.order_id = om.id) THEN 'paid'
-    WHEN EXISTS (SELECT 1 FROM payment_with_aba a WHERE a.order_id = om.id)
-      OR EXISTS (SELECT 1 FROM payment_with_khqr k WHERE k.order_id = om.id) THEN 'pending'
     ELSE 'unpaid'
   END`;
 

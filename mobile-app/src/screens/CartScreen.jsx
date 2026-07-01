@@ -16,7 +16,7 @@ export default function CartScreen({ navigation }) {
   const { token, user } = useAuth();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const { colors, layout, radii, sizes, spacing, typography } = useTheme();
+  const { colors, layout, radii, sizes, spacing, typography, borders } = useTheme();
   const [submitting, setSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const { blockerOrder, canPlaceOrder } = useOrderPlacementGate();
@@ -68,6 +68,7 @@ export default function CartScreen({ navigation }) {
           backgroundColor: colors.surface,
           borderRadius: radii.lg,
           padding: spacing.lg,
+          ...borders.panel,
         },
         successIconWrap: {
           width: sizes.iconLg,
@@ -125,6 +126,7 @@ export default function CartScreen({ navigation }) {
           backgroundColor: colors.surfaceSoft,
           borderRadius: radii.pill,
           paddingHorizontal: spacing.xs,
+          ...borders.panel,
         },
         qtyBtn: {
           width: sizes.qtyButton,
@@ -185,7 +187,7 @@ export default function CartScreen({ navigation }) {
           fontSize: typography.bodySmall,
         },
       }),
-    [colors, layout.modalMaxWidth, radii, sizes, spacing, typography],
+    [borders, colors, layout.modalMaxWidth, radii, sizes, spacing, typography],
   );
 
   async function handlePreOrder() {

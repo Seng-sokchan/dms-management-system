@@ -4,6 +4,8 @@ import { getFocusedRouteNameFromRoute } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { DeliveryCartProvider } from "../context/DeliveryCartContext";
+import { useAuth } from "../context/AuthContext";
+import { useMobileNavigation } from "../hooks/useMobileNavigation";
 import { useTheme } from "../context/ThemeContext";
 import DeliveryTrackingScreen from "../screens/DeliveryTrackingScreen";
 import DeliveryNavigationScreen from "../screens/DeliveryNavigationScreen";
@@ -73,6 +75,8 @@ export default function DeliveryNavigator() {
   const floatingTabScreenOptions = useFloatingTabScreenOptions();
   const { colors } = useTheme();
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const { hasMenu } = useMobileNavigation(user);
 
   return (
     <DeliveryCartProvider>
@@ -80,6 +84,7 @@ export default function DeliveryNavigator() {
       screenOptions={floatingTabScreenOptions}
       tabBar={(props) => <FloatingTabBar {...props} />}
     >
+      {hasMenu("mobile.live") ? (
       <Tab.Screen
         name="DeliveryLive"
         component={DeliveryLiveStack}
@@ -90,11 +95,14 @@ export default function DeliveryNavigator() {
           ...deliveryLiveTabOptions({ route }, floatingTabScreenOptions, colors),
         })}
       />
+      ) : null}
+      {hasMenu("mobile.profile") ? (
       <Tab.Screen
         name="DeliveryProfile"
         component={ProfileScreen}
         options={{ title: t("nav.profile"), tabBarLabel: t("nav.profile"), tabBarIcon: TabIconProfile }}
       />
+      ) : null}
     </Tab.Navigator>
     </DeliveryCartProvider>
   );

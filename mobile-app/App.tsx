@@ -18,7 +18,7 @@ import i18n from "./src/i18n/config";
 import { navigationRef } from "./src/navigation/paymentReturnNavigation";
 import { usePaymentDeepLink } from "./src/hooks/usePaymentDeepLink";
 import { usePaymentReturnResume } from "./src/hooks/usePaymentReturnResume";
-import { darkColors, lightColors } from "./src/theme/palettes";
+import { useMobileNavigation } from "./src/hooks/useMobileNavigation";
 
 const Stack = createNativeStackNavigator();
 
@@ -32,6 +32,7 @@ function CustomerMain() {
 
 function AppNavigator() {
   const { isLoading, token, user } = useAuth();
+  const { root: mobileRoot } = useMobileNavigation(user);
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
   const stackScreenOptions = useStackScreenOptions();
@@ -78,13 +79,13 @@ function AppNavigator() {
       <Stack.Navigator screenOptions={stackScreenOptions}>
         {!token ? (
           <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
-        ) : user?.role === "Delivery" ? (
+        ) : mobileRoot === "DeliveryMain" ? (
           <Stack.Screen
             name="DeliveryMain"
             component={DeliveryNavigator}
             options={{ headerShown: false }}
           />
-        ) : user?.role === "Depot" ? (
+        ) : mobileRoot === "DepotMain" ? (
           <Stack.Screen name="DepotMain" component={DepotRootNavigator} options={{ headerShown: false }} />
         ) : (
           <Stack.Screen name="Main" component={CustomerMain} options={{ headerShown: false }} />

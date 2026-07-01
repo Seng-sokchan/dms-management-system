@@ -1,12 +1,12 @@
 import { useMemo } from "react";
 import { useTheme } from "../context/ThemeContext";
 export function useStackScreenOptions() {
-  const { colors, typography } = useTheme();
+  const { colors, typography, borders } = useTheme();
 
   return useMemo(() => {
     const headerStyle = {
       backgroundColor: colors.background,
-      borderBottomWidth: 0,
+      ...borders.dividerBottom,
     };
     const headerTitleStyle = {
       fontSize: typography.h3,
@@ -23,7 +23,7 @@ export function useStackScreenOptions() {
       contentStyle: { flex: 1, backgroundColor: colors.background },
       animation: "slide_from_right",
     };
-  }, [colors, typography]);
+  }, [borders.dividerBottom, colors, typography]);
 }
 
 export function useFloatingTabScreenOptions() {

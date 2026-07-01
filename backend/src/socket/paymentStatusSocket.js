@@ -1,6 +1,7 @@
 const customerRepository = require("../repositories/customers");
 const depotRepository = require("../repositories/depots");
 const orderRepository = require("../repositories/orders");
+const { hasDataScope, getDepotForUser } = require("../services/accessScopeService");
 
 const CUSTOMER_ROOM_PREFIX = "customer:";
 const DEPOT_ROOM_PREFIX = "depot:";
@@ -16,7 +17,7 @@ function depotRoom(depotId) {
 function attachPaymentStatusHandlers(io, socket) {
   const { user } = socket.data;
 
-  if (user?.role === "Customer") {
+  if (hasDataScope(user, "customer")) {
     void customerRepository.getCustomerByUserId(user.sub).then((customer) => {
       if (!customer) return;
       socket.join(customerRoom(customer.id));
@@ -24,8 +25,8 @@ function attachPaymentStatusHandlers(io, socket) {
     });
   }
 
-  if (user?.role === "Depot") {
-    void depotRepository.getDepotByDepotUserId(user.sub).then((depot) => {
+  if (hasDataScope(user, "depot")) {
+    void getDepotForUser(user).then((depot) => {
       if (!depot) return;
       socket.join(depotRoom(depot.id));
       socket.data.depotId = String(depot.id);
@@ -33,7 +34,7 @@ function attachPaymentStatusHandlers(io, socket) {
   }
 
   socket.on("subscribe:payments", async (_payload, ack) => {
-    if (user.role === "Customer") {
+    if (hasDataScope(user, "customer")) {
       const customer = await customerRepository.getCustomerByUserId(user.sub);
       if (!customer) {
         if (typeof ack === "function") ack({ ok: false, error: "Customer profile not found" });
@@ -45,8 +46,8 @@ function attachPaymentStatusHandlers(io, socket) {
       return;
     }
 
-    if (user.role === "Depot") {
-      const depot = await depotRepository.getDepotByDepotUserId(user.sub);
+    if (hasDataScope(user, "depot")) {
+      const depot = await getDepotForUser(user);
       if (!depot) {
         if (typeof ack === "function") ack({ ok: false, error: "Depot profile not found" });
         return;
@@ -66,27 +67,27 @@ async function emitPaymentStatus(payment) {
   const io = getIo();
   if (!io || !payment) return;
 
-  const orderDetailIds = await orderRepository.listOrderDetailIdsByMasterOrderId(payment.orderId);
+  const orderId = payment.orderId;
+  const detailIds = await orderRepository.listOrderDetailIdsByMasterOrderId(orderId);
+  const firstDetailId = detailIds[0] || orderId;
+  const order = await orderRepository.getOrderById(firstDetailId);
+  if (!order) return;
 
   const payload = {
     paymentId: payment.id,
-    orderId: payment.orderId,
-    orderIds: orderDetailIds.length > 0 ? orderDetailIds.map((id) => Number(id)) : undefined,
+    orderId: Number(firstDetailId),
+    masterOrderId: Number(orderId),
     status: payment.status || "paid",
-    paidAt: payment.paidAt,
     amount: payment.amount,
     currency: payment.currency,
+    paidAt: payment.paidAt,
   };
 
-  io.to(customerRoom(payment.customerId)).emit("payment:status", payload);
+  io.to(customerRoom(order.customerId)).emit("payment:status", payload);
 
-  try {
-    const customer = await customerRepository.getCustomerById(payment.customerId);
-    if (customer?.depotId) {
-      io.to(depotRoom(customer.depotId)).emit("payment:status", payload);
-    }
-  } catch {
-    /* optional depot notify */
+  const customer = await customerRepository.getCustomerById(order.customerId);
+  if (customer?.depotId) {
+    io.to(depotRoom(customer.depotId)).emit("payment:status", payload);
   }
 }
 

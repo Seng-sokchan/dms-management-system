@@ -19,7 +19,16 @@ function isIntentExpired(expiresAt) {
  */
 export async function resolvePaymentReturnNavigation(
   token,
-  { paymentId, orderId, batchId, orderIds, orders, order, role = "Customer" } = {},
+  {
+    paymentId,
+    orderId,
+    batchId,
+    orderIds,
+    orders,
+    order,
+    role = "Customer",
+    fromAbaReturn = false,
+  } = {},
 ) {
   if (!token || !paymentId) return false;
 
@@ -30,7 +39,7 @@ export async function resolvePaymentReturnNavigation(
     return false;
   }
 
-  const status = payment?.status || "pending";
+  const status = payment?.status || "unpaid";
   const resolvedOrderId = orderId != null ? Number(orderId) : payment?.orderId;
   const resolvedBatchId = batchId != null ? String(batchId) : undefined;
   const resolvedOrderIds = Array.isArray(orderIds)
@@ -45,7 +54,7 @@ export async function resolvePaymentReturnNavigation(
       orderId: resolvedOrderId,
       batchId: resolvedBatchId,
       orderIds: resolvedOrderIds,
-      fromAbaReturn: false,
+      fromAbaReturn: fromAbaReturn === true,
       role,
     });
   }
@@ -73,11 +82,7 @@ export async function resolvePaymentReturnNavigation(
     return false;
   };
 
-  if (status === "pending" && !isIntentExpired(payment?.expiresAt)) {
-    return resumeCheckout();
-  }
-
-  if (status === "failed" || status === "expired" || status === "cancelled") {
+  if (status === "unpaid" && !isIntentExpired(payment?.expiresAt)) {
     return resumeCheckout();
   }
 

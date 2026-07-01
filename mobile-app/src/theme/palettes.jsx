@@ -8,7 +8,8 @@ export const lightColors = {
   textPrimary: "#111111",
   textSecondary: "#6B7280",
   textMuted: "#A0A5B0",
-  border: "#E8E8ED",
+  border: "#C4C4CE",
+  borderStrong: "#9898A8",
   primary: "#111111",
   primaryPressed: "#2D2D2D",
   onPrimary: "#FFFFFF",
@@ -31,7 +32,8 @@ export const darkColors = {
   textPrimary: "#F4F4F5",
   textSecondary: "#A1A1AA",
   textMuted: "#71717A",
-  border: "#2E2E33",
+  border: "#45454F",
+  borderStrong: "#71717A",
   primary: "#F4F4F5",
   primaryPressed: "#D4D4D8",
   onPrimary: "#111111",
@@ -43,6 +45,33 @@ export const darkColors = {
   dangerSoft: "#450A0A",
   overlay: "rgba(0, 0, 0, 0.6)",
 };
+
+export function getBorders(colors) {
+  const color = colors.borderStrong;
+  return {
+    width: {
+      hairline: 1,
+      panel: 1.5,
+    },
+    color,
+    panel: {
+      borderWidth: 1.5,
+      borderColor: color,
+    },
+    hairline: {
+      borderWidth: 1,
+      borderColor: color,
+    },
+    dividerBottom: {
+      borderBottomWidth: 1,
+      borderBottomColor: color,
+    },
+    dividerTop: {
+      borderTopWidth: 1,
+      borderTopColor: color,
+    },
+  };
+}
 
 export function getFloatingTabBar(colors) {
   return {

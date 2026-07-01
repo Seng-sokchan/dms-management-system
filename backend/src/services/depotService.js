@@ -1,13 +1,15 @@
 const {
-  listDepots: listDepotsDb,
-  listDepotsByOwnerUserId,
   getDepotById: getDepotByIdDb,
-  getDepotByDepotUserId,
   createDepot: createDepotDb,
   updateDepot: updateDepotDb,
   deleteDepot: deleteDepotDb,
   getUserById,
 } = require("../repositories");
+const {
+  listDepotsForUser,
+  assertDepotAccess,
+  hasDataScope,
+} = require("./accessScopeService");
 const { BadRequestError, NotFoundError } = require("../errors");
 
 async function validateOwnerUser(ownerUserId) {
@@ -24,29 +26,17 @@ async function validateDepotUser(depotUserId) {
 }
 
 async function listDepots(user) {
-  if (user.role === "Depot") {
-    const depot = await getDepotByDepotUserId(user.sub);
-    return depot ? [depot] : [];
-  }
-  if (user.role === "Owner") return listDepotsByOwnerUserId(user.sub);
-  return listDepotsDb();
+  return listDepotsForUser(user);
 }
 
 async function getDepotById(user, depotId) {
   const depot = await getDepotByIdDb(depotId);
-  if (!depot) throw new NotFoundError("Depot not found");
-  if (user.role === "Owner" && String(depot.ownerUserId) !== String(user.sub)) {
-    throw new BadRequestError("You can only access your own depot");
-  }
-  if (user.role === "Depot" && String(depot.depotUserId) !== String(user.sub)) {
-    throw new BadRequestError("You can only access your own depot");
-  }
-  return depot;
+  return assertDepotAccess(user, depot);
 }
 
 async function createDepot(user, payload) {
   const nextPayload = { ...payload };
-  if (user.role === "Owner") nextPayload.ownerUserId = user.sub;
+  if (hasDataScope(user, "owner")) nextPayload.ownerUserId = user.sub;
   await validateOwnerUser(nextPayload.ownerUserId);
   await validateDepotUser(nextPayload.depotUserId);
   return createDepotDb(nextPayload);
@@ -55,11 +45,9 @@ async function createDepot(user, payload) {
 async function updateDepot(user, depotId, payload) {
   const existing = await getDepotByIdDb(depotId);
   if (!existing) throw new NotFoundError("Depot not found");
-  if (user.role === "Owner" && String(existing.ownerUserId) !== String(user.sub)) {
-    throw new BadRequestError("You can only update your own depot");
-  }
+  await assertDepotAccess(user, existing);
   const nextPayload = { ...payload };
-  if (user.role === "Owner") nextPayload.ownerUserId = user.sub;
+  if (hasDataScope(user, "owner")) nextPayload.ownerUserId = user.sub;
   await validateOwnerUser(nextPayload.ownerUserId);
   await validateDepotUser(nextPayload.depotUserId);
   const depot = await updateDepotDb(depotId, nextPayload);
@@ -70,9 +58,7 @@ async function updateDepot(user, depotId, payload) {
 async function deleteDepot(user, depotId) {
   const existing = await getDepotByIdDb(depotId);
   if (!existing) throw new NotFoundError("Depot not found");
-  if (user.role === "Owner" && String(existing.ownerUserId) !== String(user.sub)) {
-    throw new BadRequestError("You can only delete your own depot");
-  }
+  await assertDepotAccess(user, existing);
   const deleted = await deleteDepotDb(depotId);
   if (!deleted) throw new NotFoundError("Depot not found");
 }

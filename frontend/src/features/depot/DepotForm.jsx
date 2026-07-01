@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { canManageMenuKey } from "../../constants/menus";
 import { Button } from "../../components/ui/Button";
 import "./DepotForm.css";
 
@@ -52,7 +53,7 @@ export function DepotCreatePopupForm({ open, user, users = [], newDepot, setNewD
           value={newDepot.address}
           onChange={(event) => setNewDepot((prev) => ({ ...prev, address: event.target.value }))}
         />
-        {user?.role === "Admin" ? (
+        {user?.dataScope === "all" ? (
           <>
             <label className="form-label" htmlFor="depot-owner-user-id">
               {t("depots.ownerUserId")}
@@ -137,7 +138,7 @@ export function DepotEditPopupForm({ open, user, users = [], editingDepot, setEd
           value={editingDepot.address}
           onChange={(event) => setEditingDepot((prev) => ({ ...prev, address: event.target.value }))}
         />
-        {user?.role === "Admin" ? (
+        {user?.dataScope === "all" ? (
           <>
             <label className="form-label" htmlFor="depot-edit-owner-user-id">
               {t("depots.ownerUserId")}

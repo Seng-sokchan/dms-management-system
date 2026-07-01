@@ -5,6 +5,9 @@ const {
   getPayment,
   getOrderPayment,
   cancelPayment,
+  getCheckoutPage,
+  startPaymentLiveCheck,
+  stopPaymentLiveCheck,
 } = require("../../../controllers/paymentController");
 const { requireAuth } = require("../../../middleware/auth");
 const { validate } = require("../../../validators/validate");
@@ -32,6 +35,13 @@ router.post(
 );
 
 router.get(
+  "/payments/:paymentId/checkout-page",
+  requireAuth,
+  validate({ params: paymentIdParamsSchema }),
+  getCheckoutPage,
+);
+
+router.get(
   "/payments/:paymentId",
   requireAuth,
   validate({ params: paymentIdParamsSchema }),
@@ -43,6 +53,20 @@ router.get(
   requireAuth,
   validate({ params: orderIdPaymentParamsSchema }),
   getOrderPayment,
+);
+
+router.post(
+  "/payments/:paymentId/live-check/start",
+  requireAuth,
+  validate({ params: paymentIdParamsSchema }),
+  startPaymentLiveCheck,
+);
+
+router.post(
+  "/payments/:paymentId/live-check/stop",
+  requireAuth,
+  validate({ params: paymentIdParamsSchema }),
+  stopPaymentLiveCheck,
 );
 
 router.post(

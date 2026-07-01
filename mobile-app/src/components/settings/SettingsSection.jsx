@@ -11,6 +11,12 @@ const THEME_OPTIONS = [
   { id: "system", labelKey: "settings.themeSystem" },
 ];
 
+const FONT_SIZE_OPTIONS = [
+  { id: "small", labelKey: "settings.fontSizeSmall" },
+  { id: "medium", labelKey: "settings.fontSizeMedium" },
+  { id: "big", labelKey: "settings.fontSizeBig" },
+];
+
 const LANG_OPTIONS = [
   { id: "en", labelKey: "language.en" },
   { id: "km", labelKey: "language.km" },
@@ -37,7 +43,8 @@ function OptionRow({ label, selected, onPress, styles }) {
 
 export default function SettingsSection() {
   const { t, i18n } = useTranslation();
-  const { colors, preference, setPreference, spacing, typography, radii } = useTheme();
+  const { colors, preference, setPreference, fontSizePreference, setFontSizePreference, spacing, typography, radii, borders } =
+    useTheme();
   const currentLang = i18n.language?.startsWith("km") ? "km" : "en";
 
   const styles = useMemo(
@@ -67,10 +74,9 @@ export default function SettingsSection() {
           paddingVertical: spacing.sm,
           paddingHorizontal: spacing.sm,
           borderRadius: radii.pill,
-          borderWidth: 1,
-          borderColor: colors.border,
           backgroundColor: colors.surfaceSoft,
           alignItems: "center",
+          ...borders.panel,
         },
         pillActive: {
           backgroundColor: colors.primary,
@@ -91,10 +97,9 @@ export default function SettingsSection() {
           paddingVertical: spacing.md,
           paddingHorizontal: spacing.md,
           borderRadius: radii.md,
-          borderWidth: 1,
-          borderColor: colors.border,
           marginBottom: spacing.sm,
           backgroundColor: colors.surfaceSoft,
+          ...borders.panel,
         },
         langRowSelected: {
           borderColor: colors.primary,
@@ -114,7 +119,7 @@ export default function SettingsSection() {
           color: colors.primary,
         },
       }),
-    [colors, radii, spacing, typography],
+    [borders.panel, colors, radii, spacing, typography],
   );
 
   return (
@@ -130,6 +135,26 @@ export default function SettingsSection() {
             <Pressable
               key={opt.id}
               onPress={() => setPreference(opt.id)}
+              style={[styles.pill, active && styles.pillActive]}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: active }}
+              accessibilityLabel={label}
+            >
+              <Text style={[styles.pillText, active && styles.pillTextActive]}>{label}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <Text style={styles.rowLabel}>{t("settings.fontSize")}</Text>
+      <View style={styles.pillRow} accessibilityRole="radiogroup">
+        {FONT_SIZE_OPTIONS.map((opt) => {
+          const active = fontSizePreference === opt.id;
+          const label = t(opt.labelKey);
+          return (
+            <Pressable
+              key={opt.id}
+              onPress={() => setFontSizePreference(opt.id)}
               style={[styles.pill, active && styles.pillActive]}
               accessibilityRole="radio"
               accessibilityState={{ selected: active }}

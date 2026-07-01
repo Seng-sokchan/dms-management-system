@@ -28,7 +28,7 @@ export default function DeliveryConfirmationModal({
   onCancel,
 }) {
   const { t } = useTranslation();
-  const { colors, layout, radii, spacing, typography } = useTheme();
+  const { colors, layout, radii, spacing, typography, borders } = useTheme();
   const [lossText, setLossText] = useState("0");
   const [fieldError, setFieldError] = useState("");
 
@@ -60,8 +60,7 @@ export default function DeliveryConfirmationModal({
           backgroundColor: colors.surface,
           borderRadius: radii.xl,
           padding: spacing.lg,
-          borderWidth: 1,
-          borderColor: colors.border,
+          ...borders.panel,
         },
         title: {
           fontSize: typography.h3,
@@ -105,8 +104,7 @@ export default function DeliveryConfirmationModal({
         },
         btnSecondary: {
           backgroundColor: colors.surfaceSoft,
-          borderWidth: 1,
-          borderColor: colors.border,
+          ...borders.panel,
         },
         btnTextPrimary: {
           color: colors.onPrimary,
@@ -117,7 +115,7 @@ export default function DeliveryConfirmationModal({
           fontWeight: "600",
         },
       }),
-    [colors, layout.modalMaxWidth, radii, spacing, typography],
+    [borders.panel, colors, layout.modalMaxWidth, radii, spacing, typography],
   );
 
   function validate() {

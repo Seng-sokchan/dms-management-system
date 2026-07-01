@@ -7,7 +7,7 @@ const {
   deactivateUser,
   setDeliveryAgentUserLink,
 } = require("../users");
-const { listMenuKeysForRoleName, listRoleMenusMap, replaceRoleMenus } = require("../roleMenus");
+const { listMenuKeysForRoleName, listManageMenuKeysForRoleName, listRoleMenusMap, replaceRoleMenus } = require("../roleMenus");
 
 module.exports = {
   listUsers,
@@ -18,6 +18,7 @@ module.exports = {
   deactivateUser,
   setDeliveryAgentUserLink,
   listMenuKeysForRoleName,
+  listManageMenuKeysForRoleName,
   listRoleMenusMap,
   replaceRoleMenus,
 };

@@ -38,7 +38,7 @@
     "title": "Admin Panel",
     "welcome": "Welcome",
     "loginHeading": "Login",
-    "blurb": "Sign in to manage orders, delivery, and payments. Demo: admin / admin123, owner / owner123, depot1 / depot123, logistics / logistics123",
+    "blurb": "Sign in to manage orders, delivery, and payments.",
     "username": "Username",
     "password": "Password",
     "placeholderUsername": "Enter your username",
@@ -493,6 +493,63 @@
     "roleMenusSaved": "Menu access updated",
     "roleMenusSectionLabel": "Visible areas",
     "roleMenusRequiredBadge": "Required",
+    "menuClient": "Client",
+    "clientAdmin": "Admin panel",
+    "clientAdminDesc": "Web back-office for staff and operators.",
+    "clientMobile": "Mobile app",
+    "clientMobileDesc": "Customer, delivery, and depot mobile experiences.",
+    "configureRoleAccess": "Role access",
+    "roleAccessTitle": "Role access settings",
+    "roleAccessLead": "Set how far each role can see data, which apps they may use, and which live updates they receive.",
+    "roleAccessSave": "Save access",
+    "roleAccessSaved": "Role access updated",
+    "dataScopeSectionLabel": "Data visibility",
+    "allowedClientsSectionLabel": "Allowed apps",
+    "socketChannelsSectionLabel": "Live updates",
+    "socketChannelDeliveryLocations": "Delivery location tracking",
+    "socketChannelDeliveryLocationsDesc": "Subscribe to live GPS updates from delivery agents.",
+    "dataScope": {
+      "all": {
+        "label": "All data",
+        "desc": "Full access across customers, depots, and orders."
+      },
+      "owner": {
+        "label": "Owner-linked",
+        "desc": "Only records tied to the logged-in owner account."
+      },
+      "depot": {
+        "label": "Depot-linked",
+        "desc": "Only the depot and customers assigned to that depot."
+      },
+      "customer": {
+        "label": "Own customer",
+        "desc": "Only the customer record linked to this login."
+      },
+      "delivery_agent": {
+        "label": "Assigned deliveries",
+        "desc": "Only orders assigned to the linked delivery agent."
+      },
+      "none": {
+        "label": "No data scope",
+        "desc": "Cannot browse scoped business records directly."
+      }
+    },
+    "configureStatusWorkflow": "Order workflow",
+    "configureStatusPermissions": "Status permissions",
+    "statusPermissionsTitle": "Status permissions by role",
+    "statusPermissionsLead": "Control which roles can move orders into each status and confirm customer delivery.",
+    "statusPermissionsSave": "Save permissions",
+    "statusPermissionsSaved": "Status permissions updated",
+    "statusPermRoleColumn": "Role",
+    "statusPermActionUpdate": "Update",
+    "statusPermActionConfirm": "Confirm",
+    "statusPermLegendUpdate": "Allow moving orders into this status.",
+    "statusPermLegendConfirm": "Allow confirming customer received delivery (typically at Received by customer).",
+    "statusPermToggleAria": "{{role}} — {{status}} — {{action}}",
+    "statusWorkflowTitle": "Order status workflow",
+    "statusWorkflowLead": "Choose which status each order step can move to next.",
+    "statusWorkflowSave": "Save workflow",
+    "statusWorkflowSaved": "Order workflow updated",
     "renewTokenSuccess": "Bakong token has been renewed",
     "linkedCustomer": "Linked customer",
     "selectCustomer": "— Unassigned —",
@@ -767,6 +824,7 @@
     "saveBakongToken": "Could not save Bakong token",
     "confirmBakongPayment": "Could not record payment in the app. The transaction still succeeded on Bakong.",
     "updateRoleMenus": "Could not save menu access for that role",
+    "updateStatusTransitions": "Could not save order status workflow",
     "createBorrowMaterial": "Create borrow material failed",
     "updateBorrowMaterial": "Update borrow material failed",
     "deleteBorrowMaterial": "Delete borrow material failed",

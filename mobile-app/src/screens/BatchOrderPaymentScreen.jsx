@@ -1,24 +1,15 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, FlatList, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useCallback, useMemo } from "react";
+import { Alert, FlatList, ScrollView, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
-import { useTheme } from "../context/ThemeContext";
-import KhqrPaymentModal from "../components/KhqrPaymentModal";
-import { Card, PrimaryButton, Screen, SectionHeader } from "../components/ui";
-import { usePaymentStatus } from "../hooks/usePaymentStatus";
+import PaymentMethodOption from "../components/payment/PaymentMethodOption";
+import { AbaKhqrMethodIcon } from "../components/payment/PaymentMethodIcons";
+import { usePaymentCheckoutStyles } from "../components/payment/usePaymentCheckoutStyles";
+import { Screen } from "../components/ui";
+import { useAbaKhqrCheckout } from "../hooks/useAbaKhqrCheckout";
 import { getApiErrorMessage } from "../services/apiClient";
 import { createBatchPaymentIntent, getOrderPayment } from "../services/paymentsApi";
-import { setPendingPaymentReturn } from "../services/paymentPendingStorage";
-import { openAbaPaywayCheckout } from "../utils/openAbaPayway";
-import { createKhqrIntentWithRetry, hasKhqrData } from "../utils/createKhqrIntent";
-import { isIntentExpired } from "../utils/paymentReturnRouting";
-
-function formatAmount(amount, currency) {
-  const n = Number(amount);
-  if (!Number.isFinite(n)) return "—";
-  if (currency === "KHR") return `${Math.round(n).toLocaleString()} KHR`;
-  return `${n.toFixed(2)} USD`;
-}
+import { formatPaymentAmount } from "../utils/formatPaymentAmount";
 
 export default function BatchOrderPaymentScreen({ route, navigation }) {
   const batchId = route.params?.batchId;
@@ -28,194 +19,83 @@ export default function BatchOrderPaymentScreen({ route, navigation }) {
   );
   const { token, user } = useAuth();
   const { t } = useTranslation();
-  const { colors, sizes, spacing, typography } = useTheme();
-  const [submitting, setSubmitting] = useState(false);
-  const [khqrVisible, setKhqrVisible] = useState(false);
-  const [khqrSession, setKhqrSession] = useState(null);
-  const [activePaymentId, setActivePaymentId] = useState(null);
+  const styles = usePaymentCheckoutStyles();
 
   const currency = orders[0]?.currency || "KHR";
   const totalAmount = useMemo(
     () => orders.reduce((sum, order) => sum + Number(order?.amountTotal || 0), 0),
     [orders],
   );
-  const amountLabel = formatAmount(totalAmount, currency);
+  const amountLabel = formatPaymentAmount(totalAmount, currency);
   const orderIds = useMemo(() => orders.map((order) => order.id), [orders]);
+  const merchantName = t("payment.storeName");
 
-  const { status: polledStatus } = usePaymentStatus(activePaymentId, {
-    autoRefresh: Boolean(activePaymentId) && !khqrVisible,
-  });
+  const buildPendingReturn = useCallback(
+    (resolved) => ({
+      paymentId: resolved.paymentId,
+      orderId: orderIds[0] ?? null,
+      batchId,
+      orderIds,
+      orders,
+      role: user?.role || "Depot",
+    }),
+    [batchId, orderIds, orders, user?.role],
+  );
 
-  const goToPaymentSuccess = useCallback(
-    (paymentId) => {
+  const onPaymentSuccess = useCallback(
+    (paymentId, { fromAbaReturn = false } = {}) => {
       if (!paymentId) return;
       navigation.replace("PaymentResult", {
         paymentId,
         orderId: orderIds[0] ?? null,
         batchId,
         orderIds,
-        fromAbaReturn: false,
+        fromAbaReturn,
       });
     },
     [batchId, navigation, orderIds],
   );
 
-  useEffect(() => {
-    const firstOrderId = orderIds[0];
-    if (!token || !firstOrderId) return;
-    void getOrderPayment(token, firstOrderId).then((data) => {
+  const resumePaymentLookup = useCallback(
+    async (authToken) => {
+      const firstOrderId = orderIds[0];
+      if (!firstOrderId) return null;
+      const data = await getOrderPayment(authToken, firstOrderId);
       const paymentId = data?.payment?.paymentId;
-      if (data?.paymentStatus === "pending" && paymentId) {
-        setActivePaymentId(paymentId);
+      if (data?.paymentStatus === "unpaid" && paymentId && data?.payment?.liveCheckActive) {
+        return paymentId;
       }
-    });
-  }, [orderIds, token]);
-
-  useEffect(() => {
-    if (polledStatus === "paid" && activePaymentId) {
-      goToPaymentSuccess(activePaymentId);
-    }
-  }, [activePaymentId, goToPaymentSuccess, polledStatus]);
-
-  const styles = useMemo(
-    () =>
-      StyleSheet.create({
-        amount: {
-          fontSize: typography.title,
-          fontWeight: "800",
-          color: colors.textPrimary,
-          marginTop: spacing.sm,
-        },
-        note: {
-          marginTop: spacing.md,
-          color: colors.textMuted,
-          fontSize: typography.bodySmall,
-          lineHeight: 20,
-        },
-        lineRow: {
-          paddingVertical: spacing.sm,
-          borderBottomWidth: StyleSheet.hairlineWidth,
-          borderBottomColor: colors.border,
-        },
-        lineTitle: {
-          fontSize: typography.bodySmall,
-          fontWeight: "700",
-          color: colors.textPrimary,
-        },
-        lineMeta: {
-          marginTop: 2,
-          fontSize: typography.caption,
-          color: colors.textSecondary,
-        },
-        outlineButton: {
-          marginTop: spacing.md,
-          minHeight: sizes.touchTarget,
-          borderRadius: 999,
-          borderWidth: 1.5,
-          borderColor: colors.primary,
-          alignItems: "center",
-          justifyContent: "center",
-          paddingHorizontal: spacing.lg,
-        },
-        outlineButtonPressed: { opacity: 0.85 },
-        outlineButtonText: {
-          color: colors.primary,
-          fontSize: typography.button,
-          fontWeight: "700",
-        },
-        outlineButtonDisabled: { opacity: 0.5 },
-        scrollContent: {
-          paddingBottom: spacing.xxl,
-        },
-      }),
-    [colors, sizes.touchTarget, spacing, typography],
+      return null;
+    },
+    [orderIds],
   );
 
-  const startCheckout = async (paymentOption) => {
-    if (!token || !batchId) return null;
-    return createBatchPaymentIntent(token, { batchId, paymentOption });
-  };
+  const { submitting, startCheckout, checkoutModals } = useAbaKhqrCheckout({
+    token,
+    user,
+    amountLabel,
+    merchantName,
+    buildPendingReturn,
+    onPaymentSuccess,
+    resumePaymentLookup,
+  });
 
-  const openKhqrSession = (intent) => {
-    if (isIntentExpired(intent?.expiresAt)) {
-      Alert.alert(t("payment.intentFailed"), t("payment.intentFailed"));
-      return;
-    }
-    setActivePaymentId(intent.paymentId);
-    setKhqrSession({
-      paymentId: intent.paymentId,
-      qrString: intent.qrString,
-      qrImageUrl: intent.qrImageUrl,
-      expiresAt: intent.expiresAt,
+  const handleAbaKhqrPay = () => {
+    if (!token || !batchId) return;
+    void startCheckout(async () => {
+      try {
+        return await createBatchPaymentIntent(token, {
+          batchId,
+          paymentOption: "checkout",
+        });
+      } catch (err) {
+        Alert.alert(
+          t("depot.batchPaymentFailedTitle"),
+          getApiErrorMessage(err, t("depot.batchPaymentFailedDefault")),
+        );
+        throw err;
+      }
     });
-    setKhqrVisible(true);
-  };
-
-  const handlePay = async () => {
-    if (!token || !batchId) return;
-    setSubmitting(true);
-    try {
-      const intent = await startCheckout("abapay_deeplink");
-
-      if (isIntentExpired(intent?.expiresAt)) {
-        Alert.alert(t("payment.intentFailed"), t("payment.intentFailed"));
-        return;
-      }
-
-      setActivePaymentId(intent.paymentId);
-
-      await setPendingPaymentReturn({
-        paymentId: intent.paymentId,
-        orderId: orderIds[0] ?? null,
-        batchId,
-        orderIds,
-        orders,
-        role: user?.role || "Depot",
-      });
-
-      await openAbaPaywayCheckout(intent, { t });
-    } catch (err) {
-      Alert.alert(
-        t("depot.batchPaymentFailedTitle"),
-        getApiErrorMessage(err, t("depot.batchPaymentFailedDefault")),
-      );
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleKhqrPay = async () => {
-    if (!token || !batchId) return;
-    setSubmitting(true);
-    try {
-      const intent = await createKhqrIntentWithRetry(token, () => startCheckout("abapay_khqr"));
-
-      if (!hasKhqrData(intent)) {
-        Alert.alert(t("payment.intentFailed"), t("payment.khqrNoData"));
-        return;
-      }
-
-      openKhqrSession(intent);
-    } catch (err) {
-      Alert.alert(
-        t("depot.batchPaymentFailedTitle"),
-        getApiErrorMessage(err, t("depot.batchPaymentFailedDefault")),
-      );
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleKhqrPaid = () => {
-    if (!khqrSession?.paymentId) return;
-    setKhqrVisible(false);
-    goToPaymentSuccess(khqrSession.paymentId);
-    setKhqrSession(null);
-  };
-
-  const handleKhqrClose = () => {
-    setKhqrVisible(false);
-    setKhqrSession(null);
   };
 
   if (!batchId || orders.length === 0) {
@@ -228,49 +108,19 @@ export default function BatchOrderPaymentScreen({ route, navigation }) {
 
   return (
     <Screen busy={submitting} busyMessage={t("payment.starting")}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        <SectionHeader
-          title={t("depot.batchCheckoutTitle")}
-          subtitle={t("depot.batchCheckoutSubtitle", { count: orders.length })}
-        />
-        <Card>
-          <Text style={{ color: colors.textMuted }}>
-            {t("depot.batchCheckoutLabel", { count: orders.length })}
-          </Text>
-          <Text style={styles.amount}>{amountLabel}</Text>
-          <Text style={styles.note}>{t("payment.secureNote")}</Text>
-        </Card>
-
-        <PrimaryButton
-          title={submitting ? t("payment.starting") : t("payment.payWithAba")}
-          onPress={handlePay}
-          disabled={submitting}
-          style={{ marginTop: spacing.lg }}
-        />
-        <Pressable
-          onPress={handleKhqrPay}
-          disabled={submitting}
-          style={({ pressed }) => [
-            styles.outlineButton,
-            submitting && styles.outlineButtonDisabled,
-            pressed && !submitting && styles.outlineButtonPressed,
-          ]}
-        >
-          <Text style={styles.outlineButtonText}>
-            {submitting ? t("payment.starting") : t("payment.payWithKhqr")}
-          </Text>
-        </Pressable>
-
-        <Card style={{ marginTop: spacing.lg }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        <View style={styles.orderSummaryCard}>
           <FlatList
             data={orders}
             keyExtractor={(item) => String(item.id)}
             scrollEnabled={false}
-            renderItem={({ item }) => (
-              <View style={styles.lineRow}>
+            renderItem={({ item, index }) => (
+              <View
+                style={[
+                  styles.lineRow,
+                  index === orders.length - 1 && styles.lineRowLast,
+                ]}
+              >
                 <Text style={styles.lineTitle}>
                   {t("payment.orderLabel", { id: item.id })}
                 </Text>
@@ -283,19 +133,28 @@ export default function BatchOrderPaymentScreen({ route, navigation }) {
               </View>
             )}
           />
-        </Card>
+        </View>
+
+        <View style={styles.amountCard}>
+          <Text style={styles.amountLabel}>
+            {t("depot.batchCheckoutLabel", { count: orders.length })}
+          </Text>
+          <Text style={styles.amountValue}>{amountLabel}</Text>
+        </View>
+
+        <Text style={styles.title}>{t("payment.choosePaymentTitle")}</Text>
+
+        <View style={styles.list}>
+          <PaymentMethodOption
+            icon={<AbaKhqrMethodIcon />}
+            title={t("payment.methodAbaKhqr")}
+            subtitle={t("payment.methodAbaKhqrHint")}
+            onPress={handleAbaKhqrPay}
+          />
+        </View>
       </ScrollView>
 
-      <KhqrPaymentModal
-        visible={khqrVisible}
-        paymentId={khqrSession?.paymentId}
-        qrString={khqrSession?.qrString}
-        qrImageUrl={khqrSession?.qrImageUrl}
-        expiresAt={khqrSession?.expiresAt}
-        amountLabel={amountLabel}
-        onClose={handleKhqrClose}
-        onPaid={handleKhqrPaid}
-      />
+      {checkoutModals}
     </Screen>
   );
 }

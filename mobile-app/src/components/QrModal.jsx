@@ -6,7 +6,7 @@ import { useTheme } from "../context/ThemeContext";
 
 export default function QrModal({ visible, qrValue, onClose }) {
   const { t } = useTranslation();
-  const { colors, layout, radii, sizes, spacing, typography } = useTheme();
+  const { colors, layout, radii, sizes, spacing, typography, borders } = useTheme();
 
   const styles = useMemo(
     () =>
@@ -25,6 +25,7 @@ export default function QrModal({ visible, qrValue, onClose }) {
           borderRadius: radii.xl,
           padding: spacing.xl,
           alignItems: "center",
+          ...borders.panel,
         },
         title: {
           fontSize: typography.h3,
@@ -44,6 +45,7 @@ export default function QrModal({ visible, qrValue, onClose }) {
           padding: spacing.lg,
           backgroundColor: colors.surface,
           borderRadius: radii.lg,
+          ...borders.panel,
         },
         meta: {
           fontSize: typography.caption,
@@ -68,7 +70,7 @@ export default function QrModal({ visible, qrValue, onClose }) {
           textAlign: "center",
         },
       }),
-    [colors, layout.modalMaxWidth, radii, sizes.modalButtonMinWidth, spacing, typography],
+    [borders.panel, colors, layout.modalMaxWidth, radii, sizes.modalButtonMinWidth, spacing, typography],
   );
 
   return (

@@ -39,7 +39,7 @@ export function DeliveryOrdersBottomSheet({
   peekSubtitle,
   children,
 }) {
-  const { colors, radii, shadows, sizes, spacing, typography } = useTheme();
+  const { colors, radii, shadows, sizes, spacing, typography, borders } = useTheme();
   const { height: windowHeight } = useWindowDimensions();
   const styles = useMemo(
     () =>
@@ -52,6 +52,8 @@ export function DeliveryOrdersBottomSheet({
           backgroundColor: colors.surface,
           borderTopLeftRadius: radii.xl,
           borderTopRightRadius: radii.xl,
+          ...borders.dividerTop,
+          borderTopWidth: 1.5,
           ...shadows.card,
         },
         handleZone: {
@@ -66,7 +68,7 @@ export function DeliveryOrdersBottomSheet({
           width: sizes.sheetHandleWidth,
           height: 4,
           borderRadius: radii.pill,
-          backgroundColor: colors.border,
+          backgroundColor: colors.borderStrong,
           marginBottom: spacing.xs,
         },
         peekTitle: {
@@ -97,7 +99,7 @@ export function DeliveryOrdersBottomSheet({
           paddingHorizontal: spacing.lg,
         },
       }),
-    [colors, radii, shadows, sizes.sheetHandleWidth, spacing, typography],
+    [borders, colors, radii, shadows, sizes.sheetHandleWidth, spacing, typography],
   );
   const insets = useSafeAreaInsets();
   const screenHeight = windowHeight;

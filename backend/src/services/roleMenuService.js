@@ -1,5 +1,5 @@
-const { ROLES } = require("../constants");
-const { MENU_KEY_SET } = require("../constants/roleMenus");
+const { isKnownRole, isKnownMenuKey } = require("./rulesService");
+const { refreshRulesCache } = require("./rulesCache");
 const { listRoleMenusMap, replaceRoleMenus } = require("../repositories");
 const { BadRequestError, NotFoundError } = require("../errors");
 
@@ -8,12 +8,13 @@ async function getRoleMenus() {
 }
 
 async function saveRoleMenus(roleName, menuKeys) {
-  if (!ROLES.includes(roleName)) throw new BadRequestError("Unknown role");
+  if (!isKnownRole(roleName)) throw new BadRequestError("Unknown role");
   for (const key of menuKeys) {
-    if (!MENU_KEY_SET.has(key)) throw new BadRequestError(`Invalid menu key: ${key}`);
+    if (!isKnownMenuKey(key)) throw new BadRequestError(`Invalid menu key: ${key}`);
   }
   try {
     const nextMenuKeys = await replaceRoleMenus(roleName, menuKeys);
+    await refreshRulesCache();
     return { role: roleName, menuKeys: nextMenuKeys };
   } catch (error) {
     if (error && error.message === "Role not found") throw new NotFoundError("Role not found");

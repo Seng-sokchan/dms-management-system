@@ -1,7 +1,13 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { ORDER_STATUS } from "../../services/adminApi";
 import "./DashboardSummary.css";
+
+const ORDER_STATUS_FALLBACK = [
+  "Owner_Preparing",
+  "Sent_To_Factory",
+  "Ready_For_Delivery",
+  "Recieve_By_Customer",
+];
 
 export function DashboardSummary({ summary, statuses, isRefreshing = false }) {
   const { t } = useTranslation();
@@ -40,7 +46,7 @@ export function DashboardSummary({ summary, statuses, isRefreshing = false }) {
   }
 
   const { totals, statusSummary } = summary;
-  const statusOptions = Array.isArray(statuses) && statuses.length ? statuses.map((row) => row.name) : ORDER_STATUS;
+  const statusOptions = Array.isArray(statuses) && statuses.length ? statuses.map((row) => row.name) : ORDER_STATUS_FALLBACK;
   const orderStatusLabels = t("enums.orderStatus", { returnObjects: true });
   const totalOrders = Number(totals.orders || 0);
   const deliveredCount = Number(statusSummary?.Recieve_By_Customer || 0);

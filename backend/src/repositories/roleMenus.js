@@ -1,5 +1,4 @@
 const { getPool } = require("../../database/pool");
-const { DEFAULT_MENUS_BY_ROLE } = require("../constants/roleMenus");
 const V = require("./sql/readViews");
 
 async function getRoleIdByName(name) {
@@ -7,20 +6,38 @@ async function getRoleIdByName(name) {
   return rows[0] ? rows[0].id : null;
 }
 
-async function listMenuKeysForRoleName(roleName) {
-  const [rows] = await getPool().query(
-    `SELECT menu_key FROM ${V.ROLE_MENUS} WHERE role_name = ? ORDER BY menu_key DESC`,
-    [roleName],
-  );
-  if (rows.length) {
-    return rows.map((row) => row.menu_key);
+async function listMenuKeysForRoleName(roleName, { client } = {}) {
+  let sql = `SELECT menu_key, client FROM ${V.ROLE_MENUS} WHERE role_name = ?`;
+  const params = [roleName];
+  if (client) {
+    sql += " AND client = ?";
+    params.push(client);
   }
-  return DEFAULT_MENUS_BY_ROLE[roleName] ? [...DEFAULT_MENUS_BY_ROLE[roleName]] : ["overview"];
+  sql += " ORDER BY menu_key DESC";
+  const [rows] = await getPool().query(sql, params);
+  return rows.map((row) => row.menu_key);
 }
 
-async function listRoleMenusMap() {
+async function listManageMenuKeysForRoleName(roleName, { client } = {}) {
+  let sql = `SELECT menu_key FROM ${V.ROLE_MENUS} WHERE role_name = ? AND access_level = 'manage'`;
+  const params = [roleName];
+  if (client) {
+    sql += " AND client = ?";
+    params.push(client);
+  }
+  const [rows] = await getPool().query(sql, params);
+  return rows.map((row) => row.menu_key);
+}
+
+async function listRoleMenusMap({ client } = {}) {
   const [roles] = await getPool().query(`SELECT id, name FROM ${V.ROLES} ORDER BY id DESC`);
-  const [rows] = await getPool().query(`SELECT role_name, menu_key FROM ${V.ROLE_MENUS}`);
+  let sql = `SELECT role_name, menu_key FROM ${V.ROLE_MENUS}`;
+  const params = [];
+  if (client) {
+    sql += " WHERE client = ?";
+    params.push(client);
+  }
+  const [rows] = await getPool().query(sql, params);
   const byRole = {};
   for (const r of roles) {
     byRole[r.name] = [];
@@ -28,11 +45,6 @@ async function listRoleMenusMap() {
   for (const row of rows) {
     if (!byRole[row.role_name]) byRole[row.role_name] = [];
     byRole[row.role_name].push(row.menu_key);
-  }
-  for (const r of roles) {
-    if (!byRole[r.name].length && DEFAULT_MENUS_BY_ROLE[r.name]) {
-      byRole[r.name] = [...DEFAULT_MENUS_BY_ROLE[r.name]];
-    }
   }
   return byRole;
 }
@@ -63,6 +75,7 @@ async function replaceRoleMenus(roleName, menuKeys) {
 module.exports = {
   getRoleIdByName,
   listMenuKeysForRoleName,
+  listManageMenuKeysForRoleName,
   listRoleMenusMap,
   replaceRoleMenus,
 };

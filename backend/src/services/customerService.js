@@ -1,30 +1,22 @@
 const { getPool } = require("../../database/pool");
 const {
-  listCustomers: listCustomersDb,
-  listCustomersByDepotId,
-  listCustomersByOwnerUserId,
-  createCustomer: createCustomerDb,
-  updateCustomer: updateCustomerDb,
-  deleteCustomer: deleteCustomerDb,
   listUsers: listUsersDb,
   getUserById,
   getDepotById,
-  getDepotByDepotUserId,
   getProvinceById,
   getCustomerById,
   setCustomerUserLink,
 } = require("../repositories");
+const {
+  listCustomersForUser,
+  getDepotForUser,
+  hasDataScope,
+  getDataScopeForUser,
+} = require("./accessScopeService");
 const { BadRequestError, NotFoundError } = require("../errors");
 
 async function getAllowedCustomers(user) {
-  if (user.role === "Admin") return listCustomersDb();
-  if (user.role === "Owner") return listCustomersByOwnerUserId(user.sub);
-  if (user.role === "Depot") {
-    const depot = await getDepotByDepotUserId(user.sub);
-    if (!depot) return [];
-    return listCustomersByDepotId(depot.id);
-  }
-  return [];
+  return listCustomersForUser(user);
 }
 
 async function listCustomers(user) {
@@ -34,7 +26,7 @@ async function listCustomers(user) {
 async function listCustomerUsers(user) {
   const users = await listUsersDb();
   let customerUsers = users.filter((row) => row.role === "Customer" && row.isActive);
-  if (user.role === "Depot") {
+  if (hasDataScope(user, "depot")) {
     const scopedCustomers = await getAllowedCustomers(user);
     const scopedCustomerIds = new Set(scopedCustomers.map((c) => String(c.id)));
     customerUsers = customerUsers.filter(
@@ -53,17 +45,18 @@ async function validateCustomerUser(userId) {
 
 async function assertDepotAccess(user, depotId) {
   if (!depotId) {
-    if (user.role === "Depot") {
+    if (hasDataScope(user, "depot")) {
       throw new BadRequestError("Depot users must assign customers to their own depot");
     }
     return;
   }
   const depot = await getDepotById(depotId);
   if (!depot) throw new BadRequestError("Depot not found");
-  if (user.role === "Owner" && String(depot.ownerUserId) !== String(user.sub)) {
+  const scope = getDataScopeForUser(user);
+  if (scope === "owner" && String(depot.ownerUserId) !== String(user.sub)) {
     throw new BadRequestError("Owner can only manage customers in owned depots");
   }
-  if (user.role === "Depot" && String(depot.depotUserId) !== String(user.sub)) {
+  if (scope === "depot" && String(depot.depotUserId) !== String(user.sub)) {
     throw new BadRequestError("Depot can only manage customers in own depot");
   }
 }
@@ -77,8 +70,8 @@ async function assertProvinceExists(provinceId) {
 async function createCustomer(user, payload) {
   const nextPayload = { ...payload };
   await validateCustomerUser(nextPayload.userId);
-  if (user.role === "Depot") {
-    const depot = await getDepotByDepotUserId(user.sub);
+  if (hasDataScope(user, "depot")) {
+    const depot = await getDepotForUser(user);
     if (!depot) throw new BadRequestError("Depot profile not found for current user");
     nextPayload.depotId = depot.id;
   }
@@ -90,7 +83,7 @@ async function createCustomer(user, payload) {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
-    const created = await createCustomerDb(customerPayload, conn);
+    const created = await require("../repositories").createCustomer(customerPayload, conn);
     if (userId) {
       await setCustomerUserLink(conn, Number(created.id), Number(userId));
     }
@@ -110,8 +103,8 @@ async function updateCustomer(user, customerId, payload) {
   if (!canAccess) throw new NotFoundError("Customer not found");
   const nextPayload = { ...payload };
   await validateCustomerUser(nextPayload.userId);
-  if (user.role === "Depot") {
-    const depot = await getDepotByDepotUserId(user.sub);
+  if (hasDataScope(user, "depot")) {
+    const depot = await getDepotForUser(user);
     if (!depot) throw new BadRequestError("Depot profile not found for current user");
     nextPayload.depotId = depot.id;
   }
@@ -123,7 +116,7 @@ async function updateCustomer(user, customerId, payload) {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
-    const customer = await updateCustomerDb(customerId, customerPayload, conn);
+    const customer = await require("../repositories").updateCustomer(customerId, customerPayload, conn);
     if (!customer) {
       await conn.rollback();
       throw new NotFoundError("Customer not found");
@@ -149,7 +142,7 @@ async function deleteCustomer(user, customerId) {
   const allowedCustomers = await getAllowedCustomers(user);
   const canAccess = allowedCustomers.some((customer) => String(customer.id) === String(customerId));
   if (!canAccess) throw new NotFoundError("Customer not found");
-  const deleted = await deleteCustomerDb(customerId);
+  const deleted = await require("../repositories").deleteCustomer(customerId);
   if (!deleted) throw new NotFoundError("Customer not found");
 }
 

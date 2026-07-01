@@ -5,6 +5,7 @@ import { DataTable } from "../components/ui/DataTable";
 import { useConfirm } from "../components/ui/ConfirmProvider";
 import { DepotCreatePopupForm, DepotEditPopupForm } from "../features/depot/DepotForm";
 import "../features/depot/depots.css";
+import { canManageMenuKey } from "../constants/menus";
 import { usePagination } from "../hooks/usePagination";
 
 const EMPTY_EDIT = {
@@ -28,7 +29,7 @@ export function DepotsPage({
 }) {
   const { t } = useTranslation();
   const { confirm } = useConfirm();
-  const canManageDepots = user?.role === "Admin" || user?.role === "Owner";
+  const canManageDepots = canManageMenuKey(user, "depots");
 
   const [depotSearchText, setDepotSearchText] = useState("");
   const [depotAppliedSearch, setDepotAppliedSearch] = useState("");

@@ -43,24 +43,12 @@ const PATH_TO_MENU_KEY = MENU_ITEMS.reduce((acc, item) => {
   return acc;
 }, {});
 
-/**
- * @param {string} pathname
- * @returns {string|undefined}
- */
 export function menuKeyForPathname(pathname) {
   return PATH_TO_MENU_KEY[pathname];
 }
 
-/**
- * @param {{ role?: string, allowedMenus?: string[] }|null|undefined} user
- * @param {string} menuKey
- */
 export function canAccessMenuKey(user, menuKey) {
-  if (!menuKey) return false;
-  if (!user) return false;
-  if (user.role === "Admin") return true;
-  if (menuKey === "users") return false;
-
+  if (!menuKey || !user) return false;
   const allowed = user.allowedMenus;
   if (!Array.isArray(allowed) || allowed.length === 0) return false;
 
@@ -70,10 +58,24 @@ export function canAccessMenuKey(user, menuKey) {
   return allowed.includes(menuKey);
 }
 
-/**
- * @param {{ allowedMenus?: string[] }|null|undefined} user
- * @param {string} pathname
- */
+export function canManageMenuKey(user, menuKey) {
+  if (!canAccessMenuKey(user, menuKey)) return false;
+  const manageMenus = user?.manageMenus;
+  if (Array.isArray(manageMenus)) {
+    return manageMenus.includes(menuKey);
+  }
+  return false;
+}
+
+export function hasAdminClientAccess(user) {
+  if (!user) return false;
+  const clients = user.allowedClients;
+  if (Array.isArray(clients) && clients.length) {
+    return clients.includes("admin");
+  }
+  return Array.isArray(user.allowedMenus) && user.allowedMenus.length > 0;
+}
+
 export function canAccessPath(user, pathname) {
   const key = menuKeyForPathname(pathname);
   if (!key) return true;

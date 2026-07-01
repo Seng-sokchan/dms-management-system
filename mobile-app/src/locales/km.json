@@ -12,7 +12,11 @@
     "themeLight": "ភ្លឺ",
     "themeDark": "ងងឹត",
     "themeSystem": "ប្រព័ន្ធ",
-    "language": "ភាសា"
+    "language": "ភាសា",
+    "fontSize": "ទំហំអក្សរ",
+    "fontSizeSmall": "តូច",
+    "fontSizeMedium": "មធ្យម",
+    "fontSizeBig": "ធំ"
   },
   "profile": {
     "title": "ប្រវត្តិរូប",
@@ -223,10 +227,37 @@
     "orderMeta": "{{status}} · {{amount}}",
     "checkoutTitle": "បង់ការបញ្ជាទិញ",
     "checkoutSubtitle": "បង់ប្រាក់សុវត្ថិភាពតាម ABA PayWay",
+    "checkoutOrderSubtitle": "១ ការបញ្ជាទិញក្នុងការបង់មួយ",
     "orderLabel": "ការបញ្ជាទិញ #{{id}}",
-    "secureNote": "ការបង់ប្រាក់ត្រូវបានបញ្ជាក់នៅលើម៉ាស៊ីនមេបន្ទាប់ពី ABA PayWay ជូនដំណឹង។ ការត្រឡប់មកកាន់កម្មវិធីមិនមានន័យថាបានបង់ដោយខ្លួនឯងទេ។",
-    "payWithAba": "បង់ជាមួយ ABA",
-    "payWithKhqr": "បង់ជាមួយ KHQR",
+    "abaKhqrButtonA11y": "បង់ជាមួយ ABA KHQR។ សcan ដោយកម្មវិធីធនាគារណាមួយ។",
+    "checkoutWebTitle": "ABA PayWay Checkout",
+    "checkoutWebClose": "បិទ",
+    "checkoutWebHint": "បញ្ចប់ការបង់ប្រាក់ក្នុង PayWay។ ស្ថានភាព៖ {{status}}",
+    "checkoutUnavailable": "មិនអាចបើក PayWay checkout បានទេ។ ពិនិត្យការកំណត់ PayWay នៅលើម៉ាស៊ីនមេ។",
+    "openAbaApp": "បើក ABA Mobile",
+    "choosePaymentTitle": "ជ្រើសរបៀបបង់ប្រាក់",
+    "storeName": "ហាង DMS",
+    "methodAbaKhqr": "ABA KHQR",
+    "methodAbaKhqrHint": "ស្កេនដើម្បីបង់ប្រាក់ជាមួយកម្មវិធីធនាគារណាមួយ",
+    "methodCard": "កាតឥណទាន/ឥណពន្ធ",
+    "methodCardHint": "Visa, Mastercard, Amex, JCB, UnionPay",
+    "methodAlipay": "Alipay",
+    "methodAlipayHint": "ស្កេនដើម្បីបង់ប្រាក់ជាមួយ Alipay",
+    "methodWeChat": "WeChat",
+    "methodWeChatHint": "ស្កេនដើម្បីបង់ប្រាក់ជាមួយ WeChat",
+    "methodComingSoon": "មកដល់ឆាប់ៗ",
+    "scanToPay": "ស្កេនដើម្បីបង់ប្រាក់",
+    "or": "ឬ",
+    "amountToPay": "ចំនួនទឹកប្រាក់ត្រូវបង់",
+    "downloadQr": "ទាញយក QR",
+    "khqrBankingHint": "ហើយបើកកម្មវិធី Mobile Banking ដែលគាំទ្រ KHQR",
+    "subtotal": "សរុបរង",
+    "total": "សរុប",
+    "successTitle": "ជោគជ័យ",
+    "successEmailHint": "ព័ត៌មានបញ្ជាក់ការកម្មង់ត្រូវបានផ្ញើទៅ {{email}}",
+    "successEmailFallback": "អ៊ីមែលរបស់អ្នក",
+    "downloadReceipt": "ទាញយកបង្កាន់ដៃ",
+    "continueShopping": "បន្តទិញទំនិញ",
     "khqrTitle": "សcan KHQR ដើម្បីបង់ប្រាក់",
     "khqrScanHint": "សcan ដោយ ABA PAY ឬកម្មវិធីធនាគារ KHQR។ ស្ថានភាពធ្វើបច្ចុប្បន្នភាពរៀងរាល់ ៣ វិនាទី។",
     "khqrExpiresIn": "កូដ QR ផុតកំណត់ក្នុង {{time}}",
@@ -258,16 +289,11 @@
     "backToOrders": "ត្រឡប់ទៅការបញ្ជាទិញ",
     "status": {
       "unpaid": "មិនទាន់បង់",
-      "pending": "កំពុងរង់ចាំ",
-      "paid": "បានបង់",
-      "failed": "បរាជ័យ"
+      "paid": "បានបង់"
     },
     "result": {
-      "pending": "កំពុងរង់ចាំបង់ប្រាក់",
-      "paid": "បង់ប្រាក់ជោគជ័យ",
-      "failed": "បង់ប្រាក់បរាជ័យ",
-      "expired": "ផុតកំណត់",
-      "cancelled": "បានលុបចោល"
+      "unpaid": "មិនទាន់បង់",
+      "paid": "បង់ប្រាក់ជោគជ័យ"
     }
   },
   "qr": {

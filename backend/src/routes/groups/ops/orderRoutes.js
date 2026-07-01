@@ -26,7 +26,7 @@ const {
   mobileConfirmDelivery,
 } = require("../../../controllers/orderController");
 const { mobileGetOrderDeliveryLocation } = require("../../../controllers/deliveryLocationController");
-const { requireAuth, requireRoles } = require("../../../middleware/auth");
+const { requireAuth, requireDataScope } = require("../../../middleware/auth");
 const { validate } = require("../../../validators/validate");
 const {
   createOrderSchema,
@@ -58,7 +58,7 @@ router.post(
 router.post(
   "/orders/depot-batch",
   requireAuth,
-  requireRoles("Depot", "Admin", "Owner"),
+  requireDataScope("depot", "all", "owner"),
   validate({ body: createDepotBatchSchema }),
   createDepotBatch,
 );

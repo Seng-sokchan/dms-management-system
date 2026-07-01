@@ -1,25 +1,21 @@
 /**
- * Reconcile stuck pending PayWay intents and expire old rows.
+ * Reconcile stuck PayWay checkout sessions stored in Redis.
  * Run via: node src/jobs/reconcilePayments.js
  */
-const { loadEnv } = require("../config/env");
-const { checkDbConnection } = require("../../database/pool");
-const paymentIntentRepository = require("../repositories/paymentIntents");
+require("dotenv").config({ override: true });
+const paymentStatusCache = require("../services/paymentStatusCache");
 const paywayWebhookService = require("../services/paywayWebhookService");
 const { emitPaymentStatus } = require("../socket/paymentStatusSocket");
 
-loadEnv();
-
 async function run() {
-  await checkDbConnection();
-
-  await paymentIntentRepository.expirePendingIntents();
-  // eslint-disable-next-line no-console
-  console.log("[reconcile] expired stale payment intent(s)");
-
-  const stuck = await paymentIntentRepository.listStuckPendingIntents(50);
-  for (const intent of stuck) {
-    const updated = await paywayWebhookService.reconcilePendingIntent(intent);
+  const paymentIds = await paymentStatusCache.listPendingIds(100);
+  for (const paymentId of paymentIds) {
+    const session = await paymentStatusCache.getCheckoutSession(paymentId);
+    if (!session) {
+      await paymentStatusCache.stopLiveCheck(paymentId);
+      continue;
+    }
+    const updated = await paywayWebhookService.reconcileCheckoutSession(session);
     if (updated?.status === "paid") {
       emitPaymentStatus(updated);
       // eslint-disable-next-line no-console
@@ -28,13 +24,13 @@ async function run() {
   }
 
   // eslint-disable-next-line no-console
-  console.log(`[reconcile] processed ${stuck.length} pending intent row(s)`);
+  console.log(`[reconcile] processed ${paymentIds.length} Redis checkout session(s)`);
 }
 
 run()
   .then(() => process.exit(0))
   .catch((err) => {
     // eslint-disable-next-line no-console
-    console.error("[reconcile] failed", err);
+    console.error("[reconcile] failed", err.message);
     process.exit(1);
   });

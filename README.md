@@ -43,7 +43,7 @@ Fullstack implementation based on the attached plan:
    - copy `.env.example` to `.env`
    - update DB credentials in `.env` (`DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`)
    - `npm install`
-   - `npm run db:init` — reapplies `schema.mysql55.sql`, **clears** app data, and loads **fresh sample** users (same demo passwords), two producers, two delivery agents, two catalogs, five items, four orders, three payments, and one status-history row
+   - `npm run db:init` — reapplies `schema.mysql55.sql`, **clears** app data, and seeds roles/menus only (create users via Admin after init)
    - `npm run dev`
 2. Frontend
    - `cd frontend`

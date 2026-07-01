@@ -5,8 +5,8 @@ function resolveExecutor(executor) {
 }
 
 async function listOrderStatuses() {
-  const [rows] = await getPool().query("SELECT id, name FROM v_statuses ORDER BY id DESC");
-  return rows.map((row) => ({ id: Number(row.id), name: row.name }));
+  const [rows] = await getPool().query("SELECT id, name, sort_order FROM v_statuses ORDER BY sort_order ASC, id ASC");
+  return rows.map((row) => ({ id: Number(row.id), name: row.name, sortOrder: Number(row.sort_order) }));
 }
 
 async function getStatusIdByName(name, executor) {

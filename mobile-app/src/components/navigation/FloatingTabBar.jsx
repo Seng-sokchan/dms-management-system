@@ -75,7 +75,7 @@ function isTabBarHidden(descriptors, route) {
 /** Floating pill bottom tab bar */
 export default function FloatingTabBar({ state, descriptors, navigation }) {
   const insets = useSafeAreaInsets();
-  const { floatingTabBar, layout, sizes, typography } = useTheme();
+  const { floatingTabBar, layout, sizes, typography, borders } = useTheme();
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -98,6 +98,7 @@ export default function FloatingTabBar({ state, descriptors, navigation }) {
           paddingVertical: 8,
           borderRadius: 999,
           backgroundColor: floatingTabBar.background,
+          ...borders.panel,
           ...Platform.select({
             ios: {
               shadowColor: "#000000",
@@ -131,7 +132,7 @@ export default function FloatingTabBar({ state, descriptors, navigation }) {
           fontWeight: "500",
         },
       }),
-    [floatingTabBar, layout, sizes, typography.caption],
+    [borders.panel, floatingTabBar, layout, sizes, typography.caption],
   );
 
   const focusedRoute = state.routes[state.index];

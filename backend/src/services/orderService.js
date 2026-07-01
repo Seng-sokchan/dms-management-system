@@ -8,7 +8,6 @@
  * Controllers in `controllers/orderController.js` are thin wrappers around
  * these functions.
  */
-const { NEXT_STATUS, ORDER_STATUS } = require("../constants");
 const orderRepository = require("../repositories/orders");
 const customerRepository = require("../repositories/customers");
 const depotRepository = require("../repositories/depots");
@@ -18,6 +17,8 @@ const deliveryAgentRepository = require("../repositories/deliveryAgents");
 const producerRepository = require("../repositories/producers");
 const lookupRepository = require("../repositories/lookups");
 const overviewRepository = require("../repositories/overview");
+const { getNextStatuses, getStatusNames: getCachedStatusNames, canUpdateAnyStatus } = require("./rulesCache");
+const { assertCanSetStatus } = require("./accessPolicyService");
 const { getPool } = require("../../database/pool");
 const { BadRequestError, NotFoundError, ForbiddenError } = require("../errors");
 const crypto = require("node:crypto");
@@ -29,27 +30,23 @@ const DEFAULT_NEW_ORDER_PRODUCER_ID = "1";
 const UNPAID_RECEIVED_ORDERS_MESSAGE =
   "Pay for your received order before placing a new order.";
 
-const STATUS_UPDATE_ROLES = new Set(["Admin", "Owner", "Logistics", "Delivery"]);
-const STATUS_OWNER_BY_TARGET = {
-  Owner_Preparing: new Set(["Admin", "Owner"]),
-  Sent_To_Factory: new Set(["Admin", "Owner"]),
-  Ready_For_Delivery: new Set(["Admin", "Owner", "Logistics", "Delivery"]),
-  Recieve_By_Customer: new Set(["Admin", "Delivery"]),
-};
-
 // ---------------------------------------------------------------------------
 // Status helpers (pure)
 // ---------------------------------------------------------------------------
 
-function getNextAllowedStatuses(currentStatus, orderedStatuses = ORDER_STATUS) {
-  const mapped = NEXT_STATUS[currentStatus];
-  if (Array.isArray(mapped)) return mapped;
-  if (Array.isArray(orderedStatuses) && orderedStatuses.length > 1) {
-    const currentIndex = orderedStatuses.indexOf(currentStatus);
-    if (currentIndex >= 0 && currentIndex < orderedStatuses.length - 1) {
-      return [orderedStatuses[currentIndex + 1]];
+function getNextAllowedStatuses(currentStatus, orderedStatuses) {
+  const mapped = getNextStatuses(currentStatus);
+  if (mapped.length > 0) return mapped;
+
+  const names = Array.isArray(orderedStatuses) && orderedStatuses.length
+    ? orderedStatuses
+    : getCachedStatusNames();
+  if (names.length > 1) {
+    const currentIndex = names.indexOf(currentStatus);
+    if (currentIndex >= 0 && currentIndex < names.length - 1) {
+      return [names[currentIndex + 1]];
     }
-    if (currentIndex === orderedStatuses.length - 1) {
+    if (currentIndex === names.length - 1) {
       return [];
     }
   }
@@ -355,11 +352,12 @@ async function updateStatus(orderId, nextStatus, { user, allowReverse = false } 
   const order = await orderRepository.getOrderById(orderId);
   if (!order) throw new NotFoundError("Order not found");
 
-  if (!STATUS_UPDATE_ROLES.has(user?.role)) {
+  if (!canUpdateAnyStatus(user?.role)) {
     throw new ForbiddenError("Forbidden for this role");
   }
 
-  if (user?.role === "Delivery") {
+  const { getDataScope } = require("./rulesCache");
+  if (getDataScope(user?.role) === "delivery_agent") {
     const agentId = user.deliveryAgentId != null && String(user.deliveryAgentId).trim() !== "" ? String(user.deliveryAgentId) : "";
     if (!agentId) {
       throw new ForbiddenError("Delivery account is not linked to a delivery agent");
@@ -385,10 +383,7 @@ async function updateStatus(orderId, nextStatus, { user, allowReverse = false } 
     }
   }
 
-  const allowedRolesForTarget = STATUS_OWNER_BY_TARGET[nextStatus];
-  if (allowedRolesForTarget && !allowedRolesForTarget.has(user?.role)) {
-    throw new ForbiddenError("You cannot move the order to this status");
-  }
+  assertCanSetStatus(user?.role, nextStatus, "update_status");
 
   if (nextStatus === "Sent_To_Factory") {
     const notificationOrders = await getFactoryNotificationOrders(order);
@@ -406,8 +401,6 @@ async function updateStatus(orderId, nextStatus, { user, allowReverse = false } 
   });
 }
 
-const DELIVERY_CONFIRM_ROLES = new Set(["Admin", "Delivery"]);
-
 /**
  * Confirm a delivery with loss quantity; sets Recieve_By_Customer and delivered/loss qty.
  */
@@ -415,15 +408,14 @@ async function confirmDelivery(orderId, { lossQty }, { user } = {}) {
   const order = await orderRepository.getOrderById(orderId);
   if (!order) throw new NotFoundError("Order not found");
 
-  if (!DELIVERY_CONFIRM_ROLES.has(user?.role)) {
-    throw new ForbiddenError("Forbidden for this role");
-  }
+  assertCanSetStatus(user?.role, "Recieve_By_Customer", "confirm_delivery");
 
   if (order.status !== "Ready_For_Delivery") {
     throw new BadRequestError("Order must be Ready_For_Delivery to confirm delivery");
   }
 
-  if (user?.role === "Delivery") {
+  const { getDataScope } = require("./rulesCache");
+  if (getDataScope(user?.role) === "delivery_agent") {
     const agentId =
       user.deliveryAgentId != null && String(user.deliveryAgentId).trim() !== ""
         ? String(user.deliveryAgentId)

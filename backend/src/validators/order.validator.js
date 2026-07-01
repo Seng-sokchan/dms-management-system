@@ -7,11 +7,12 @@
  * `req.body` / `req.params` / `req.query`.
  */
 const { z } = require("zod");
-const { ORDER_STATUS } = require("../constants/general");
+const { isKnownStatus } = require("../services/rulesService");
 
 // Reusable primitives -------------------------------------------------------
 
 const idString = z.string().min(1);
+const statusSchema = z.string().refine(isKnownStatus, { message: "Invalid status" });
 
 // Body schemas --------------------------------------------------------------
 
@@ -55,7 +56,7 @@ const assignOrderSchema = z.object({
 });
 
 const updateOrderStatusSchema = z.object({
-  status: z.enum(ORDER_STATUS),
+  status: statusSchema,
 });
 
 const confirmDeliverySchema = z.object({
@@ -71,7 +72,7 @@ const orderIdParamsSchema = z.object({
 const listOrdersQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   pageSize: z.coerce.number().int().positive().max(100).default(20),
-  status: z.enum(ORDER_STATUS).optional(),
+  status: statusSchema.optional(),
   customerId: idString.optional(),
 });
 

@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { canManageMenuKey } from "../constants/menus";
 import { usePagination } from "../hooks/usePagination";
 import { Button } from "../components/ui/Button";
 import { DataTable } from "../components/ui/DataTable";
@@ -58,7 +59,7 @@ export function BorrowedMaterialsPage({
 }) {
   const { t } = useTranslation();
   const { confirm, alert } = useConfirm();
-  const canManageMaterials = user?.role === "Admin" || user?.role === "Owner";
+  const canManageMaterials = canManageMenuKey(user, "borrowedMaterials");
 
   const [borrowTab, setBorrowTab] = useState("customer");
   const [showOrderLoanModal, setShowOrderLoanModal] = useState(false);

@@ -1,10 +1,9 @@
 const { getPool } = require("../../database/pool");
 const paymentRepository = require("../repositories/payments");
-const paymentIntentRepository = require("../repositories/paymentIntents");
-const orderRepository = require("../repositories/orders");
 const paywayClient = require("../integrations/payway/paywayClient");
 const { normalizePaywayCallback } = require("../integrations/payway/paywayWebhookNormalize");
 const { emitPaymentStatus } = require("../socket/paymentStatusSocket");
+const paymentStatusCache = require("./paymentStatusCache");
 
 const PAYWAY_SUCCESS_STATUS = new Set([0, "0", "APPROVED", "PAID", "PREAUTH_APPROVED"]);
 
@@ -17,12 +16,12 @@ function isPaywaySuccessStatus(status) {
   return false;
 }
 
-async function promoteIntentToPayment(intent, providerTranId, rawCallbackPayload) {
+async function promoteCheckoutToPayment(session, providerTranId, rawCallbackPayload) {
   const pool = getPool();
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
-    const existing = await paymentRepository.getPaymentById(intent.id, conn);
+    const existing = await paymentRepository.getPaymentById(session.id, conn);
     if (existing) {
       await conn.commit();
       return existing;
@@ -31,21 +30,21 @@ async function promoteIntentToPayment(intent, providerTranId, rawCallbackPayload
     const now = new Date();
     const payment = await paymentRepository.insertPayment(
       {
-        id: intent.id,
-        orderId: intent.orderId,
-        customerId: intent.customerId,
-        paywayTranId: intent.paywayTranId,
-        providerTranId: providerTranId || intent.paywayTranId,
-        amount: intent.amount,
-        currency: intent.currency,
+        id: session.id,
+        orderId: session.orderId,
+        customerId: session.customerId,
+        paywayTranId: session.paywayTranId,
+        providerTranId: providerTranId || session.paywayTranId,
+        amount: session.amount,
+        currency: session.currency,
         rawCallbackPayload,
         verifiedAt: now,
         paidAt: now,
       },
       conn,
     );
-    await paymentIntentRepository.deleteIntentById(intent.id, conn);
     await conn.commit();
+    await paymentStatusCache.removeCheckoutSession(session.id);
     return payment;
   } catch (err) {
     await conn.rollback();
@@ -77,11 +76,11 @@ async function processCallback(body) {
     return { paymentId: existingPaid.id, status: "paid", duplicate: true };
   }
 
-  let intent =
-    (await paymentIntentRepository.getIntentByPaywayTranId(tranId)) ||
-    (merchantRef ? await paymentIntentRepository.getIntentById(merchantRef) : null);
+  let session =
+    (await paymentStatusCache.getCheckoutByPaywayTranId(tranId))
+    || (merchantRef ? await paymentStatusCache.getCheckoutSession(merchantRef) : null);
 
-  if (!intent) {
+  if (!session) {
     const err = new Error("Payment not found for callback");
     err.code = "PAYMENT_NOT_FOUND";
     err.status = 404;
@@ -89,43 +88,47 @@ async function processCallback(body) {
   }
 
   if (!isPaywaySuccessStatus(status)) {
-    await paymentIntentRepository.deleteIntentById(intent.id);
-    return { paymentId: intent.id, status: "unpaid", failed: true };
+    await paymentStatusCache.removeCheckoutSession(session.id);
+    return { paymentId: session.id, status: "unpaid", failed: true };
   }
 
   const checkResult = await paywayClient.checkTransaction(tranId);
   if (!paywayClient.isApprovedCheckResponse(checkResult)) {
     return {
-      paymentId: intent.id,
-      status: "pending",
+      paymentId: session.id,
+      status: "unpaid",
       pendingVerification: true,
     };
   }
 
-  const updated = await promoteIntentToPayment(intent, tranId, payload);
+  const updated = await promoteCheckoutToPayment(session, tranId, payload);
+  await paymentStatusCache.setPaid(updated);
   emitPaymentStatus(updated);
   return { paymentId: updated.id, status: "paid", paid: true };
 }
 
-async function reconcilePendingIntent(intent) {
-  if (!intent?.paywayTranId) return intent;
+async function reconcileCheckoutSession(session) {
+  if (!session?.paywayTranId) return session;
   try {
-    const checkResult = await paywayClient.checkTransaction(intent.paywayTranId);
+    const checkResult = await paywayClient.checkTransaction(session.paywayTranId);
     if (paywayClient.isApprovedCheckResponse(checkResult)) {
-      return promoteIntentToPayment(intent, intent.paywayTranId, {
+      const payment = await promoteCheckoutToPayment(session, session.paywayTranId, {
         source: "reconcile",
         checkResult,
       });
+      await paymentStatusCache.setPaid(payment);
+      return payment;
     }
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.warn("[payway-reconcile] check failed", intent.id, err.message);
+    console.warn("[payway-reconcile] check failed", session.id, err.message);
   }
-  return intent;
+  return session;
 }
 
 module.exports = {
   processCallback,
-  promoteIntentToPayment,
-  reconcilePendingIntent,
+  promoteCheckoutToPayment,
+  reconcileCheckoutSession,
+  reconcilePendingIntent: reconcileCheckoutSession,
 };

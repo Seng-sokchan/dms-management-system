@@ -10,7 +10,8 @@ const deliveryLocationService = require("../services/deliveryLocationService");
 const DELIVERY_WATCHERS_ROOM = "delivery-location-watchers";
 const DELIVERY_AGENT_ROOM_PREFIX = "delivery-agent:";
 const DELIVERY_LOCATION_TTL_SEC = 240;
-const WATCHER_ROLES = new Set(["Admin", "Owner", "Logistics", "Depot"]);
+const { canSubscribeSocket } = require("../services/rulesCache");
+const { hasDataScope } = require("../services/accessScopeService");
 /** When Redis is optional and unreachable, log once (short) and drop the client. */
 const REDIS_UNREACHABLE_CODES = new Set(["ECONNREFUSED", "ENOTFOUND", "ETIMEDOUT", "EAI_AGAIN"]);
 
@@ -88,6 +89,7 @@ function getDeliveryAgentRoom(deliveryAgentId) {
 function attachDeliveryLocationSocket(httpServer) {
   const redisUrl = String(process.env.REDIS_URL || "").trim();
   let redis = null;
+  let redisUnavailableLogged = false;
   if (redisUrl) {
     redis = new Redis(redisUrl, {
       maxRetriesPerRequest: null,
@@ -98,21 +100,23 @@ function attachDeliveryLocationSocket(httpServer) {
       },
     });
     redis.on("error", (err) => {
+      if (redisUnavailableLogged) return;
       const nested = Array.isArray(err?.errors) ? err.errors[0] : null;
       const code = err?.code || nested?.code || "ERR";
+      if (!REDIS_UNREACHABLE_CODES.has(code)) return;
+      redisUnavailableLogged = true;
       // eslint-disable-next-line no-console
       console.warn(
-        "[redis] %s — optional persistence skipped. Unset REDIS_URL or start Redis; Socket.IO is unchanged.",
+        "[redis] %s — delivery location persistence disabled (Socket.IO still works).",
         code,
       );
-      if (REDIS_UNREACHABLE_CODES.has(code)) {
-        try {
-          redis.disconnect(false);
-        } catch {
-          /* ignore */
-        }
-        redis = null;
+      try {
+        redis.removeAllListeners();
+        redis.disconnect(false);
+      } catch {
+        /* ignore */
       }
+      redis = null;
     });
     void redis.connect().catch(() => {});
   } else {
@@ -161,13 +165,13 @@ function attachDeliveryLocationSocket(httpServer) {
     const customerTrackingRooms = new Set();
 
     socket.on("subscribe:delivery-locations", () => {
-      if (WATCHER_ROLES.has(user.role)) {
+      if (canSubscribeSocket(user.role, "delivery-locations-watcher")) {
         socket.join(DELIVERY_WATCHERS_ROOM);
       }
     });
 
     socket.on("subscribe:customer-order-tracking", async (payload, ack) => {
-      if (user.role !== "Customer") {
+      if (!hasDataScope(user, "customer")) {
         if (typeof ack === "function") ack({ ok: false, error: "Forbidden" });
         return;
       }
@@ -218,7 +222,7 @@ function attachDeliveryLocationSocket(httpServer) {
     });
 
     socket.on("delivery:location", async (payload, ack) => {
-      if (user.role !== "Delivery") {
+      if (!hasDataScope(user, "delivery_agent")) {
         if (typeof ack === "function") ack({ ok: false, error: "Forbidden" });
         return;
       }

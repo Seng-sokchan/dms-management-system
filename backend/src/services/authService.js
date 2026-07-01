@@ -1,25 +1,11 @@
 const bcrypt = require("bcryptjs");
 const { createToken } = require("../middleware/auth");
-const { getUserByUsername, listMenuKeysForRoleName, getCustomerByUserId } = require("../repositories");
-const { UnauthorizedError, ForbiddenError } = require("../errors");
-
-// Role policy per client surface. A missing/unknown client is permissive for
-// backward compatibility while older clients roll out the new field.
-const ADMIN_PANEL_ROLES = new Set(["Admin", "Owner"]);
-const MOBILE_APP_ROLES = new Set(["Customer", "Delivery", "Depot"]);
-
-function assertRoleAllowedForClient(role, client) {
-  if (client === "admin" && !ADMIN_PANEL_ROLES.has(role)) {
-    throw new ForbiddenError(
-      "This account cannot use the admin panel. Please use the mobile app.",
-    );
-  }
-  if (client === "mobile" && !MOBILE_APP_ROLES.has(role)) {
-    throw new ForbiddenError(
-      "This account cannot use the mobile app. Please use the admin panel.",
-    );
-  }
-}
+const { getUserByUsername, getCustomerByUserId } = require("../repositories");
+const { UnauthorizedError } = require("../errors");
+const {
+  assertCanUseClient,
+  getAccessProfileForRole,
+} = require("./accessPolicyService");
 
 async function login({ username, password, client }) {
   const user = await getUserByUsername(username);
@@ -28,10 +14,10 @@ async function login({ username, password, client }) {
     throw new UnauthorizedError("Invalid credentials");
   }
 
-  assertRoleAllowedForClient(user.role, client);
+  assertCanUseClient(user.role, client);
 
   const token = createToken(user);
-  const allowedMenus = await listMenuKeysForRoleName(user.role);
+  const profile = await getAccessProfileForRole(user.role);
   return {
     token,
     user: {
@@ -39,25 +25,25 @@ async function login({ username, password, client }) {
       name: user.name,
       username: user.username,
       role: user.role,
-      allowedMenus,
+      ...profile,
     },
   };
 }
 
 async function me(currentUser) {
-  const allowedMenus = await listMenuKeysForRoleName(currentUser.role);
+  const profile = await getAccessProfileForRole(currentUser.role);
   const base = {
     id: currentUser.sub,
     name: currentUser.name,
     username: currentUser.username,
     role: currentUser.role,
-    allowedMenus,
+    ...profile,
   };
-  if (currentUser.role === "Customer") {
+  if (profile.dataScope === "customer") {
     const customer = await getCustomerByUserId(currentUser.sub);
     return { ...base, customerId: customer?.id ?? null };
   }
-  if (currentUser.role === "Delivery") {
+  if (profile.dataScope === "delivery_agent") {
     const aid = currentUser.deliveryAgentId;
     return {
       ...base,

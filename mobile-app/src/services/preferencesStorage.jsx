@@ -2,10 +2,12 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export const THEME_STORAGE_KEY = "fix-asset-theme";
 export const LANG_STORAGE_KEY = "fix-asset-lang";
+export const FONT_SIZE_STORAGE_KEY = "fix-asset-font-size";
 export const USERNAME_STORAGE_KEY = "dms-remembered-username";
 
 const VALID_THEMES = new Set(["light", "dark", "system"]);
 const VALID_LANGS = new Set(["en", "km"]);
+const VALID_FONT_SIZES = new Set(["small", "medium", "big"]);
 
 export async function getThemePreference() {
   try {
@@ -35,6 +37,21 @@ export async function getLanguagePreference() {
 export async function setLanguagePreference(language) {
   if (!VALID_LANGS.has(language)) return;
   await AsyncStorage.setItem(LANG_STORAGE_KEY, language);
+}
+
+export async function getFontSizePreference() {
+  try {
+    const raw = await AsyncStorage.getItem(FONT_SIZE_STORAGE_KEY);
+    if (raw && VALID_FONT_SIZES.has(raw)) return raw;
+  } catch {
+    /* ignore */
+  }
+  return "medium";
+}
+
+export async function setFontSizePreference(fontSize) {
+  if (!VALID_FONT_SIZES.has(fontSize)) return;
+  await AsyncStorage.setItem(FONT_SIZE_STORAGE_KEY, fontSize);
 }
 
 export async function getRememberedUsername() {

@@ -43,6 +43,7 @@ export function usePaymentReturnResume({ enabled = false } = {}) {
               order: pending.order,
               orders: pending.orders,
               role: pending.role,
+              fromAbaReturn: true,
             });
             if (ok) {
               markPaymentReturnHandled(pending.paymentId);

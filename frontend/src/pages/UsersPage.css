@@ -33,3 +33,67 @@ form.panel.menu-access-form { display: flex; flex-direction: column; gap: 0; pad
 .menu-access-item__badge { font-size: 0.625rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #64748b; background: #e2e8f0; padding: 0.2rem 0.4rem; border-radius: 4px; line-height: 1; }
 .menu-access-item--on:not(.menu-access-item--locked) .menu-access-item__title { color: #1e3a5f; }
 .menu-access-modal__footer { padding: 0.9rem 1.5rem; border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 0.5rem; background: #fff; flex-shrink: 0; box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.04); }
+
+/* Role access modal */
+.modal-card--role-access { width: min(720px, 100%); max-height: min(92vh, 46rem); }
+.role-access-modal__body { display: flex; flex-direction: column; gap: 1.15rem; }
+.role-access-section + .role-access-section { padding-top: 0.15rem; border-top: 1px dashed rgba(148, 163, 184, 0.35); }
+.role-access-scope-grid { display: grid; grid-template-columns: 1fr; gap: 0.45rem; }
+@media (min-width: 560px) { .role-access-scope-grid { grid-template-columns: 1fr 1fr; } }
+.role-access-scope { display: flex; align-items: flex-start; gap: 0.7rem; padding: 0.7rem 0.85rem; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); box-shadow: var(--shadow-xs); cursor: pointer; transition: border-color var(--t-fast), background var(--t-fast), box-shadow var(--t-fast); margin: 0; font-weight: 400; }
+.role-access-scope:hover { border-color: var(--border-strong); background: #fff; }
+.role-access-scope--on { border-color: rgba(59, 130, 246, 0.42); background: rgba(255, 255, 255, 0.96); box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.12), var(--shadow-xs); }
+.role-access-scope__input { position: absolute; opacity: 0; width: 0; height: 0; margin: 0; pointer-events: none; }
+.role-access-scope__marker { position: relative; flex-shrink: 0; width: 1rem; height: 1rem; margin-top: 0.15rem; border: 1.5px solid var(--border-strong); border-radius: 999px; background: #fff; transition: border var(--t-fast), background var(--t-fast), box-shadow var(--t-fast); }
+.role-access-scope--on .role-access-scope__marker { border-color: var(--primary); background: var(--primary); box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.92); }
+.role-access-scope__input:focus-visible + .role-access-scope__marker { outline: 2px solid var(--primary); outline-offset: 2px; }
+.role-access-scope__content { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
+.role-access-scope__title { font-size: 0.875rem; font-weight: 600; color: var(--text); line-height: 1.25; }
+.role-access-scope--on .role-access-scope__title { color: #1e3a5f; }
+.role-access-scope__desc { font-size: 0.75rem; line-height: 1.35; color: #94a3b8; }
+
+/* Status permissions matrix modal */
+.modal-card--status-perms { width: min(960px, 100%); max-height: min(92vh, 48rem); }
+.status-perms-modal__body { padding: 0.75rem 1rem 1rem; }
+.status-perms-legend { display: flex; flex-wrap: wrap; gap: 0.75rem 1.25rem; padding: 0.85rem 1.5rem; border-bottom: 1px solid var(--border); background: #fff; flex-shrink: 0; }
+.status-perms-legend__item { display: flex; align-items: center; gap: 0.55rem; min-width: 0; }
+.status-perms-legend__chip { display: inline-flex; align-items: center; justify-content: center; min-width: 4.75rem; padding: 0.2rem 0.55rem; border-radius: 999px; font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; line-height: 1.2; border: 1px solid transparent; }
+.status-perms-legend__chip--update { color: #1d4ed8; background: rgba(59, 130, 246, 0.12); border-color: rgba(59, 130, 246, 0.28); }
+.status-perms-legend__chip--confirm { color: #047857; background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.28); }
+.status-perms-legend__text { font-size: 0.8125rem; line-height: 1.4; color: var(--text-muted); }
+.status-perms-table-wrap { overflow: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); background: #fff; box-shadow: var(--shadow-xs); -webkit-overflow-scrolling: touch; }
+.status-perms-table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 42rem; }
+.status-perms-table th,
+.status-perms-table td { border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); vertical-align: middle; }
+.status-perms-table tr:last-child th,
+.status-perms-table tr:last-child td { border-bottom: none; }
+.status-perms-table th:last-child,
+.status-perms-table td:last-child { border-right: none; }
+.status-perms-table__corner { position: sticky; left: 0; z-index: 3; min-width: 7.5rem; padding: 0.65rem 0.85rem; text-align: left; font-size: 0.6875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #94a3b8; background: #f8fafc; }
+.status-perms-table__corner--sub { top: 2.65rem; z-index: 4; padding-top: 0.35rem; padding-bottom: 0.35rem; }
+.status-perms-table__status { padding: 0.55rem 0.45rem; text-align: center; font-size: 0.75rem; font-weight: 600; color: var(--text); background: #f1f5f9; border-bottom: 1px solid var(--border); }
+.status-perms-table__step { display: inline-flex; align-items: center; justify-content: center; width: 1.125rem; height: 1.125rem; margin-right: 0.35rem; border-radius: 999px; font-size: 0.625rem; font-weight: 700; color: #475569; background: #e2e8f0; vertical-align: middle; }
+.status-perms-table__status-name { display: inline; vertical-align: middle; line-height: 1.25; }
+.status-perms-table__action-row th { position: sticky; top: 0; z-index: 2; }
+.status-perms-table__action { padding: 0.3rem 0.25rem; text-align: center; font-size: 0.625rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #64748b; background: #f8fafc; }
+.status-perms-table__action--update { color: #2563eb; }
+.status-perms-table__action--confirm { color: #059669; }
+.status-perms-table__role { position: sticky; left: 0; z-index: 1; padding: 0.55rem 0.85rem; text-align: left; font-size: 0.8125rem; font-weight: 600; color: var(--text); background: #fff; white-space: nowrap; box-shadow: 4px 0 8px rgba(15, 23, 42, 0.04); }
+.status-perms-table tbody tr:nth-child(even) .status-perms-table__role { background: #fafbfc; }
+.status-perms-table__cell { padding: 0.35rem 0.3rem; text-align: center; background: #fff; }
+.status-perms-table tbody tr:nth-child(even) .status-perms-table__cell { background: #fafbfc; }
+.status-perms-chip { display: inline-flex; align-items: center; justify-content: center; gap: 0.25rem; min-width: 4.35rem; padding: 0.28rem 0.45rem; border: 1px solid var(--border); border-radius: 999px; background: #fff; color: #64748b; font-size: 0.625rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; line-height: 1.2; cursor: pointer; transition: border-color var(--t-fast), background var(--t-fast), color var(--t-fast), box-shadow var(--t-fast); }
+.status-perms-chip:hover { border-color: var(--border-strong); background: #fff; }
+.status-perms-chip:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.status-perms-chip__mark { width: 0.45rem; height: 0.45rem; border-radius: 999px; background: #cbd5e1; flex-shrink: 0; transition: background var(--t-fast), box-shadow var(--t-fast); }
+.status-perms-chip__label { pointer-events: none; }
+.status-perms-chip--update.status-perms-chip--on { border-color: rgba(59, 130, 246, 0.45); background: rgba(59, 130, 246, 0.1); color: #1d4ed8; box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.12); }
+.status-perms-chip--update.status-perms-chip--on .status-perms-chip__mark { background: #2563eb; box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2); }
+.status-perms-chip--confirm.status-perms-chip--on { border-color: rgba(16, 185, 129, 0.45); background: rgba(16, 185, 129, 0.1); color: #047857; box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.12); }
+.status-perms-chip--confirm.status-perms-chip--on .status-perms-chip__mark { background: #059669; box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.2); }
+@media (max-width: 640px) {
+  .status-perms-legend { flex-direction: column; gap: 0.55rem; }
+  .status-perms-table__status-name { display: block; margin-top: 0.2rem; font-size: 0.6875rem; }
+  .status-perms-chip { min-width: 3.5rem; padding-inline: 0.35rem; }
+  .status-perms-chip__label { display: none; }
+}

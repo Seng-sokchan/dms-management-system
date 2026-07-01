@@ -10,7 +10,7 @@ export default function InputField({
   rightAccessory,
   ...inputProps
 }) {
-  const { colors, radii, spacing, typography } = useTheme();
+  const { colors, radii, spacing, typography, borders } = useTheme();
   const fieldLabel = accessibilityLabel || label;
   const styles = useMemo(
     () =>
@@ -28,13 +28,12 @@ export default function InputField({
         input: {
           flex: 1,
           backgroundColor: colors.surfaceSoft,
-          borderWidth: 1,
-          borderColor: colors.border,
           borderRadius: radii.lg,
           paddingHorizontal: spacing.md,
           paddingVertical: spacing.md,
           fontSize: typography.body,
           color: colors.textPrimary,
+          ...borders.panel,
         },
         inputWithAccessory: {
           paddingRight: spacing.sm,
@@ -52,7 +51,7 @@ export default function InputField({
           fontSize: typography.bodySmall,
         },
       }),
-    [colors, radii, spacing, typography],
+    [borders.panel, colors, radii, spacing, typography],
   );
 
   return (

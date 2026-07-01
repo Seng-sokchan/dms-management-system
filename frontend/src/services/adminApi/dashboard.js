@@ -4,6 +4,7 @@ import { fetchBorrowMaterialOrderLoans } from "./borrowMaterialOrderLoans";
 import { fetchBorrowMaterialMonthlySchedules } from "./borrowMaterialMonthlySchedules";
 import { fetchCustomerItemPrices } from "./customerItemPrices";
 import { fetchDepotItemPrices } from "./depotItemPrices";
+import { fetchRoles, fetchMenus, fetchStatusTransitions, fetchRoleAccess, fetchRoleStatusPermissions } from "./rules";
 import { canAccessPath } from "../../constants/menus";
 
 /**
@@ -22,7 +23,7 @@ const ROUTE_DATA_MAP = {
   "/customers-by-depot": ["depots", "customers"],
   "/producers": ["producers"],
   "/delivery-agents": ["deliveryAgents"],
-  "/users": ["users", "roleMenus", "customers", "deliveryAgents"],
+  "/users": ["users", "roleMenus", "roles", "menus", "mobileMenus", "statusTransitions", "roleAccess", "roleStatusPermissions", "statuses", "customers", "deliveryAgents"],
   "/orders": ["orders", "statuses", "deliveryAgents"],
   "/assign-orders": ["orders", "deliveryAgents"],
   "/order-movement": ["orders", "statuses"],
@@ -53,6 +54,13 @@ export async function fetchDashboardData(token, pathname = "/overview") {
   if (canAccessPath(user, "/users")) {
     requested.add("users");
     requested.add("roleMenus");
+    requested.add("roles");
+    requested.add("menus");
+    requested.add("mobileMenus");
+    requested.add("statusTransitions");
+    requested.add("roleAccess");
+    requested.add("roleStatusPermissions");
+    requested.add("statuses");
   }
   const data = {
     user,
@@ -68,6 +76,12 @@ export async function fetchDashboardData(token, pathname = "/overview") {
     items: [],
     users: [],
     roleMenusByRole: null,
+    roles: [],
+    menuCatalog: [],
+    mobileMenuCatalog: [],
+    statusTransitionsByStatus: null,
+    roleAccessByRole: null,
+    roleStatusPermissionsByRole: null,
     borrowMaterials: [],
     customerBorrowedMaterials: [],
     borrowMaterialOrderLoans: [],
@@ -141,6 +155,32 @@ export async function fetchDashboardData(token, pathname = "/overview") {
     const res = await apiClient.get("/role-menus", config);
     const payload = unwrapApiData(res.data);
     data.roleMenusByRole = payload && typeof payload === "object" ? payload : null;
+  });
+  queue("roles", async () => {
+    const rows = await fetchRoles(token);
+    data.roles = Array.isArray(rows) ? rows : [];
+  });
+  queue("menus", async () => {
+    const rows = await fetchMenus(token, { client: "admin" });
+    data.menuCatalog = Array.isArray(rows) ? rows : [];
+  });
+  queue("mobileMenus", async () => {
+    const rows = await fetchMenus(token, { client: "mobile" });
+    data.mobileMenuCatalog = Array.isArray(rows) ? rows : [];
+  });
+  queue("statusTransitions", async () => {
+    const payload = await fetchStatusTransitions(token);
+    data.statusTransitionsByStatus = payload && typeof payload === "object" ? payload : null;
+  });
+  queue("roleAccess", async () => {
+    const rows = await fetchRoleAccess(token);
+    if (Array.isArray(rows)) {
+      data.roleAccessByRole = Object.fromEntries(rows.map((row) => [row.roleName, row]));
+    }
+  });
+  queue("roleStatusPermissions", async () => {
+    const payload = await fetchRoleStatusPermissions(token);
+    data.roleStatusPermissionsByRole = payload && typeof payload === "object" ? payload : null;
   });
   queue("borrowMaterials", async () => {
     const res = await apiClient.get("/borrow-materials", config);

@@ -1,5 +1,6 @@
 const { hashForPurchase, hashForCheckTransaction } = require("./paywayHash");
 const {
+  getPaywayConfig,
   assertPaywayConfigured,
   formatPaywayReqTime,
   formatAmountForPayway,
@@ -31,11 +32,22 @@ async function postForm(url, formData) {
   return json;
 }
 
-/**
- * Create PayWay purchase (multipart form-data).
- * @returns {Promise<object>} PayWay response (checkout URL, deeplink, etc.)
- */
-async function createPurchase({
+function isCheckoutPaymentOption(paymentOption) {
+  const option = String(paymentOption || "").toLowerCase();
+  return option === "checkout" || option === "payway_checkout";
+}
+
+function resolvePaymentOptionForPayway(paymentOption) {
+  if (isCheckoutPaymentOption(paymentOption)) return "";
+  return paymentOption || "abapay_deeplink";
+}
+
+function getCheckoutScriptUrl() {
+  // PayWay hosts checkout2-0.js on checkout.payway.com.kh even for sandbox purchases (Dev/index.php).
+  return "https://checkout.payway.com.kh/plugins/checkout2-0.js";
+}
+
+function buildPurchaseFormFields({
   tranId,
   amount,
   currency,
@@ -45,9 +57,9 @@ async function createPurchase({
   customer,
   itemLabel,
   items,
+  reqTime,
 }) {
   const cfg = assertPaywayConfigured();
-  const reqTime = formatPaywayReqTime();
   const amountStr = formatAmountForPayway(amount, currency);
   if (!amountStr) {
     const err = new Error("Invalid payment amount");
@@ -68,30 +80,54 @@ async function createPurchase({
     })),
   );
 
-  const hashFields = {
-    req_time: reqTime,
-    merchant_id: cfg.merchantId,
-    tran_id: tranId,
-    amount: amountStr,
-    items: itemsB64,
-    shipping: "",
-    ctid: "",
-    pwt: "",
-    firstname: customer?.firstName || "Customer",
-    lastname: customer?.lastName || "User",
-    email: customer?.email || "customer@example.com",
-    phone: customer?.phone || "0000000000",
-    type: "purchase",
-    payment_option: paymentOption || "abapay_deeplink",
-    return_url: "",
-    cancel_url: "",
-    continue_success_url: "",
-    return_deeplink: returnDeeplink || "",
-    currency: String(currency || "KHR").toUpperCase(),
-    custom_fields: "",
-    return_params: returnParams || "",
+  return {
+    hashFields: {
+      req_time: reqTime || formatPaywayReqTime(),
+      merchant_id: cfg.merchantId,
+      tran_id: tranId,
+      amount: amountStr,
+      items: itemsB64,
+      shipping: "",
+      ctid: "",
+      pwt: "",
+      firstname: customer?.firstName || "Customer",
+      lastname: customer?.lastName || "User",
+      email: customer?.email || "customer@example.com",
+      phone: customer?.phone || "0000000000",
+      type: "purchase",
+      payment_option: resolvePaymentOptionForPayway(paymentOption),
+      return_url: "",
+      cancel_url: "",
+      continue_success_url: "",
+      return_deeplink: returnDeeplink || "",
+      currency: String(currency || "KHR").toUpperCase(),
+      custom_fields: "",
+      return_params: returnParams || "",
+    },
+    cfg,
   };
+}
 
+function buildPaywayCheckoutForm(params) {
+  const { hashFields, cfg } = buildPurchaseFormFields(params);
+  const hash = hashForPurchase(hashFields, cfg.apiKey);
+  const fields = { ...hashFields, hash };
+  if (cfg.callbackUrl) {
+    fields.callback_url = cfg.callbackUrl;
+  }
+  return {
+    action: cfg.purchaseUrl,
+    fields,
+    scriptUrl: getCheckoutScriptUrl(),
+  };
+}
+
+/**
+ * Create PayWay purchase (multipart form-data).
+ * @returns {Promise<object>} PayWay response (checkout URL, deeplink, etc.)
+ */
+async function createPurchase(params) {
+  const { hashFields, cfg } = buildPurchaseFormFields(params);
   const hash = hashForPurchase(hashFields, cfg.apiKey);
   const form = new FormData();
   for (const [key, value] of Object.entries(hashFields)) {
@@ -144,6 +180,8 @@ function isApprovedCheckResponse(body) {
 
 module.exports = {
   createPurchase,
+  buildPaywayCheckoutForm,
+  isCheckoutPaymentOption,
   checkTransaction,
   isApprovedCheckResponse,
 };

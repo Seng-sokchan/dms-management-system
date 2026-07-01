@@ -38,7 +38,7 @@
     "title": "ផ្ទាំងគ្រប់គ្រង",
     "welcome": "សូមស្វាគមន៍",
     "loginHeading": "ចូល",
-    "blurb": "ចូលដើម្បីគ្រប់គ្រងការកម្មង់ ការដឹកជញ្ជូន និងការទូទាត់។ ឧទាហរណ៍៖ admin / admin123, owner / owner123, depot1 / depot123, logistics / logistics123",
+    "blurb": "ចូលដើម្បីគ្រប់គ្រងការកម្មង់ ការដឹកជញ្ជូន និងការទូទាត់។",
     "username": "ឈ្មោះអ្នកប្រើ",
     "password": "ពាក្យសម្ងាត់",
     "placeholderUsername": "បញ្ចូលឈ្មោះអ្នកប្រើ",
@@ -493,6 +493,63 @@
     "roleMenusSaved": "បានធ្វើបច្ចុប្បន្នភាពការចូលប្រើម៉ឺនុយ",
     "roleMenusSectionLabel": "តំបន់ដែលមើលឃើញ",
     "roleMenusRequiredBadge": "ចាំបាច់",
+    "menuClient": "កម្មវិធី",
+    "clientAdmin": "ផ្ទាំងគ្រប់គ្រង",
+    "clientAdminDesc": "ប្រព័ន្ធគ្រប់គ្រងតាមគេហទំព័រសម្រាប់បុគ្គលិក។",
+    "clientMobile": "កម្មវិធីទូរស័ព្ទ",
+    "clientMobileDesc": "បទពិសោធន៍អតិថិជន ដឹកជញ្ជូន និងឃ្លាំងលើទូរស័ព្ទ។",
+    "configureRoleAccess": "ការចូលប្រើតួនាទី",
+    "roleAccessTitle": "ការកំណត់ការចូលប្រើតួនាទី",
+    "roleAccessLead": "កំណត់របៀបដែលតួនាទីមើលឃើញទិន្នន័យ កម្មវិធីដែលអាចប្រើ និងការធ្វើបច្ចុប្បន្នភាពផ្ទាល់។",
+    "roleAccessSave": "រក្សាការចូលប្រើ",
+    "roleAccessSaved": "បានធ្វើបច្ចុប្បន្នភាពការចូលប្រើតួនាទី",
+    "dataScopeSectionLabel": "ជម្រៅទិន្នន័យ",
+    "allowedClientsSectionLabel": "កម្មវិធីដែលអនុញ្ញាត",
+    "socketChannelsSectionLabel": "ការធ្វើបច្ចុប្បន្នភាពផ្ទាល់",
+    "socketChannelDeliveryLocations": "តាមដានទីតាំងដឹកជញ្ជូន",
+    "socketChannelDeliveryLocationsDesc": "ទទួលទិន្នន័យ GPS ផ្ទាល់ពីភ្នាក់ងារដឹកជញ្ជូន។",
+    "dataScope": {
+      "all": {
+        "label": "ទិន្នន័យទាំងអស់",
+        "desc": "ចូលប្រើពេញលេញលើអតិថិជន ឃ្លាំង និងការកម្មង់។"
+      },
+      "owner": {
+        "label": "ភ្ជាប់ម្ចាស់",
+        "desc": "តែកំណត់ត្រាដែលភ្ជាប់ទៅគណនីម្ចាស់ដែលបានចូល។"
+      },
+      "depot": {
+        "label": "ភ្ជាប់ឃ្លាំង",
+        "desc": "តែឃ្លាំង និងអតិថិជនដែលបានផ្ដល់ឱ្យឃ្លាំងនោះ។"
+      },
+      "customer": {
+        "label": "អតិថិជនផ្ទាល់",
+        "desc": "តែកំណត់ត្រាអតិថិជនដែលភ្ជាប់ទៅការចូលនេះ។"
+      },
+      "delivery_agent": {
+        "label": "ការដឹកជញ្ជូនដែលបានផ្ដល់",
+        "desc": "តែការកម្មង់ដែលបានផ្ដល់ឱ្យភ្នាក់ងារដឹកជញ្ជូនដែលភ្ជាប់។"
+      },
+      "none": {
+        "label": "គ្មានជម្រៅទិន្នន័យ",
+        "desc": "មិនអាចរុករកកំណត់ត្រាអាជីវកម្មដោយផ្ទាល់បានទេ។"
+      }
+    },
+    "configureStatusWorkflow": "លំហូរការបញ្ជាទិញ",
+    "configureStatusPermissions": "សិទ្ធិស្ថានភាព",
+    "statusPermissionsTitle": "សិទ្ធិស្ថានភាពតាមតួនាទី",
+    "statusPermissionsLead": "កំណត់តួនាទីណាអាចប្តូរស្ថានភាពការកម្មង់ និងបញ្ជាក់ថាអតិថិជនបានទទួលទំនិញ។",
+    "statusPermissionsSave": "រក្សាសិទ្ធិ",
+    "statusPermissionsSaved": "បានធ្វើបច្ចុប្បន្នភាពសិទ្ធិស្ថានភាព",
+    "statusPermRoleColumn": "តួនាទី",
+    "statusPermActionUpdate": "បច្ចុប្បន្នភាព",
+    "statusPermActionConfirm": "បញ្ជាក់",
+    "statusPermLegendUpdate": "អនុញ្ញាតឱ្យប្តូរការកម្មង់ទៅស្ថានភាពនេះ។",
+    "statusPermLegendConfirm": "អនុញ្ញាតឱ្យបញ្ជាក់ថាអតិថិជនបានទទួលទំនិញ (ជាធម្មតានៅ Received by customer)។",
+    "statusPermToggleAria": "{{role}} — {{status}} — {{action}}",
+    "statusWorkflowTitle": "លំហូរស្ថានភាពការបញ្ជាទិញ",
+    "statusWorkflowLead": "ជ្រើសរើសស្ថានភាពដែលអាចបន្តទៅបន្ទាប់ពីជំហាននីមួយៗ។",
+    "statusWorkflowSave": "រក្សាលំហូរ",
+    "statusWorkflowSaved": "បានធ្វើបច្ចុប្បន្នភាពលំហូរស្ថានភាព",
     "renewTokenSuccess": "បានបន្តសុពលភាព Bakong token រួចរាល់",
     "linkedCustomer": "អតិថិជនដែលភ្ជាប់",
     "selectCustomer": "— មិនបានភ្ជាប់ —",
@@ -767,6 +824,7 @@
     "saveBakongToken": "មិនអាចរក្សាទុក Bakong token",
     "confirmBakongPayment": "មិនអាចកត់ត្រាការទូទាត់ក្នុងកម្មវិធី។ ការទូទាត់នៅតែជោគជ័យនៅលើ Bakong។",
     "updateRoleMenus": "មិនអាចរក្សាការចូលប្រើម៉ឺនុយសម្រាប់តួនាទីនោះ",
+    "updateStatusTransitions": "មិនអាចរក្សាលំហូរស្ថានភាពការបញ្ជាទិញ",
     "createBorrowMaterial": "បន្ថែមសម្ភារៈខ្ចីបរាជ័យ",
     "updateBorrowMaterial": "កែប្រែសម្ភារៈខ្ចីបរាជ័យ",
     "deleteBorrowMaterial": "លុបសម្ភារៈខ្ចីបរាជ័យ",

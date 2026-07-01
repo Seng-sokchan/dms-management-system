@@ -63,7 +63,7 @@ export default function DepotOrdersScreen() {
   const navigation = useNavigation();
   const { token } = useAuth();
   const { t, i18n } = useTranslation();
-  const { colors, radii, sizes, spacing, typography } = useTheme();
+  const { colors, radii, sizes, spacing, typography, borders } = useTheme();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -150,11 +150,10 @@ export default function DepotOrdersScreen() {
         batchDivider: {
           marginTop: spacing.md,
           marginBottom: spacing.sm,
-          borderTopWidth: StyleSheet.hairlineWidth,
-          borderTopColor: colors.border,
+          ...borders.dividerTop,
         },
       }),
-    [colors, radii, sizes.tabBarOffset, spacing, typography],
+    [borders, colors, radii, sizes.tabBarOffset, spacing, typography],
   );
 
   const load = useCallback(async () => {

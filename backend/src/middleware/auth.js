@@ -1,7 +1,8 @@
 const jwt = require("jsonwebtoken");
-const { listMenuKeysForRoleName, getUserById } = require("../repositories");
+const { listMenuKeysForRoleName, listManageMenuKeysForRoleName, getUserById } = require("../repositories");
 const { UnauthorizedError, ForbiddenError } = require("../errors");
 const { fail } = require("../utils/response");
+const { canSetStatus, getDataScope } = require("../services/rulesCache");
 
 function getJwtSecret() {
   if (!process.env.JWT_SECRET) {
@@ -22,7 +23,9 @@ function createToken(user) {
 
 async function requireAuth(req, res, next) {
   const header = req.headers.authorization || "";
-  const [, token] = header.split(" ");
+  const [, headerToken] = header.split(" ");
+  const queryToken = typeof req.query?.token === "string" ? req.query.token.trim() : "";
+  const token = headerToken || queryToken;
 
   if (!token) {
     return fail(res, { status: 401, code: "UNAUTHORIZED", message: "Missing bearer token" });
@@ -40,6 +43,19 @@ async function requireAuth(req, res, next) {
   }
 }
 
+function requireDataScope(...scopes) {
+  return (req, res, next) => {
+    if (!req.user) {
+      return next(new ForbiddenError("Unauthorized"));
+    }
+    const scope = getDataScope(req.user.role);
+    if (!scopes.includes(scope)) {
+      return next(new ForbiddenError("Unauthorized for this data scope"));
+    }
+    return next();
+  };
+}
+
 function requireRoles(...roles) {
   return (req, res, next) => {
     if (!req.user || !roles.includes(req.user.role)) {
@@ -49,13 +65,14 @@ function requireRoles(...roles) {
   };
 }
 
-function requireMenuKey(menuKey) {
+function requireMenuKey(menuKey, { client = "admin", requireManage = false } = {}) {
   return async (req, res, next) => {
     if (!req.user) {
       return next(new UnauthorizedError("Missing bearer token"));
     }
     try {
-      const allowed = await listMenuKeysForRoleName(req.user.role);
+      const listFn = requireManage ? listManageMenuKeysForRoleName : listMenuKeysForRoleName;
+      const allowed = await listFn(req.user.role, { client });
       if (!allowed.includes(menuKey)) {
         return next(new ForbiddenError("Unauthorized menu access"));
       }
@@ -66,10 +83,23 @@ function requireMenuKey(menuKey) {
   };
 }
 
-/**
- * Resolve the current DB-backed user from a JWT access string (Socket.IO or custom callers).
- * Returns null if invalid, inactive, or missing.
- */
+function requireManageMenuKey(menuKey, options = {}) {
+  return requireMenuKey(menuKey, { ...options, requireManage: true });
+}
+
+function requireStatusPermission(action = "update_status") {
+  return (req, res, next) => {
+    const nextStatus = req.body?.status || req.body?.nextStatus || req.params?.status;
+    if (!req.user) {
+      return next(new UnauthorizedError("Missing bearer token"));
+    }
+    if (!nextStatus || !canSetStatus(req.user.role, nextStatus, action)) {
+      return next(new ForbiddenError("Unauthorized to set this status"));
+    }
+    return next();
+  };
+}
+
 async function resolveUserFromAccessToken(token) {
   if (typeof token !== "string") return null;
   const trimmed = token.trim();
@@ -98,6 +128,9 @@ module.exports = {
   createToken,
   requireAuth,
   requireRoles,
+  requireDataScope,
   requireMenuKey,
+  requireManageMenuKey,
+  requireStatusPermission,
   resolveUserFromAccessToken,
 };

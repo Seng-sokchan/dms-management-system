@@ -65,10 +65,25 @@ export function scaleSpacing(spacing, width) {
   return out;
 }
 
+export const FONT_SIZE_SCALES = {
+  small: 0.875,
+  medium: 1,
+  big: 1.125,
+};
+
 export function scaleTypography(typography, width) {
   const out = {};
   for (const key of Object.keys(typography)) {
     out[key] = moderateScale(typography[key], width);
+  }
+  return out;
+}
+
+export function applyFontSizeScale(typography, fontSizePreference) {
+  const scale = FONT_SIZE_SCALES[fontSizePreference] ?? FONT_SIZE_SCALES.medium;
+  const out = {};
+  for (const key of Object.keys(typography)) {
+    out[key] = Math.round(typography[key] * scale);
   }
   return out;
 }

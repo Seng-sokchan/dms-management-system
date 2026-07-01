@@ -1,4 +1,4 @@
-const UNPAID_PAYMENT = new Set(["unpaid", "pending"]);
+const UNPAID_PAYMENT = new Set(["unpaid"]);
 
 const RECEIVED_STATUS = "Recieve_By_Customer";
 

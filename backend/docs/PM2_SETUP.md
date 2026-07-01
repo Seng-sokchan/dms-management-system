@@ -2,6 +2,8 @@
 
 This guide explains how to run the backend API with PM2 in a production-style setup.
 
+For **Docker on EC2** (PM2 inside a container), see [`deploy/dms-backend/README.md`](../../deploy/dms-backend/README.md).
+
 ## Prerequisites
 
 - Node.js installed (`node -v`)

@@ -34,6 +34,9 @@ import {
   updateProducer,
   updateUser,
   updateRoleMenus,
+  updateStatusTransitions,
+  updateRoleAccess,
+  updateRoleStatusPermissions,
   createBorrowMaterial,
   updateBorrowMaterial,
   deleteBorrowMaterial,
@@ -108,6 +111,12 @@ export function useAdminDashboard() {
   const [orders, setOrders] = useState([]);
   const [users, setUsers] = useState([]);
   const [roleMenusByRole, setRoleMenusByRole] = useState(null);
+  const [roles, setRoles] = useState([]);
+  const [menuCatalog, setMenuCatalog] = useState([]);
+  const [mobileMenuCatalog, setMobileMenuCatalog] = useState([]);
+  const [statusTransitionsByStatus, setStatusTransitionsByStatus] = useState(null);
+  const [roleAccessByRole, setRoleAccessByRole] = useState(null);
+  const [roleStatusPermissionsByRole, setRoleStatusPermissionsByRole] = useState(null);
   const [customers, setCustomers] = useState([]);
   const [provinces, setProvinces] = useState([]);
   const [depots, setDepots] = useState([]);
@@ -200,6 +209,22 @@ export function useAdminDashboard() {
       setItems(Array.isArray(data.items) ? data.items : []);
       setUsers(Array.isArray(data.users) ? data.users : []);
       setRoleMenusByRole(data.roleMenusByRole && typeof data.roleMenusByRole === "object" ? data.roleMenusByRole : null);
+      setRoles(Array.isArray(data.roles) ? data.roles : []);
+      setMenuCatalog(Array.isArray(data.menuCatalog) ? data.menuCatalog : []);
+      setMobileMenuCatalog(Array.isArray(data.mobileMenuCatalog) ? data.mobileMenuCatalog : []);
+      setStatusTransitionsByStatus(
+        data.statusTransitionsByStatus && typeof data.statusTransitionsByStatus === "object"
+          ? data.statusTransitionsByStatus
+          : null,
+      );
+      setRoleAccessByRole(
+        data.roleAccessByRole && typeof data.roleAccessByRole === "object" ? data.roleAccessByRole : null,
+      );
+      setRoleStatusPermissionsByRole(
+        data.roleStatusPermissionsByRole && typeof data.roleStatusPermissionsByRole === "object"
+          ? data.roleStatusPermissionsByRole
+          : null,
+      );
       setBorrowMaterials(Array.isArray(data.borrowMaterials) ? data.borrowMaterials : []);
       setCustomerBorrowedMaterials(Array.isArray(data.customerBorrowedMaterials) ? data.customerBorrowedMaterials : []);
       setBorrowMaterialOrderLoans(
@@ -231,6 +256,12 @@ export function useAdminDashboard() {
         setOrders([]);
         setUsers([]);
         setRoleMenusByRole(null);
+        setRoles([]);
+        setMenuCatalog([]);
+        setMobileMenuCatalog([]);
+        setStatusTransitionsByStatus(null);
+        setRoleAccessByRole(null);
+        setRoleStatusPermissionsByRole(null);
         setCustomers([]);
         setProvinces([]);
         setDepots([]);
@@ -677,6 +708,42 @@ export function useAdminDashboard() {
     }
   }
 
+  async function submitStatusTransitions(transitions) {
+    try {
+      await updateStatusTransitions(token, transitions);
+      await refresh();
+      await showSuccessPopup(i18n.t("users.statusWorkflowSaved"));
+      return true;
+    } catch (error) {
+      showError(getErrorMessage(error, "errors.updateStatusTransitions"));
+      return false;
+    }
+  }
+
+  async function submitRoleAccess(roleName, payload) {
+    try {
+      await updateRoleAccess(token, roleName, payload);
+      await refresh();
+      await showSuccessPopup(i18n.t("users.roleAccessSaved", { defaultValue: "Role access updated" }));
+      return true;
+    } catch (error) {
+      showError(getErrorMessage(error, "errors.updateRoleAccess"));
+      return false;
+    }
+  }
+
+  async function submitRoleStatusPermissions(matrix) {
+    try {
+      await updateRoleStatusPermissions(token, matrix);
+      await refresh();
+      await showSuccessPopup(i18n.t("users.statusPermissionsSaved", { defaultValue: "Status permissions updated" }));
+      return true;
+    } catch (error) {
+      showError(getErrorMessage(error, "errors.updateStatusPermissions"));
+      return false;
+    }
+  }
+
   async function submitBorrowMaterial(event) {
     event.preventDefault();
     try {
@@ -901,6 +968,12 @@ export function useAdminDashboard() {
     orders,
     users,
     roleMenusByRole,
+    roles,
+    menuCatalog,
+    mobileMenuCatalog,
+    statusTransitionsByStatus,
+    roleAccessByRole,
+    roleStatusPermissionsByRole,
     customers,
     provinces,
     depots,
@@ -977,6 +1050,9 @@ export function useAdminDashboard() {
     submitUserUpdate,
     submitUserDelete,
     submitRoleMenus,
+    submitStatusTransitions,
+    submitRoleAccess,
+    submitRoleStatusPermissions,
     submitBorrowMaterial,
     submitBorrowMaterialUpdate,
     submitBorrowMaterialDelete,

@@ -1,0 +1,22 @@
+# Backend artifacts
+backend/node_modules
+backend/logs
+backend/.env
+backend/.env.*
+
+# Other monorepo apps (not needed for API image)
+frontend
+mobile-app
+image
+Dev
+
+# Git and build output
+.git
+.gitignore
+**/*.log
+**/dist
+**/node_modules
+
+# Deploy runtime files (mounted at run time, not baked in)
+deploy/dms-backend/.env
+deploy/dms-backend/logs

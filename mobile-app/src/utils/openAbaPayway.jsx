@@ -1,13 +1,12 @@
 import { Alert, Linking, Platform } from "react-native";
 
-const ABA_SCHEME = "abamobilebank";
 const ABA_PLAY_STORE = "market://details?id=com.paygo24.ibank";
 const ABA_PLAY_STORE_HTTPS =
   "https://play.google.com/store/apps/details?id=com.paygo24.ibank";
 
 /**
- * Open ABA Mobile via PayWay deeplink. Android 11+ blocks canOpenURL for custom schemes
- * unless declared in manifest <queries> — we open directly and fall back to Play/App Store.
+ * Open ABA Mobile via PayWay deeplink. Android opens directly; iOS checks canOpenURL first.
+ * @returns {Promise<{ opened: 'aba'|'checkout'|'store'|'failed', url?: string }>}
  */
 export async function openAbaPaywayCheckout(intent, { t } = {}) {
   const deeplink = intent?.deeplinkUrl ? String(intent.deeplinkUrl).trim() : "";
@@ -27,7 +26,7 @@ export async function openAbaPaywayCheckout(intent, { t } = {}) {
         return { opened: "aba", url: deeplink };
       }
     } catch {
-      /* try fallbacks below */
+      /* fall through */
     }
   }
 
@@ -36,7 +35,7 @@ export async function openAbaPaywayCheckout(intent, { t } = {}) {
       await Linking.openURL(checkoutUrl);
       return { opened: "checkout", url: checkoutUrl };
     } catch {
-      /* continue */
+      /* fall through */
     }
   }
 
@@ -66,5 +65,5 @@ export async function openAbaPaywayCheckout(intent, { t } = {}) {
     t?.("payment.openAbaFailedHint") ||
     "Install ABA Mobile from the app store, then try again.";
   Alert.alert(title, message);
-  return { opened: false };
+  return { opened: "failed" };
 }

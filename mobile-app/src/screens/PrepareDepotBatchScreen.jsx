@@ -28,7 +28,7 @@ import {
 import { fetchCustomers } from "../services/customersApi";
 import { fetchItems } from "../services/itemsApi";
 import { getApiErrorMessage } from "../services/apiClient";
-function createStyles({ colors, radii, spacing, typography, sizes, layout }) {
+function createStyles({ colors, radii, spacing, typography, sizes, layout, borders }) {
   return StyleSheet.create({
     centered: {
       flex: 1,
@@ -85,11 +85,10 @@ function createStyles({ colors, radii, spacing, typography, sizes, layout }) {
       alignItems: "center",
       gap: spacing.xs,
       backgroundColor: colors.surfaceSoft,
-      borderWidth: 1,
-      borderColor: colors.border,
       borderRadius: radii.pill,
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm,
+      ...borders.panel,
     },
     cartHeaderBtnText: {
       color: colors.textPrimary,
@@ -112,6 +111,8 @@ function createStyles({ colors, radii, spacing, typography, sizes, layout }) {
       width: "100%",
       maxWidth: layout.isTablet ? layout.contentMaxWidth : undefined,
       alignSelf: layout.isTablet ? "center" : undefined,
+      ...borders.dividerTop,
+      borderTopWidth: 1.5,
     },
     modalHeader: {
       flexDirection: "row",
@@ -127,12 +128,11 @@ function createStyles({ colors, radii, spacing, typography, sizes, layout }) {
     modalSearch: {
       backgroundColor: colors.surfaceSoft,
       borderRadius: radii.md,
-      borderWidth: 1,
-      borderColor: colors.border,
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm,
       color: colors.textPrimary,
       marginBottom: spacing.md,
+      ...borders.panel,
     },
     modalList: {
       flexGrow: 0,
@@ -147,9 +147,8 @@ function createStyles({ colors, radii, spacing, typography, sizes, layout }) {
       alignItems: "center",
       justifyContent: "space-between",
       paddingVertical: spacing.md,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
       gap: spacing.md,
+      ...borders.dividerBottom,
     },
     modalRowDisabled: {
       opacity: 0.5,

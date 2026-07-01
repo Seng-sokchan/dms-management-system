@@ -25,8 +25,8 @@ function DeliveryCartCardInner({
   showStartButton = true,
 }) {
   const { t } = useTranslation();
-  const { colors } = useTheme();
-  const styles = useMemo(() => createCartStyles(colors), [colors]);
+  const { colors, borders } = useTheme();
+  const styles = useMemo(() => createCartStyles({ colors, borders }), [borders, colors]);
   const cartCount = orders.length;
   const { itemColumns, rows } = useMemo(() => pivotOrdersByCustomer(orders), [orders]);
   const { totalsByItem, grandTotal } = useMemo(
@@ -139,7 +139,7 @@ function DeliveryCartCardInner({
 
 export const DeliveryCartCard = React.memo(DeliveryCartCardInner);
 
-function createCartStyles(colors) {
+function createCartStyles({ colors, borders }) {
   return StyleSheet.create({
   cartCard: {
     marginBottom: spacing.md,
@@ -157,10 +157,9 @@ function createCartStyles(colors) {
   },
   tableScroll: {
     marginTop: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border,
     borderRadius: radii.md,
     overflow: "hidden",
+    ...borders.panel,
   },
   table: {
     backgroundColor: colors.surface,
@@ -168,8 +167,7 @@ function createCartStyles(colors) {
   tableRow: {
     flexDirection: "row",
     alignItems: "center",
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    ...borders.dividerBottom,
   },
   tableHeaderRow: {
     backgroundColor: colors.surfaceSoft,

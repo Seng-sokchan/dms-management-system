@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { canAccessMenuKey, canAccessPath, MENU_ITEMS } from "./constants/menus";
+import { canAccessMenuKey, canAccessPath, hasAdminClientAccess, MENU_ITEMS } from "./constants/menus";
 import { AdminLayout } from "./components/layout/AdminLayout";
 import { Button } from "./components/ui/Button";
 import { DashboardBootstrapScreen } from "./components/ui/DashboardBootstrapScreen";
@@ -125,13 +125,22 @@ function App() {
     newUser,
     setNewUser,
     roleMenusByRole,
+    roles,
+    menuCatalog,
+    mobileMenuCatalog,
+    statusTransitionsByStatus,
+    roleAccessByRole,
+    roleStatusPermissionsByRole,
     submitUser,
     submitUserUpdate,
     submitUserDelete,
     submitRoleMenus,
+    submitStatusTransitions,
+    submitRoleAccess,
+    submitRoleStatusPermissions,
     logout,
   } = useAdminDashboard();
-  const isAllowedAdminPanelRole = user?.role === "Admin" || user?.role === "Owner";
+  const isAllowedAdminPanelRole = hasAdminClientAccess(user) && canAccessMenuKey(user, "overview");
 
   if (!token) {
     return (
@@ -188,7 +197,7 @@ function App() {
             </div>
             <p style={{ margin: "0 0 16px", color: "var(--text-muted)" }}>
               {t("accessDenied.message", {
-                defaultValue: "Only Admin or Owner accounts can access the Admin Panel. Depot users, please use the mobile app.",
+                defaultValue: "This account cannot access the admin panel. Please sign in with an account that has admin access.",
               })}
             </p>
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
@@ -224,7 +233,7 @@ function App() {
         </div>
         <p style={{ margin: "0 0 16px", color: "var(--text-muted)" }}>
           {t("accessDenied.message", {
-            defaultValue: "Only Admin or Owner accounts can access the Admin Panel. Depot users, please use the mobile app.",
+            defaultValue: "This account cannot access the admin panel. Please sign in with an account that has admin access.",
           })}
         </p>
         <div style={{ display: "flex", justifyContent: "flex-end" }}>
@@ -475,7 +484,7 @@ function App() {
       <Route
         path="/users"
         element={withLayout(
-          user?.role === "Admin" && canAccessPath(user, "/users") ? (
+          canAccessPath(user, "/users") ? (
             <UsersPage
               users={users}
               customers={customers}
@@ -487,7 +496,17 @@ function App() {
               onUpdateUser={submitUserUpdate}
               onDeleteUser={submitUserDelete}
               roleMenusByRole={roleMenusByRole}
+              roles={roles}
+              menuCatalog={menuCatalog}
+              mobileMenuCatalog={mobileMenuCatalog}
+              statuses={statuses}
+              statusTransitionsByStatus={statusTransitionsByStatus}
+              roleAccessByRole={roleAccessByRole}
+              roleStatusPermissionsByRole={roleStatusPermissionsByRole}
               onSaveRoleMenus={submitRoleMenus}
+              onSaveStatusTransitions={submitStatusTransitions}
+              onSaveRoleAccess={submitRoleAccess}
+              onSaveRoleStatusPermissions={submitRoleStatusPermissions}
             />
           ) : (
             renderDeniedRoute()
@@ -507,7 +526,7 @@ function App() {
       <Route
         path="/assign-orders"
         element={withLayout(
-          (user?.role === "Admin" || user?.role === "Owner") && canAccessPath(user, "/assign-orders") ? (
+          canAccessPath(user, "/assign-orders") ? (
             <AssignOrdersPage
               orders={orders}
               deliveryAgents={deliveryAgents}

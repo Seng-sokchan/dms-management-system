@@ -11,20 +11,19 @@ function resolveBatchPaymentState(orders) {
   }
   const allPaid = statuses.every((status) => status === "paid");
   const allUnpaid = statuses.every((status) => status === "unpaid");
-  const allPending = statuses.every((status) => status === "pending");
 
   if (allPaid) {
     return { badge: "paid", canPay: false, mixed: false };
   }
-  if (allPending || allUnpaid) {
-    return { badge: allPending ? "pending" : "unpaid", canPay: true, mixed: false };
+  if (allUnpaid) {
+    return { badge: "unpaid", canPay: true, mixed: false };
   }
   return { badge: "mixed", canPay: false, mixed: true };
 }
 
 export default function DepotBatchPaymentActions({ batchId, orders, navigation }) {
   const { t } = useTranslation();
-  const { colors, spacing, typography } = useTheme();
+  const { colors, spacing, typography, borders } = useTheme();
   const stackNav = navigation?.getParent?.() || navigation;
 
   const paymentState = useMemo(() => resolveBatchPaymentState(orders), [orders]);
@@ -36,6 +35,7 @@ export default function DepotBatchPaymentActions({ batchId, orders, navigation }
       paddingVertical: spacing.xs,
       borderRadius: 999,
       backgroundColor: colors.surfaceSoft,
+      ...borders.panel,
     },
     badgePaid: { backgroundColor: colors.successSoft },
     badgeText: { fontSize: typography.caption, fontWeight: "700", color: colors.textPrimary },

@@ -10,6 +10,8 @@ import CustomerTrackingScreen from "../screens/CustomerTrackingScreen";
 import MyOrdersScreen from "../screens/MyOrdersScreen";
 import { AppIcon } from "../components/ui";
 import FloatingTabBar from "../components/navigation/FloatingTabBar";
+import { useAuth } from "../context/AuthContext";
+import { useMobileNavigation } from "../hooks/useMobileNavigation";
 import { useTheme } from "../context/ThemeContext";
 import { useFloatingTabScreenOptions, useStackScreenOptions } from "./screenOptions";
 
@@ -92,12 +94,15 @@ export default function AuthenticatedTabs() {
   const floatingTabScreenOptions = useFloatingTabScreenOptions();
   const { colors } = useTheme();
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const { hasMenu } = useMobileNavigation(user);
 
   return (
     <Tab.Navigator
       screenOptions={floatingTabScreenOptions}
       tabBar={(props) => <FloatingTabBar {...props} />}
     >
+      {hasMenu("mobile.newOrder") ? (
       <Tab.Screen
         name="NewOrder"
         component={NewOrderNavigator}
@@ -107,21 +112,28 @@ export default function AuthenticatedTabs() {
           ...newOrderTabOptions({ route }, floatingTabScreenOptions, colors),
         })}
       />
+      ) : null}
+      {hasMenu("mobile.myOrders") ? (
       <Tab.Screen
         name="MyOrders"
         component={MyOrdersScreen}
         options={{ title: t("nav.orders"), tabBarIcon: TabIconOrders }}
       />
+      ) : null}
+      {hasMenu("mobile.tracking") ? (
       <Tab.Screen
         name="CustomerTracking"
         component={CustomerTrackingScreen}
         options={{ title: t("nav.tracking"), tabBarIcon: TabIconTracking }}
       />
+      ) : null}
+      {hasMenu("mobile.profile") ? (
       <Tab.Screen
         name="ProfileTab"
         component={ProfileNavigator}
         options={{ title: t("nav.profile"), tabBarIcon: TabIconProfile }}
       />
+      ) : null}
     </Tab.Navigator>
   );
 }
