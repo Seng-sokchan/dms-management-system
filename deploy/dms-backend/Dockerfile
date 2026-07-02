@@ -1,4 +1,4 @@
-FROM node:20-alpine
+FROM node:21.5.0-alpine
 
 WORKDIR /app
 
@@ -8,6 +8,7 @@ COPY backend/package.json backend/package-lock.json ./
 RUN npm ci --omit=dev
 
 COPY backend/ ./
+RUN rm -f .env .env.*
 COPY deploy/dms-backend/ecosystem.config.js ./ecosystem.config.js
 
 RUN mkdir -p logs

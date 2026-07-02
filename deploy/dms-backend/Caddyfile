@@ -1,0 +1,9 @@
+{
+	email {$ACME_EMAIL}
+}
+
+api.dmscambodia.com {
+	encode gzip
+
+	reverse_proxy backend:4000
+}

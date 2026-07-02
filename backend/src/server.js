@@ -1,5 +1,5 @@
 const http = require("http");
-require("dotenv").config({ override: true });
+require("dotenv").config();
 const { checkDbConnection } = require("../database/pool");
 const { ensureRulesSchema } = require("../database/ensureRulesSchema");
 const { attachDeliveryLocationSocket } = require("./socket/deliveryLocationSocket");

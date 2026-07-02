@@ -1,15 +1,62 @@
 services:
+  mariadb:
+    image: mariadb:12.2.2
+    container_name: dms-mariadb
+    restart: unless-stopped
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_PASSWORD}
+      MARIADB_DATABASE: ${DB_NAME}
+      MARIADB_ROOT_HOST: "%"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./mariadb/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
   backend:
     build:
       context: ../..
       dockerfile: deploy/dms-backend/Dockerfile
     container_name: dms-backend
     restart: unless-stopped
-    ports:
-      - "${PORT:-4000}:4000"
+    expose:
+      - "4000"
     env_file:
       - .env
+    environment:
+      DB_HOST: mariadb
+    depends_on:
+      mariadb:
+        condition: service_healthy
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
       - ./logs:/app/logs
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: dms-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    env_file:
+      - .env
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+
+volumes:
+  mariadb_data:
+  caddy_data:
+  caddy_config:
