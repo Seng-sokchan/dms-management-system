@@ -1,4 +1,5 @@
 const { ensureConnected } = require("../redis/client");
+const { CHECKOUT_TTL_SEC } = require("../config/paymentConfig");
 
 const STATUS_KEY_PREFIX = "payment:status:";
 const WATCH_KEY_PREFIX = "payment:watch:";
@@ -7,9 +8,10 @@ const ORDER_KEY_PREFIX = "payment:order:";
 const BATCH_KEY_PREFIX = "payment:batch:";
 const PENDING_SET_KEY = "payment:pending";
 const RECONCILE_INTERVAL_MS = 5000;
-const DEFAULT_TTL_SEC = 300;
+const DEFAULT_TTL_SEC = CHECKOUT_TTL_SEC;
+const EXPIRED_STATUS_TTL_SEC = 60;
 
-const TERMINAL = new Set(["paid"]);
+const TERMINAL = new Set(["paid", "expired"]);
 
 function statusKey(paymentId) {
   return `${STATUS_KEY_PREFIX}${paymentId}`;
@@ -31,11 +33,22 @@ function batchKey(batchId) {
   return `${BATCH_KEY_PREFIX}${batchId}`;
 }
 
-function ttlSecondsForSession(session) {
+function isSessionExpired(session) {
+  if (!session?.expiresAt) return false;
+  const expires = new Date(session.expiresAt);
+  return Number.isFinite(expires.getTime()) && expires.getTime() <= Date.now();
+}
+
+function remainingTtlSec(session) {
   if (!session?.expiresAt) return DEFAULT_TTL_SEC;
   const expires = new Date(session.expiresAt);
+  if (!Number.isFinite(expires.getTime())) return DEFAULT_TTL_SEC;
   const sec = Math.ceil((expires.getTime() - Date.now()) / 1000);
-  return Math.max(30, Math.min(sec, DEFAULT_TTL_SEC));
+  return Math.max(0, Math.min(sec, DEFAULT_TTL_SEC));
+}
+
+function ttlSecondsForSession(session) {
+  return remainingTtlSec(session);
 }
 
 function ttlSecondsForPayment(payment) {
@@ -103,6 +116,10 @@ async function saveCheckoutSession(session) {
   }
 
   const ttl = ttlSecondsForSession(session);
+  if (ttl <= 0) {
+    return mapSessionRow(session);
+  }
+
   const payload = JSON.stringify(session);
   await redis.set(watchKey(session.id), payload, "EX", ttl);
   await redis.set(tranKey(session.paywayTranId), session.id, "EX", ttl);
@@ -152,16 +169,18 @@ async function findCheckoutByBatchId(batchId) {
 }
 
 async function refreshCheckoutSessionTtl(session) {
-  if (!session?.id) return;
+  if (!session?.id || isSessionExpired(session)) return;
   await saveCheckoutSession(session);
 }
 
 /** Begin live KHQR polling for an existing Redis checkout session. */
 async function startLiveCheck(session) {
   const redis = await requireRedis();
-  if (!session?.id) return false;
+  if (!session?.id || isSessionExpired(session)) return false;
 
   const ttl = ttlSecondsForSession(session);
+  if (ttl <= 0) return false;
+
   await setStatus(
     session.id,
     {
@@ -177,7 +196,7 @@ async function startLiveCheck(session) {
 }
 
 async function touchLiveCheck(session) {
-  if (!session?.id) return;
+  if (!session?.id || isSessionExpired(session)) return;
   await refreshCheckoutSessionTtl(session);
   await startLiveCheck(session);
 }
@@ -195,6 +214,26 @@ async function stopLiveCheck(paymentId) {
   if (!redis || !paymentId) return;
   await redis.del(statusKey(paymentId));
   await redis.srem(PENDING_SET_KEY, paymentId);
+}
+
+/** Stop live-check and mark session expired; keep tran/watch keys for webhook grace. */
+async function expireCheckoutSession(paymentId) {
+  const session = await getCheckoutSession(paymentId);
+  if (!session) {
+    await stopLiveCheck(paymentId);
+    return;
+  }
+
+  await stopLiveCheck(paymentId);
+  await setStatus(
+    paymentId,
+    {
+      status: "expired",
+      paywayTranId: session.paywayTranId,
+      orderId: session.orderId,
+    },
+    EXPIRED_STATUS_TTL_SEC,
+  );
 }
 
 async function setPaid(payment) {
@@ -254,6 +293,10 @@ async function listPendingIds(limit = 100) {
 
 module.exports = {
   RECONCILE_INTERVAL_MS,
+  DEFAULT_TTL_SEC,
+  isSessionExpired,
+  remainingTtlSec,
+  expireCheckoutSession,
   saveCheckoutSession,
   getCheckoutSession,
   getCheckoutByPaywayTranId,

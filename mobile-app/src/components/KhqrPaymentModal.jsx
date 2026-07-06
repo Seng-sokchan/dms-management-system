@@ -63,6 +63,13 @@ export default function KhqrPaymentModal({
   });
 
   const isPaid = status === "paid";
+  const isExpired = sessionExpired || status === "expired";
+
+  useEffect(() => {
+    if (status === "expired") {
+      setSessionExpired(true);
+    }
+  }, [status]);
   const qrUri = useMemo(() => buildQrImageUri(qrImageUrl, qrString), [qrImageUrl, qrString]);
 
   useEffect(() => {
@@ -111,7 +118,7 @@ export default function KhqrPaymentModal({
   }, [qrString, qrUri, t]);
 
   const statusLabel = t(`payment.result.${status}`, status);
-  const statusHint = sessionExpired
+  const statusHint = isExpired
     ? t("payment.khqrExpiredHint")
     : isPaid
       ? t("payment.khqrPaidHint")
@@ -137,7 +144,7 @@ export default function KhqrPaymentModal({
             <AbaKhqrLogoMark size={44} />
           </View>
 
-          {sessionExpired ? (
+          {isExpired ? (
             <View style={styles.expiredWrap}>
               <Text style={styles.expiredText}>{t("payment.khqrExpired")}</Text>
               <Text style={styles.expiredHint}>{t("payment.khqrExpiredHint")}</Text>
@@ -161,7 +168,7 @@ export default function KhqrPaymentModal({
 
               <Text style={styles.bankingHint}>{t("payment.khqrBankingHint")}</Text>
 
-              {!sessionExpired && !isPaid ? (
+              {!isExpired && !isPaid ? (
                 <Text style={styles.expiry}>
                   {t("payment.khqrExpiresIn", { time: formatCountdown(remainingMs) })}
                 </Text>
@@ -170,7 +177,7 @@ export default function KhqrPaymentModal({
           )}
 
           {error ? <Text style={styles.error}>{error}</Text> : null}
-          {!sessionExpired ? <Text style={styles.statusHint}>{statusHint}</Text> : null}
+          {!isExpired ? <Text style={styles.statusHint}>{statusHint}</Text> : null}
         </ScrollView>
 
         <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>

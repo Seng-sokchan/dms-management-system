@@ -1,26 +1,44 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
 import Svg, { Circle, Ellipse, Path, Rect } from "react-native-svg";
-import { ABA_KHQR_RED, ABA_KHQR_TEAL } from "../../theme/abaKhqrBrand";
 
 const SKY = "#D9ECF2";
 const HILL = "#B8D9E8";
+const CACTUS = "#9CC7D8";
+const POLE = "#8AA4BF";
+const SUCCESS_GREEN = "#42B56E";
+
+const CX = 140;
+const BADGE_CY = 78;
+const BADGE_R = 30;
 
 export default function PaymentSuccessIllustration() {
   return (
     <View style={styles.wrap} accessibilityElementsHidden importantForAccessibility="no">
-      <Svg width={220} height={160} viewBox="0 0 220 160">
-        <Rect x="0" y="0" width="220" height="160" fill={SKY} rx="18" />
-        <Ellipse cx="110" cy="128" rx="120" ry="34" fill={HILL} />
-        <Path d="M36 118 C 52 96, 78 104, 92 118 Z" fill="#9CC7D8" />
-        <Path d="M150 118 C 166 94, 188 102, 198 118 Z" fill="#9CC7D8" />
-        <Rect x="108" y="42" width="4" height="76" fill="#8AA4BF" rx="2" />
-        <Circle cx="110" cy="42" r="24" fill={ABA_KHQR_TEAL} />
-        <Circle cx="110" cy="42" r="14" fill={ABA_KHQR_RED} />
+      <Svg width={280} height={200} viewBox="0 0 280 200">
+        <Rect x="0" y="0" width="280" height="200" fill={SKY} rx="20" />
+
+        <Ellipse cx="72" cy="52" rx="28" ry="14" fill="#FFFFFF" opacity="0.85" />
+        <Ellipse cx="210" cy="44" rx="34" ry="16" fill="#FFFFFF" opacity="0.85" />
+        <Ellipse cx="150" cy="36" rx="22" ry="11" fill="#FFFFFF" opacity="0.7" />
+
+        <Ellipse cx={CX} cy="168" rx="150" ry="40" fill={HILL} />
+        <Path d="M48 158 C 64 132, 92 140, 108 158 Z" fill={CACTUS} />
+        <Path d="M196 158 C 212 130, 238 138, 252 158 Z" fill={CACTUS} />
+
+        <Rect x="48" y="118" width="10" height="42" rx="3" fill={CACTUS} />
+        <Rect x="38" y="128" width="30" height="8" rx="4" fill={CACTUS} />
+        <Rect x="222" y="112" width="10" height="48" rx="3" fill={CACTUS} />
+        <Rect x="212" y="122" width="30" height="8" rx="4" fill={CACTUS} />
+
+        <Rect x={CX - 2} y="54" width="4" height="104" fill={POLE} rx="2" />
+        <Path d={`M${CX + 2} 56 L${CX + 2} 100 L${CX + 38} ${BADGE_CY} Z`} fill="#FFFFFF" />
+
+        <Circle cx={CX} cy={BADGE_CY} r={BADGE_R} fill={SUCCESS_GREEN} />
         <Path
-          d="M101 42 L108 49 L121 35"
-          stroke="#fff"
-          strokeWidth="4"
+          d={`M${CX - 12} ${BADGE_CY} L${CX - 4} ${BADGE_CY + 8} L${CX + 12} ${BADGE_CY - 8}`}
+          stroke="#FFFFFF"
+          strokeWidth="5"
           strokeLinecap="round"
           strokeLinejoin="round"
           fill="none"
@@ -34,6 +52,5 @@ const styles = StyleSheet.create({
   wrap: {
     alignItems: "center",
     justifyContent: "center",
-    marginVertical: 8,
   },
 });

@@ -8,7 +8,7 @@ const ABA_PLAY_STORE_HTTPS =
  * Open ABA Mobile via PayWay deeplink. Android opens directly; iOS checks canOpenURL first.
  * @returns {Promise<{ opened: 'aba'|'checkout'|'store'|'failed', url?: string }>}
  */
-export async function openAbaPaywayCheckout(intent, { t } = {}) {
+export async function openAbaPaywayCheckout(intent, { t, fallbackToStore = true } = {}) {
   const deeplink = intent?.deeplinkUrl ? String(intent.deeplinkUrl).trim() : "";
   const checkoutUrl = intent?.checkoutUrl ? String(intent.checkoutUrl).trim() : "";
   const playStore = intent?.playStoreUrl || ABA_PLAY_STORE;
@@ -40,6 +40,9 @@ export async function openAbaPaywayCheckout(intent, { t } = {}) {
   }
 
   if (Platform.OS === "android") {
+    if (!fallbackToStore) {
+      return { opened: "failed" };
+    }
     try {
       await Linking.openURL(playStore);
       return { opened: "store", url: playStore };
@@ -58,6 +61,10 @@ export async function openAbaPaywayCheckout(intent, { t } = {}) {
     } catch {
       /* fall through */
     }
+  }
+
+  if (!fallbackToStore) {
+    return { opened: "failed" };
   }
 
   const title = t?.("payment.openAbaFailed") || "Could not open ABA";

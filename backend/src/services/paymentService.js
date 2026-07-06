@@ -18,8 +18,7 @@ const {
   hasDataScope,
   getDepotForUser,
 } = require("./accessScopeService");
-
-const CHECKOUT_TTL_MINUTES = 5;
+const { CHECKOUT_TTL_MS } = require("../config/paymentConfig");
 
 function generatePaywayTranId() {
   return crypto.randomBytes(10).toString("hex");
@@ -29,11 +28,18 @@ function buildReturnDeeplink(paymentId) {
   return buildPaymentReturnUrl(paymentId);
 }
 
+function assertSessionActive(session) {
+  if (paymentStatusCache.isSessionExpired(session)) {
+    throw new BadRequestError("Payment session expired");
+  }
+}
+
 function mapCheckoutResponse(session, extra = {}) {
+  const status = session.status === "expired" ? "expired" : "unpaid";
   return {
     paymentId: session.id,
     orderId: Number(session.orderId),
-    status: "unpaid",
+    status,
     amount: session.amount,
     currency: session.currency,
     returnDeeplink: buildReturnDeeplink(session.id),
@@ -64,7 +70,10 @@ async function mapPaymentResponseWithOrders(paymentOrSession, extra = {}) {
   const mapper =
     paymentOrSession.status === "paid"
       ? (row) => mapPaymentResponse(row, extra)
-      : (row) => mapCheckoutResponse(row, extra);
+      : (row) => mapCheckoutResponse(
+        paymentOrSession.status === "expired" ? { ...row, status: "expired" } : row,
+        extra,
+      );
   const mapped = mapper(paymentOrSession);
   if (orderDetailIds.length > 0) {
     mapped.orderIds = orderDetailIds.map((id) => Number(id));
@@ -252,12 +261,16 @@ async function createPaymentIntent({ orderId, idempotencyKey }, { user }) {
 
   const existing = await paymentStatusCache.findCheckoutByMasterOrderId(masterOrderId);
   if (existing) {
-    return enrichCheckoutResponse(existing, {}, { user });
+    if (paymentStatusCache.isSessionExpired(existing)) {
+      await paymentStatusCache.removeCheckoutSession(existing.id);
+    } else {
+      return enrichCheckoutResponse(existing, {}, { user });
+    }
   }
 
   const paymentId = crypto.randomUUID();
   const paywayTranId = generatePaywayTranId();
-  const expiresAt = new Date(Date.now() + CHECKOUT_TTL_MINUTES * 60 * 1000);
+  const expiresAt = new Date(Date.now() + CHECKOUT_TTL_MS);
   const returnParams = buildCheckoutReturnParams({ paymentId, orderId: String(orderId) });
 
   const session = await saveCheckoutSession({
@@ -302,10 +315,14 @@ async function createBatchPaymentIntent({ batchId, idempotencyKey }, { user }) {
 
   const existingPending = await paymentStatusCache.findCheckoutByBatchId(batchId);
   if (existingPending) {
-    return enrichCheckoutResponse(existingPending, {
-      batchId,
-      orderIds: orders.map((order) => Number(order.id)),
-    }, { user });
+    if (paymentStatusCache.isSessionExpired(existingPending)) {
+      await paymentStatusCache.removeCheckoutSession(existingPending.id);
+    } else {
+      return enrichCheckoutResponse(existingPending, {
+        batchId,
+        orderIds: orders.map((order) => Number(order.id)),
+      }, { user });
+    }
   }
 
   if (orders.some((order) => (order.paymentStatus || "unpaid") !== "unpaid")) {
@@ -324,7 +341,7 @@ async function createBatchPaymentIntent({ batchId, idempotencyKey }, { user }) {
 
   const paymentId = crypto.randomUUID();
   const paywayTranId = generatePaywayTranId();
-  const expiresAt = new Date(Date.now() + CHECKOUT_TTL_MINUTES * 60 * 1000);
+  const expiresAt = new Date(Date.now() + CHECKOUT_TTL_MS);
   const returnParams = buildCheckoutReturnParams({
     paymentId,
     batchId,
@@ -351,8 +368,26 @@ async function createBatchPaymentIntent({ batchId, idempotencyKey }, { user }) {
   }, { user });
 }
 
+async function mapExpiredSessionResponse(session, extra, { user } = {}) {
+  const mapped = await enrichCheckoutResponse(session, extra, { user });
+  mapped.status = "expired";
+  mapped.liveCheckActive = false;
+  return mapped;
+}
+
 async function getPaymentById(paymentId, { user }) {
   const cached = await paymentStatusCache.getStatus(paymentId);
+  if (cached?.status === "expired") {
+    const expiredSession = await paymentStatusCache.getCheckoutSession(paymentId);
+    if (expiredSession) {
+      const order = await orderRepository.getOrderById(
+        (await orderRepository.listOrderDetailIdsByMasterOrderId(expiredSession.orderId))[0]
+          || expiredSession.orderId,
+      );
+      if (order) await assertCanPayOrder(order, user);
+      return mapExpiredSessionResponse(expiredSession, {}, { user });
+    }
+  }
   if (cached?.status === "paid") {
     const paid = await paymentRepository.getPaymentById(paymentId);
     if (paid) {
@@ -380,6 +415,11 @@ async function getPaymentById(paymentId, { user }) {
     (await orderRepository.listOrderDetailIdsByMasterOrderId(session.orderId))[0] || session.orderId,
   );
   if (order) await assertCanPayOrder(order, user);
+
+  if (paymentStatusCache.isSessionExpired(session)) {
+    await paymentStatusCache.expireCheckoutSession(paymentId);
+    return mapExpiredSessionResponse(session, {}, { user });
+  }
 
   const liveCheckActive = await paymentStatusCache.isLiveCheckActive(paymentId);
   const shouldReconcile = liveCheckActive && (await paymentStatusCache.shouldReconcile(paymentId));
@@ -422,12 +462,16 @@ async function getLatestPaymentForOrder(orderId, { user }) {
   const session = masterOrderId
     ? await paymentStatusCache.findCheckoutByMasterOrderId(masterOrderId)
     : null;
-  if (session && (await paymentStatusCache.isLiveCheckActive(session.id))) {
-    return {
-      orderId: Number(orderId),
-      paymentStatus: "unpaid",
-      payment: await enrichCheckoutResponse(session, {}, { user }),
-    };
+  if (session) {
+    if (paymentStatusCache.isSessionExpired(session)) {
+      await paymentStatusCache.expireCheckoutSession(session.id);
+    } else if (await paymentStatusCache.isLiveCheckActive(session.id)) {
+      return {
+        orderId: Number(orderId),
+        paymentStatus: "unpaid",
+        payment: await enrichCheckoutResponse(session, {}, { user }),
+      };
+    }
   }
 
   return {
@@ -450,6 +494,8 @@ async function getCheckoutPage(paymentId, { user }) {
     (await orderRepository.listOrderDetailIdsByMasterOrderId(session.orderId))[0] || session.orderId,
   );
   if (order) await assertCanPayOrder(order, user);
+
+  assertSessionActive(session);
 
   await paymentStatusCache.startLiveCheck(session);
 
@@ -475,6 +521,8 @@ async function startPaymentLiveCheck(paymentId, { user }) {
     (await orderRepository.listOrderDetailIdsByMasterOrderId(session.orderId))[0] || session.orderId,
   );
   if (order) await assertCanPayOrder(order, user);
+
+  assertSessionActive(session);
 
   await paymentStatusCache.startLiveCheck(session);
   return { paymentId, status: "unpaid", liveCheckActive: true };

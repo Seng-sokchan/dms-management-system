@@ -21,6 +21,7 @@ import {
 import { listMobileOrders } from "../services/ordersApi";
 import { getApiErrorMessage } from "../services/apiClient";
 import { usePaymentCompletionRefresh } from "../hooks/usePaymentCompletionRefresh";
+import { formatPaymentAmount } from "../utils/formatPaymentAmount";
 
 function groupDepotOrders(orders) {
   const batchMap = new Map();
@@ -333,15 +334,13 @@ function BatchOrderCard({ batchId, orders, styles, t, locale, navigation, token 
       {amountDue > 0 ? (
         <Text style={styles.batchPayLine}>
           {t("depot.batchToPay", {
-            amount: amountDue.toLocaleString(locale),
-            currency,
+            amount: formatPaymentAmount(amountDue, currency),
           })}
         </Text>
       ) : (
         <Text style={styles.batchPayLine}>
           {t("depot.batchPaidAmount", {
-            amount: amountPaid.toLocaleString(locale),
-            currency,
+            amount: formatPaymentAmount(amountPaid, currency),
           })}
         </Text>
       )}
@@ -375,8 +374,7 @@ function OrderCard({ order, styles, t, locale, navigation, token }) {
       <Text style={styles.orderLine}>
         {t("depot.orderQty", {
           qty,
-          total: total.toLocaleString(locale),
-          currency: order.currency || "KHR",
+          total: formatPaymentAmount(total, order.currency || "KHR"),
         })}
       </Text>
       {!!order.deliveryAgentName && (

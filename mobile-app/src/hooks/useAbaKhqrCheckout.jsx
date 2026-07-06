@@ -66,6 +66,17 @@ export function useAbaKhqrCheckout({
   }, [activePaymentId, confirmingAba, goToSuccess, polledStatus]);
 
   useEffect(() => {
+    if (polledStatus !== "expired" || !activePaymentId) return;
+    Alert.alert(t("payment.khqrExpired"), t("payment.khqrExpiredHint"));
+    const paymentId = activePaymentId;
+    resetCheckout();
+    setActivePaymentId(null);
+    if (token && paymentId) {
+      void stopPaymentLiveCheck(token, paymentId).catch(() => {});
+    }
+  }, [activePaymentId, polledStatus, resetCheckout, t, token]);
+
+  useEffect(() => {
     if (!token || !resumePaymentLookup) return;
     void resumePaymentLookup(token).then((paymentId) => {
       if (paymentId) setActivePaymentId(paymentId);
@@ -109,21 +120,32 @@ export function useAbaKhqrCheckout({
       setQrPayload({ qrString: route.qrString, qrImageUrl: route.qrImageUrl });
       setCheckoutSession(resolved);
 
+      const openKhqrModal = () => {
+        setCheckoutMode("khqr_qr");
+      };
+
       if (route.mode === "aba_app") {
-        const result = await openAbaPaywayCheckout({ deeplinkUrl: route.deeplinkUrl }, { t });
+        const result = await openAbaPaywayCheckout(
+          {
+            deeplinkUrl: route.deeplinkUrl,
+            playStoreUrl: route.playStoreUrl,
+            appStoreUrl: route.appStoreUrl,
+          },
+          { t, fallbackToStore: false },
+        );
         if (result.opened === "aba") {
           paidViaAbaRef.current = true;
           setConfirmingAba(true);
           setCheckoutMode(null);
           return;
         }
-        openWebviewFallback(resolved);
+        openKhqrModal();
         return;
       }
 
-      setCheckoutMode("khqr_qr");
+      openKhqrModal();
     },
-    [buildPendingReturn, openWebviewFallback, t, token],
+    [buildPendingReturn, openWebviewFallback, resetCheckout, t, token],
   );
 
   const startCheckout = useCallback(

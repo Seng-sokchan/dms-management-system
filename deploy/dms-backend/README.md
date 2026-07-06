@@ -54,6 +54,8 @@ The backend container overrides `DB_HOST=mariadb` via `docker-compose.yml`. Use 
 
 Set `PAYWAY_CALLBACK_URL` and other PayWay URLs to `https://api.dmscambodia.com/...` in production.
 
+Set `PAYMENT_CHECKOUT_TTL_MINUTES` (default `5`) to control how long an unpaid PayWay checkout session stays valid before expiring.
+
 ### 3. Start MariaDB, then initialize schema (once)
 
 Start the database first:
@@ -162,6 +164,7 @@ sudo docker compose exec -T mariadb mariadb -u root -p'Lyheng@dm!n' < mariadb/gr
 - **Container exits immediately** — check `sudo docker compose logs`; verify `.env` has `JWT_SECRET`, `DB_PASSWORD`, `DB_NAME`.
 - **Backend cannot connect to MariaDB** — ensure `mariadb` is healthy (`sudo docker compose ps`); check `sudo docker compose logs mariadb`.
 - **Payments unreliable** — set `REDIS_URL` to host Redis; in-memory fallback only works for a single instance without Redis.
+- **Checkout expires too quickly** — adjust `PAYMENT_CHECKOUT_TTL_MINUTES` in `.env` (default `5`).
 - **HTTPS / certificate errors** — confirm DNS for `api.dmscambodia.com` points to this server, ports 80/443 are open, and `ACME_EMAIL` is set in `.env`. Check `sudo docker compose logs caddy`.
 - **502 from Caddy** — backend may still be starting; run `sudo docker compose logs backend`.
 

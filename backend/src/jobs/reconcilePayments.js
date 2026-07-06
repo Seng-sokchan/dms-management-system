@@ -15,6 +15,10 @@ async function run() {
       await paymentStatusCache.stopLiveCheck(paymentId);
       continue;
     }
+    if (paymentStatusCache.isSessionExpired(session)) {
+      await paymentStatusCache.expireCheckoutSession(paymentId);
+      continue;
+    }
     const updated = await paywayWebhookService.reconcileCheckoutSession(session);
     if (updated?.status === "paid") {
       emitPaymentStatus(updated);

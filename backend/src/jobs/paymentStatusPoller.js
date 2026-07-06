@@ -16,6 +16,11 @@ async function pollOnce() {
         continue;
       }
 
+      if (paymentStatusCache.isSessionExpired(session)) {
+        await paymentStatusCache.expireCheckoutSession(paymentId);
+        continue;
+      }
+
       const reconciled = await paywayWebhookService.reconcileCheckoutSession(session);
       if (reconciled?.status === "paid") {
         await paymentStatusCache.setPaid(reconciled);

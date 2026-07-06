@@ -3,13 +3,9 @@ import { StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../context/ThemeContext";
 import { PrimaryButton } from "./ui";
+import { formatPaymentAmount } from "../utils/formatPaymentAmount";
 
-export function formatPaymentAmount(amount, currency) {
-  const n = Number(amount);
-  if (!Number.isFinite(n)) return "—";
-  if (currency === "KHR") return `${Math.round(n).toLocaleString()} KHR`;
-  return `${n.toFixed(2)} USD`;
-}
+export { formatPaymentAmount };
 
 /**
  * Pay now action for an order (customer or depot).

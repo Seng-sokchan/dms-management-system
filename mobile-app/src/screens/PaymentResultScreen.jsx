@@ -1,15 +1,18 @@
 import React, { useEffect, useLayoutEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, Share, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Image, Pressable, Share, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
-import { useTheme } from "../context/ThemeContext";
 import PaymentSuccessIllustration from "../components/payment/PaymentSuccessIllustration";
-import { AbaKhqrLogoMark } from "../components/payment/PaymentMethodIcons";
 import { Screen } from "../components/ui";
 import { usePaymentStatus } from "../hooks/usePaymentStatus";
 import { clearPendingPaymentReturn } from "../services/paymentPendingStorage";
 import { formatPaymentAmount } from "../utils/formatPaymentAmount";
 import { hasMobileMenu } from "../utils/mobileAccess";
+import { ABA_KHQR_TEAL, ABA_KHQR_WHITE } from "../theme/abaKhqrBrand";
+
+const logoImage = require("../../assets/images/logo.png");
+const SUCCESS_GREEN = "#42B56E";
 
 export default function PaymentResultScreen({ route, navigation }) {
   const paymentIdParam = route.params?.paymentId;
@@ -18,7 +21,7 @@ export default function PaymentResultScreen({ route, navigation }) {
   const orderIdsParam = Array.isArray(route.params?.orderIds) ? route.params.orderIds : null;
   const { user } = useAuth();
   const { t } = useTranslation();
-  const { colors, radii, spacing, typography } = useTheme();
+  const insets = useSafeAreaInsets();
 
   const { status, payment, loading, error } = usePaymentStatus(paymentIdParam, {
     autoRefresh: true,
@@ -60,6 +63,7 @@ export default function PaymentResultScreen({ route, navigation }) {
 
   useLayoutEffect(() => {
     navigation.setOptions({
+      headerShown: !isPaid,
       title: isPaid ? t("payment.successTitle") : t("payment.loading"),
     });
   }, [isPaid, navigation, t]);
@@ -67,95 +71,96 @@ export default function PaymentResultScreen({ route, navigation }) {
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        content: {
+        screen: {
+          flex: 1,
+          backgroundColor: "#FFFFFF",
+        },
+        header: {
+          alignItems: "center",
+          paddingTop: 16,
+          paddingHorizontal: 24,
+        },
+        logo: {
+          width: 52,
+          height: 52,
+          resizeMode: "contain",
+        },
+        storeName: {
+          marginTop: 10,
+          fontSize: 16,
+          fontWeight: "600",
+          color: "#1A1A1A",
+          textAlign: "center",
+        },
+        body: {
           flex: 1,
           alignItems: "center",
           justifyContent: "center",
-          paddingHorizontal: spacing.xl,
-        },
-        storeRow: {
-          flexDirection: "row",
-          alignItems: "center",
-          gap: spacing.sm,
-          marginBottom: spacing.lg,
-        },
-        storeBadge: {
-          marginRight: spacing.xs,
-        },
-        storeName: {
-          fontSize: typography.body,
-          fontWeight: "700",
-          color: colors.textPrimary,
+          paddingHorizontal: 28,
         },
         successTitle: {
-          fontSize: 32,
+          marginTop: 32,
+          fontSize: 34,
           fontWeight: "800",
-          color: colors.textPrimary,
-          marginTop: spacing.md,
+          color: "#1A1A1A",
+          textAlign: "center",
         },
         successHint: {
-          marginTop: spacing.md,
-          fontSize: typography.bodySmall,
-          color: colors.textSecondary,
+          marginTop: 14,
+          fontSize: 15,
+          color: "#8A8A8A",
           textAlign: "center",
           lineHeight: 22,
-          paddingHorizontal: spacing.md,
+          maxWidth: 300,
         },
-        amount: {
-          marginTop: spacing.lg,
-          fontSize: typography.title,
-          fontWeight: "800",
-          color: colors.textPrimary,
-        },
-        actions: {
-          width: "100%",
-          marginTop: spacing.xxl,
-          gap: spacing.md,
+        footer: {
+          paddingHorizontal: 24,
+          gap: 14,
         },
         outlineButton: {
           borderWidth: 1.5,
-          borderColor: ABA_KHQR_TEAL,
-          borderRadius: radii.pill,
-          paddingVertical: spacing.md,
-          paddingHorizontal: spacing.lg,
+          borderColor: SUCCESS_GREEN,
+          borderRadius: 12,
+          paddingVertical: 16,
           alignItems: "center",
+          backgroundColor: "#FFFFFF",
         },
         outlineButtonText: {
-          color: ABA_KHQR_TEAL,
-          fontSize: typography.button,
+          color: SUCCESS_GREEN,
+          fontSize: 16,
           fontWeight: "700",
         },
         primaryButton: {
-          backgroundColor: ABA_KHQR_TEAL,
-          borderRadius: radii.pill,
-          paddingVertical: spacing.md,
-          paddingHorizontal: spacing.lg,
+          backgroundColor: SUCCESS_GREEN,
+          borderRadius: 12,
+          paddingVertical: 16,
           alignItems: "center",
         },
         primaryButtonText: {
           color: ABA_KHQR_WHITE,
-          fontSize: typography.button,
+          fontSize: 16,
           fontWeight: "700",
         },
         error: {
-          marginTop: spacing.md,
-          color: colors.danger,
-          fontSize: typography.bodySmall,
+          marginTop: 12,
+          color: "#D32F2F",
+          fontSize: 14,
           textAlign: "center",
         },
         pendingWrap: {
+          flex: 1,
           alignItems: "center",
           justifyContent: "center",
-          padding: spacing.xl,
+          padding: 24,
         },
         pendingText: {
-          marginTop: spacing.md,
-          color: colors.textMuted,
-          fontSize: typography.bodySmall,
+          marginTop: 16,
+          color: "#8A8A8A",
+          fontSize: 14,
           textAlign: "center",
         },
       }),
-    [colors, radii, spacing, typography],
+    [],
   );
 
   const goBackToOrders = () => {
@@ -202,31 +207,29 @@ export default function PaymentResultScreen({ route, navigation }) {
   }
 
   return (
-    <Screen busy={loading && !payment} busyMessage={t("payment.loading")}>
-      <View style={styles.content}>
-        <View style={styles.storeRow}>
-          <View style={styles.storeBadge}>
-            <AbaKhqrLogoMark size={32} />
-          </View>
+    <Screen
+      busy={loading && !payment}
+      busyMessage={t("payment.loading")}
+      edges={["top", "left", "right"]}
+      contentStyle={{ paddingHorizontal: 0 }}
+      style={{ backgroundColor: "#FFFFFF" }}
+    >
+      <View style={styles.screen}>
+        <View style={styles.header}>
+          <Image source={logoImage} style={styles.logo} accessibilityLabel="App logo" />
           <Text style={styles.storeName}>{t("payment.storeName")}</Text>
         </View>
 
-        <PaymentSuccessIllustration />
-
-        <Text style={styles.successTitle}>{t("payment.successTitle")}</Text>
-        <Text style={styles.successHint}>
-          {t("payment.successEmailHint", { email })}
-        </Text>
-
-        {payment?.amount != null ? (
-          <Text style={styles.amount}>
-            {formatPaymentAmount(payment.amount, payment.currency)}
+        <View style={styles.body}>
+          <PaymentSuccessIllustration />
+          <Text style={styles.successTitle}>{t("payment.successTitle")}</Text>
+          <Text style={styles.successHint}>
+            {t("payment.successEmailHint", { email })}
           </Text>
-        ) : null}
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+        </View>
 
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-
-        <View style={styles.actions}>
+        <View style={[styles.footer, { paddingBottom: insets.bottom + 24 }]}>
           <Pressable style={styles.outlineButton} onPress={handleDownloadReceipt}>
             <Text style={styles.outlineButtonText}>{t("payment.downloadReceipt")}</Text>
           </Pressable>

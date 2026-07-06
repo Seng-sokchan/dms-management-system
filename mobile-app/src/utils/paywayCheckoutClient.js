@@ -10,6 +10,9 @@ export function parsePaywayClientResponse(response) {
       message: "Invalid PayWay response",
       qrString: null,
       qrImageUrl: null,
+      deeplinkUrl: null,
+      playStoreUrl: null,
+      appStoreUrl: null,
     };
   }
 
@@ -19,6 +22,11 @@ export function parsePaywayClientResponse(response) {
 
   const qrString = root?.qrString || root?.qr_string || null;
   const qrImage = root?.qrImage || root?.qr_image || null;
+
+  let deeplinkUrl = unescapeUrl(root?.abapay_deeplink || root?.deeplink);
+  if (!deeplinkUrl && qrString) {
+    deeplinkUrl = `abamobilebank://ababank.com?type=payway&qrcode=${encodeURIComponent(String(qrString).trim())}`;
+  }
 
   let qrImageUrl = null;
   if (qrImage && String(qrImage).trim()) {
@@ -36,6 +44,9 @@ export function parsePaywayClientResponse(response) {
     message: response?.status?.message || response?.description || null,
     qrString: qrString ? String(qrString) : null,
     qrImageUrl,
+    deeplinkUrl,
+    playStoreUrl: unescapeUrl(root?.play_store),
+    appStoreUrl: unescapeUrl(root?.app_store),
   };
 }
 

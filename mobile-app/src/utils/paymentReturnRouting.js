@@ -48,17 +48,6 @@ export async function resolvePaymentReturnNavigation(
       ? payment.orderIds.map((id) => Number(id))
       : undefined;
 
-  if (status === "paid") {
-    return navigateToPaymentResultDeferred({
-      paymentId,
-      orderId: resolvedOrderId,
-      batchId: resolvedBatchId,
-      orderIds: resolvedOrderIds,
-      fromAbaReturn: fromAbaReturn === true,
-      role,
-    });
-  }
-
   const resumeCheckout = async () => {
     if (resolvedBatchId) {
       const batchOrders =
@@ -82,11 +71,26 @@ export async function resolvePaymentReturnNavigation(
     return false;
   };
 
-  if (status === "unpaid" && !isIntentExpired(payment?.expiresAt)) {
+  if (status === "paid") {
+    return navigateToPaymentResultDeferred({
+      paymentId,
+      orderId: resolvedOrderId,
+      batchId: resolvedBatchId,
+      orderIds: resolvedOrderIds,
+      fromAbaReturn: fromAbaReturn === true,
+      role,
+    });
+  }
+
+  if (status === "expired" || isIntentExpired(payment?.expiresAt)) {
+    return false;
+  }
+
+  if (status === "unpaid") {
     return resumeCheckout();
   }
 
-  return resumeCheckout();
+  return false;
 }
 
 export { CHECKOUT_SCREENS, isIntentExpired };

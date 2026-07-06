@@ -5,11 +5,12 @@ import { io } from "socket.io-client";
 import { useAuth } from "../context/AuthContext";
 import { getPayment } from "../services/paymentsApi";
 import { getSocketBaseUrl } from "../services/socketUrl";
+import { PAYMENT_INTENT_TTL_MS } from "../constants/paymentConstants";
 
 const POLL_INTERVAL_MS = 5000;
-const POLL_MAX_MS = 15 * 60 * 1000;
+const POLL_MAX_MS = PAYMENT_INTENT_TTL_MS + 30_000;
 
-const TERMINAL = new Set(["paid"]);
+const TERMINAL = new Set(["paid", "expired"]);
 
 /**
  * Realtime payment status: Socket.IO + automatic GET polling (no manual refresh).

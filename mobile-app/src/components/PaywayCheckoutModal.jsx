@@ -76,7 +76,14 @@ export default function PaywayCheckoutModal({
   });
 
   const isPaid = status === "paid";
+  const isExpired = sessionExpired || status === "expired";
   const storeName = merchantName || t("payment.storeName");
+
+  useEffect(() => {
+    if (status === "expired") {
+      setSessionExpired(true);
+    }
+  }, [status]);
 
   const loadFallbackCheckout = useCallback(async () => {
     if (!paywayCheckout || fallbackStartedRef.current) return;
@@ -250,7 +257,7 @@ export default function PaywayCheckoutModal({
           {amountLabel ? <Text style={styles.amount}>{amountLabel}</Text> : null}
         </View>
 
-        {sessionExpired ? (
+        {isExpired ? (
           <View style={styles.center}>
             <Text style={styles.error}>{t("payment.khqrExpired")}</Text>
           </View>
@@ -308,7 +315,7 @@ export default function PaywayCheckoutModal({
           <Text style={styles.hintText}>
             {isPaid
               ? t("payment.khqrPaidHint")
-              : sessionExpired
+              : isExpired
                 ? t("payment.khqrExpired")
                 : t("payment.checkoutWebHint", { status: statusLabel })}
           </Text>
