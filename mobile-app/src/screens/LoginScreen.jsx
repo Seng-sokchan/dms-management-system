@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Alert,
   Image,
   Keyboard,
   KeyboardAvoidingView,
@@ -14,6 +13,7 @@ import {
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAlert } from "../context/AlertContext";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { AppIcon, Card, InputField, PrimaryButton, Screen } from "../components/ui";
@@ -24,6 +24,7 @@ const logoImage = require("../../assets/images/logo.png");
 export default function LoginScreen() {
   const { login } = useAuth();
   const { t } = useTranslation();
+  const { showError } = useAlert();
   const { colors, layout, spacing, typography } = useTheme();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -141,7 +142,7 @@ export default function LoginScreen() {
       await login(username.trim(), password);
       await setRememberedUsername(username.trim());
     } catch (error) {
-      Alert.alert(t("auth.loginFailed"), getApiErrorMessage(error, t("auth.loginFailedDefault")));
+      showError(t("auth.loginFailed"), getApiErrorMessage(error, t("auth.loginFailedDefault")));
     } finally {
       setLoading(false);
     }

@@ -32,11 +32,14 @@ async function requireAuth(req, res, next) {
   }
 
   try {
-    const user = await resolveUserFromAccessToken(token);
-    if (!user) {
+    const session = await resolveAccessTokenSession(token);
+    if (!session) {
       return fail(res, { status: 401, code: "UNAUTHORIZED", message: "Invalid token" });
     }
-    req.user = user;
+    if (session.inactive) {
+      return fail(res, { status: 403, code: "ACCOUNT_INACTIVE", message: "Account is inactive" });
+    }
+    req.user = session.user;
     return next();
   } catch (_error) {
     return fail(res, { status: 401, code: "UNAUTHORIZED", message: "Invalid token" });
@@ -100,28 +103,37 @@ function requireStatusPermission(action = "update_status") {
   };
 }
 
-async function resolveUserFromAccessToken(token) {
+async function resolveAccessTokenSession(token) {
   if (typeof token !== "string") return null;
   const trimmed = token.trim();
   if (!trimmed) return null;
   try {
     const decoded = jwt.verify(trimmed, getJwtSecret());
     const currentUser = await getUserById(decoded.sub);
-    if (!currentUser || !currentUser.isActive) return null;
+    if (!currentUser) return null;
+    if (!currentUser.isActive) return { inactive: true };
     return {
-      ...decoded,
-      sub: String(currentUser.id),
-      name: currentUser.name,
-      username: currentUser.username,
-      role: currentUser.role,
-      deliveryAgentId:
-        currentUser.deliveryAgentId != null && String(currentUser.deliveryAgentId).trim() !== ""
-          ? String(currentUser.deliveryAgentId)
-          : "",
+      user: {
+        ...decoded,
+        sub: String(currentUser.id),
+        name: currentUser.name,
+        username: currentUser.username,
+        role: currentUser.role,
+        isActive: true,
+        deliveryAgentId:
+          currentUser.deliveryAgentId != null && String(currentUser.deliveryAgentId).trim() !== ""
+            ? String(currentUser.deliveryAgentId)
+            : "",
+      },
     };
   } catch (_error) {
     return null;
   }
+}
+
+async function resolveUserFromAccessToken(token) {
+  const session = await resolveAccessTokenSession(token);
+  return session?.user ?? null;
 }
 
 module.exports = {
@@ -133,4 +145,5 @@ module.exports = {
   requireManageMenuKey,
   requireStatusPermission,
   resolveUserFromAccessToken,
+  resolveAccessTokenSession,
 };

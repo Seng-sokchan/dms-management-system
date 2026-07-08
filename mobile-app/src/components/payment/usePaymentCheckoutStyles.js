@@ -12,13 +12,13 @@ export function usePaymentCheckoutStyles() {
           paddingBottom: spacing.xxl,
         },
         title: {
-          fontSize: typography.h3,
-          fontWeight: "800",
+          fontSize: typography.body,
+          fontWeight: "700",
           color: colors.textPrimary,
-          marginBottom: spacing.md,
+          marginBottom: spacing.sm,
         },
         orderSummarySubtitle: {
-          marginBottom: spacing.sm,
+          marginBottom: spacing.md,
           fontSize: typography.bodySmall,
           color: colors.textSecondary,
         },

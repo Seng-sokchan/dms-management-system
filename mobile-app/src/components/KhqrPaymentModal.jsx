@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Modal,
   Platform,
   Pressable,
@@ -15,6 +14,7 @@ import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityI
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import KhqrScanCard, { SCREEN_BG } from "./payment/KhqrScanCard";
+import { useAlert } from "../context/AlertContext";
 import { usePaymentStatus } from "../hooks/usePaymentStatus";
 import { PAYMENT_INTENT_TTL_MS } from "../constants/paymentConstants";
 import { buildQrImageUri } from "../utils/buildQrImageUri";
@@ -53,6 +53,7 @@ export default function KhqrPaymentModal({
   onPaid,
 }) {
   const { t } = useTranslation();
+  const { showError } = useAlert();
   const insets = useSafeAreaInsets();
   const paidNotifiedRef = useRef(false);
   const [remainingMs, setRemainingMs] = useState(() => resolveExpiryMs(expiresAt));
@@ -103,7 +104,7 @@ export default function KhqrPaymentModal({
 
   const handleDownloadQr = useCallback(async () => {
     if (!qrUri && !qrString) {
-      Alert.alert(t("payment.khqrNoQr"));
+      showError(t("payment.khqrNoQr"));
       return;
     }
     try {
@@ -113,9 +114,9 @@ export default function KhqrPaymentModal({
           : { message: qrUri || qrString || t("payment.downloadQr"), title: t("payment.downloadQr") };
       await Share.share(sharePayload);
     } catch {
-      Alert.alert(t("payment.khqrNoQr"));
+      showError(t("payment.khqrNoQr"));
     }
-  }, [qrString, qrUri, t]);
+  }, [qrString, qrUri, showError, t]);
 
   const statusLabel = t(`payment.result.${status}`, status);
   const statusHint = isExpired

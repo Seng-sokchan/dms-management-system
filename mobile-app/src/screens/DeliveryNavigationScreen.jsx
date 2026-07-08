@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   InteractionManager,
   Pressable,
@@ -21,6 +20,7 @@ import {
 } from "../components/DeliveryOrdersBottomSheet";
 import DeliveryConfirmationModal from "../components/DeliveryConfirmationModal";
 import { DeliveryOrderCard } from "../components/DeliveryOrderCard";
+import { useAlert } from "../context/AlertContext";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { useDeliveryLiveTracking } from "../hooks/useDeliveryLiveTracking";
@@ -63,6 +63,7 @@ export default function DeliveryNavigationScreen() {
   const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
+  const { showError } = useAlert();
   const { colors, layout, radii, shadows, spacing, typography } = useTheme();
 
   const styles = useMemo(
@@ -310,13 +311,13 @@ export default function DeliveryNavigationScreen() {
         setOrders(list);
         return list;
       } catch {
-        if (!silent) Alert.alert(t("delivery.ordersAlertTitle"), t("delivery.ordersLoadFailed"));
+        if (!silent) showError(t("delivery.ordersAlertTitle"), t("delivery.ordersLoadFailed"));
         return ordersRef.current;
       } finally {
         if (!silent) setLoading(false);
       }
     },
-    [token, t],
+    [token, t, showError],
   );
 
   const changeOrderStatus = useCallback(
@@ -364,7 +365,7 @@ export default function DeliveryNavigationScreen() {
               : row,
           ),
         );
-        Alert.alert(t("delivery.statusAlertTitle"), t("delivery.statusUpdateFailed"));
+        showError(t("delivery.statusAlertTitle"), t("delivery.statusUpdateFailed"));
         if (status === "Recieve_By_Customer" && orderBefore?.status === "Ready_For_Delivery") {
           const loc = driverLocationRef.current;
           if (loc) recomputeActiveNavOrder(ordersRef.current, loc);
@@ -379,6 +380,7 @@ export default function DeliveryNavigationScreen() {
       recomputeActiveNavOrder,
       refreshDriverLocationOnce,
       driverLocationRef,
+      showError,
       token,
       t,
     ],
@@ -442,7 +444,7 @@ export default function DeliveryNavigationScreen() {
               : row,
           ),
         );
-        Alert.alert(t("delivery.statusAlertTitle"), t("delivery.confirmFailed"));
+        showError(t("delivery.statusAlertTitle"), t("delivery.confirmFailed"));
         if (orderBefore?.status === "Ready_For_Delivery") {
           const loc = driverLocationRef.current;
           if (loc) recomputeActiveNavOrder(ordersRef.current, loc);
@@ -458,6 +460,7 @@ export default function DeliveryNavigationScreen() {
       applyAfterDelivered,
       recomputeActiveNavOrder,
       driverLocationRef,
+      showError,
       t,
     ],
   );

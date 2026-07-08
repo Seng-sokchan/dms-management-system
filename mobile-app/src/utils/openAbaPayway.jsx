@@ -1,4 +1,5 @@
-import { Alert, Linking, Platform } from "react-native";
+import { Linking, Platform } from "react-native";
+import { showAppAlert } from "./appAlertBridge";
 
 const ABA_PLAY_STORE = "market://details?id=com.paygo24.ibank";
 const ABA_PLAY_STORE_HTTPS =
@@ -71,6 +72,6 @@ export async function openAbaPaywayCheckout(intent, { t, fallbackToStore = true 
   const message =
     t?.("payment.openAbaFailedHint") ||
     "Install ABA Mobile from the app store, then try again.";
-  Alert.alert(title, message);
+  showAppAlert({ title, message, tone: "error" });
   return { opened: "failed" };
 }

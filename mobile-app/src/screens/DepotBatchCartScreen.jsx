@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Alert,
   FlatList,
   Pressable,
   StyleSheet,
@@ -11,6 +10,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAlert } from "../context/AlertContext";
 import { useAuth } from "../context/AuthContext";
 import { useDepotBatchCart } from "../context/DepotBatchCartContext";
 import { useTheme } from "../context/ThemeContext";
@@ -31,6 +31,7 @@ export default function DepotBatchCartScreen() {
   const navigation = useNavigation();
   const { token } = useAuth();
   const { t } = useTranslation();
+  const { showError, showSuccess, showWarning } = useAlert();
   const theme = useTheme();
   const { colors, radii, spacing, typography, sizes, borders } = theme;
   const insets = useSafeAreaInsets();
@@ -183,7 +184,7 @@ export default function DepotBatchCartScreen() {
       }
     }
     if (flattened.length === 0) {
-      Alert.alert(t("depot.batchEmptyTitle"), t("depot.batchEmptyMessage"));
+      showWarning(t("depot.batchEmptyTitle"), t("depot.batchEmptyMessage"));
       return;
     }
 
@@ -191,14 +192,14 @@ export default function DepotBatchCartScreen() {
     try {
       const created = await createDepotBatch(token, flattened);
       const count = Array.isArray(created) ? created.length : flattened.length;
-      Alert.alert(
+      showSuccess(
         t("depot.batchSuccessTitle"),
         t("depot.batchSuccessDetail", { count, customers: customerCount }),
       );
       clearAll();
       navigation.goBack();
     } catch (error) {
-      Alert.alert(
+      showError(
         t("depot.batchFailedTitle"),
         getApiErrorMessage(error, t("depot.batchFailedDefault")),
       );

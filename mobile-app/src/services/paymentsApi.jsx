@@ -1,18 +1,27 @@
 import { apiClient, authConfig, unwrapApiData } from "./apiClient";
 
-export async function createBatchPaymentIntent(token, { batchId, paymentOption }) {
+export async function createBatchPaymentIntent(token, { batchId, paymentOption, currency }) {
   const response = await apiClient.post(
     "/payments/batch-intents",
-    { batchId: String(batchId), paymentOption },
+    { batchId: String(batchId), paymentOption, currency },
     authConfig(token),
   );
   return unwrapApiData(response.data);
 }
 
-export async function createPaymentIntent(token, { orderId, paymentOption }) {
+export async function createPaymentIntent(token, { orderId, paymentOption, currency }) {
   const response = await apiClient.post(
     "/payments/intents",
-    { orderId: Number(orderId), paymentOption },
+    { orderId: Number(orderId), paymentOption, currency },
+    authConfig(token),
+  );
+  return unwrapApiData(response.data);
+}
+
+export async function getPaymentAmountOptions(token, { orderIds }) {
+  const response = await apiClient.post(
+    "/payments/amount-options",
+    { orderIds: orderIds.map((id) => Number(id)) },
     authConfig(token),
   );
   return unwrapApiData(response.data);
@@ -45,6 +54,15 @@ export async function startPaymentLiveCheck(token, paymentId) {
 export async function stopPaymentLiveCheck(token, paymentId) {
   const response = await apiClient.post(
     `/payments/${paymentId}/live-check/stop`,
+    {},
+    authConfig(token),
+  );
+  return unwrapApiData(response.data);
+}
+
+export async function submitPaymentPurchase(token, paymentId) {
+  const response = await apiClient.post(
+    `/payments/${paymentId}/purchase`,
     {},
     authConfig(token),
   );

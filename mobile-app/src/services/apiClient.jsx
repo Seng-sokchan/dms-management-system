@@ -1,9 +1,22 @@
 import axios from "axios";
 import { API_BASE_URL } from "../config/appConfig";
+import { isAccountInactiveError, isUnauthorizedError, notifyUnauthorized } from "../utils/authSession";
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
 });
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (isAccountInactiveError(error)) {
+      await notifyUnauthorized("inactive");
+    } else if (isUnauthorizedError(error)) {
+      await notifyUnauthorized("unauthorized");
+    }
+    return Promise.reject(error);
+  },
+);
 
 export function authConfig(token) {
   return {

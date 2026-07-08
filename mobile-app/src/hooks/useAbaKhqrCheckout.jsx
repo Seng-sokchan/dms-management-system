@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Modal, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Modal, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import KhqrPaymentModal from "../components/KhqrPaymentModal";
 import PaywayCheckoutModal from "../components/PaywayCheckoutModal";
+import { useAlert } from "../context/AlertContext";
 import { usePaymentStatus } from "./usePaymentStatus";
 import { getApiErrorMessage } from "../services/apiClient";
 import { startPaymentLiveCheck, stopPaymentLiveCheck } from "../services/paymentsApi";
@@ -26,6 +27,7 @@ export function useAbaKhqrCheckout({
   resumePaymentLookup,
 }) {
   const { t } = useTranslation();
+  const { showError, showWarning } = useAlert();
   const [submitting, setSubmitting] = useState(false);
   const [checkoutMode, setCheckoutMode] = useState(null);
   const [checkoutSession, setCheckoutSession] = useState(null);
@@ -67,14 +69,14 @@ export function useAbaKhqrCheckout({
 
   useEffect(() => {
     if (polledStatus !== "expired" || !activePaymentId) return;
-    Alert.alert(t("payment.khqrExpired"), t("payment.khqrExpiredHint"));
+    showWarning(t("payment.khqrExpired"), t("payment.khqrExpiredHint"));
     const paymentId = activePaymentId;
     resetCheckout();
     setActivePaymentId(null);
     if (token && paymentId) {
       void stopPaymentLiveCheck(token, paymentId).catch(() => {});
     }
-  }, [activePaymentId, polledStatus, resetCheckout, t, token]);
+  }, [activePaymentId, polledStatus, resetCheckout, showWarning, t, token]);
 
   useEffect(() => {
     if (!token || !resumePaymentLookup) return;
@@ -92,13 +94,13 @@ export function useAbaKhqrCheckout({
   const openCheckoutSession = useCallback(
     async (intent) => {
       if (isIntentExpired(intent?.expiresAt)) {
-        Alert.alert(t("payment.intentFailed"), t("payment.intentFailed"));
+        showError(t("payment.intentFailed"), t("payment.intentFailed"));
         return;
       }
 
       const resolved = await resolvePaywayCheckoutIntent(token, intent);
       if (!resolved?.paywayCheckout) {
-        Alert.alert(t("payment.intentFailed"), t("payment.checkoutUnavailable"));
+        showError(t("payment.intentFailed"), t("payment.checkoutUnavailable"));
         return;
       }
 
@@ -107,22 +109,19 @@ export function useAbaKhqrCheckout({
         void startPaymentLiveCheck(token, resolved.paymentId).catch(() => {});
       }
       await setPendingPaymentReturn(buildPendingReturn(resolved));
+      setCheckoutSession(resolved);
+      setCheckoutMode("khqr_qr");
 
       let route;
       try {
-        route = await resolveAbaPaymentRoute(resolved);
+        route = await resolveAbaPaymentRoute(resolved, token);
       } catch (err) {
-        Alert.alert(t("payment.intentFailed"), getApiErrorMessage(err, t("payment.checkoutUnavailable")));
+        showError(t("payment.intentFailed"), getApiErrorMessage(err, t("payment.checkoutUnavailable")));
         openWebviewFallback(resolved);
         return;
       }
 
       setQrPayload({ qrString: route.qrString, qrImageUrl: route.qrImageUrl });
-      setCheckoutSession(resolved);
-
-      const openKhqrModal = () => {
-        setCheckoutMode("khqr_qr");
-      };
 
       if (route.mode === "aba_app") {
         const result = await openAbaPaywayCheckout(
@@ -139,13 +138,10 @@ export function useAbaKhqrCheckout({
           setCheckoutMode(null);
           return;
         }
-        openKhqrModal();
-        return;
+        setCheckoutMode("khqr_qr");
       }
-
-      openKhqrModal();
     },
-    [buildPendingReturn, openWebviewFallback, resetCheckout, t, token],
+    [buildPendingReturn, openWebviewFallback, showError, t, token],
   );
 
   const startCheckout = useCallback(
@@ -153,16 +149,23 @@ export function useAbaKhqrCheckout({
       if (!token) return;
       setSubmitting(true);
       resetCheckout();
+      let intent;
       try {
-        const intent = await createIntentFn();
+        intent = await createIntentFn();
+      } catch (err) {
+        showError(t("payment.intentFailed"), getApiErrorMessage(err, t("payment.intentFailed")));
+        setSubmitting(false);
+        return;
+      }
+
+      setSubmitting(false);
+      try {
         await openCheckoutSession(intent);
       } catch (err) {
-        Alert.alert(t("payment.intentFailed"), getApiErrorMessage(err, t("payment.intentFailed")));
-      } finally {
-        setSubmitting(false);
+        showError(t("payment.intentFailed"), getApiErrorMessage(err, t("payment.intentFailed")));
       }
     },
-    [openCheckoutSession, resetCheckout, t, token],
+    [openCheckoutSession, resetCheckout, showError, t, token],
   );
 
   const handleCheckoutPaid = useCallback(() => {

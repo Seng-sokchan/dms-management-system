@@ -27,11 +27,21 @@ const createBatchPaymentIntent = asyncHandler(async (req, res) => {
   return created(res, data);
 });
 
+const getPaymentAmountOptions = asyncHandler(async (req, res) => {
+  const data = await paymentService.getPaymentAmountOptions(req.body, { user: req.user });
+  return success(res, data);
+});
+
 const getCheckoutPage = asyncHandler(async (req, res) => {
   const html = await paymentService.getCheckoutPage(req.params.paymentId, { user: req.user });
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("Cache-Control", "no-store");
   return res.status(200).send(html);
+});
+
+const submitPaywayPurchase = asyncHandler(async (req, res) => {
+  const data = await paymentService.submitPaywayPurchase(req.params.paymentId, { user: req.user });
+  return success(res, data);
 });
 
 const startPaymentLiveCheck = asyncHandler(async (req, res) => {
@@ -47,9 +57,11 @@ const stopPaymentLiveCheck = asyncHandler(async (req, res) => {
 module.exports = {
   createPaymentIntent,
   createBatchPaymentIntent,
+  getPaymentAmountOptions,
   getPayment,
   getOrderPayment,
   getCheckoutPage,
+  submitPaywayPurchase,
   startPaymentLiveCheck,
   stopPaymentLiveCheck,
   cancelPayment,

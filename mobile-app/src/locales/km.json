@@ -57,7 +57,12 @@
     "passwordRequired": "ត្រូវការពាក្យសម្ងាត់",
     "loginFailed": "ចូលមិនបាន",
     "loginFailedDefault": "មិនអាចចូលបាន",
-    "roleNotAllowed": "មានតែគណនី Customer, Delivery ឬ Depot ប៉ុណ្ណោះដែលប្រើកម្មវិធីនេះបាន"
+    "roleNotAllowed": "មានតែគណនី Customer, Delivery ឬ Depot ប៉ុណ្ណោះដែលប្រើកម្មវិធីនេះបាន",
+    "sessionExpiredTitle": "វគ្គផុតកំណត់",
+    "sessionExpiredMessage": "ការចូលរបស់អ្នកផុតកំណត់ហើយ។ សូមចូលម្តងទៀត។",
+    "sessionUnauthorizedMessage": "វគ្គរបស់អ្នកលែងមានសុពលភាព។ សូមចូលម្តងទៀត។",
+    "accountInactiveTitle": "គណនីត្រូវបានបិទ",
+    "accountInactiveMessage": "គណនីរបស់អ្នកត្រូវបានបិទ។ សូមទាក់ទងផ្នែកគាំទ្រ។"
   },
   "catalog": {
     "title": "ផលិតផល",
@@ -255,6 +260,10 @@
     "scanToPay": "ស្កេនដើម្បីបង់ប្រាក់",
     "or": "ឬ",
     "amountToPay": "ចំនួនទឹកប្រាក់ត្រូវបង់",
+    "currencyLabel": "រូបិយប័ណ្ណ",
+    "currencySelectHint": "ចុច KHR ឬ USD ដើម្បីជ្រើសរូបិយប័ណ្ណបង់ប្រាក់។",
+    "loadingAmount": "កំពុងផ្ទុកចំនួនទឹកប្រាក់…",
+    "amountUnavailable": "មិនមានចំនួនទឹកប្រាក់",
     "downloadQr": "ទាញយក QR",
     "khqrBankingHint": "ហើយបើកកម្មវិធី Mobile Banking ដែលគាំទ្រ KHQR",
     "subtotal": "សរុបរង",

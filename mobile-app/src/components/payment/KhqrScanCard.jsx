@@ -52,12 +52,7 @@ export default function KhqrScanCard({
           {loading ? (
             <ActivityIndicator color={ABA_KHQR_TEAL} size="large" />
           ) : useSvgQr ? (
-            <View style={styles.qrInner}>
-              <QRCode value={qrString} size={qrSize - 8} quietZone={4} />
-              <View style={styles.qrLogo}>
-                <Text style={styles.qrLogoText}>$</Text>
-              </View>
-            </View>
+            <QRCode value={qrString} size={qrSize - 8} quietZone={4} />
           ) : qrUri ? (
             <Image source={{ uri: qrUri }} style={styles.qrImage} resizeMode="contain" />
           ) : (
@@ -151,27 +146,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: CARD_BG,
   },
-  qrInner: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
   qrImage: {
     width: "100%",
     height: "100%",
-  },
-  qrLogo: {
-    position: "absolute",
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#111827",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  qrLogoText: {
-    color: ABA_KHQR_WHITE,
-    fontSize: 18,
-    fontWeight: "800",
   },
   noQr: {
     fontSize: 13,

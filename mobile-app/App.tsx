@@ -6,8 +6,10 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ActivityIndicator, StyleSheet, Text, useColorScheme, View } from "react-native";
 import { I18nextProvider, useTranslation } from "react-i18next";
 import { AuthProvider, useAuth } from "./src/context/AuthContext";
+import { AlertProvider } from "./src/context/AlertContext";
 import { ThemeProvider, useTheme } from "./src/context/ThemeContext";
 import { CartProvider } from "./src/context/CartContext";
+import { darkColors, lightColors } from "./src/theme/palettes";
 import LoginScreen from "./src/screens/LoginScreen";
 import CustomerRootNavigator from "./src/navigation/CustomerRootNavigator";
 import DeliveryNavigator from "./src/navigation/DeliveryNavigator";
@@ -98,9 +100,11 @@ function AppNavigator() {
 function AppRoot() {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <AppNavigator />
-      </AuthProvider>
+      <AlertProvider>
+        <AuthProvider>
+          <AppNavigator />
+        </AuthProvider>
+      </AlertProvider>
     </ThemeProvider>
   );
 }

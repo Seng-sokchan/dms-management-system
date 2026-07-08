@@ -11,7 +11,20 @@ const {
 } = require("../integrations/payway/paywayReturnDeeplink");
 const paywayWebhookService = require("./paywayWebhookService");
 const paymentStatusCache = require("./paymentStatusCache");
+const {
+  normalizePaymentCurrency,
+  resolveOrderPaymentAmount,
+  resolveOrdersPaymentAmount,
+  resolveOrdersPaymentAmounts,
+  PAYMENT_CURRENCIES,
+} = require("./paymentAmountResolver");
 const { buildCheckoutPageHtml } = require("../integrations/payway/buildCheckoutPageHtml");
+const {
+  parsePurchaseResponse,
+  assertPurchaseSuccess,
+  extractHostedCheckoutUrl,
+  buildHostedCheckoutRedirectHtml,
+} = require("../integrations/payway/paywayResponse");
 const { emitPaymentStatus } = require("../socket/paymentStatusSocket");
 const { BadRequestError, ForbiddenError, NotFoundError } = require("../errors");
 const {
@@ -152,12 +165,12 @@ function parseCheckoutReturnParams(returnParams) {
   }
 }
 
-async function buildPaywayCheckoutFormForSession(session, { user } = {}) {
+async function buildPaywayCheckoutFormForSession(session, { user, paymentOption = "checkout" } = {}) {
   const baseParams = {
     tranId: session.paywayTranId,
     amount: session.amount,
     currency: session.currency,
-    paymentOption: "checkout",
+    paymentOption,
     returnDeeplink: formatReturnDeeplinkForPayway(session.id),
     returnParams: session.returnParams,
   };
@@ -247,7 +260,7 @@ async function saveCheckoutSession({
   return paymentStatusCache.saveCheckoutSession(session);
 }
 
-async function createPaymentIntent({ orderId, idempotencyKey }, { user }) {
+async function createPaymentIntent({ orderId, currency, idempotencyKey }, { user }) {
   assertPaywayConfigured();
 
   const order = await orderRepository.getOrderById(orderId);
@@ -259,12 +272,17 @@ async function createPaymentIntent({ orderId, idempotencyKey }, { user }) {
     throw new BadRequestError("Order is already paid");
   }
 
+  const paymentCurrency = normalizePaymentCurrency(currency || order.currency);
+  const paymentAmount = await resolveOrderPaymentAmount(order, paymentCurrency);
+
   const existing = await paymentStatusCache.findCheckoutByMasterOrderId(masterOrderId);
   if (existing) {
     if (paymentStatusCache.isSessionExpired(existing)) {
       await paymentStatusCache.removeCheckoutSession(existing.id);
-    } else {
+    } else if (normalizePaymentCurrency(existing.currency) === paymentCurrency) {
       return enrichCheckoutResponse(existing, {}, { user });
+    } else {
+      await paymentStatusCache.removeCheckoutSession(existing.id);
     }
   }
 
@@ -278,8 +296,8 @@ async function createPaymentIntent({ orderId, idempotencyKey }, { user }) {
     masterOrderId,
     customerId: order.customerId,
     paywayTranId,
-    amount: order.amountTotal,
-    currency: order.currency,
+    amount: paymentAmount,
+    currency: paymentCurrency,
     returnParams,
     expiresAt,
     idempotencyKey: idempotencyKey || `checkout-${orderId}-${Date.now()}`,
@@ -288,7 +306,7 @@ async function createPaymentIntent({ orderId, idempotencyKey }, { user }) {
   return enrichCheckoutResponse(session, {}, { user });
 }
 
-async function createBatchPaymentIntent({ batchId, idempotencyKey }, { user }) {
+async function createBatchPaymentIntent({ batchId, currency, idempotencyKey }, { user }) {
   assertPaywayConfigured();
 
   if (!hasDataScope(user, "depot") && !hasDataScope(user, "all") && !hasDataScope(user, "owner")) {
@@ -314,14 +332,19 @@ async function createBatchPaymentIntent({ batchId, idempotencyKey }, { user }) {
   }
 
   const existingPending = await paymentStatusCache.findCheckoutByBatchId(batchId);
+  const paymentCurrency = normalizePaymentCurrency(currency || orders[0]?.currency);
+  const totalAmount = await resolveOrdersPaymentAmount(orders, paymentCurrency);
+
   if (existingPending) {
     if (paymentStatusCache.isSessionExpired(existingPending)) {
       await paymentStatusCache.removeCheckoutSession(existingPending.id);
-    } else {
+    } else if (normalizePaymentCurrency(existingPending.currency) === paymentCurrency) {
       return enrichCheckoutResponse(existingPending, {
         batchId,
         orderIds: orders.map((order) => Number(order.id)),
       }, { user });
+    } else {
+      await paymentStatusCache.removeCheckoutSession(existingPending.id);
     }
   }
 
@@ -329,12 +352,6 @@ async function createBatchPaymentIntent({ batchId, idempotencyKey }, { user }) {
     throw new BadRequestError("All orders in the batch must be unpaid");
   }
 
-  const currencies = new Set(orders.map((order) => String(order.currency || "KHR").toUpperCase()));
-  if (currencies.size > 1) {
-    throw new BadRequestError("All orders in a batch must use the same currency");
-  }
-  const currency = [...currencies][0];
-  const totalAmount = orders.reduce((sum, order) => sum + Number(order.amountTotal || 0), 0);
   const firstOrder = orders[0];
   const masterOrderId = Number(firstOrder.masterOrderId);
   const orderIds = orders.map((order) => order.id);
@@ -354,7 +371,7 @@ async function createBatchPaymentIntent({ batchId, idempotencyKey }, { user }) {
     customerId: firstOrder.customerId,
     paywayTranId,
     amount: totalAmount,
-    currency,
+    currency: paymentCurrency,
     returnParams,
     expiresAt,
     idempotencyKey: idempotencyKey || `batch-${batchId}-${Date.now()}`,
@@ -481,7 +498,7 @@ async function getLatestPaymentForOrder(orderId, { user }) {
   };
 }
 
-async function getCheckoutPage(paymentId, { user }) {
+async function loadActiveCheckoutSession(paymentId, { user }) {
   const paid = await paymentRepository.getPaymentById(paymentId);
   if (paid) {
     throw new BadRequestError("Payment already completed");
@@ -496,10 +513,66 @@ async function getCheckoutPage(paymentId, { user }) {
   if (order) await assertCanPayOrder(order, user);
 
   assertSessionActive(session);
+  return session;
+}
 
+function unescapePaywayUrl(value) {
+  if (typeof value !== "string" || !value.trim()) return null;
+  return value.trim().replace(/\\\//g, "/");
+}
+
+function mapPurchaseForClient(response) {
+  assertPurchaseSuccess(response);
+  const parsed = parsePurchaseResponse(response);
+  const root = response?.data && typeof response.data === "object" ? response.data : response;
+  const qrImage = root?.qrImage || root?.qr_image;
+  let qrImageUrl = null;
+  if (qrImage && String(qrImage).trim()) {
+    const imageValue = String(qrImage).trim();
+    qrImageUrl = imageValue.startsWith("data:image") ? imageValue : unescapePaywayUrl(imageValue);
+  }
+  if (!qrImageUrl) {
+    qrImageUrl = unescapePaywayUrl(
+      root?.checkout_qr_url || root?.checkout_url || root?.qr_image_url,
+    ) || parsed.checkoutUrl;
+  }
+  if (!parsed.qrString && !qrImageUrl) {
+    throw new BadRequestError("PayWay did not return KHQR data");
+  }
+  return {
+    qrString: parsed.qrString,
+    qrImageUrl,
+    deeplinkUrl: parsed.deeplinkUrl,
+    playStoreUrl: parsed.playStoreUrl,
+    appStoreUrl: parsed.appStoreUrl,
+  };
+}
+
+async function submitPaywayPurchase(paymentId, { user }) {
+  const session = await loadActiveCheckoutSession(paymentId, { user });
+  await paymentStatusCache.startLiveCheck(session);
+  const paywayCheckout = await buildPaywayCheckoutFormForSession(session, {
+    user,
+    paymentOption: "abapay_deeplink",
+  });
+  const response = await paywayClient.submitCheckoutForm(paywayCheckout);
+  return mapPurchaseForClient(response);
+}
+
+async function getCheckoutPage(paymentId, { user }) {
+  const session = await loadActiveCheckoutSession(paymentId, { user });
   await paymentStatusCache.startLiveCheck(session);
 
   const paywayCheckout = await buildPaywayCheckoutFormForSession(session, { user });
+  try {
+    const response = await paywayClient.submitCheckoutForm(paywayCheckout);
+    const hostedUrl = extractHostedCheckoutUrl(response, paywayCheckout.action);
+    const redirectHtml = buildHostedCheckoutRedirectHtml(hostedUrl);
+    if (redirectHtml) return redirectHtml;
+  } catch {
+    // Fall back to legacy checkout2-0.js embed when hosted redirect is unavailable.
+  }
+
   const html = buildCheckoutPageHtml(paywayCheckout);
   if (!html) {
     throw new BadRequestError("PayWay checkout is unavailable");
@@ -568,12 +641,37 @@ async function cancelPayment(paymentId, { user }) {
   };
 }
 
+async function getPaymentAmountOptions({ orderIds }, { user }) {
+  const orders = (
+    await Promise.all(orderIds.map((id) => orderRepository.getOrderById(id)))
+  ).filter(Boolean);
+
+  if (orders.length !== orderIds.length) {
+    throw new NotFoundError("One or more orders were not found");
+  }
+
+  for (const order of orders) {
+    await assertCanPayOrder(order, user);
+  }
+
+  const amounts = await resolveOrdersPaymentAmounts(orders);
+  const defaultCurrency = normalizePaymentCurrency(orders[0]?.currency);
+
+  return {
+    amounts,
+    availableCurrencies: PAYMENT_CURRENCIES,
+    defaultCurrency,
+  };
+}
+
 module.exports = {
   createPaymentIntent,
   createBatchPaymentIntent,
+  getPaymentAmountOptions,
   getPaymentById,
   getLatestPaymentForOrder,
   getCheckoutPage,
+  submitPaywayPurchase,
   startPaymentLiveCheck,
   stopPaymentLiveCheck,
   cancelPayment,

@@ -37,6 +37,7 @@ async function me(currentUser) {
     name: currentUser.name,
     username: currentUser.username,
     role: currentUser.role,
+    isActive: currentUser.isActive !== false,
     ...profile,
   };
   if (profile.dataScope === "customer") {

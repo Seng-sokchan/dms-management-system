@@ -47,6 +47,18 @@ function getCheckoutScriptUrl() {
   return "https://checkout.payway.com.kh/plugins/checkout2-0.js";
 }
 
+function resolveCheckoutPluginBase(purchaseUrl) {
+  try {
+    const host = new URL(String(purchaseUrl || "")).host;
+    if (host.includes("checkout-sandbox.payway.com.kh")) {
+      return "https://checkout-sandbox.payway.com.kh";
+    }
+  } catch {
+    // fall through
+  }
+  return "https://checkout.payway.com.kh";
+}
+
 function buildPurchaseFormFields({
   tranId,
   amount,
@@ -119,7 +131,26 @@ function buildPaywayCheckoutForm(params) {
     action: cfg.purchaseUrl,
     fields,
     scriptUrl: getCheckoutScriptUrl(),
+    pluginBase: resolveCheckoutPluginBase(cfg.purchaseUrl),
+    referer: process.env.PAYWAY_REFERER || process.env.FRONTEND_URL || process.env.MOBILE_URL || "",
   };
+}
+
+async function submitCheckoutForm(paywayCheckout) {
+  if (!paywayCheckout?.action || !paywayCheckout?.fields) {
+    const err = new Error("PayWay checkout form is incomplete");
+    err.status = 400;
+    err.code = "PAYWAY_FORM_INCOMPLETE";
+    throw err;
+  }
+
+  const form = new FormData();
+  for (const [key, value] of Object.entries(paywayCheckout.fields)) {
+    if (value !== "" && value != null) {
+      form.append(key, String(value));
+    }
+  }
+  return postForm(paywayCheckout.action, form);
 }
 
 /**
@@ -181,6 +212,9 @@ function isApprovedCheckResponse(body) {
 module.exports = {
   createPurchase,
   buildPaywayCheckoutForm,
+  submitCheckoutForm,
+  getCheckoutScriptUrl,
+  resolveCheckoutPluginBase,
   isCheckoutPaymentOption,
   checkTransaction,
   isApprovedCheckResponse,

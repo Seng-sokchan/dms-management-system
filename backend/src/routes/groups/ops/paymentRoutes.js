@@ -2,10 +2,12 @@ const express = require("express");
 const {
   createPaymentIntent,
   createBatchPaymentIntent,
+  getPaymentAmountOptions,
   getPayment,
   getOrderPayment,
   cancelPayment,
   getCheckoutPage,
+  submitPaywayPurchase,
   startPaymentLiveCheck,
   stopPaymentLiveCheck,
 } = require("../../../controllers/paymentController");
@@ -14,6 +16,7 @@ const { validate } = require("../../../validators/validate");
 const {
   createPaymentIntentSchema,
   createBatchPaymentIntentSchema,
+  paymentAmountOptionsSchema,
   paymentIdParamsSchema,
   orderIdPaymentParamsSchema,
 } = require("../../../validators/payment.validator");
@@ -34,11 +37,25 @@ router.post(
   createBatchPaymentIntent,
 );
 
+router.post(
+  "/payments/amount-options",
+  requireAuth,
+  validate({ body: paymentAmountOptionsSchema }),
+  getPaymentAmountOptions,
+);
+
 router.get(
   "/payments/:paymentId/checkout-page",
   requireAuth,
   validate({ params: paymentIdParamsSchema }),
   getCheckoutPage,
+);
+
+router.post(
+  "/payments/:paymentId/purchase",
+  requireAuth,
+  validate({ params: paymentIdParamsSchema }),
+  submitPaywayPurchase,
 );
 
 router.get(

@@ -50,6 +50,25 @@ export function parsePaywayClientResponse(response) {
   };
 }
 
+function parseJsonBody(text) {
+  const trimmed = String(text || "").trim().replace(/^\uFEFF/, "");
+  if (!trimmed) return null;
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    const start = trimmed.indexOf("{");
+    const end = trimmed.lastIndexOf("}");
+    if (start >= 0 && end > start) {
+      try {
+        return JSON.parse(trimmed.slice(start, end + 1));
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }
+}
+
 export async function submitPaywayCheckoutForm(paywayCheckout) {
   if (!paywayCheckout?.action || !paywayCheckout?.fields) {
     throw new Error("PayWay checkout form is incomplete");
@@ -62,16 +81,33 @@ export async function submitPaywayCheckoutForm(paywayCheckout) {
     }
   }
 
-  const response = await fetch(paywayCheckout.action, {
-    method: "POST",
-    body: formData,
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+  let response;
+  const headers = {};
+  if (paywayCheckout.referer) {
+    headers.Referer = String(paywayCheckout.referer);
+  }
+  try {
+    response = await fetch(paywayCheckout.action, {
+      method: "POST",
+      body: formData,
+      signal: controller.signal,
+      headers,
+    });
+  } catch (err) {
+    if (err?.name === "AbortError") {
+      throw new Error("PayWay request timed out");
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   const text = await response.text();
-  let json = null;
-  try {
-    json = text ? JSON.parse(text) : null;
-  } catch {
+  const json = parseJsonBody(text);
+  if (!json) {
     throw new Error("PayWay returned an invalid response");
   }
 

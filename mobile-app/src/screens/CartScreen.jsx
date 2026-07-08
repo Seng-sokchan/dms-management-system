@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from "react";
-import { Alert, FlatList, Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
+import { useAlert } from "../context/AlertContext";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import { useTheme } from "../context/ThemeContext";
@@ -15,35 +16,31 @@ export default function CartScreen({ navigation }) {
   const { items, updateQuantity, removeItem, clearCart } = useCart();
   const { token, user } = useAuth();
   const { t } = useTranslation();
+  const { showError, showSuccess, showWarning } = useAlert();
   const insets = useSafeAreaInsets();
-  const { colors, layout, radii, sizes, spacing, typography, borders } = useTheme();
+  const { colors, radii, sizes, spacing, typography, borders } = useTheme();
   const [submitting, setSubmitting] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
   const { blockerOrder, canPlaceOrder } = useOrderPlacementGate();
 
   function showUnpaidReceivedAlert(order) {
-    Alert.alert(
-      t("cart.unpaidReceivedBlockTitle"),
-      t("cart.unpaidReceivedBlockMessage", { id: order?.id }),
-      [
+    showWarning(t("cart.unpaidReceivedBlockTitle"), t("cart.unpaidReceivedBlockMessage", { id: order?.id }), {
+      actions: [
         { text: t("common.cancel"), style: "cancel" },
         {
           text: t("cart.unpaidReceivedPayNow"),
           onPress: () => navigateToOrderPayment(navigation, order),
         },
       ],
-    );
+    });
   }
 
   function closeSuccessAndGoBack() {
-    setShowSuccess(false);
     if (navigation?.canGoBack?.()) {
       navigation.goBack();
     }
   }
 
   function goToMyOrders() {
-    setShowSuccess(false);
     navigation.getParent()?.navigate("MyOrders");
   }
 
@@ -55,47 +52,6 @@ export default function CartScreen({ navigation }) {
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        overlay: {
-          flex: 1,
-          backgroundColor: "rgba(0,0,0,0.45)",
-          padding: spacing.lg,
-          justifyContent: "center",
-        },
-        modalCard: {
-          width: "100%",
-          maxWidth: layout.modalMaxWidth,
-          alignSelf: "center",
-          backgroundColor: colors.surface,
-          borderRadius: radii.lg,
-          padding: spacing.lg,
-          ...borders.panel,
-        },
-        successIconWrap: {
-          width: sizes.iconLg,
-          height: sizes.iconLg,
-          borderRadius: sizes.iconLg / 2,
-          backgroundColor: colors.successSoft,
-          alignItems: "center",
-          justifyContent: "center",
-          alignSelf: "center",
-        },
-        modalTitle: {
-          marginTop: spacing.md,
-          textAlign: "center",
-          fontSize: typography.h3,
-          fontWeight: "800",
-          color: colors.textPrimary,
-        },
-        modalMessage: {
-          marginTop: spacing.sm,
-          textAlign: "center",
-          fontSize: typography.body,
-          color: colors.textSecondary,
-        },
-        modalActions: {
-          marginTop: spacing.lg,
-          gap: spacing.sm,
-        },
         row: {
           flexDirection: "row",
           justifyContent: "space-between",
@@ -187,12 +143,12 @@ export default function CartScreen({ navigation }) {
           fontSize: typography.bodySmall,
         },
       }),
-    [borders, colors, layout.modalMaxWidth, radii, sizes, spacing, typography],
+    [borders, colors, radii, sizes, spacing, typography],
   );
 
   async function handlePreOrder() {
     if (!items.length) {
-      Alert.alert(t("cart.emptyAlertTitle"), t("cart.emptyAlertMessage"));
+      showWarning(t("cart.emptyAlertTitle"), t("cart.emptyAlertMessage"));
       return;
     }
     if (blockerOrder) {
@@ -203,9 +159,18 @@ export default function CartScreen({ navigation }) {
     try {
       await preOrderCart(token, user, items);
       await clearCart();
-      setShowSuccess(true);
+      showSuccess(t("cart.preOrderReadyTitle"), t("cart.preOrderReadyMessage"), {
+        dismissible: false,
+        actions: [
+          { text: t("cart.viewMyOrders"), onPress: goToMyOrders },
+          { text: t("cart.continueShopping"), style: "soft", onPress: closeSuccessAndGoBack },
+        ],
+      });
     } catch (error) {
-      Alert.alert(t("cart.preOrderFailedTitle"), getApiErrorMessage(error, t("cart.preOrderFailedDefault")));
+      showError(
+        t("cart.preOrderFailedTitle"),
+        getApiErrorMessage(error, t("cart.preOrderFailedDefault")),
+      );
     } finally {
       setSubmitting(false);
     }
@@ -215,30 +180,6 @@ export default function CartScreen({ navigation }) {
 
   return (
     <Screen busy={submitting} busyMessage={t("cart.preOrder")}>
-      <Modal
-        visible={showSuccess}
-        transparent
-        animationType="fade"
-        onRequestClose={closeSuccessAndGoBack}
-      >
-        <Pressable style={styles.overlay} onPress={closeSuccessAndGoBack}>
-          <Pressable style={styles.modalCard} onPress={() => {}}>
-            <View style={styles.successIconWrap}>
-              <AppIcon name="check" size={26} color={colors.success ?? colors.primary} />
-            </View>
-            <Text style={styles.modalTitle}>{t("cart.preOrderReadyTitle")}</Text>
-            <Text style={styles.modalMessage}>{t("cart.preOrderReadyMessage")}</Text>
-            <View style={styles.modalActions}>
-              <PrimaryButton title={t("cart.viewMyOrders")} onPress={goToMyOrders} tone="success" />
-              <PrimaryButton
-                title={t("cart.continueShopping")}
-                onPress={closeSuccessAndGoBack}
-                tone="soft"
-              />
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
       <SectionHeader title={t("cart.title")} subtitle={t(subtitleKey, { count: totalQty })} />
       {blockerOrder ? (
         <Card style={styles.blockNotice}>

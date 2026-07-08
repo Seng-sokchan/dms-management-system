@@ -2,11 +2,13 @@ import React, { useCallback, useMemo } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
+import PaymentAmountCard from "../components/payment/PaymentAmountCard";
 import PaymentMethodOption from "../components/payment/PaymentMethodOption";
 import { AbaKhqrMethodIcon } from "../components/payment/PaymentMethodIcons";
 import { usePaymentCheckoutStyles } from "../components/payment/usePaymentCheckoutStyles";
 import { Screen } from "../components/ui";
 import { useAbaKhqrCheckout } from "../hooks/useAbaKhqrCheckout";
+import { usePaymentAmountOptions } from "../hooks/usePaymentAmountOptions";
 import { createPaymentIntent, getOrderPayment } from "../services/paymentsApi";
 import { formatPaymentAmount } from "../utils/formatPaymentAmount";
 
@@ -15,10 +17,17 @@ export default function OrderPaymentScreen({ route, navigation }) {
   const { token, user } = useAuth();
   const { t } = useTranslation();
   const styles = usePaymentCheckoutStyles();
+  const orders = useMemo(() => (order ? [order] : []), [order]);
+  const {
+    currency,
+    setCurrency,
+    amount,
+    loading: loadingAmounts,
+  } = usePaymentAmountOptions({ token, orders });
 
   const amountLabel = useMemo(
-    () => formatPaymentAmount(order?.amountTotal, order?.currency),
-    [order?.amountTotal, order?.currency],
+    () => (amount != null ? formatPaymentAmount(amount, currency) : ""),
+    [amount, currency],
   );
   const merchantName = t("payment.storeName");
 
@@ -68,11 +77,12 @@ export default function OrderPaymentScreen({ route, navigation }) {
   });
 
   const handleAbaKhqrPay = () => {
-    if (!token || !order?.id) return;
+    if (!token || !order?.id || loadingAmounts || amount == null) return;
     void startCheckout(() =>
       createPaymentIntent(token, {
         orderId: order.id,
         paymentOption: "checkout",
+        currency,
       }),
     );
   };
@@ -100,10 +110,13 @@ export default function OrderPaymentScreen({ route, navigation }) {
           </View>
         </View>
 
-        <View style={styles.amountCard}>
-          <Text style={styles.amountLabel}>{t("payment.amountToPay")}</Text>
-          <Text style={styles.amountValue}>{amountLabel}</Text>
-        </View>
+        <PaymentAmountCard
+          label={t("payment.amountToPay")}
+          amount={amount}
+          currency={currency}
+          onCurrencyChange={setCurrency}
+          loading={loadingAmounts}
+        />
 
         <Text style={styles.title}>{t("payment.choosePaymentTitle")}</Text>
 

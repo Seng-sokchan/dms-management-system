@@ -41,6 +41,41 @@ function parsePurchaseResponse(response) {
   };
 }
 
+function extractHostedCheckoutUrl(response, purchaseUrl) {
+  const html = response?.raw;
+  if (typeof html !== "string" || !html.trim()) return null;
+
+  const match = html.match(/\/checkout\/[A-Za-z0-9._-]+/);
+  if (!match?.[0]) return null;
+
+  let base;
+  try {
+    const parsed = new URL(String(purchaseUrl || ""));
+    base = `${parsed.protocol}//${parsed.host}`;
+  } catch {
+    base = "https://checkout.payway.com.kh";
+  }
+  return `${base}${match[0]}`;
+}
+
+function buildHostedCheckoutRedirectHtml(hostedUrl) {
+  const safeUrl = String(hostedUrl || "").trim();
+  if (!safeUrl) return null;
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta http-equiv="refresh" content="0;url=${safeUrl}"/>
+  <title>PayWay Checkout</title>
+</head>
+<body>
+  <p>Redirecting to PayWay checkout…</p>
+  <script>window.location.replace(${JSON.stringify(safeUrl)});</script>
+</body>
+</html>`;
+}
+
 function assertPurchaseSuccess(response) {
   const code = response?.status?.code ?? response?.status;
   if (code == null) return;
@@ -57,4 +92,6 @@ function assertPurchaseSuccess(response) {
 module.exports = {
   parsePurchaseResponse,
   assertPurchaseSuccess,
+  extractHostedCheckoutUrl,
+  buildHostedCheckoutRedirectHtml,
 };

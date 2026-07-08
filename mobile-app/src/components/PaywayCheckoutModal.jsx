@@ -17,6 +17,7 @@ import { usePaymentStatus } from "../hooks/usePaymentStatus";
 import { API_BASE_URL } from "../config/appConfig";
 import { PAYMENT_INTENT_TTL_MS } from "../constants/paymentConstants";
 import { buildQrImageUri } from "../utils/buildQrImageUri";
+import { submitPaymentPurchase } from "../services/paymentsApi";
 import { submitPaywayCheckoutForm } from "../utils/paywayCheckoutClient";
 import KhqrScanCard, { SCREEN_BG } from "./payment/KhqrScanCard";
 import { AbaKhqrLogoMark } from "./payment/PaymentMethodIcons";
@@ -92,14 +93,17 @@ export default function PaywayCheckoutModal({
     setFallbackLoading(true);
     setWebError(null);
     try {
-      const parsed = await submitPaywayCheckoutForm(paywayCheckout);
+      const parsed =
+        token && paymentId
+          ? await submitPaymentPurchase(token, paymentId)
+          : await submitPaywayCheckoutForm(paywayCheckout);
       setFallbackPurchase(parsed);
     } catch (err) {
       setWebError(err?.message || t("payment.checkoutUnavailable"));
     } finally {
       setFallbackLoading(false);
     }
-  }, [paywayCheckout, t]);
+  }, [paywayCheckout, paymentId, t, token]);
 
   useEffect(() => {
     if (!visible) {

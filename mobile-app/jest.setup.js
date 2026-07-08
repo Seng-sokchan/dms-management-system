@@ -1,3 +1,21 @@
+global.IS_REACT_ACT_ENVIRONMENT = true;
+
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  setItem: jest.fn(() => Promise.resolve()),
+  getItem: jest.fn(() => Promise.resolve(null)),
+  removeItem: jest.fn(() => Promise.resolve()),
+  multiSet: jest.fn(() => Promise.resolve()),
+  multiGet: jest.fn(() => Promise.resolve([])),
+  multiRemove: jest.fn(() => Promise.resolve()),
+}));
+
+jest.mock('./src/services/preferencesStorage', () => ({
+  getThemePreference: jest.fn(() => Promise.resolve('light')),
+  getFontSizePreference: jest.fn(() => Promise.resolve('medium')),
+  setThemePreference: jest.fn(() => Promise.resolve()),
+  setFontSizePreference: jest.fn(() => Promise.resolve()),
+}));
+
 jest.mock('@react-native-community/geolocation', () => ({
   getCurrentPosition: jest.fn((success) =>
     success?.({ coords: { latitude: 0, longitude: 0, accuracy: 1 } }),
@@ -61,3 +79,31 @@ jest.mock('react-native-svg', () => {
     Image: View,
   };
 });
+
+jest.mock('react-native-webview', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+  return {
+    __esModule: true,
+    default: View,
+  };
+});
+
+jest.mock('react-native-vector-icons/MaterialCommunityIcons', () => 'Icon');
+
+jest.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key) => key,
+    i18n: { changeLanguage: jest.fn() },
+  }),
+  initReactI18next: { type: '3rdParty', init: jest.fn() },
+}));
+
+jest.mock('./src/i18n/config', () => ({
+  __esModule: true,
+  default: {
+    t: (key) => (key === 'currency.khr' ? 'KHR' : key === 'currency.usd' ? 'USD' : key),
+    changeLanguage: jest.fn(),
+  },
+  bootstrapI18n: jest.fn(() => Promise.resolve()),
+}));

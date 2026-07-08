@@ -15,7 +15,6 @@ import {
   PrimaryButton,
   Screen,
   SectionHeader,
-  SkeletonBone,
   SkeletonList,
 } from "../components/ui";
 import { listMobileOrders } from "../services/ordersApi";
@@ -64,7 +63,7 @@ export default function DepotOrdersScreen() {
   const navigation = useNavigation();
   const { token } = useAuth();
   const { t, i18n } = useTranslation();
-  const { colors, radii, sizes, spacing, typography, borders } = useTheme();
+  const { colors, sizes, spacing, typography, borders } = useTheme();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -73,28 +72,6 @@ export default function DepotOrdersScreen() {
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        chipSkeletonRow: {
-          flexDirection: "row",
-          gap: spacing.sm,
-          marginBottom: spacing.md,
-        },
-        statusRow: {
-          flexDirection: "row",
-          flexWrap: "wrap",
-          gap: spacing.sm,
-          marginBottom: spacing.md,
-        },
-        statusChip: {
-          backgroundColor: colors.surfaceSoft,
-          borderRadius: radii.pill,
-          paddingHorizontal: spacing.md,
-          paddingVertical: spacing.xs,
-        },
-        statusChipText: {
-          color: colors.textSecondary,
-          fontSize: typography.caption,
-          fontWeight: "600",
-        },
         errorCard: { marginBottom: spacing.md },
         errorTitle: {
           color: colors.textPrimary,
@@ -154,7 +131,7 @@ export default function DepotOrdersScreen() {
           ...borders.dividerTop,
         },
       }),
-    [borders, colors, radii, sizes.tabBarOffset, spacing, typography],
+    [borders, colors, sizes.tabBarOffset, spacing, typography],
   );
 
   const load = useCallback(async () => {
@@ -186,15 +163,6 @@ export default function DepotOrdersScreen() {
     setRefreshing(true);
     void load();
   }
-
-  const totalsByStatus = useMemo(() => {
-    const map = new Map();
-    for (const order of orders) {
-      const key = order?.status || "Unknown";
-      map.set(key, (map.get(key) || 0) + 1);
-    }
-    return Array.from(map.entries());
-  }, [orders]);
 
   const listSections = useMemo(() => groupDepotOrders(orders), [orders]);
   const locale = getAppLocale(i18n.language);
@@ -244,28 +212,7 @@ export default function DepotOrdersScreen() {
         subtitle={loading ? headerSubtitle : `${headerSubtitle}\n${t("depot.ordersPaymentHint")}`}
       />
 
-      {loading ? (
-        <>
-          <View style={styles.chipSkeletonRow} accessible={false}>
-            <SkeletonBone width={72} height={28} borderRadius={radii.pill} />
-            <SkeletonBone width={88} height={28} borderRadius={radii.pill} />
-            <SkeletonBone width={64} height={28} borderRadius={radii.pill} />
-          </View>
-          <SkeletonList count={4} ItemComponent={OrderCardSkeleton} />
-        </>
-      ) : null}
-
-      {!loading && totalsByStatus.length > 0 && (
-        <View style={styles.statusRow}>
-          {totalsByStatus.map(([status, count]) => (
-            <View key={status} style={styles.statusChip}>
-              <Text style={styles.statusChipText}>
-                {status}: {count}
-              </Text>
-            </View>
-          ))}
-        </View>
-      )}
+      {loading ? <SkeletonList count={4} ItemComponent={OrderCardSkeleton} /> : null}
 
       {!loading && !!loadError && (
         <Card style={styles.errorCard}>

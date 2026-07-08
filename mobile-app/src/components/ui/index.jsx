@@ -1,3 +1,4 @@
+export { default as AppAlert, ALERT_TONES } from "./AppAlert";
 export { default as AppIcon } from "./AppIcon";
 export { default as CatalogCardSkeleton } from "./CatalogCardSkeleton";
 export { default as CustomerScreen } from "./CustomerScreen";

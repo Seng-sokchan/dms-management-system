@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, Linking, Platform } from "react-native";
+import { Linking, Platform } from "react-native";
 import { io } from "socket.io-client";
+import { useAlert } from "../context/AlertContext";
 import i18n from "../i18n/config";
 import { getSocketBaseUrl } from "../services/socketUrl";
 import {
@@ -41,6 +42,7 @@ export function useDeliveryLiveTracking({
   mapVisible,
   onPositionForNav,
 }) {
+  const { showError, showWarning } = useAlert();
   const [trackingStatus, setTrackingStatus] = useState("idle");
   const [driverLocation, setDriverLocation] = useState(null);
 
@@ -131,10 +133,12 @@ export function useDeliveryLiveTracking({
           : code === 2
             ? i18n.t("delivery.locationUnavailable")
             : i18n.t("delivery.locationReadFailed");
-      Alert.alert(i18n.t("delivery.locationTitle"), message, [
-        { text: i18n.t("common.cancel"), style: "cancel" },
-        { text: i18n.t("common.openSettings"), onPress: () => Linking.openSettings() },
-      ]);
+      showWarning(i18n.t("delivery.locationTitle"), message, {
+        actions: [
+          { text: i18n.t("common.cancel"), style: "cancel" },
+          { text: i18n.t("common.openSettings"), onPress: () => Linking.openSettings() },
+        ],
+      });
     }
 
     async function startTracking() {
@@ -150,27 +154,25 @@ export function useDeliveryLiveTracking({
       if (cancelled) return;
       if (!ok) {
         setTrackingStatus("permission_denied");
-        Alert.alert(
-          i18n.t("delivery.locationOffTitle"),
-          i18n.t("delivery.locationOffMessage"),
-          [
+        showWarning(i18n.t("delivery.locationOffTitle"), i18n.t("delivery.locationOffMessage"), {
+          actions: [
             { text: i18n.t("common.cancel"), style: "cancel" },
             { text: i18n.t("common.openSettings"), onPress: () => Linking.openSettings() },
           ],
-        );
+        });
         return;
       }
 
       const baseUrl = getSocketBaseUrl();
       if (!baseUrl) {
         setTrackingStatus("config_error");
-        Alert.alert(i18n.t("delivery.configTitle"), i18n.t("delivery.configMissingApi"));
+        showError(i18n.t("delivery.configTitle"), i18n.t("delivery.configMissingApi"));
         return;
       }
       const accessToken = typeof token === "string" ? token.trim() : "";
       if (!accessToken) {
         setTrackingStatus("session_error");
-        Alert.alert(i18n.t("delivery.sessionTitle"), i18n.t("delivery.sessionExpired"));
+        showError(i18n.t("delivery.sessionTitle"), i18n.t("delivery.sessionExpired"));
         return;
       }
 
@@ -200,7 +202,7 @@ export function useDeliveryLiveTracking({
       socket.on("connect_error", (err) => {
         if (cancelled) return;
         setTrackingStatus("socket_error");
-        Alert.alert(
+        showError(
           i18n.t("delivery.connectionTitle"),
           err?.message || i18n.t("delivery.connectionFailed"),
         );
@@ -231,7 +233,7 @@ export function useDeliveryLiveTracking({
         socketRef.current = null;
       }
     };
-  }, [applyDriverLocation, mapVisible, shouldTrack, token]);
+  }, [applyDriverLocation, mapVisible, shouldTrack, showError, showWarning, token]);
 
   const setDriverLocationImmediate = useCallback((loc) => {
     if (loc) applyDriverLocation(loc, { forceUi: true });

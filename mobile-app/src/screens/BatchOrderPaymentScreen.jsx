@@ -1,12 +1,15 @@
 import React, { useCallback, useMemo } from "react";
-import { Alert, FlatList, ScrollView, Text, View } from "react-native";
+import { FlatList, ScrollView, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
+import { useAlert } from "../context/AlertContext";
 import { useAuth } from "../context/AuthContext";
+import PaymentAmountCard from "../components/payment/PaymentAmountCard";
 import PaymentMethodOption from "../components/payment/PaymentMethodOption";
 import { AbaKhqrMethodIcon } from "../components/payment/PaymentMethodIcons";
 import { usePaymentCheckoutStyles } from "../components/payment/usePaymentCheckoutStyles";
 import { Screen } from "../components/ui";
 import { useAbaKhqrCheckout } from "../hooks/useAbaKhqrCheckout";
+import { usePaymentAmountOptions } from "../hooks/usePaymentAmountOptions";
 import { getApiErrorMessage } from "../services/apiClient";
 import { createBatchPaymentIntent, getOrderPayment } from "../services/paymentsApi";
 import { formatPaymentAmount } from "../utils/formatPaymentAmount";
@@ -19,14 +22,19 @@ export default function BatchOrderPaymentScreen({ route, navigation }) {
   );
   const { token, user } = useAuth();
   const { t } = useTranslation();
+  const { showError } = useAlert();
   const styles = usePaymentCheckoutStyles();
+  const {
+    currency,
+    setCurrency,
+    amount,
+    loading: loadingAmounts,
+  } = usePaymentAmountOptions({ token, orders });
 
-  const currency = orders[0]?.currency || "KHR";
-  const totalAmount = useMemo(
-    () => orders.reduce((sum, order) => sum + Number(order?.amountTotal || 0), 0),
-    [orders],
+  const amountLabel = useMemo(
+    () => (amount != null ? formatPaymentAmount(amount, currency) : ""),
+    [amount, currency],
   );
-  const amountLabel = formatPaymentAmount(totalAmount, currency);
   const orderIds = useMemo(() => orders.map((order) => order.id), [orders]);
   const merchantName = t("payment.storeName");
 
@@ -81,15 +89,16 @@ export default function BatchOrderPaymentScreen({ route, navigation }) {
   });
 
   const handleAbaKhqrPay = () => {
-    if (!token || !batchId) return;
+    if (!token || !batchId || loadingAmounts || amount == null) return;
     void startCheckout(async () => {
       try {
         return await createBatchPaymentIntent(token, {
           batchId,
           paymentOption: "checkout",
+          currency,
         });
       } catch (err) {
-        Alert.alert(
+        showError(
           t("depot.batchPaymentFailedTitle"),
           getApiErrorMessage(err, t("depot.batchPaymentFailedDefault")),
         );
@@ -135,12 +144,13 @@ export default function BatchOrderPaymentScreen({ route, navigation }) {
           />
         </View>
 
-        <View style={styles.amountCard}>
-          <Text style={styles.amountLabel}>
-            {t("depot.batchCheckoutLabel", { count: orders.length })}
-          </Text>
-          <Text style={styles.amountValue}>{amountLabel}</Text>
-        </View>
+        <PaymentAmountCard
+          label={t("payment.amountToPay")}
+          amount={amount}
+          currency={currency}
+          onCurrencyChange={setCurrency}
+          loading={loadingAmounts}
+        />
 
         <Text style={styles.title}>{t("payment.choosePaymentTitle")}</Text>
 

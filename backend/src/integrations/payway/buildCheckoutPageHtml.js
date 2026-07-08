@@ -1,4 +1,4 @@
-const CHECKOUT_BASE = "https://checkout.payway.com.kh";
+const { getCheckoutScriptUrl, resolveCheckoutPluginBase } = require("./paywayClient");
 
 function escapeHtml(value) {
   return String(value)
@@ -10,7 +10,7 @@ function escapeHtml(value) {
 
 /**
  * Full HTML page for PayWay checkout2-0.js (hosted URL so WebView can load external scripts).
- * @param {{ action: string, fields: Record<string, string|number> }} paywayCheckout
+ * @param {{ action: string, fields: Record<string, string|number>, pluginBase?: string, scriptUrl?: string }} paywayCheckout
  */
 function buildCheckoutPageHtml(paywayCheckout) {
   if (!paywayCheckout?.action || !paywayCheckout?.fields) return null;
@@ -24,6 +24,8 @@ function buildCheckoutPageHtml(paywayCheckout) {
     .join("");
 
   const action = escapeHtml(paywayCheckout.action);
+  const pluginBase = paywayCheckout.pluginBase || resolveCheckoutPluginBase(paywayCheckout.action);
+  const checkoutScriptUrl = paywayCheckout.scriptUrl || getCheckoutScriptUrl();
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -46,9 +48,9 @@ function buildCheckoutPageHtml(paywayCheckout) {
       </form>
     </div>
   </div>
-  <script src="${CHECKOUT_BASE}/plugins/bs.js"></script>
-  <script src="${CHECKOUT_BASE}/plugins/bridge.js"></script>
-  <script src="${CHECKOUT_BASE}/plugins/checkout.prod.js?n=${Date.now()}"></script>
+  <script src="${pluginBase}/plugins/bs.js"></script>
+  <script src="${pluginBase}/plugins/bridge.js"></script>
+  <script src="${checkoutScriptUrl}?n=${Date.now()}"></script>
   <script>
     (function () {
       var attempts = 0;
@@ -103,5 +105,4 @@ function buildCheckoutPageHtml(paywayCheckout) {
 
 module.exports = {
   buildCheckoutPageHtml,
-  CHECKOUT_BASE,
 };

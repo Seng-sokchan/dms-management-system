@@ -12,6 +12,7 @@ export default function PrimaryButton({
   tone = "primary",
   icon,
   accessibilityLabel,
+  testID,
 }) {
   const { colors, radii, sizes, spacing, typography, borders } = useTheme();
   const isDisabled = disabled || loading;
@@ -64,6 +65,7 @@ export default function PrimaryButton({
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel || title}
       accessibilityState={{ disabled: isDisabled, busy: Boolean(loading) }}
+      testID={testID}
       style={({ pressed }) => [
         styles.button,
         { backgroundColor: pressed ? pressedColor : backgroundColor },

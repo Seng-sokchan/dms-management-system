@@ -57,7 +57,12 @@
     "passwordRequired": "Password is required",
     "loginFailed": "Login failed",
     "loginFailedDefault": "Unable to login",
-    "roleNotAllowed": "Only Customer, Delivery, or Depot accounts can use this app"
+    "roleNotAllowed": "Only Customer, Delivery, or Depot accounts can use this app",
+    "sessionExpiredTitle": "Session expired",
+    "sessionExpiredMessage": "Your sign-in has expired. Please sign in again.",
+    "sessionUnauthorizedMessage": "Your session is no longer valid. Please sign in again.",
+    "accountInactiveTitle": "Account deactivated",
+    "accountInactiveMessage": "Your account has been deactivated. Please contact support."
   },
   "catalog": {
     "title": "Products",
@@ -255,6 +260,10 @@
     "scanToPay": "Scan to Pay",
     "or": "or",
     "amountToPay": "Amount to pay",
+    "currencyLabel": "Currency",
+    "currencySelectHint": "Tap KHR or USD to choose how you pay.",
+    "loadingAmount": "Loading amount…",
+    "amountUnavailable": "Amount unavailable",
     "downloadQr": "Download QR",
     "khqrBankingHint": "And open the Mobile Banking app supporting KHQR",
     "subtotal": "Subtotal",

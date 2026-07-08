@@ -1,10 +1,11 @@
 import React, { useCallback, useMemo, useRef, useState } from "react";
-import { Alert, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { OrderCardSkeleton, EmptyState, ErrorBanner, Screen, SectionHeader, SkeletonList } from "../components/ui";
 import { DeliveryCartCard } from "../components/DeliveryCartCard";
 import { DeliveryOrderCard } from "../components/DeliveryOrderCard";
+import { useAlert } from "../context/AlertContext";
 import { useAuth } from "../context/AuthContext";
 import { useDeliveryCart } from "../context/DeliveryCartContext";
 import { useTheme } from "../context/ThemeContext";
@@ -26,6 +27,7 @@ export default function DeliveryTrackingScreen() {
   const { token } = useAuth();
   const navigation = useNavigation();
   const { t } = useTranslation();
+  const { showError, showWarning } = useAlert();
   const { colors, radii, spacing, typography, sizes } = useTheme();
   const { cartOrderIds, clearCart, addToCart, removeFromCart, pruneCartIds } = useDeliveryCart();
   const [orders, setOrders] = useState([]);
@@ -165,9 +167,9 @@ export default function DeliveryTrackingScreen() {
     } catch {
       await loadOrders({ silent: true });
       if (startedIds.length > 0) {
-        Alert.alert(t("delivery.startDeliveryTitle"), t("delivery.startPartialFailed"));
+        showError(t("delivery.startDeliveryTitle"), t("delivery.startPartialFailed"));
       } else {
-        Alert.alert(t("delivery.startDeliveryTitle"), t("delivery.startDeliveryFailed"));
+        showError(t("delivery.startDeliveryTitle"), t("delivery.startDeliveryFailed"));
       }
     } finally {
       setBatchSubmitting(false);
@@ -181,19 +183,29 @@ export default function DeliveryTrackingScreen() {
     navigation,
     token,
     t,
+    showError,
   ]);
 
   const startDeliveryBatch = useCallback(() => {
     if (!canStartDelivery || batchSubmitting) return;
-    Alert.alert(
+    showWarning(
       t("delivery.startDeliveryConfirmTitle"),
       t("delivery.startDeliveryConfirmMessage", { count: cartOrders.length }),
-      [
-        { text: t("common.cancel"), style: "cancel" },
-        { text: t("delivery.startDelivery"), onPress: () => void executeStartDeliveryBatch() },
-      ],
+      {
+        actions: [
+          { text: t("common.cancel"), style: "cancel" },
+          { text: t("delivery.startDelivery"), onPress: () => void executeStartDeliveryBatch() },
+        ],
+      },
     );
-  }, [batchSubmitting, canStartDelivery, cartOrders.length, executeStartDeliveryBatch, t]);
+  }, [
+    batchSubmitting,
+    canStartDelivery,
+    cartOrders.length,
+    executeStartDeliveryBatch,
+    showWarning,
+    t,
+  ]);
 
   useFocusEffect(
     useCallback(() => {
