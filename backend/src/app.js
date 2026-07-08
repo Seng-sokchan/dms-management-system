@@ -9,10 +9,37 @@ const { errorHandler } = require("./middleware/errorHandler");
 
 const app = express();
 
+function parseCorsOrigins() {
+  const origins = new Set();
+  for (const key of ["FRONTEND_URL", "MOBILE_URL"]) {
+    const raw = String(process.env[key] || "").trim();
+    if (!raw) continue;
+    try {
+      origins.add(new URL(raw).origin);
+    } catch {
+      // ignore invalid URL
+    }
+  }
+  return [...origins];
+}
+
+const corsOrigins = parseCorsOrigins();
+
 app.use(helmet());
 app.use(
   cors({
-    origin: [process.env.FRONTEND_URL, process.env.MOBILE_URL],
+    origin(origin, callback) {
+      // Non-browser clients (curl, mobile native, server-to-server) often omit Origin.
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+      if (corsOrigins.length === 0) {
+        callback(null, process.env.NODE_ENV !== "production");
+        return;
+      }
+      callback(null, corsOrigins.includes(origin));
+    },
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   }),

@@ -111,13 +111,22 @@ sudo docker compose exec backend wget -qO- http://127.0.0.1:4000/v1/health
 
 ## Updates
 
-After syncing `backend/` changes to EC2:
+After syncing `backend/` changes to EC2 (**required after the hardcoded rules change** — old images still query `role_menus` and will crash if that table is gone):
 
 ```bash
 cd deploy/dms-backend
-sudo docker compose build --no-cache
-sudo docker compose up -d
+# Sync latest repo files first (git pull / copy), then:
+sudo docker compose build --no-cache backend
+sudo docker compose up -d --force-recreate backend
 ```
+
+Confirm the new image no longer references menus tables:
+
+```bash
+sudo docker compose exec backend sh -c "grep -R role_menus /app/src /app/database || true"
+```
+
+Expect no matches under `/app/src`. On first start, `ensureRulesSchema` drops legacy rules tables if they still exist.
 
 Reload Caddy after editing `Caddyfile` only:
 
@@ -167,6 +176,8 @@ sudo docker compose exec -T mariadb mariadb -u root -p'Lyheng@dm!n' < mariadb/gr
 - **Checkout expires too quickly** — adjust `PAYMENT_CHECKOUT_TTL_MINUTES` in `.env` (default `5`).
 - **HTTPS / certificate errors** — confirm DNS for `api.dmscambodia.com` points to this server, ports 80/443 are open, and `ACME_EMAIL` is set in `.env`. Check `sudo docker compose logs caddy`.
 - **502 from Caddy** — backend may still be starting; run `sudo docker compose logs backend`.
+- **Admin login blocked / “Provisional headers” in DevTools** — CORS allowlist mismatch. Set `FRONTEND_URL=https://dmscambodia.com` (and usually the same for `MOBILE_URL`) in `.env`, then `sudo docker compose up -d --force-recreate backend`. Frontend must be built with `VITE_API_BASE_URL=https://api.dmscambodia.com/v1`.
+- **`Table 'fix_asset_db.role_menus' doesn't exist` crash loop** — container is running an **old** backend that still loads DB menu rules after those tables were removed. Sync latest code, then rebuild with no cache (see Updates).
 
 ## Related docs
 
