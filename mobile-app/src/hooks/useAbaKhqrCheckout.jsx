@@ -15,7 +15,8 @@ import { resolvePaywayCheckoutIntent } from "../utils/resolvePaywayCheckoutInten
 import { ABA_KHQR_TEAL } from "../theme/abaKhqrBrand";
 
 /**
- * Shared ABA KHQR checkout: auto-detect ABA Mobile → app deeplink, else KHQR QR; WebView as fallback.
+ * Shared ABA KHQR checkout: open ABA Mobile when installed; show KHQR only if ABA is unavailable
+ * or the deeplink fails. WebView is the last fallback.
  */
 export function useAbaKhqrCheckout({
   token,
@@ -110,7 +111,6 @@ export function useAbaKhqrCheckout({
       }
       await setPendingPaymentReturn(buildPendingReturn(resolved));
       setCheckoutSession(resolved);
-      setCheckoutMode("khqr_qr");
 
       let route;
       try {
@@ -138,8 +138,10 @@ export function useAbaKhqrCheckout({
           setCheckoutMode(null);
           return;
         }
-        setCheckoutMode("khqr_qr");
       }
+
+      // ABA missing / deeplink failed → show KHQR scan UI only now.
+      setCheckoutMode("khqr_qr");
     },
     [buildPendingReturn, openWebviewFallback, showError, t, token],
   );
@@ -158,11 +160,12 @@ export function useAbaKhqrCheckout({
         return;
       }
 
-      setSubmitting(false);
       try {
         await openCheckoutSession(intent);
       } catch (err) {
         showError(t("payment.intentFailed"), getApiErrorMessage(err, t("payment.intentFailed")));
+      } finally {
+        setSubmitting(false);
       }
     },
     [openCheckoutSession, resetCheckout, showError, t, token],

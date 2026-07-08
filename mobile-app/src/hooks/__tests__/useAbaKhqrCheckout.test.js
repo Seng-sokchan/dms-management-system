@@ -134,7 +134,7 @@ describe("useAbaKhqrCheckout", () => {
     return apiRef.current;
   }
 
-  it("runs ABA app checkout path on startCheckout success", async () => {
+  it("runs ABA app checkout path on startCheckout success without KHQR modal", async () => {
     const createIntentFn = jest.fn(() => Promise.resolve(mockPaymentIntent));
     const checkout = await runCheckout(defaultProps, createIntentFn);
 
@@ -145,7 +145,7 @@ describe("useAbaKhqrCheckout", () => {
     expect(checkout.activePaymentId).toBe("pay-001");
   });
 
-  it("stays on KHQR mode when ABA is not installed", async () => {
+  it("shows KHQR only when ABA is not installed", async () => {
     resolveAbaPaymentRoute.mockResolvedValue({
       mode: "khqr_qr",
       qrString: "qr",
@@ -156,6 +156,12 @@ describe("useAbaKhqrCheckout", () => {
 
     await runCheckout(defaultProps, () => Promise.resolve(mockPaymentIntent));
     expect(openAbaPaywayCheckout).not.toHaveBeenCalled();
+  });
+
+  it("falls back to KHQR when ABA deeplink fails to open", async () => {
+    openAbaPaywayCheckout.mockResolvedValue({ opened: "failed" });
+    await runCheckout(defaultProps, () => Promise.resolve(mockPaymentIntent));
+    expect(openAbaPaywayCheckout).toHaveBeenCalled();
   });
 
   it("alerts and falls back to webview when PayWay route resolution fails", async () => {
