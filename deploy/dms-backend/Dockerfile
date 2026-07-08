@@ -9,6 +9,13 @@ RUN npm ci --omit=dev
 
 COPY backend/ ./
 RUN rm -f .env .env.*
+
+# Remove leftover configurable-rules code if an outdated backend/ was copied.
+COPY deploy/dms-backend/strip-legacy-rules.sh /tmp/strip-legacy-rules.sh
+RUN chmod +x /tmp/strip-legacy-rules.sh \
+  && /tmp/strip-legacy-rules.sh /app \
+  && rm -f /tmp/strip-legacy-rules.sh
+
 COPY deploy/dms-backend/ecosystem.config.js ./ecosystem.config.js
 
 RUN mkdir -p logs

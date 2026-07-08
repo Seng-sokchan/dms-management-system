@@ -87,9 +87,7 @@ backend/
     │   └── env.js             ← validated, frozen env object
     │
     ├── constants/
-    │   ├── general.js
-    │   ├── roleMenus.js
-    │   └── index.js
+    │   └── roleAccessRules.js   ← hardcoded role access (no DB role_menus)
     │
     ├── routes/
     │   ├── index.js
@@ -102,7 +100,7 @@ backend/
     │       ├── adminRoutes.js
     │       ├── masterData/    ← catalogs, items, depots, …
     │       ├── ops/           ← orders, payments, customers, …
-    │       └── admin/         ← users, role menus
+    │       └── admin/         ← users, roles list
     │
     ├── middleware/
     ├── validators/

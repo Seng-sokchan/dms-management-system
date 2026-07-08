@@ -120,13 +120,17 @@ sudo docker compose build --no-cache backend
 sudo docker compose up -d --force-recreate backend
 ```
 
-Confirm the new image no longer references menus tables:
+Confirm the new image no longer references menus under src:
 
 ```bash
-sudo docker compose exec backend sh -c "grep -R role_menus /app/src /app/database || true"
+sudo docker compose exec backend sh -c "grep -R -E 'roleMenus|ROLE_MENUS|v_role_menus' /app/src || true"
 ```
 
-Expect no matches under `/app/src`. On first start, `ensureRulesSchema` drops legacy rules tables if they still exist.
+Expect **no output**. The image build runs `strip-legacy-rules.sh` to delete leftover `roleMenus.js` / related files if an old `backend/` copy was used.
+
+On first start, `ensureRulesSchema` drops legacy rules tables if they still exist.
+
+**Important:** rebuild context is the **repo root** (`backend/` + `deploy/dms-backend/`). Sync **both** folders (or `git pull` the full repo). Updating only `deploy/` while leaving an old `backend/` on the server will keep crashing until you rebuild with a clean backend tree.
 
 Reload Caddy after editing `Caddyfile` only:
 
