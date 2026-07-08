@@ -53,11 +53,11 @@ async function assertDepotAccess(user, depotId) {
   const depot = await getDepotById(depotId);
   if (!depot) throw new BadRequestError("Depot not found");
   const scope = getDataScopeForUser(user);
-  if (scope === "owner" && String(depot.ownerUserId) !== String(user.sub)) {
-    throw new BadRequestError("Owner can only manage customers in owned depots");
-  }
-  if (scope === "depot" && String(depot.depotUserId) !== String(user.sub)) {
-    throw new BadRequestError("Depot can only manage customers in own depot");
+  if (scope === "depot") {
+    const linked = await getDepotForUser(user);
+    if (!linked || String(linked.id) !== String(depot.id)) {
+      throw new BadRequestError("Depot can only manage customers in own depot");
+    }
   }
 }
 

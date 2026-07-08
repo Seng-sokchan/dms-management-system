@@ -53,30 +53,11 @@ async function listTotalsByCustomerForDepot(depotId) {
   return rows.map(mapCustomerRow);
 }
 
-async function listTotalsByCustomerForOwner(ownerUserId) {
-  const sql = `${BASE_BY_CUSTOMER}
-  LEFT JOIN depots d ON d.id = c.depot_id AND d.is_active = 1
-  WHERE (c.depot_id IS NULL OR d.owner_user_id = ?)
-  GROUP BY od.customer_id, c.name, c.depot_id, od.currency
-  ORDER BY c.name ASC, od.currency ASC`;
-  const [rows] = await getPool().query(sql, [ownerUserId]);
-  return rows.map(mapCustomerRow);
-}
-
 async function listTotalsByDepotAll() {
   const sql = `${BASE_BY_DEPOT}
   GROUP BY d.id, d.name, od.currency
   ORDER BY d.name ASC, od.currency ASC`;
   const [rows] = await getPool().query(sql);
-  return rows.map(mapDepotRow);
-}
-
-async function listTotalsByDepotForOwner(ownerUserId) {
-  const sql = `${BASE_BY_DEPOT}
-  WHERE d.owner_user_id = ?
-  GROUP BY d.id, d.name, od.currency
-  ORDER BY d.name ASC, od.currency ASC`;
-  const [rows] = await getPool().query(sql, [ownerUserId]);
   return rows.map(mapDepotRow);
 }
 
@@ -92,8 +73,6 @@ async function listTotalsByDepotForDepot(depotId) {
 module.exports = {
   listTotalsByCustomerAll,
   listTotalsByCustomerForDepot,
-  listTotalsByCustomerForOwner,
   listTotalsByDepotAll,
-  listTotalsByDepotForOwner,
   listTotalsByDepotForDepot,
 };

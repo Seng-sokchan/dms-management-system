@@ -1,5 +1,4 @@
 import { useTranslation } from "react-i18next";
-import { canManageMenuKey } from "../../constants/menus";
 import { Button } from "../../components/ui/Button";
 import "./DepotForm.css";
 
@@ -10,11 +9,10 @@ function formatUserOptionLabel(u) {
   return name || username || String(u?.id ?? "");
 }
 
-export function DepotCreatePopupForm({ open, user, users = [], newDepot, setNewDepot, onCreateDepot, onClose }) {
+export function DepotCreatePopupForm({ open, users = [], newDepot, setNewDepot, onCreateDepot, onClose }) {
   const { t } = useTranslation();
   if (!open) return null;
 
-  const ownerUsers = users.filter((u) => u?.isActive !== false && u?.role === "Owner");
   const depotUsers = users.filter((u) => u?.isActive !== false && u?.role === "Depot");
 
   return (
@@ -53,26 +51,6 @@ export function DepotCreatePopupForm({ open, user, users = [], newDepot, setNewD
           value={newDepot.address}
           onChange={(event) => setNewDepot((prev) => ({ ...prev, address: event.target.value }))}
         />
-        {user?.dataScope === "all" ? (
-          <>
-            <label className="form-label" htmlFor="depot-owner-user-id">
-              {t("depots.ownerUserId")}
-            </label>
-            <select
-              id="depot-owner-user-id"
-              value={newDepot.ownerUserId}
-              onChange={(event) => setNewDepot((prev) => ({ ...prev, ownerUserId: event.target.value }))}
-              required
-            >
-              <option value="">{t("depots.selectUser", { defaultValue: "— Select customer user —" })}</option>
-              {ownerUsers.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {formatUserOptionLabel(u)}
-                </option>
-              ))}
-            </select>
-          </>
-        ) : null}
         <label className="form-label" htmlFor="depot-depot-user-id">
           {t("depots.depotUserId")}
         </label>
@@ -101,11 +79,10 @@ export function DepotCreatePopupForm({ open, user, users = [], newDepot, setNewD
   );
 }
 
-export function DepotEditPopupForm({ open, user, users = [], editingDepot, setEditingDepot, onSubmitEdit, onClose }) {
+export function DepotEditPopupForm({ open, users = [], editingDepot, setEditingDepot, onSubmitEdit, onClose }) {
   const { t } = useTranslation();
   if (!open) return null;
 
-  const ownerUsers = users.filter((u) => u?.isActive !== false && u?.role === "Owner");
   const depotUsers = users.filter((u) => u?.isActive !== false && u?.role === "Depot");
 
   return (
@@ -138,26 +115,6 @@ export function DepotEditPopupForm({ open, user, users = [], editingDepot, setEd
           value={editingDepot.address}
           onChange={(event) => setEditingDepot((prev) => ({ ...prev, address: event.target.value }))}
         />
-        {user?.dataScope === "all" ? (
-          <>
-            <label className="form-label" htmlFor="depot-edit-owner-user-id">
-              {t("depots.ownerUserId")}
-            </label>
-            <select
-              id="depot-edit-owner-user-id"
-              value={editingDepot.ownerUserId}
-              onChange={(event) => setEditingDepot((prev) => ({ ...prev, ownerUserId: event.target.value }))}
-              required
-            >
-              <option value="">{t("depots.selectUser", { defaultValue: "— Select customer user —" })}</option>
-              {ownerUsers.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {formatUserOptionLabel(u)}
-                </option>
-              ))}
-            </select>
-          </>
-        ) : null}
         <label className="form-label" htmlFor="depot-edit-depot-user-id">
           {t("depots.depotUserId")}
         </label>

@@ -45,7 +45,6 @@ React + Vite admin frontend for the Fix Asset order management system.
 Admin routes (in `App.jsx`):
 
 - `/overview`
-- `/create-order`
 - `/catalogs`
 - `/items`
 - `/producers`
@@ -56,13 +55,12 @@ Admin routes (in `App.jsx`):
 Redirects:
 
 - `/` -> `/overview`
-- `/create` -> `/create-order`
 
 ## Main Functional Flow
 
 1. Create catalog in **Catalogs** page.
 2. Add items in **Items** page and select catalog for each item.
-3. Create order in **New order** using item dropdown.
+3. Orders are created from the **mobile app** (Customer role).
 4. Manage status and delivery confirmation in **Orders**.
 5. Record payments in **Payments**.
 

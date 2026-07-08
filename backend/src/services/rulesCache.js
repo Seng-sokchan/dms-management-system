@@ -1,121 +1,86 @@
 const { listRoleNames } = require("../repositories/roles");
-const { listMenuKeys, listMenus } = require("../repositories/menus");
 const { listOrderStatuses } = require("../repositories/lookups");
-const { listTransitionsMap } = require("../repositories/statusTransitions");
-const { listDataScopeMap } = require("../repositories/roleAccess");
-const { listRoleClientsMap } = require("../repositories/roleClients");
-const { listRoleStatusPermissionsMap } = require("../repositories/roleStatusPermissions");
-const { listRoleSocketChannelsMap } = require("../repositories/roleSocketChannels");
+const {
+  ROLE_NAMES,
+  ROLE_DATA_SCOPE,
+  ROLE_CLIENTS,
+  ROLE_STATUS_PERMISSIONS,
+  ROLE_SOCKET_CHANNELS,
+  STATUS_TRANSITIONS,
+  STATUS_NAMES,
+  getDataScopeForRole,
+  getClientsForRole,
+  getStatusPermissionsForRole,
+  getSocketChannelsForRole,
+  getNextStatuses,
+  canSetStatus,
+  canSubscribeSocket,
+  canUseClient,
+} = require("../constants/roleAccessRules");
 
 let cache = {
-  roleNames: [],
-  dataScopeByRole: {},
-  roleClients: {},
-  statusPermissions: {},
-  socketChannels: {},
-  menuKeys: new Set(),
-  menus: [],
-  statusNames: [],
-  transitions: {},
+  roleNames: [...ROLE_NAMES],
+  statusNames: [...STATUS_NAMES],
   loaded: false,
 };
 
 function getRoleNames() {
-  return cache.roleNames;
+  return cache.roleNames.length ? cache.roleNames : [...ROLE_NAMES];
 }
 
 function isKnownRole(roleName) {
-  return cache.roleNames.includes(roleName);
+  return getRoleNames().includes(roleName);
 }
 
 function getDataScope(roleName) {
-  return cache.dataScopeByRole[roleName] || "none";
-}
-
-function getClientsForRole(roleName) {
-  return cache.roleClients[roleName] ? [...cache.roleClients[roleName]] : [];
-}
-
-function canUseClient(roleName, client) {
-  if (!client) return true;
-  const allowed = cache.roleClients[roleName];
-  if (!Array.isArray(allowed) || !allowed.length) return false;
-  return allowed.includes(client);
-}
-
-function getStatusPermissionsForRole(roleName) {
-  const perms = cache.statusPermissions[roleName];
-  return perms ? { ...perms } : {};
-}
-
-function canSetStatus(roleName, toStatus, action = "update_status") {
-  const perms = cache.statusPermissions[roleName];
-  if (!perms || !perms[toStatus]) return false;
-  return perms[toStatus].includes(action);
+  return getDataScopeForRole(roleName);
 }
 
 function canUpdateAnyStatus(roleName) {
-  const perms = cache.statusPermissions[roleName];
+  const perms = ROLE_STATUS_PERMISSIONS[roleName];
   if (!perms) return false;
   return Object.keys(perms).length > 0;
 }
 
-function canSubscribeSocket(roleName, channelKey) {
-  const channels = cache.socketChannels[roleName];
-  if (!Array.isArray(channels)) return false;
-  return channels.includes(channelKey);
-}
-
-function getSocketChannelsForRole(roleName) {
-  return cache.socketChannels[roleName] ? [...cache.socketChannels[roleName]] : [];
-}
-
 function getMenuKeys() {
-  return cache.menuKeys;
+  return new Set();
 }
 
 function getMenus() {
-  return [...cache.menus];
-}
-
-function getMenusByClient(client) {
-  return cache.menus.filter((m) => m.client === client);
-}
-
-function getMenuAccessLevel(menuKey) {
-  const menu = cache.menus.find((m) => m.menuKey === menuKey);
-  return menu?.accessLevel || "view";
-}
-
-function isKnownMenuKey(menuKey) {
-  return cache.menuKeys.has(menuKey);
-}
-
-function getStatusNames() {
-  return cache.statusNames;
-}
-
-function isKnownStatus(statusName) {
-  return cache.statusNames.includes(statusName);
-}
-
-function getNextStatuses(fromStatusName) {
-  const mapped = cache.transitions[fromStatusName];
-  if (Array.isArray(mapped)) return [...mapped];
   return [];
 }
 
+function getMenusByClient() {
+  return [];
+}
+
+function getMenuAccessLevel() {
+  return "view";
+}
+
+function isKnownMenuKey() {
+  return false;
+}
+
+function getStatusNames() {
+  return cache.statusNames.length ? cache.statusNames : [...STATUS_NAMES];
+}
+
+function isKnownStatus(statusName) {
+  return getStatusNames().includes(statusName);
+}
+
 function getTransitionsMap() {
-  return { ...cache.transitions };
+  return JSON.parse(JSON.stringify(STATUS_TRANSITIONS));
 }
 
 function getRoleAccessSnapshot() {
   return {
-    roleNames: [...cache.roleNames],
-    dataScopeByRole: { ...cache.dataScopeByRole },
-    roleClients: { ...cache.roleClients },
-    statusPermissions: { ...cache.statusPermissions },
-    socketChannels: { ...cache.socketChannels },
+    roleNames: getRoleNames(),
+    dataScopeByRole: { ...ROLE_DATA_SCOPE },
+    roleClients: { ...ROLE_CLIENTS },
+    statusPermissions: JSON.parse(JSON.stringify(ROLE_STATUS_PERMISSIONS)),
+    socketChannels: { ...ROLE_SOCKET_CHANNELS },
   };
 }
 
@@ -124,39 +89,12 @@ function isLoaded() {
 }
 
 async function refreshRulesCache() {
-  const [
-    roleNames,
-    menuRows,
-    statuses,
-    transitions,
-    dataScopeByRole,
-    roleClients,
-    statusPermissions,
-    socketChannels,
-  ] = await Promise.all([
-    listRoleNames(),
-    listMenus(),
-    listOrderStatuses(),
-    listTransitionsMap(),
-    listDataScopeMap(),
-    listRoleClientsMap(),
-    listRoleStatusPermissionsMap(),
-    listRoleSocketChannelsMap(),
-  ]);
-
+  const [roleNames, statuses] = await Promise.all([listRoleNames(), listOrderStatuses()]);
   cache = {
-    roleNames,
-    dataScopeByRole,
-    roleClients,
-    statusPermissions,
-    socketChannels,
-    menuKeys: new Set(menuRows.map((row) => row.menuKey)),
-    menus: menuRows,
-    statusNames: statuses.map((row) => row.name),
-    transitions,
+    roleNames: roleNames.length ? roleNames : [...ROLE_NAMES],
+    statusNames: statuses.length ? statuses.map((row) => row.name) : [...STATUS_NAMES],
     loaded: true,
   };
-
   return cache;
 }
 

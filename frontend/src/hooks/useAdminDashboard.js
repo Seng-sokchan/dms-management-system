@@ -5,7 +5,6 @@ import {
   createDeliveryAgent,
   deleteDeliveryAgent,
   deleteCatalog,
-  createOrder,
   deleteOrder as deleteOrderRequest,
   createUser,
   createItem,
@@ -33,10 +32,6 @@ import {
   moveOrderStatus as moveOrderStatusRequest,
   updateProducer,
   updateUser,
-  updateRoleMenus,
-  updateStatusTransitions,
-  updateRoleAccess,
-  updateRoleStatusPermissions,
   createBorrowMaterial,
   updateBorrowMaterial,
   deleteBorrowMaterial,
@@ -110,13 +105,7 @@ export function useAdminDashboard() {
   const [statuses, setStatuses] = useState([]);
   const [orders, setOrders] = useState([]);
   const [users, setUsers] = useState([]);
-  const [roleMenusByRole, setRoleMenusByRole] = useState(null);
   const [roles, setRoles] = useState([]);
-  const [menuCatalog, setMenuCatalog] = useState([]);
-  const [mobileMenuCatalog, setMobileMenuCatalog] = useState([]);
-  const [statusTransitionsByStatus, setStatusTransitionsByStatus] = useState(null);
-  const [roleAccessByRole, setRoleAccessByRole] = useState(null);
-  const [roleStatusPermissionsByRole, setRoleStatusPermissionsByRole] = useState(null);
   const [customers, setCustomers] = useState([]);
   const [provinces, setProvinces] = useState([]);
   const [depots, setDepots] = useState([]);
@@ -132,11 +121,6 @@ export function useAdminDashboard() {
   const [depotItemPrices, setDepotItemPrices] = useState([]);
   const [paymentTotals, setPaymentTotals] = useState({ byCustomer: [], byDepot: [] });
 
-  const [newOrder, setNewOrder] = useState({
-    customerId: "",
-    itemId: "",
-    orderedQty: 1,
-  });
   const [newProducer, setNewProducer] = useState({ name: "", phone: "", capacityNote: "" });
   const [newCustomer, setNewCustomer] = useState({
     name: "",
@@ -151,7 +135,6 @@ export function useAdminDashboard() {
     name: "",
     phone: "",
     address: "",
-    ownerUserId: "",
     depotUserId: "",
   });
   const [newCatalog, setNewCatalog] = useState({ name: "", note: "" });
@@ -168,6 +151,7 @@ export function useAdminDashboard() {
     role: "Owner",
     customerId: "",
     deliveryAgentId: "",
+    depotId: "",
   });
   const [newBorrowMaterial, setNewBorrowMaterial] = useState({ name: "", unit: "", note: "" });
   const [newCustomerBorrow, setNewCustomerBorrow] = useState({ customerId: "", materialId: "", qty: 1, note: "" });
@@ -208,23 +192,7 @@ export function useAdminDashboard() {
       setCatalogs(Array.isArray(data.catalogs) ? data.catalogs : []);
       setItems(Array.isArray(data.items) ? data.items : []);
       setUsers(Array.isArray(data.users) ? data.users : []);
-      setRoleMenusByRole(data.roleMenusByRole && typeof data.roleMenusByRole === "object" ? data.roleMenusByRole : null);
       setRoles(Array.isArray(data.roles) ? data.roles : []);
-      setMenuCatalog(Array.isArray(data.menuCatalog) ? data.menuCatalog : []);
-      setMobileMenuCatalog(Array.isArray(data.mobileMenuCatalog) ? data.mobileMenuCatalog : []);
-      setStatusTransitionsByStatus(
-        data.statusTransitionsByStatus && typeof data.statusTransitionsByStatus === "object"
-          ? data.statusTransitionsByStatus
-          : null,
-      );
-      setRoleAccessByRole(
-        data.roleAccessByRole && typeof data.roleAccessByRole === "object" ? data.roleAccessByRole : null,
-      );
-      setRoleStatusPermissionsByRole(
-        data.roleStatusPermissionsByRole && typeof data.roleStatusPermissionsByRole === "object"
-          ? data.roleStatusPermissionsByRole
-          : null,
-      );
       setBorrowMaterials(Array.isArray(data.borrowMaterials) ? data.borrowMaterials : []);
       setCustomerBorrowedMaterials(Array.isArray(data.customerBorrowedMaterials) ? data.customerBorrowedMaterials : []);
       setBorrowMaterialOrderLoans(
@@ -307,30 +275,6 @@ export function useAdminDashboard() {
     }
   }
 
-  async function submitOrder(event) {
-    event.preventDefault();
-    try {
-      const body = {
-        ...newOrder,
-        orderedQty: Number(newOrder.orderedQty),
-      };
-      delete body.producerId;
-      if (!body.itemId) {
-        delete body.itemId;
-      }
-      await createOrder(token, body);
-      setNewOrder({
-        customerId: "",
-        itemId: "",
-        orderedQty: 1,
-      });
-      await refresh();
-      await showSuccessPopup(i18n.t("success.orderCreated"));
-    } catch (error) {
-      showError(getErrorMessage(error, "errors.createOrder"));
-    }
-  }
-
   async function submitCatalog(event) {
     event.preventDefault();
     try {
@@ -399,9 +343,6 @@ export function useAdminDashboard() {
   async function submitItemDelete(itemId) {
     try {
       await deleteItem(token, itemId);
-      if (newOrder.itemId === itemId) {
-        setNewOrder((prev) => ({ ...prev, itemId: "" }));
-      }
       await refresh();
       showSuccess(i18n.t("success.itemDeleted"));
     } catch (error) {
@@ -434,9 +375,6 @@ export function useAdminDashboard() {
   async function submitCustomerDelete(customerId) {
     try {
       await deleteCustomer(token, customerId);
-      if (newOrder.customerId === customerId) {
-        setNewOrder((prev) => ({ ...prev, customerId: "" }));
-      }
       await refresh();
       showSuccess(i18n.t("success.customerDeleted"));
     } catch (error) {
@@ -481,10 +419,9 @@ export function useAdminDashboard() {
     try {
       await createDepot(token, {
         ...newDepot,
-        ownerUserId: newDepot.ownerUserId || undefined,
-        depotUserId: newDepot.depotUserId || undefined,
+        depotUserId: newDepot.depotUserId.trim() === "" ? null : newDepot.depotUserId.trim(),
       });
-      setNewDepot({ name: "", phone: "", address: "", ownerUserId: "", depotUserId: "" });
+      setNewDepot({ name: "", phone: "", address: "", depotUserId: "" });
       await refresh();
       await showSuccessPopup(i18n.t("success.depotAdded", { defaultValue: "Depot added" }));
     } catch (error) {
@@ -596,23 +533,26 @@ export function useAdminDashboard() {
     }
   }
 
-  async function submitOrderMovement(orderId, status) {
+  async function submitOrderDeliveryAssignment(orderIds, deliveryAgentId) {
+    const ids = (Array.isArray(orderIds) ? orderIds : [orderIds])
+      .map((id) => String(id || "").trim())
+      .filter(Boolean);
+    if (ids.length === 0) return;
     try {
-      await moveOrderStatusRequest(token, orderId, { status });
+      for (const orderId of ids) {
+        await updateOrderAssignment(token, orderId, { deliveryAgentId: deliveryAgentId || null });
+      }
       await refresh();
-      await showSuccessPopup(i18n.t("success.statusUpdated"));
+      await showSuccessPopup(
+        i18n.t("success.deliveryAssigned", {
+          count: ids.length,
+          defaultValue: "Delivery assignment saved",
+        }),
+      );
     } catch (error) {
-      showError(getErrorMessage(error, "errors.updateStatus"));
-    }
-  }
-
-  async function submitOrderDeliveryAssignment(orderId, deliveryAgentId) {
-    try {
-      await updateOrderAssignment(token, orderId, { deliveryAgentId: deliveryAgentId || null });
       await refresh();
-      await showSuccessPopup(i18n.t("success.deliveryAssigned", { defaultValue: "Delivery assignment saved" }));
-    } catch (error) {
       showError(getErrorMessage(error, "errors.updateDeliveryAssignment"));
+      throw error;
     }
   }
 
@@ -652,6 +592,10 @@ export function useAdminDashboard() {
     if (raw.role === "Delivery" && deliveryAgentIdToLink) {
       createPayload.deliveryAgentId = deliveryAgentIdToLink;
     }
+    const depotIdToLink = String(raw.depotId || "").trim();
+    if (raw.role === "Depot" && depotIdToLink) {
+      createPayload.depotId = depotIdToLink;
+    }
     try {
       const res = await createUser(token, createPayload);
       const created = unwrapApiData(res.data);
@@ -666,6 +610,7 @@ export function useAdminDashboard() {
         role: "Owner",
         customerId: "",
         deliveryAgentId: "",
+        depotId: "",
       });
       await refresh();
       await showSuccessPopup(i18n.t("success.userAdded"));
@@ -693,54 +638,6 @@ export function useAdminDashboard() {
       showSuccess(i18n.t("success.userDeleted"));
     } catch (error) {
       showError(getErrorMessage(error, "errors.deleteUser"));
-    }
-  }
-
-  async function submitRoleMenus(roleName, menuKeys) {
-    try {
-      await updateRoleMenus(token, roleName, menuKeys);
-      await refresh();
-      await showSuccessPopup(i18n.t("users.roleMenusSaved"));
-      return true;
-    } catch (error) {
-      showError(getErrorMessage(error, "errors.updateRoleMenus"));
-      return false;
-    }
-  }
-
-  async function submitStatusTransitions(transitions) {
-    try {
-      await updateStatusTransitions(token, transitions);
-      await refresh();
-      await showSuccessPopup(i18n.t("users.statusWorkflowSaved"));
-      return true;
-    } catch (error) {
-      showError(getErrorMessage(error, "errors.updateStatusTransitions"));
-      return false;
-    }
-  }
-
-  async function submitRoleAccess(roleName, payload) {
-    try {
-      await updateRoleAccess(token, roleName, payload);
-      await refresh();
-      await showSuccessPopup(i18n.t("users.roleAccessSaved", { defaultValue: "Role access updated" }));
-      return true;
-    } catch (error) {
-      showError(getErrorMessage(error, "errors.updateRoleAccess"));
-      return false;
-    }
-  }
-
-  async function submitRoleStatusPermissions(matrix) {
-    try {
-      await updateRoleStatusPermissions(token, matrix);
-      await refresh();
-      await showSuccessPopup(i18n.t("users.statusPermissionsSaved", { defaultValue: "Status permissions updated" }));
-      return true;
-    } catch (error) {
-      showError(getErrorMessage(error, "errors.updateStatusPermissions"));
-      return false;
     }
   }
 
@@ -967,13 +864,7 @@ export function useAdminDashboard() {
     statuses,
     orders,
     users,
-    roleMenusByRole,
     roles,
-    menuCatalog,
-    mobileMenuCatalog,
-    statusTransitionsByStatus,
-    roleAccessByRole,
-    roleStatusPermissionsByRole,
     customers,
     provinces,
     depots,
@@ -990,7 +881,6 @@ export function useAdminDashboard() {
     paymentTotals,
     flash,
     dismissFlash,
-    newOrder,
     newProducer,
     newCustomer,
     newProvince,
@@ -1006,7 +896,6 @@ export function useAdminDashboard() {
     newMonthlySchedule,
     setNewMonthlySchedule,
     setAuth,
-    setNewOrder,
     setNewProducer,
     setNewCustomer,
     setNewProvince,
@@ -1018,7 +907,6 @@ export function useAdminDashboard() {
     setNewBorrowMaterial,
     setNewCustomerBorrow,
     login,
-    submitOrder,
     submitCatalog,
     submitCatalogUpdate,
     submitCatalogDelete,
@@ -1042,17 +930,12 @@ export function useAdminDashboard() {
     submitDeliveryDelete,
     submitDeliveryConfirmation,
     submitOrderStatus,
-    submitOrderMovement,
     submitOrderDeliveryAssignment,
     submitSendOrderToFactory,
     submitOrderDelete,
     submitUser,
     submitUserUpdate,
     submitUserDelete,
-    submitRoleMenus,
-    submitStatusTransitions,
-    submitRoleAccess,
-    submitRoleStatusPermissions,
     submitBorrowMaterial,
     submitBorrowMaterialUpdate,
     submitBorrowMaterialDelete,

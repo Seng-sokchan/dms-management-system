@@ -21,16 +21,6 @@ async function listCustomersByDepotId(depotId) {
   return rows.map(mapCustomer);
 }
 
-async function listCustomersByOwnerUserId(ownerUserId) {
-  const [rows] = await getPool().query(
-    `SELECT * FROM ${V.CUSTOMERS}
-     WHERE depot_id IS NULL OR depot_owner_user_id = ?
-     ORDER BY id DESC`,
-    [ownerUserId],
-  );
-  return rows.map(mapCustomer);
-}
-
 async function getCustomerById(id, executor) {
   const db = resolveExecutor(executor);
   const [rows] = await db.query(`SELECT * FROM ${V.CUSTOMERS} WHERE id = ? LIMIT 1`, [id]);
@@ -123,7 +113,6 @@ async function deleteCustomer(id) {
 module.exports = {
   listCustomers,
   listCustomersByDepotId,
-  listCustomersByOwnerUserId,
   getCustomerById,
   getCustomerByUserId,
   setCustomerUserLink,

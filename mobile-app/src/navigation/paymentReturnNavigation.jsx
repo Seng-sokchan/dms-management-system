@@ -1,16 +1,13 @@
 import { InteractionManager } from "react-native";
 import { createNavigationContainerRef, CommonActions } from "@react-navigation/native";
+import { resolveMobileRoot } from "../utils/mobileAccess";
 
 export const navigationRef = createNavigationContainerRef();
 
 const PAYMENT_ROOTS = new Set(["Main", "DepotMain"]);
 
-function rootForRole(role, allowedMobileMenus) {
-  const menus = Array.isArray(allowedMobileMenus) ? allowedMobileMenus : [];
-  if (menus.includes("mobile.live")) return "DeliveryMain";
-  if (menus.includes("mobile.prepareBatch") || menus.includes("mobile.depotOrders")) return "DepotMain";
-  if (role === "Depot") return "DepotMain";
-  return "Main";
+function rootForRole(role) {
+  return resolveMobileRoot({ role });
 }
 
 function getFocusedRouteName(state) {
@@ -87,7 +84,6 @@ export function navigateToPaymentResult({
   orderIds,
   fromAbaReturn,
   role = "Customer",
-  allowedMobileMenus,
 }) {
   if (!paymentId || !navigationRef.isReady()) return false;
 
@@ -96,7 +92,7 @@ export function navigateToPaymentResult({
   const activeRoot = getActivePaymentRoot();
   if (!activeRoot) return false;
 
-  const root = activeRoot || rootForRole(role, allowedMobileMenus);
+  const root = activeRoot || rootForRole(role);
   const params = {
     paymentId: String(paymentId),
     orderId: orderId != null ? Number(orderId) : undefined,
@@ -136,7 +132,7 @@ export function navigateToOrderPayment({ order, role = "Customer" }) {
   const activeRoot = getActivePaymentRoot();
   if (!activeRoot) return false;
 
-  const root = activeRoot || rootForRole(role, allowedMobileMenus);
+  const root = activeRoot || rootForRole(role);
 
   try {
     navigationRef.dispatch(
@@ -162,7 +158,7 @@ export function navigateToBatchOrderPayment({ batchId, orders, role = "Depot" })
   const activeRoot = getActivePaymentRoot();
   if (!activeRoot) return false;
 
-  const root = activeRoot || rootForRole(role, allowedMobileMenus);
+  const root = activeRoot || rootForRole(role);
 
   try {
     navigationRef.dispatch(

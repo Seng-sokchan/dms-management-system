@@ -1,7 +1,6 @@
 const {
   listCustomers,
   listCustomersByDepotId,
-  listCustomersByOwnerUserId,
   getCustomerById,
   getCustomerByUserId,
   setCustomerUserLink,
@@ -11,9 +10,7 @@ const {
 } = require("../customers");
 const {
   listDepots,
-  listDepotsByOwnerUserId,
   getDepotById,
-  getDepotByOwnerUserId,
   getDepotByDepotUserId,
   createDepot,
   updateDepot,
@@ -49,7 +46,6 @@ const {
 module.exports = {
   listCustomers,
   listCustomersByDepotId,
-  listCustomersByOwnerUserId,
   getCustomerById,
   getCustomerByUserId,
   setCustomerUserLink,
@@ -57,9 +53,7 @@ module.exports = {
   updateCustomer,
   deleteCustomer,
   listDepots,
-  listDepotsByOwnerUserId,
   getDepotById,
-  getDepotByOwnerUserId,
   getDepotByDepotUserId,
   createDepot,
   updateDepot,

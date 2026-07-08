@@ -10,23 +10,16 @@ function toUserId(sub) {
 
 /**
  * Aggregated order amounts by customer and by managing depot.
- * Scoped like customer listing: Admin all, Owner owned depots + unassigned-depot customers, Depot single depot.
+ * Admin/Owner: all; Depot: linked depot only.
  */
 async function listOrderPaymentTotals({ user } = {}) {
   const role = user?.role;
   const userId = toUserId(user?.sub);
 
-  if (role === "Admin") {
+  if (role === "Admin" || role === "Owner") {
     return {
       byCustomer: await paymentTotalsRepository.listTotalsByCustomerAll(),
       byDepot: await paymentTotalsRepository.listTotalsByDepotAll(),
-    };
-  }
-
-  if (role === "Owner" && userId != null) {
-    return {
-      byCustomer: await paymentTotalsRepository.listTotalsByCustomerForOwner(userId),
-      byDepot: await paymentTotalsRepository.listTotalsByDepotForOwner(userId),
     };
   }
 

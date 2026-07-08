@@ -13,7 +13,6 @@ const EMPTY_EDIT = {
   name: "",
   phone: "",
   address: "",
-  ownerUserId: "",
   depotUserId: "",
 };
 
@@ -41,7 +40,7 @@ export function DepotsPage({
     const keyword = depotAppliedSearch.trim().toLowerCase();
     if (!keyword) return depots;
     return depots.filter((depot) =>
-      [depot.id, depot.name, depot.phone, depot.address, depot.ownerUserName, depot.depotUserName]
+      [depot.id, depot.name, depot.phone, depot.address, depot.depotUserName]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(keyword)),
     );
@@ -60,7 +59,6 @@ export function DepotsPage({
       name: depot.name || "",
       phone: depot.phone || "",
       address: depot.address || "",
-      ownerUserId: depot.ownerUserId || "",
       depotUserId: depot.depotUserId || "",
     });
   }
@@ -76,8 +74,7 @@ export function DepotsPage({
       name: editingDepot.name,
       phone: editingDepot.phone,
       address: editingDepot.address,
-      ownerUserId: editingDepot.ownerUserId || undefined,
-      depotUserId: editingDepot.depotUserId || undefined,
+      depotUserId: editingDepot.depotUserId.trim() === "" ? null : editingDepot.depotUserId.trim(),
     });
     setEditingDepot(EMPTY_EDIT);
   }
@@ -154,7 +151,6 @@ export function DepotsPage({
                 <th>{t("depots.name")}</th>
                 <th>{t("depots.phone")}</th>
                 <th>{t("depots.address")}</th>
-                <th>{t("depots.owner")}</th>
                 <th>{t("depots.depotUser")}</th>
                 {canManageDepots ? <th>Actions</th> : null}
               </tr>
@@ -166,7 +162,6 @@ export function DepotsPage({
                   <td>{depot.name}</td>
                   <td>{depot.phone || "—"}</td>
                   <td>{depot.address || "—"}</td>
-                  <td>{depot.ownerUserName || "—"}</td>
                   <td>{depot.depotUserName || "—"}</td>
                   {canManageDepots ? (
                     <td>
@@ -189,7 +184,6 @@ export function DepotsPage({
 
       <DepotCreatePopupForm
         open={showCreateModal}
-        user={user}
         users={users}
         newDepot={newDepot}
         setNewDepot={setNewDepot}
@@ -199,7 +193,6 @@ export function DepotsPage({
 
       <DepotEditPopupForm
         open={isEditing}
-        user={user}
         users={users}
         editingDepot={editingDepot}
         setEditingDepot={setEditingDepot}

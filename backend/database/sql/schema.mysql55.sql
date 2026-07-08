@@ -22,13 +22,7 @@ DROP TABLE IF EXISTS `order_status_history`;
 DROP TABLE IF EXISTS `payments`;
 DROP TABLE IF EXISTS `producers`;
 DROP TABLE IF EXISTS `provinces`;
-DROP TABLE IF EXISTS `role_socket_channels`;
-DROP TABLE IF EXISTS `role_status_permissions`;
-DROP TABLE IF EXISTS `role_clients`;
-DROP TABLE IF EXISTS `status_transitions`;
-DROP TABLE IF EXISTS `menus`;
 DROP TABLE IF EXISTS `roles`;
-DROP TABLE IF EXISTS `role_menus`;
 DROP TABLE IF EXISTS `status`;
 DROP TABLE IF EXISTS `users`;
 
@@ -175,15 +169,11 @@ CREATE TABLE `depots` (
   `name` varchar(120) NOT NULL,
   `phone` varchar(30) DEFAULT '',
   `address` varchar(255) DEFAULT '',
-  `owner_user_id` int(10) unsigned NOT NULL,
-  `depot_user_id` int(10) unsigned DEFAULT NULL,
   `is_active` tinyint(1) NOT NULL DEFAULT '1',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_depots_depot_user_id` (`depot_user_id`),
-  KEY `idx_depots_name` (`name`),
-  KEY `idx_depots_owner_user_id` (`owner_user_id`)
+  KEY `idx_depots_name` (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE `depot_item_prices` (
@@ -310,48 +300,9 @@ CREATE TABLE `provinces` (
 CREATE TABLE `roles` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `name` varchar(60) NOT NULL,
-  `data_scope` varchar(20) NOT NULL DEFAULT 'none',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_roles_name` (`name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
-CREATE TABLE `menus` (
-  `menu_key` varchar(40) NOT NULL,
-  `sort_order` smallint(5) unsigned NOT NULL DEFAULT '0',
-  `client` varchar(10) NOT NULL DEFAULT 'admin',
-  `access_level` varchar(10) NOT NULL DEFAULT 'view',
-  `is_active` tinyint(1) NOT NULL DEFAULT '1',
-  PRIMARY KEY (`menu_key`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
-CREATE TABLE `role_clients` (
-  `role_id` int(10) unsigned NOT NULL,
-  `client` varchar(10) NOT NULL,
-  PRIMARY KEY (`role_id`,`client`),
-  KEY `idx_role_clients_client` (`client`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
-CREATE TABLE `role_status_permissions` (
-  `role_id` int(10) unsigned NOT NULL,
-  `to_status_id` tinyint(3) unsigned NOT NULL,
-  `action` varchar(30) NOT NULL DEFAULT 'update_status',
-  PRIMARY KEY (`role_id`,`to_status_id`,`action`),
-  KEY `idx_rsp_to_status` (`to_status_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
-CREATE TABLE `role_socket_channels` (
-  `role_id` int(10) unsigned NOT NULL,
-  `channel_key` varchar(60) NOT NULL,
-  PRIMARY KEY (`role_id`,`channel_key`),
-  KEY `idx_rsc_channel` (`channel_key`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
-CREATE TABLE `role_menus` (
-  `role_id` int(10) unsigned NOT NULL,
-  `menu_key` varchar(40) NOT NULL,
-  PRIMARY KEY (`role_id`,`menu_key`),
-  KEY `idx_role_menus_key` (`menu_key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE `status` (
@@ -362,13 +313,6 @@ CREATE TABLE `status` (
   UNIQUE KEY `uq_status_name` (`name`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8;
 
-CREATE TABLE `status_transitions` (
-  `from_status_id` tinyint(3) unsigned NOT NULL,
-  `to_status_id` tinyint(3) unsigned NOT NULL,
-  PRIMARY KEY (`from_status_id`,`to_status_id`),
-  KEY `idx_status_transitions_to` (`to_status_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
 CREATE TABLE `users` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `name` varchar(120) NOT NULL,
@@ -377,6 +321,7 @@ CREATE TABLE `users` (
   `role_id` int(10) unsigned NOT NULL,
   `customer_id` int(10) unsigned DEFAULT NULL,
   `delivery_agent_id` int(10) unsigned DEFAULT NULL,
+  `depot_id` int(10) unsigned DEFAULT NULL,
   `is_active` tinyint(1) NOT NULL DEFAULT '1',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime DEFAULT NULL,
@@ -384,6 +329,7 @@ CREATE TABLE `users` (
   UNIQUE KEY `uq_users_username` (`username`),
   UNIQUE KEY `uq_users_customer_id` (`customer_id`),
   UNIQUE KEY `uq_users_delivery_agent_id` (`delivery_agent_id`),
+  UNIQUE KEY `uq_users_depot_id` (`depot_id`),
   KEY `idx_users_role_id` (`role_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
@@ -397,12 +343,6 @@ DROP VIEW IF EXISTS v_borrow_material_monthly_schedules;
 DROP VIEW IF EXISTS v_borrow_material_order_loans;
 DROP VIEW IF EXISTS v_customer_borrowed_materials;
 DROP VIEW IF EXISTS v_borrow_materials;
-DROP VIEW IF EXISTS v_role_socket_channels;
-DROP VIEW IF EXISTS v_role_status_permissions;
-DROP VIEW IF EXISTS v_role_clients;
-DROP VIEW IF EXISTS v_status_transitions;
-DROP VIEW IF EXISTS v_menus;
-DROP VIEW IF EXISTS v_role_menus;
 DROP VIEW IF EXISTS v_roles;
 DROP VIEW IF EXISTS v_statuses;
 DROP VIEW IF EXISTS v_orders;
@@ -426,7 +366,8 @@ SELECT
   r.name AS role,
   u.is_active,
   u.customer_id,
-  u.delivery_agent_id
+  u.delivery_agent_id,
+  u.depot_id
 FROM users u
 INNER JOIN roles r ON r.id = u.role_id;
 
@@ -446,14 +387,11 @@ SELECT
   d.name,
   d.phone,
   d.address,
-  d.owner_user_id,
-  ou.name AS owner_user_name,
-  d.depot_user_id,
+  du.id AS depot_user_id,
   du.name AS depot_user_name,
   d.created_at
 FROM depots d
-INNER JOIN users ou ON ou.id = d.owner_user_id
-LEFT JOIN users du ON du.id = d.depot_user_id
+LEFT JOIN users du ON du.depot_id = d.id AND du.is_active = 1
 WHERE d.is_active = 1;
 
 CREATE VIEW v_provinces AS
@@ -471,7 +409,6 @@ SELECT
   u.username AS user_username,
   c.depot_id,
   d.name AS depot_name,
-  d.owner_user_id AS depot_owner_user_id,
   c.province_id,
   p.name AS province_name,
   c.latitude,
@@ -570,50 +507,8 @@ SELECT id, name, sort_order
 FROM status;
 
 CREATE VIEW v_roles AS
-SELECT id, name, data_scope
+SELECT id, name
 FROM roles;
-
-CREATE VIEW v_menus AS
-SELECT menu_key, sort_order, client, access_level, is_active
-FROM menus
-WHERE is_active = 1;
-
-CREATE VIEW v_role_menus AS
-SELECT r.name AS role_name, rm.menu_key, rm.role_id, m.client, m.access_level
-FROM role_menus rm
-INNER JOIN roles r ON r.id = rm.role_id
-INNER JOIN menus m ON m.menu_key = rm.menu_key;
-
-CREATE VIEW v_role_clients AS
-SELECT r.name AS role_name, rc.role_id, rc.client
-FROM role_clients rc
-INNER JOIN roles r ON r.id = rc.role_id;
-
-CREATE VIEW v_role_status_permissions AS
-SELECT
-  r.name AS role_name,
-  rsp.role_id,
-  rsp.to_status_id,
-  s.name AS to_status,
-  rsp.action
-FROM role_status_permissions rsp
-INNER JOIN roles r ON r.id = rsp.role_id
-INNER JOIN status s ON s.id = rsp.to_status_id;
-
-CREATE VIEW v_role_socket_channels AS
-SELECT r.name AS role_name, rsc.role_id, rsc.channel_key
-FROM role_socket_channels rsc
-INNER JOIN roles r ON r.id = rsc.role_id;
-
-CREATE VIEW v_status_transitions AS
-SELECT
-  fs.name AS from_status,
-  ts.name AS to_status,
-  st.from_status_id,
-  st.to_status_id
-FROM status_transitions st
-INNER JOIN status fs ON fs.id = st.from_status_id
-INNER JOIN status ts ON ts.id = st.to_status_id;
 
 CREATE VIEW v_borrow_materials AS
 SELECT id, name, unit, note
@@ -745,13 +640,11 @@ DROP PROCEDURE IF EXISTS sp_delete_order;
 DROP PROCEDURE IF EXISTS sp_delete_order_group;
 DROP PROCEDURE IF EXISTS sp_delete_producer;
 DROP PROCEDURE IF EXISTS sp_delete_province;
-DROP PROCEDURE IF EXISTS sp_delete_all_status_transitions;
-DROP PROCEDURE IF EXISTS sp_add_status_transition;
-DROP PROCEDURE IF EXISTS sp_delete_role_menus_by_role_id;
 DROP PROCEDURE IF EXISTS sp_delete_truck;
 DROP PROCEDURE IF EXISTS sp_insert_order_status_history;
 DROP PROCEDURE IF EXISTS sp_set_customer_user_link;
 DROP PROCEDURE IF EXISTS sp_set_delivery_agent_user_link;
+DROP PROCEDURE IF EXISTS sp_set_depot_user_link;
 DROP PROCEDURE IF EXISTS sp_update_borrow_material;
 DROP PROCEDURE IF EXISTS sp_update_borrow_material_monthly_installment_status;
 DROP PROCEDURE IF EXISTS sp_update_catalog;
@@ -833,6 +726,20 @@ BEGIN
     UPDATE users SET delivery_agent_id = NULL WHERE id = p_user_id;
     UPDATE users SET delivery_agent_id = NULL WHERE delivery_agent_id = p_delivery_agent_id AND id <> p_user_id;
     UPDATE users SET delivery_agent_id = p_delivery_agent_id WHERE id = p_user_id;
+  END IF;
+END;
+CREATE PROCEDURE sp_set_depot_user_link(IN p_depot_id INT UNSIGNED, IN p_user_id INT UNSIGNED)
+BEGIN
+  IF p_user_id IS NULL THEN
+    IF p_depot_id IS NOT NULL THEN
+      UPDATE users SET depot_id = NULL WHERE depot_id = p_depot_id;
+    END IF;
+  ELSEIF p_depot_id IS NULL THEN
+    UPDATE users SET depot_id = NULL WHERE id = p_user_id;
+  ELSE
+    UPDATE users SET depot_id = NULL WHERE id = p_user_id;
+    UPDATE users SET depot_id = NULL WHERE depot_id = p_depot_id AND id <> p_user_id;
+    UPDATE users SET depot_id = p_depot_id WHERE id = p_user_id;
   END IF;
 END;
 CREATE PROCEDURE sp_upsert_depot_item_price(
@@ -958,17 +865,6 @@ BEGIN
   END IF;
   SELECT ROW_COUNT() AS affectedRows;
 END;
-CREATE PROCEDURE sp_delete_role_menus_by_role_id(IN p_role_id INT UNSIGNED)
-DELETE FROM role_menus WHERE role_id = p_role_id;
-CREATE PROCEDURE sp_add_role_menu(IN p_role_id INT UNSIGNED, IN p_menu_key VARCHAR(40))
-INSERT INTO role_menus (role_id, menu_key) VALUES (p_role_id, p_menu_key);
-CREATE PROCEDURE sp_delete_all_status_transitions()
-DELETE FROM status_transitions;
-CREATE PROCEDURE sp_add_status_transition(
-  IN p_from_status_id TINYINT UNSIGNED,
-  IN p_to_status_id TINYINT UNSIGNED
-)
-INSERT INTO status_transitions (from_status_id, to_status_id) VALUES (p_from_status_id, p_to_status_id);
 CREATE PROCEDURE sp_create_catalog(IN p_name VARCHAR(255), IN p_note VARCHAR(255), IN p_updated_at DATETIME)
 BEGIN
   INSERT INTO catalogs (name, note, updated_at) VALUES (p_name, p_note, p_updated_at);
@@ -1043,13 +939,11 @@ CREATE PROCEDURE sp_create_depot(
   IN p_name VARCHAR(120),
   IN p_phone VARCHAR(30),
   IN p_address VARCHAR(255),
-  IN p_owner_user_id INT UNSIGNED,
-  IN p_depot_user_id INT UNSIGNED,
   IN p_updated_at DATETIME
 )
 BEGIN
-  INSERT INTO depots (name, phone, address, owner_user_id, depot_user_id, updated_at)
-  VALUES (p_name, p_phone, p_address, p_owner_user_id, p_depot_user_id, p_updated_at);
+  INSERT INTO depots (name, phone, address, updated_at)
+  VALUES (p_name, p_phone, p_address, p_updated_at);
   SELECT LAST_INSERT_ID() AS insertId;
 END;
 CREATE PROCEDURE sp_update_depot(
@@ -1057,8 +951,6 @@ CREATE PROCEDURE sp_update_depot(
   IN p_name VARCHAR(120),
   IN p_phone VARCHAR(30),
   IN p_address VARCHAR(255),
-  IN p_owner_user_id INT UNSIGNED,
-  IN p_depot_user_id INT UNSIGNED,
   IN p_updated_at DATETIME
 )
 BEGIN
@@ -1066,8 +958,6 @@ BEGIN
   SET name = p_name,
       phone = p_phone,
       address = p_address,
-      owner_user_id = p_owner_user_id,
-      depot_user_id = p_depot_user_id,
       updated_at = p_updated_at
   WHERE id = p_id AND is_active = 1;
   SELECT ROW_COUNT() AS affectedRows;

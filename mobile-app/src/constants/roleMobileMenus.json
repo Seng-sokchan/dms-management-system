@@ -1,0 +1,5 @@
+{
+  "Delivery": ["mobile.live", "mobile.profile"],
+  "Customer": ["mobile.newOrder", "mobile.myOrders", "mobile.tracking", "mobile.profile"],
+  "Depot": ["mobile.prepareBatch", "mobile.depotOrders", "mobile.tracking", "mobile.profile"]
+}

@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const { listMenuKeysForRoleName, listManageMenuKeysForRoleName, getUserById } = require("../repositories");
+const { getUserById } = require("../repositories");
 const { UnauthorizedError, ForbiddenError } = require("../errors");
 const { fail } = require("../utils/response");
 const { canSetStatus, getDataScope } = require("../services/rulesCache");
@@ -68,28 +68,6 @@ function requireRoles(...roles) {
   };
 }
 
-function requireMenuKey(menuKey, { client = "admin", requireManage = false } = {}) {
-  return async (req, res, next) => {
-    if (!req.user) {
-      return next(new UnauthorizedError("Missing bearer token"));
-    }
-    try {
-      const listFn = requireManage ? listManageMenuKeysForRoleName : listMenuKeysForRoleName;
-      const allowed = await listFn(req.user.role, { client });
-      if (!allowed.includes(menuKey)) {
-        return next(new ForbiddenError("Unauthorized menu access"));
-      }
-      return next();
-    } catch (error) {
-      return next(error);
-    }
-  };
-}
-
-function requireManageMenuKey(menuKey, options = {}) {
-  return requireMenuKey(menuKey, { ...options, requireManage: true });
-}
-
 function requireStatusPermission(action = "update_status") {
   return (req, res, next) => {
     const nextStatus = req.body?.status || req.body?.nextStatus || req.params?.status;
@@ -124,6 +102,10 @@ async function resolveAccessTokenSession(token) {
           currentUser.deliveryAgentId != null && String(currentUser.deliveryAgentId).trim() !== ""
             ? String(currentUser.deliveryAgentId)
             : "",
+        depotId:
+          currentUser.depotId != null && String(currentUser.depotId).trim() !== ""
+            ? String(currentUser.depotId)
+            : "",
       },
     };
   } catch (_error) {
@@ -141,8 +123,6 @@ module.exports = {
   requireAuth,
   requireRoles,
   requireDataScope,
-  requireMenuKey,
-  requireManageMenuKey,
   requireStatusPermission,
   resolveUserFromAccessToken,
   resolveAccessTokenSession,

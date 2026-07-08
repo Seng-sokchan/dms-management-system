@@ -4,16 +4,16 @@ import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "../ui/LanguageSwitcher";
 import { useConfirm } from "../ui/ConfirmProvider";
 import { Button } from "../ui/Button";
-import { canAccessMenuKey, MENU_ITEMS } from "../../constants/menus";
+import { hasAdminPanelAccess, MENU_ITEMS } from "../../constants/menus";
 import "./AdminLayout.css";
 
 /* ── Page title map ── */
 const PAGE_PATH_MAP = {
   "/overview":        "overview",
-  "/create-order":    "newOrder",
   "/catalogs":        "catalogs",
   "/items":           "items",
   "/customer-item-prices": "customerItemPrices",
+  "/depot-item-prices": "depotItemPrices",
   "/customers":       "customers",
   "/provinces":       "provinces",
   "/tracking-customer-location": "trackingCustomerLocation",
@@ -24,7 +24,6 @@ const PAGE_PATH_MAP = {
   "/delivery-agents": "deliveryAgents",
   "/orders":          "orders",
   "/assign-orders":   "assignOrders",
-  "/order-movement":  "orderMovement",
   "/payments":        "payments",
   "/customer-order-history": "customerOrderHistory",
   "/users":           "users",
@@ -40,13 +39,6 @@ const NAV_ICONS = {
       <rect x="14" y="14" width="7" height="7" rx="1.5" />
     </svg>
   ),
-  newOrder: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="9" />
-      <line x1="12" y1="8" x2="12" y2="16" />
-      <line x1="8"  y1="12" x2="16" y2="12" />
-    </svg>
-  ),
   catalogs: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M4 6h16M4 10h16M4 14h10M4 18h7" />
@@ -57,6 +49,19 @@ const NAV_ICONS = {
       <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" />
       <polyline points="3.29 7 12 12 20.71 7" />
       <line x1="12" y1="22" x2="12" y2="12" />
+    </svg>
+  ),
+  customerItemPrices: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
+    </svg>
+  ),
+  depotItemPrices: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 10l9-7 9 7" />
+      <path d="M5 9v11h14V9" />
+      <path d="M9 20v-6h6v6" />
+      <path d="M12 3v4" />
     </svg>
   ),
   customers: (
@@ -131,16 +136,6 @@ const NAV_ICONS = {
       <circle cx="20" cy="17" r="1.5" />
     </svg>
   ),
-  orderMovement: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M17 3h4v4" />
-      <path d="M3 7V3h4" />
-      <path d="M21 3l-7 7" />
-      <path d="M3 21l7-7" />
-      <path d="M7 21H3v-4" />
-      <path d="M21 17v4h-4" />
-    </svg>
-  ),
   payments: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <rect x="2" y="5" width="20" height="14" rx="2" />
@@ -188,10 +183,10 @@ const NAV_GROUPS = [
     labelKey: "nav.sectionOrders",
     defaultLabel: "Orders",
     keys: [
-      "newOrder",
       "catalogs",
       "items",
       "customerItemPrices",
+      "depotItemPrices",
       "customers",
       "provinces",
       "trackingCustomerLocation",
@@ -201,7 +196,6 @@ const NAV_GROUPS = [
       "producers",
       "orders",
       "assignOrders",
-      "orderMovement",
       "payments",
       "customerOrderHistory",
     ],
@@ -230,7 +224,8 @@ export function AdminLayout({ user, onLogout, flash, onFlashDismiss, children = 
   }, [location.pathname, t]);
 
   const visibleNav = useMemo(() => {
-    return MENU_ITEMS.filter((item) => canAccessMenuKey(user, item.key));
+    if (!hasAdminPanelAccess(user)) return [];
+    return MENU_ITEMS;
   }, [user]);
 
   const visibleKeySet = useMemo(

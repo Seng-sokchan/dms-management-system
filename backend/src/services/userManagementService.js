@@ -7,21 +7,38 @@ const {
   getUserById,
   getCustomerById,
   getDeliveryAgentById,
+  getDepotById,
   setCustomerUserLink,
   setDeliveryAgentUserLink,
+  setDepotUserLink,
 } = require("../repositories");
 const { BadRequestError, NotFoundError, ConflictError } = require("../errors");
 
+const HIDDEN_USERNAMES = new Set(["admin"]);
+
+function isHiddenUser(user) {
+  return Boolean(user && HIDDEN_USERNAMES.has(String(user.username || "").trim().toLowerCase()));
+}
+
 async function listUsers() {
-  return listUsersDb();
+  const users = await listUsersDb();
+  return users.filter((user) => !isHiddenUser(user));
 }
 
 async function createUser(payload) {
+  if (HIDDEN_USERNAMES.has(String(payload.username || "").trim().toLowerCase())) {
+    throw new BadRequestError("Username is reserved");
+  }
   const passwordHash = await bcrypt.hash(payload.password, 10);
   const rawAgent = payload.deliveryAgentId;
   const hasAgentLink = rawAgent != null && String(rawAgent).trim() !== "";
   if (hasAgentLink && payload.role !== "Delivery") {
     throw new BadRequestError("deliveryAgentId is only valid for Delivery role");
+  }
+  const rawDepot = payload.depotId;
+  const hasDepotLink = rawDepot != null && String(rawDepot).trim() !== "";
+  if (hasDepotLink && payload.role !== "Depot") {
+    throw new BadRequestError("depotId is only valid for Depot role");
   }
   try {
     const created = await createUserDb({
@@ -34,6 +51,11 @@ async function createUser(payload) {
       const agent = await getDeliveryAgentById(String(rawAgent));
       if (!agent) throw new BadRequestError("Delivery agent not found");
       await setDeliveryAgentUserLink(null, Number(rawAgent), Number(created.id));
+    }
+    if (payload.role === "Depot" && hasDepotLink) {
+      const depot = await getDepotById(String(rawDepot));
+      if (!depot) throw new BadRequestError("Depot not found");
+      await setDepotUserLink(null, Number(rawDepot), Number(created.id));
     }
     return getUserById(created.id);
   } catch (error) {
@@ -52,6 +74,18 @@ async function updateUser(currentUser, userId, payload) {
     throw new BadRequestError("You cannot change your own role");
   }
 
+  const existingBefore = await getUserById(userId);
+  if (!existingBefore) throw new NotFoundError("User not found");
+  if (isHiddenUser(existingBefore)) {
+    throw new BadRequestError("System admin user cannot be modified");
+  }
+  if (
+    payload.username &&
+    HIDDEN_USERNAMES.has(String(payload.username).trim().toLowerCase())
+  ) {
+    throw new BadRequestError("Username is reserved");
+  }
+
   const nextPayload = {
     ...payload,
     passwordHash: payload.password ? await bcrypt.hash(payload.password, 10) : undefined,
@@ -59,6 +93,7 @@ async function updateUser(currentUser, userId, payload) {
   delete nextPayload.password;
   delete nextPayload.customerId;
   delete nextPayload.deliveryAgentId;
+  delete nextPayload.depotId;
 
   try {
     const user = await updateUserDb(userId, nextPayload);
@@ -66,6 +101,10 @@ async function updateUser(currentUser, userId, payload) {
 
     if (user.role !== "Delivery") {
       await setDeliveryAgentUserLink(null, null, Number(userId));
+    }
+
+    if (user.role !== "Depot") {
+      await setDepotUserLink(null, null, Number(userId));
     }
 
     if (Object.prototype.hasOwnProperty.call(payload, "customerId")) {
@@ -102,6 +141,23 @@ async function updateUser(currentUser, userId, payload) {
       );
     }
 
+    if (Object.prototype.hasOwnProperty.call(payload, "depotId")) {
+      const didRaw = payload.depotId;
+      const hasDepotLink = didRaw != null && String(didRaw).trim() !== "";
+      if (hasDepotLink) {
+        if (user.role !== "Depot") {
+          throw new BadRequestError("Only Depot role users may be linked to a depot");
+        }
+        const depot = await getDepotById(String(didRaw));
+        if (!depot) throw new BadRequestError("Depot not found");
+      }
+      await setDepotUserLink(
+        null,
+        hasDepotLink ? Number(didRaw) : null,
+        Number(userId),
+      );
+    }
+
     return getUserById(userId);
   } catch (error) {
     if (error && error.message === "Role not found") throw new BadRequestError("Role not found");
@@ -116,8 +172,12 @@ async function deactivateUser(currentUser, userId) {
   }
   const existing = await getUserById(userId);
   if (!existing) throw new NotFoundError("User not found");
+  if (isHiddenUser(existing)) {
+    throw new BadRequestError("System admin user cannot be deactivated");
+  }
   const deleted = await deactivateUserDb(userId);
   if (!deleted) throw new BadRequestError("User already inactive");
+  return deleted;
 }
 
 module.exports = {

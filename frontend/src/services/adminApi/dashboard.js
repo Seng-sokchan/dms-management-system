@@ -4,18 +4,18 @@ import { fetchBorrowMaterialOrderLoans } from "./borrowMaterialOrderLoans";
 import { fetchBorrowMaterialMonthlySchedules } from "./borrowMaterialMonthlySchedules";
 import { fetchCustomerItemPrices } from "./customerItemPrices";
 import { fetchDepotItemPrices } from "./depotItemPrices";
-import { fetchRoles, fetchMenus, fetchStatusTransitions, fetchRoleAccess, fetchRoleStatusPermissions } from "./rules";
-import { canAccessPath } from "../../constants/menus";
+import { fetchRoles } from "./rules";
+import { hasAdminPanelAccess } from "../../constants/menus";
 
 /**
  * Route-aware dashboard load so each page requests only needed data.
  */
 const ROUTE_DATA_MAP = {
   "/overview": ["summary", "statuses"],
-  "/create-order": ["customers", "producers", "items"],
   "/catalogs": ["catalogs"],
   "/items": ["catalogs", "items"],
-  "/customer-item-prices": ["customers", "items", "depots", "customerItemPrices", "depotItemPrices"],
+  "/customer-item-prices": ["customers", "items", "customerItemPrices"],
+  "/depot-item-prices": ["depots", "items", "depotItemPrices"],
   "/customers": ["customers", "depots", "provinces"],
   "/tracking-customer-location": ["customers"],
   "/provinces": ["provinces"],
@@ -23,10 +23,9 @@ const ROUTE_DATA_MAP = {
   "/customers-by-depot": ["depots", "customers"],
   "/producers": ["producers"],
   "/delivery-agents": ["deliveryAgents"],
-  "/users": ["users", "roleMenus", "roles", "menus", "mobileMenus", "statusTransitions", "roleAccess", "roleStatusPermissions", "statuses", "customers", "deliveryAgents"],
+  "/users": ["users", "roles", "customers", "deliveryAgents", "depots"],
   "/orders": ["orders", "statuses", "deliveryAgents"],
   "/assign-orders": ["orders", "deliveryAgents"],
-  "/order-movement": ["orders", "statuses"],
   "/payments": ["paymentTotals"],
   "/customer-order-history": ["customers", "orders"],
   "/borrowed-materials": [
@@ -47,20 +46,13 @@ export async function fetchDashboardData(token, pathname = "/overview") {
   const config = authConfig(token);
   const profile = await apiClient.get("/users/me", config);
   const user = unwrapApiData(profile.data);
-  const safePathname = canAccessPath(user, pathname) ? pathname : "/overview";
+  const safePathname = hasAdminPanelAccess(user) ? pathname : "/overview";
   const routeKeys = getKeysForRoute(safePathname);
   const requested = new Set(routeKeys);
 
-  if (canAccessPath(user, "/users")) {
+  if (hasAdminPanelAccess(user)) {
     requested.add("users");
-    requested.add("roleMenus");
     requested.add("roles");
-    requested.add("menus");
-    requested.add("mobileMenus");
-    requested.add("statusTransitions");
-    requested.add("roleAccess");
-    requested.add("roleStatusPermissions");
-    requested.add("statuses");
   }
   const data = {
     user,
@@ -75,13 +67,7 @@ export async function fetchDashboardData(token, pathname = "/overview") {
     catalogs: [],
     items: [],
     users: [],
-    roleMenusByRole: null,
     roles: [],
-    menuCatalog: [],
-    mobileMenuCatalog: [],
-    statusTransitionsByStatus: null,
-    roleAccessByRole: null,
-    roleStatusPermissionsByRole: null,
     borrowMaterials: [],
     customerBorrowedMaterials: [],
     borrowMaterialOrderLoans: [],
@@ -151,36 +137,9 @@ export async function fetchDashboardData(token, pathname = "/overview") {
     const rows = unwrapApiData(res.data);
     data.users = Array.isArray(rows) ? rows : [];
   });
-  queue("roleMenus", async () => {
-    const res = await apiClient.get("/role-menus", config);
-    const payload = unwrapApiData(res.data);
-    data.roleMenusByRole = payload && typeof payload === "object" ? payload : null;
-  });
   queue("roles", async () => {
     const rows = await fetchRoles(token);
     data.roles = Array.isArray(rows) ? rows : [];
-  });
-  queue("menus", async () => {
-    const rows = await fetchMenus(token, { client: "admin" });
-    data.menuCatalog = Array.isArray(rows) ? rows : [];
-  });
-  queue("mobileMenus", async () => {
-    const rows = await fetchMenus(token, { client: "mobile" });
-    data.mobileMenuCatalog = Array.isArray(rows) ? rows : [];
-  });
-  queue("statusTransitions", async () => {
-    const payload = await fetchStatusTransitions(token);
-    data.statusTransitionsByStatus = payload && typeof payload === "object" ? payload : null;
-  });
-  queue("roleAccess", async () => {
-    const rows = await fetchRoleAccess(token);
-    if (Array.isArray(rows)) {
-      data.roleAccessByRole = Object.fromEntries(rows.map((row) => [row.roleName, row]));
-    }
-  });
-  queue("roleStatusPermissions", async () => {
-    const payload = await fetchRoleStatusPermissions(token);
-    data.roleStatusPermissionsByRole = payload && typeof payload === "object" ? payload : null;
   });
   queue("borrowMaterials", async () => {
     const res = await apiClient.get("/borrow-materials", config);

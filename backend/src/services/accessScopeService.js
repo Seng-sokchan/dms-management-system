@@ -13,11 +13,8 @@ async function getDepotForUser(user) {
 
 async function getAllowedCustomerIds(user) {
   const scope = getDataScope(user.role);
-  if (scope === "all") return null;
-  if (scope === "owner") {
-    const customers = await customerRepository.listCustomersByOwnerUserId(user.sub);
-    return new Set(customers.map((c) => String(c.id)));
-  }
+  // Single-owner system: Owner sees all business data (same breadth as Admin).
+  if (scope === "all" || scope === "owner") return null;
   if (scope === "depot") {
     const depot = await depotRepository.getDepotByDepotUserId(user.sub);
     if (!depot) return new Set();
@@ -39,9 +36,11 @@ function filterRowsByCustomerIds(rows, allowedIds, customerIdField = "customerId
 async function assertDepotAccess(user, depot) {
   if (!depot) throw new NotFoundError("Depot not found");
   const scope = getDataScope(user.role);
-  if (scope === "all") return depot;
-  if (scope === "owner" && String(depot.ownerUserId) === String(user.sub)) return depot;
-  if (scope === "depot" && String(depot.depotUserId) === String(user.sub)) return depot;
+  if (scope === "all" || scope === "owner") return depot;
+  if (scope === "depot") {
+    const linked = await depotRepository.getDepotByDepotUserId(user.sub);
+    if (linked && String(linked.id) === String(depot.id)) return depot;
+  }
   throw new ForbiddenError("Unauthorized depot access");
 }
 
@@ -55,8 +54,7 @@ async function assertCustomerAccess(user, customerId) {
 
 async function listCustomersForUser(user) {
   const scope = getDataScope(user.role);
-  if (scope === "all") return customerRepository.listCustomers();
-  if (scope === "owner") return customerRepository.listCustomersByOwnerUserId(user.sub);
+  if (scope === "all" || scope === "owner") return customerRepository.listCustomers();
   if (scope === "depot") {
     const depot = await depotRepository.getDepotByDepotUserId(user.sub);
     if (!depot) return [];
@@ -71,8 +69,7 @@ async function listCustomersForUser(user) {
 
 async function listDepotsForUser(user) {
   const scope = getDataScope(user.role);
-  if (scope === "all") return depotRepository.listDepots();
-  if (scope === "owner") return depotRepository.listDepotsByOwnerUserId(user.sub);
+  if (scope === "all" || scope === "owner") return depotRepository.listDepots();
   if (scope === "depot") {
     const depot = await depotRepository.getDepotByDepotUserId(user.sub);
     return depot ? [depot] : [];

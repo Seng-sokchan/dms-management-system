@@ -13,7 +13,6 @@ export * from "./depots";
 export * from "./producers";
 export * from "./deliveryAgents";
 export * from "./users";
-export * from "./roleMenus";
 export * from "./borrowMaterials";
 export * from "./customerBorrowedMaterials";
 export * from "./customerItemPrices";

@@ -17,12 +17,21 @@ const optionalDeliveryAgentId = z.preprocess((val) => {
   return s;
 }, z.union([z.string().regex(/^\d+$/), z.null()]).optional());
 
+const optionalDepotId = z.preprocess((val) => {
+  if (val === null) return null;
+  if (val === undefined) return undefined;
+  const s = String(val).trim();
+  if (s === "") return null;
+  return s;
+}, z.union([z.string().regex(/^\d+$/), z.null()]).optional());
+
 const createUserSchema = z.object({
   name: z.string().min(2),
   username: z.string().min(3),
   password: z.string().min(6),
   role: z.string().refine(isKnownRole, { message: "Unknown role" }),
   deliveryAgentId: optionalDeliveryAgentId,
+  depotId: optionalDepotId,
 });
 
 const updateUserSchema = z.object({
@@ -32,6 +41,7 @@ const updateUserSchema = z.object({
   role: z.string().refine(isKnownRole, { message: "Unknown role" }).optional(),
   customerId: optionalCustomerId,
   deliveryAgentId: optionalDeliveryAgentId,
+  depotId: optionalDepotId,
 });
 
 const userIdParamsSchema = z.object({

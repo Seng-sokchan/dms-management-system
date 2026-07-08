@@ -1,15 +1,9 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { usePagination } from "../hooks/usePagination";
+import { Button } from "../components/ui/Button";
 import { DataTable } from "../components/ui/DataTable";
 import "./AssignOrdersPage.css";
-
-function currentDeliveryLabel(order, t) {
-  if (order.deliveryAgentName) {
-    return order.deliveryAgentName;
-  }
-  return t("orders.dash");
-}
 
 function deliveryAgentOptionLabel(agent) {
   const phone = agent.phone?.trim();
@@ -42,6 +36,13 @@ function formatQty(value) {
   return Number.isFinite(n) ? n.toLocaleString("en-US") : String(value || "—");
 }
 
+function currentDeliveryLabel(order, t) {
+  if (order.deliveryAgentName) {
+    return order.deliveryAgentName;
+  }
+  return t("orders.dash");
+}
+
 function buildSubmitGroups(orders, deliveryAgents, t) {
   const deliveryNamesById = new Map(deliveryAgents.map((agent) => [String(agent.id), agent.name]));
   const groups = new Map();
@@ -51,14 +52,14 @@ function buildSubmitGroups(orders, deliveryAgents, t) {
       order.deliveryAgentId != null && order.deliveryAgentId !== ""
         ? String(order.deliveryAgentId)
         : "";
-    const key = deliveryAgentId || "__unassigned__";
-    if (!groups.has(key)) {
-      groups.set(key, {
-        key,
+    if (!deliveryAgentId) continue;
+
+    if (!groups.has(deliveryAgentId)) {
+      groups.set(deliveryAgentId, {
+        key: deliveryAgentId,
         deliveryAgentId,
-        deliveryLabel: deliveryAgentId
-          ? order.deliveryAgentName || deliveryNamesById.get(deliveryAgentId) || t("orders.dash")
-          : t("orders.dash"),
+        deliveryLabel:
+          order.deliveryAgentName || deliveryNamesById.get(deliveryAgentId) || t("orders.dash"),
         representativeOrderId: order.id,
         orders: [],
         customerIds: new Set(),
@@ -66,7 +67,7 @@ function buildSubmitGroups(orders, deliveryAgents, t) {
       });
     }
 
-    const group = groups.get(key);
+    const group = groups.get(deliveryAgentId);
     group.orders.push(order);
     group.customerIds.add(order.customerId || order.customerName || order.id);
 
@@ -106,10 +107,14 @@ export function AssignOrdersPage({
   onSubmitToFactory,
 }) {
   const { t } = useTranslation();
-  const [busyDeliveryId, setBusyDeliveryId] = useState(null);
+  const [busyAgentId, setBusyAgentId] = useState(null);
   const [busySubmitId, setBusySubmitId] = useState(null);
   const [searchText, setSearchText] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
+  const [assignAgent, setAssignAgent] = useState(null);
+  const [selectedOrderIds, setSelectedOrderIds] = useState(() => new Set());
+  const [orderSearchText, setOrderSearchText] = useState("");
+  const [appliedOrderSearch, setAppliedOrderSearch] = useState("");
 
   const todayLabel = useMemo(
     () =>
@@ -128,55 +133,126 @@ export function AssignOrdersPage({
     return [...todayOwnerPreparing].sort((a, b) => Number(b.id) - Number(a.id));
   }, [orders]);
 
-  const filteredOrders = useMemo(() => {
+  const assignedCountByAgentId = useMemo(() => {
+    const counts = new Map();
+    for (const order of eligibleOrders) {
+      const agentId =
+        order.deliveryAgentId != null && order.deliveryAgentId !== ""
+          ? String(order.deliveryAgentId)
+          : "";
+      if (!agentId) continue;
+      counts.set(agentId, (counts.get(agentId) || 0) + 1);
+    }
+    return counts;
+  }, [eligibleOrders]);
+
+  const filteredAgents = useMemo(() => {
     const keyword = appliedSearch.trim().toLowerCase();
-    if (!keyword) return eligibleOrders;
-    return eligibleOrders.filter((order) =>
-      [
-        order.id,
-        order.customerName,
-        order.itemName,
-        order.status,
-        order.deliveryAgentName,
-      ]
+    const list = [...(deliveryAgents || [])].sort((a, b) =>
+      String(a.name || "").localeCompare(String(b.name || ""), undefined, { sensitivity: "base" }),
+    );
+    if (!keyword) return list;
+    return list.filter((agent) =>
+      [agent.id, agent.name, agent.phone, agent.vehicleType]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(keyword)),
     );
-  }, [eligibleOrders, appliedSearch]);
+  }, [deliveryAgents, appliedSearch]);
 
   const submitGroups = useMemo(
-    () => buildSubmitGroups(filteredOrders, deliveryAgents, t),
-    [filteredOrders, deliveryAgents, t],
+    () => buildSubmitGroups(eligibleOrders, deliveryAgents, t),
+    [eligibleOrders, deliveryAgents, t],
   );
 
+  const modalOrders = useMemo(() => {
+    const keyword = appliedOrderSearch.trim().toLowerCase();
+    if (!keyword) return eligibleOrders;
+    return eligibleOrders.filter((order) =>
+      [order.id, order.customerName, order.itemName, order.status, order.deliveryAgentName]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(keyword)),
+    );
+  }, [eligibleOrders, appliedOrderSearch]);
+
   const {
-    page: assignPage,
-    pageSize: assignPageSize,
-    paged: pagedOrdersForAssign,
-    setPage: setAssignPage,
-    setPageSize: setAssignPageSize,
-  } = usePagination(filteredOrders, { resetKey: appliedSearch });
+    page: agentPage,
+    pageSize: agentPageSize,
+    paged: pagedAgents,
+    setPage: setAgentPage,
+    setPageSize: setAgentPageSize,
+  } = usePagination(filteredAgents, { resetKey: appliedSearch });
+
   const {
     page: submitPage,
     pageSize: submitPageSize,
     paged: pagedGroupsForSubmit,
     setPage: setSubmitPage,
     setPageSize: setSubmitPageSize,
-  } = usePagination(submitGroups, { resetKey: appliedSearch });
+  } = usePagination(submitGroups, { resetKey: `${eligibleOrders.length}` });
 
-  async function handleDeliveryChange(order, deliveryAgentId) {
-    const next = deliveryAgentId || null;
-    const cur =
-      order.deliveryAgentId != null && order.deliveryAgentId !== ""
-        ? String(order.deliveryAgentId)
-        : "";
-    if ((next || "") === cur) return;
-    if (!next) return;
-    setBusyDeliveryId(order.id);
+  const {
+    page: orderPage,
+    pageSize: orderPageSize,
+    paged: pagedModalOrders,
+    setPage: setOrderPage,
+    setPageSize: setOrderPageSize,
+  } = usePagination(modalOrders, {
+    resetKey: `${assignAgent?.id || ""}:${appliedOrderSearch}`,
+  });
+
+  function openAssignModal(agent) {
+    setAssignAgent(agent);
+    setSelectedOrderIds(new Set());
+    setOrderSearchText("");
+    setAppliedOrderSearch("");
+  }
+
+  function closeAssignModal() {
+    if (busyAgentId) return;
+    setAssignAgent(null);
+    setSelectedOrderIds(new Set());
+    setOrderSearchText("");
+    setAppliedOrderSearch("");
+  }
+
+  function toggleOrderSelected(orderId) {
+    const id = String(orderId);
+    setSelectedOrderIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAllVisible() {
+    const visibleIds = pagedModalOrders.map((order) => String(order.id));
+    setSelectedOrderIds((prev) => {
+      const next = new Set(prev);
+      const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => next.has(id));
+      if (allVisibleSelected) {
+        for (const id of visibleIds) next.delete(id);
+      } else {
+        for (const id of visibleIds) next.add(id);
+      }
+      return next;
+    });
+  }
+
+  async function handleConfirmAssign() {
+    if (!assignAgent || !onAssignDelivery) return;
+    const orderIds = [...selectedOrderIds];
+    if (orderIds.length === 0) return;
+
+    setBusyAgentId(String(assignAgent.id));
     try {
-      await onAssignDelivery(order.id, next);
+      await onAssignDelivery(orderIds, String(assignAgent.id));
+      setAssignAgent(null);
+      setSelectedOrderIds(new Set());
+      setOrderSearchText("");
+      setAppliedOrderSearch("");
     } finally {
-      setBusyDeliveryId(null);
+      setBusyAgentId(null);
     }
   }
 
@@ -190,17 +266,20 @@ export function AssignOrdersPage({
     }
   }
 
-  const rowMeta =
-    filteredOrders.length === 1
-      ? t("orders.rowOne", { n: filteredOrders.length })
-      : t("orders.rowMany", { n: filteredOrders.length });
+  const agentMeta =
+    filteredAgents.length === 1
+      ? t("assignOrders.deliveryOne", { n: filteredAgents.length })
+      : t("assignOrders.deliveryMany", { n: filteredAgents.length });
   const submitMeta =
     submitGroups.length === 1
-      ? t("assignOrders.groupOne", { n: submitGroups.length, defaultValue: "1 driver" })
-      : t("assignOrders.groupMany", {
-          n: submitGroups.length,
-          defaultValue: `${submitGroups.length} drivers`,
-        });
+      ? t("assignOrders.groupOne", { n: submitGroups.length })
+      : t("assignOrders.groupMany", { n: submitGroups.length });
+
+  const selectedCount = selectedOrderIds.size;
+  const visibleIds = pagedModalOrders.map((order) => String(order.id));
+  const allVisibleSelected =
+    visibleIds.length > 0 && visibleIds.every((id) => selectedOrderIds.has(id));
+  const someVisibleSelected = visibleIds.some((id) => selectedOrderIds.has(id));
 
   return (
     <section className="admin-page">
@@ -212,64 +291,60 @@ export function AssignOrdersPage({
 
       <section className="panel">
         <div className="panel-header">
-          <h3>{t("assignOrders.assignPanelTitle")}</h3>
-          <p className="panel-meta">{rowMeta}</p>
+          <h3>{t("assignOrders.deliveryPanelTitle")}</h3>
+          <p className="panel-meta">{agentMeta}</p>
         </div>
-        <p className="form-hint">{t("assignOrders.assignPanelHint")}</p>
+        <p className="form-hint">{t("assignOrders.deliveryPanelHint")}</p>
         <DataTable
           showSearch
           searchValue={searchText}
           onSearchValueChange={setSearchText}
           onSearch={() => setAppliedSearch(searchText)}
-          searchPlaceholder={t("assignOrders.searchPlaceholder", { defaultValue: "Search orders..." })}
-          searchButtonLabel={t("common.search", { defaultValue: "Search" })}
+          searchPlaceholder={t("assignOrders.searchDeliveriesPlaceholder")}
+          searchButtonLabel={t("common.search")}
           pagination={{
-            page: assignPage,
-            pageSize: assignPageSize,
-            totalRows: filteredOrders.length,
-            onPageChange: setAssignPage,
-            onPageSizeChange: setAssignPageSize,
+            page: agentPage,
+            pageSize: agentPageSize,
+            totalRows: filteredAgents.length,
+            onPageChange: setAgentPage,
+            onPageSizeChange: setAgentPageSize,
           }}
         >
           <thead>
             <tr>
-              <th>{t("orders.customer")}</th>
-              <th>{t("orders.item")}</th>
-              <th>{t("orders.status")}</th>
-              <th>{t("assignOrders.currentDelivery")}</th>
-              <th>{t("assignOrders.assignDelivery")}</th>
+              <th>{t("deliveryAgents.namePh")}</th>
+              <th>{t("deliveryAgents.phonePh")}</th>
+              <th>{t("deliveryAgents.vehiclePh")}</th>
+              <th>{t("assignOrders.assignedToday")}</th>
+              <th>{t("orders.actions")}</th>
             </tr>
           </thead>
           <tbody>
-            {pagedOrdersForAssign.map((order) => (
-              <tr key={`assign-${order.id}`}>
-                <td>{order.customerName || t("orders.dash")}</td>
-                <td>{order.itemName ? `#${order.id} · ${order.itemName}` : `#${order.id}`}</td>
-                <td>
-                  <span className="status-chip">{order.status}</span>
-                </td>
-                <td>{currentDeliveryLabel(order, t)}</td>
-                <td>
-                  <select
-                    aria-label={t("assignOrders.assignDelivery")}
-                    value={
-                      order.deliveryAgentId != null && order.deliveryAgentId !== ""
-                        ? String(order.deliveryAgentId)
-                        : ""
-                    }
-                    disabled={busyDeliveryId === order.id}
-                    onChange={(event) => void handleDeliveryChange(order, event.target.value)}
-                  >
-                    <option value="">{t("assignOrders.selectDeliveryPlaceholder")}</option>
-                    {deliveryAgents.map((agent) => (
-                      <option key={agent.id} value={agent.id}>
-                        {deliveryAgentOptionLabel(agent)}
-                      </option>
-                    ))}
-                  </select>
-                </td>
-              </tr>
-            ))}
+            {pagedAgents.map((agent) => {
+              const assignedCount = assignedCountByAgentId.get(String(agent.id)) || 0;
+              return (
+                <tr key={`delivery-${agent.id}`}>
+                  <td>{agent.name || t("orders.dash")}</td>
+                  <td>{agent.phone || t("orders.dash")}</td>
+                  <td>{agent.vehicleType || t("orders.dash")}</td>
+                  <td>
+                    {t("assignOrders.assignedTodayValue", {
+                      count: assignedCount,
+                    })}
+                  </td>
+                  <td>
+                    <Button
+                      type="button"
+                      variant="primary"
+                      disabled={busyAgentId === String(agent.id)}
+                      onClick={() => openAssignModal(agent)}
+                    >
+                      {t("assignOrders.assignButton")}
+                    </Button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </DataTable>
 
@@ -288,7 +363,7 @@ export function AssignOrdersPage({
           <thead>
             <tr>
               <th>{t("assignOrders.currentDelivery")}</th>
-              <th>{t("assignOrders.groupSize", { defaultValue: "Group size" })}</th>
+              <th>{t("assignOrders.groupSize")}</th>
               <th>{t("orders.item")}</th>
               <th>{t("orders.status")}</th>
               <th>{t("orders.actions")}</th>
@@ -302,7 +377,6 @@ export function AssignOrdersPage({
                   {t("assignOrders.groupSizeValue", {
                     orders: group.orderCount,
                     customers: group.customerCount,
-                    defaultValue: `${group.orderCount} orders / ${group.customerCount} customers`,
                   })}
                 </td>
                 <td>{group.itemSummary || t("orders.dash")}</td>
@@ -317,9 +391,7 @@ export function AssignOrdersPage({
                     title={
                       group.deliveryAgentId
                         ? undefined
-                        : t("assignOrders.assignDeliveryBeforeSubmit", {
-                            defaultValue: "Assign a delivery agent before submitting",
-                          })
+                        : t("assignOrders.assignDeliveryBeforeSubmit")
                     }
                     onClick={() => void handleSubmitToFactory(group)}
                   >
@@ -331,6 +403,127 @@ export function AssignOrdersPage({
           </tbody>
         </DataTable>
       </section>
+
+      {assignAgent ? (
+        <div
+          className="modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="assign-orders-modal-title"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) closeAssignModal();
+          }}
+        >
+          <div className="modal-card panel assign-orders-modal">
+            <div className="panel-header">
+              <h3 id="assign-orders-modal-title">
+                {t("assignOrders.assignModalTitle", {
+                  name: deliveryAgentOptionLabel(assignAgent),
+                })}
+              </h3>
+              <Button type="button" variant="ghost" disabled={Boolean(busyAgentId)} onClick={closeAssignModal}>
+                {t("assignOrders.close")}
+              </Button>
+            </div>
+            <p className="form-hint">{t("assignOrders.assignModalHint", { date: todayLabel })}</p>
+
+            <DataTable
+              showSearch
+              searchValue={orderSearchText}
+              onSearchValueChange={setOrderSearchText}
+              onSearch={() => setAppliedOrderSearch(orderSearchText)}
+              searchPlaceholder={t("assignOrders.searchOrdersPlaceholder")}
+              searchButtonLabel={t("common.search")}
+              pagination={{
+                page: orderPage,
+                pageSize: orderPageSize,
+                totalRows: modalOrders.length,
+                onPageChange: setOrderPage,
+                onPageSizeChange: setOrderPageSize,
+              }}
+            >
+              <thead>
+                <tr>
+                  <th className="assign-orders-check-col">
+                    <input
+                      type="checkbox"
+                      aria-label={t("assignOrders.selectAll")}
+                      checked={allVisibleSelected}
+                      ref={(el) => {
+                        if (el) el.indeterminate = !allVisibleSelected && someVisibleSelected;
+                      }}
+                      disabled={pagedModalOrders.length === 0 || Boolean(busyAgentId)}
+                      onChange={toggleSelectAllVisible}
+                    />
+                  </th>
+                  <th>{t("orders.customer")}</th>
+                  <th>{t("orders.item")}</th>
+                  <th>{t("orders.status")}</th>
+                  <th>{t("assignOrders.currentDelivery")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pagedModalOrders.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="entity-list-empty">
+                      {t("assignOrders.noOrdersToday")}
+                    </td>
+                  </tr>
+                ) : (
+                  pagedModalOrders.map((order) => {
+                    const id = String(order.id);
+                    const checked = selectedOrderIds.has(id);
+                    return (
+                      <tr key={`modal-order-${order.id}`}>
+                        <td className="assign-orders-check-col">
+                          <input
+                            type="checkbox"
+                            aria-label={t("assignOrders.selectOrder", { id: order.id })}
+                            checked={checked}
+                            disabled={Boolean(busyAgentId)}
+                            onChange={() => toggleOrderSelected(order.id)}
+                          />
+                        </td>
+                        <td>{order.customerName || t("orders.dash")}</td>
+                        <td>
+                          {order.itemName
+                            ? `#${order.id} · ${order.itemName} ×${formatQty(order.orderedQty)}`
+                            : `#${order.id}`}
+                        </td>
+                        <td>
+                          <span className="status-chip">{order.status}</span>
+                        </td>
+                        <td>{currentDeliveryLabel(order, t)}</td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </DataTable>
+
+            <div className="assign-orders-modal-footer">
+              <p className="panel-meta">
+                {t("assignOrders.selectedCount", { count: selectedCount })}
+              </p>
+              <div className="assign-orders-modal-actions">
+                <Button type="button" variant="ghost" tone="cancel" disabled={Boolean(busyAgentId)} onClick={closeAssignModal}>
+                  {t("assignOrders.cancel")}
+                </Button>
+                <Button
+                  type="button"
+                  variant="primary"
+                  disabled={selectedCount === 0 || Boolean(busyAgentId)}
+                  onClick={() => void handleConfirmAssign()}
+                >
+                  {busyAgentId
+                    ? t("assignOrders.assigning")
+                    : t("assignOrders.confirmAssign", { count: selectedCount })}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }

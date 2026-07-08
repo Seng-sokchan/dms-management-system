@@ -5,7 +5,7 @@ const {
   updateUser,
   deactivateUser,
 } = require("../../../controllers/userManagementController");
-const { requireAuth, requireMenuKey, requireManageMenuKey } = require("../../../middleware/auth");
+const { requireAuth, requireRoles } = require("../../../middleware/auth");
 const { validate } = require("../../../validators/validate");
 const {
   createUserSchema,
@@ -14,26 +14,27 @@ const {
 } = require("../../../validators/userManagement.validator");
 
 const router = express.Router();
+const requireAdminPanel = requireRoles("Admin", "Owner");
 
-router.get("/users", requireAuth, requireMenuKey("users"), listUsers);
+router.get("/users", requireAuth, requireAdminPanel, listUsers);
 router.post(
   "/users",
   requireAuth,
-  requireManageMenuKey("users"),
+  requireAdminPanel,
   validate({ body: createUserSchema }),
   createUser,
 );
 router.post(
   "/users/:id",
   requireAuth,
-  requireManageMenuKey("users"),
+  requireAdminPanel,
   validate({ params: userIdParamsSchema, body: updateUserSchema }),
   updateUser,
 );
 router.delete(
   "/users/:id",
   requireAuth,
-  requireManageMenuKey("users"),
+  requireAdminPanel,
   validate({ params: userIdParamsSchema }),
   deactivateUser,
 );

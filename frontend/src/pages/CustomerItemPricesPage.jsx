@@ -15,18 +15,13 @@ function formatPrice(value) {
 
 export function CustomerItemPricesPage({
   customers = [],
-  depots = [],
   items = [],
   customerItemPrices = [],
-  depotItemPrices = [],
   onSaveCustomerPrice,
   onDeleteCustomerPrice,
-  onSaveDepotPrice,
-  onDeleteDepotPrice,
 }) {
   const { t } = useTranslation();
   const [customerForm, setCustomerForm] = useState(INITIAL_PRICE_FORM);
-  const [depotForm, setDepotForm] = useState(INITIAL_PRICE_FORM);
 
   const customersWithoutDepot = useMemo(
     () => customers.filter((customer) => !customer.depotId),
@@ -38,17 +33,6 @@ export function CustomerItemPricesPage({
     [customersWithoutDepot],
   );
 
-  const depotOptions = useMemo(
-    () => depots.map((depot) => ({ id: depot.id, label: depot.name })),
-    [depots],
-  );
-
-  const priceColumn = {
-    key: "unitPrice",
-    label: t("customerItemPrices.unitPrice"),
-    render: (row) => formatPrice(row.unitPrice),
-  };
-
   async function submitCustomerPrice() {
     await onSaveCustomerPrice({
       customerId: String(customerForm.entityId),
@@ -57,16 +41,6 @@ export function CustomerItemPricesPage({
       unitPrice: Number(customerForm.unitPrice),
     });
     setCustomerForm(INITIAL_PRICE_FORM);
-  }
-
-  async function submitDepotPrice() {
-    await onSaveDepotPrice({
-      depotId: String(depotForm.entityId),
-      itemId: String(depotForm.itemId),
-      currency: depotForm.currency,
-      unitPrice: Number(depotForm.unitPrice),
-    });
-    setDepotForm(INITIAL_PRICE_FORM);
   }
 
   return (
@@ -117,55 +91,13 @@ export function CustomerItemPricesPage({
             label: t("customerItemPrices.currency"),
             render: (row) => row.currency,
           },
-          priceColumn,
+          {
+            key: "unitPrice",
+            label: t("customerItemPrices.unitPrice"),
+            render: (row) => formatPrice(row.unitPrice),
+          },
         ]}
         onDelete={onDeleteCustomerPrice}
-      />
-
-      <PriceFormTable
-        title={t("customerItemPrices.depotTitle")}
-        lead={t("customerItemPrices.depotLead")}
-        formTitle={t("depotItemPrices.formTitle")}
-        listTitle={t("depotItemPrices.listTitle")}
-        emptyMessage={t("depotItemPrices.empty")}
-        searchPlaceholder={t("depotItemPrices.searchPlaceholder")}
-        confirmDeleteMessage={t("depotItemPrices.confirmDelete")}
-        entityLabel={t("depotItemPrices.depot")}
-        entityOptions={depotOptions}
-        entityId="dip-depot"
-        entityValue={depotForm.entityId}
-        onEntityChange={(value) => setDepotForm({ ...depotForm, entityId: value })}
-        selectEntityLabel={t("depotItemPrices.selectDepot")}
-        items={items}
-        form={depotForm}
-        onFormChange={setDepotForm}
-        onSubmit={submitDepotPrice}
-        rows={depotItemPrices}
-        searchFields={["depotName", "itemName", "itemSku", "currency", "unitPrice"]}
-        columns={[
-          {
-            key: "depot",
-            label: t("depotItemPrices.depot"),
-            render: (row) => row.depotName,
-          },
-          {
-            key: "item",
-            label: t("customerItemPrices.item"),
-            render: (row) => row.itemName,
-          },
-          {
-            key: "sku",
-            label: "SKU",
-            render: (row) => row.itemSku || "—",
-          },
-          {
-            key: "currency",
-            label: t("customerItemPrices.currency"),
-            render: (row) => row.currency,
-          },
-          priceColumn,
-        ]}
-        onDelete={onDeleteDepotPrice}
       />
     </section>
   );

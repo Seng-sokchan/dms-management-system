@@ -2,7 +2,7 @@ const { getPool } = require("../../database/pool");
 const { nowIso } = require("../utils");
 const { mapUser } = require("./mappers");
 const { getProcedureMeta } = require("./unwrap");
-const { getRoleIdByName } = require("./roleMenus");
+const { getRoleIdByName } = require("./roles");
 const V = require("./sql/readViews");
 
 function resolveExecutor(executor) {
@@ -31,6 +31,8 @@ async function getUserByUsername(username) {
       row.delivery_agent_id != null && String(row.delivery_agent_id).trim() !== ""
         ? String(row.delivery_agent_id)
         : "",
+    depotId:
+      row.depot_id != null && String(row.depot_id).trim() !== "" ? String(row.depot_id) : "",
   };
 }
 
@@ -102,6 +104,13 @@ async function setDeliveryAgentUserLink(executor, deliveryAgentId, userId) {
   await db.query("CALL sp_set_delivery_agent_user_link(?, ?)", [aid, uid]);
 }
 
+async function setDepotUserLink(executor, depotId, userId) {
+  const db = resolveExecutor(executor);
+  const did = depotId != null && String(depotId).trim() !== "" ? Number(depotId) : null;
+  const uid = userId != null && String(userId).trim() !== "" ? Number(userId) : null;
+  await db.query("CALL sp_set_depot_user_link(?, ?)", [did, uid]);
+}
+
 module.exports = {
   listUsers,
   getUserByUsername,
@@ -110,4 +119,5 @@ module.exports = {
   updateUser,
   deactivateUser,
   setDeliveryAgentUserLink,
+  setDepotUserLink,
 };

@@ -43,7 +43,7 @@ Fullstack implementation based on the attached plan:
    - copy `.env.example` to `.env`
    - update DB credentials in `.env` (`DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`)
    - `npm install`
-   - `npm run db:init` — reapplies `schema.mysql55.sql`, **clears** app data, and seeds roles/menus only (create users via Admin after init)
+   - `npm run db:init` — reapplies `schema.mysql55.sql`, **clears** app data, seeds roles/menus, and creates one login per role (`admin`, `owner`, `logistics`, `delivery`, `customer`, `depot`; password `admin123`, override with `DB_INIT_SEED_PASSWORD`)
    - `npm run dev`
 2. Frontend
    - `cd frontend`
@@ -53,7 +53,6 @@ Fullstack implementation based on the attached plan:
 
 ## Frontend Routes
 - `/overview`
-- `/create-order`
 - `/catalogs`
 - `/items`
 - `/customers`
@@ -62,15 +61,14 @@ Fullstack implementation based on the attached plan:
 - `/orders`
 - `/confirm-orders`
 - `/payments`
-- `/users` (Admin + menu access)
-- Redirects: `/` -> `/overview`, `/create` -> `/create-order`
+- `/users` (Admin/Owner)
+- Redirects: `/` -> `/overview`
 
 ## Functional Test Checklist (UAT)
-- Login with each role account.
-- In Users page, configure menu access for a role and verify sidebar + route access are updated.
+- Login with Admin or Owner account for the admin panel.
 - Create catalog(s), then add item(s) under catalogs.
 - Create customer, producer, and delivery agent.
-- Create a new order using an item from the catalog.
+- Orders are created from the mobile app (Customer); manage them in the admin Orders pages.
 - Move status step-by-step from `NEW_ORDER` to `RECEIVED_BY_CUSTOMER`.
 - In Confirm Orders, move `SENT_TO_LOGISTICS_SUPPLIER` -> `OUT_FOR_DELIVERY` directly.
 - Confirm delivered quantity and validate discrepancy result.

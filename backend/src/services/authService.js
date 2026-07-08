@@ -52,6 +52,13 @@ async function me(currentUser) {
         aid != null && String(aid).trim() !== "" ? String(aid) : null,
     };
   }
+  if (profile.dataScope === "depot") {
+    const did = currentUser.depotId;
+    return {
+      ...base,
+      depotId: did != null && String(did).trim() !== "" ? String(did) : null,
+    };
+  }
   return base;
 }
 

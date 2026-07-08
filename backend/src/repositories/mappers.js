@@ -80,8 +80,6 @@ function mapDepot(row) {
     name: row.name,
     phone: row.phone || "",
     address: row.address || "",
-    ownerUserId: row.owner_user_id != null ? String(row.owner_user_id) : "",
-    ownerUserName: row.owner_user_name || "",
     depotUserId: row.depot_user_id != null ? String(row.depot_user_id) : "",
     depotUserName: row.depot_user_name || "",
   };
@@ -158,6 +156,7 @@ function mapUser(row) {
     isActive: Boolean(row.is_active),
     customerId: row.customer_id != null ? String(row.customer_id) : "",
     deliveryAgentId: row.delivery_agent_id != null ? String(row.delivery_agent_id) : "",
+    depotId: row.depot_id != null ? String(row.depot_id) : "",
   };
 }
 

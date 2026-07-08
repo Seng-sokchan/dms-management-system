@@ -1,32 +1,23 @@
-const { listMenuKeysForRoleName, listManageMenuKeysForRoleName } = require("../repositories/roleMenus");
 const {
-  getDataScope,
+  getDataScopeForRole,
+  getClientsForRole,
+  getAdminMenusForRole,
+  getManageMenusForRole,
+  getMobileMenusForRole,
+  getStatusPermissionsForRole,
+  getSocketChannelsForRole,
   canUseClient,
   canSetStatus,
   canSubscribeSocket,
-  getMenuAccessLevel,
-  getClientsForRole,
-  getStatusPermissionsForRole,
-  getSocketChannelsForRole,
-} = require("./rulesCache");
-
-function getDataScopeForRole(roleName) {
-  return getDataScope(roleName);
-}
+} = require("../constants/roleAccessRules");
 
 async function getAccessProfileForRole(roleName) {
-  const [allowedMenus, allowedMobileMenus, manageMenus] = await Promise.all([
-    listMenuKeysForRoleName(roleName, { client: "admin" }),
-    listMenuKeysForRoleName(roleName, { client: "mobile" }),
-    listManageMenuKeysForRoleName(roleName, { client: "admin" }),
-  ]);
-
   return {
-    dataScope: getDataScope(roleName),
+    dataScope: getDataScopeForRole(roleName),
     allowedClients: getClientsForRole(roleName),
-    allowedMenus,
-    allowedMobileMenus,
-    manageMenus,
+    allowedMenus: getAdminMenusForRole(roleName),
+    allowedMobileMenus: getMobileMenusForRole(roleName),
+    manageMenus: getManageMenusForRole(roleName),
     statusPermissions: getStatusPermissionsForRole(roleName),
     socketChannels: getSocketChannelsForRole(roleName),
   };
@@ -63,18 +54,12 @@ function assertCanSubscribeSocket(roleName, channelKey) {
   }
 }
 
-function canManageMenu(roleName, menuKey) {
-  const level = getMenuAccessLevel(menuKey);
-  return level === "manage";
-}
-
 module.exports = {
   getDataScopeForRole,
   getAccessProfileForRole,
   assertCanUseClient,
   assertCanSetStatus,
   assertCanSubscribeSocket,
-  canManageMenu,
   canUseClient,
   canSetStatus,
   canSubscribeSocket,

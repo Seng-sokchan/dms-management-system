@@ -11,6 +11,7 @@ import {
   registerUnauthorizedHandler,
 } from "../utils/authSession";
 import { showAppAlert } from "../utils/appAlertBridge";
+import { canUseMobileApp } from "../utils/mobileAccess";
 
 const AuthContext = createContext(null);
 
@@ -85,6 +86,10 @@ export function AuthProvider({ children }) {
           return;
         }
         const merged = { ...userRef.current, ...me };
+        if (!canUseMobileApp(merged)) {
+          await forceLogout("unauthorized");
+          return;
+        }
         await applySessionUser(current, merged);
       } catch (error) {
         if (isAccountInactiveError(error)) {
@@ -146,12 +151,7 @@ export function AuthProvider({ children }) {
       throw new Error(i18n.t("auth.accountInactiveMessage"));
     }
     const nextUser = { ...payload.user, ...me };
-    const clients = nextUser.allowedClients;
-    if (Array.isArray(clients) && clients.length && !clients.includes("mobile")) {
-      throw new Error(i18n.t("auth.roleNotAllowed"));
-    }
-    const mobileMenus = nextUser.allowedMobileMenus;
-    if (Array.isArray(mobileMenus) && mobileMenus.length === 0) {
+    if (!canUseMobileApp(nextUser)) {
       throw new Error(i18n.t("auth.roleNotAllowed"));
     }
     sessionAlertShownRef.current = false;

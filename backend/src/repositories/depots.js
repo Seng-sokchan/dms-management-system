@@ -14,22 +14,6 @@ async function getDepotById(id) {
   return rows[0] ? mapDepot(rows[0]) : null;
 }
 
-async function getDepotByOwnerUserId(ownerUserId) {
-  const [rows] = await getPool().query(
-    `SELECT * FROM ${V.DEPOTS} WHERE owner_user_id = ? ORDER BY created_at DESC LIMIT 1`,
-    [ownerUserId],
-  );
-  return rows[0] ? mapDepot(rows[0]) : null;
-}
-
-async function listDepotsByOwnerUserId(ownerUserId) {
-  const [rows] = await getPool().query(
-    `SELECT * FROM ${V.DEPOTS} WHERE owner_user_id = ? ORDER BY id DESC`,
-    [ownerUserId],
-  );
-  return rows.map(mapDepot);
-}
-
 async function getDepotByDepotUserId(depotUserId) {
   const [rows] = await getPool().query(
     `SELECT * FROM ${V.DEPOTS} WHERE depot_user_id = ? LIMIT 1`,
@@ -42,14 +26,10 @@ async function createDepot(payload) {
   const name = String(payload.name || "").trim();
   const phone = (payload.phone && String(payload.phone).trim()) || "";
   const address = (payload.address && String(payload.address).trim()) || "";
-  const ownerUserId = Number(payload.ownerUserId);
-  const depotUserId = payload.depotUserId ? Number(payload.depotUserId) : null;
-  const [rowsRaw] = await getPool().query("CALL sp_create_depot(?, ?, ?, ?, ?, ?)", [
+  const [rowsRaw] = await getPool().query("CALL sp_create_depot(?, ?, ?, ?)", [
     name,
     phone,
     address,
-    ownerUserId,
-    depotUserId,
     nowIso(),
   ]);
   const meta = getProcedureMeta(rowsRaw);
@@ -60,15 +40,11 @@ async function updateDepot(id, payload) {
   const name = String(payload.name || "").trim();
   const phone = (payload.phone && String(payload.phone).trim()) || "";
   const address = (payload.address && String(payload.address).trim()) || "";
-  const ownerUserId = Number(payload.ownerUserId);
-  const depotUserId = payload.depotUserId ? Number(payload.depotUserId) : null;
-  const [rowsRaw] = await getPool().query("CALL sp_update_depot(?, ?, ?, ?, ?, ?, ?)", [
+  const [rowsRaw] = await getPool().query("CALL sp_update_depot(?, ?, ?, ?, ?)", [
     id,
     name,
     phone,
     address,
-    ownerUserId,
-    depotUserId,
     nowIso(),
   ]);
   const meta = getProcedureMeta(rowsRaw);
@@ -85,8 +61,6 @@ async function deleteDepot(id) {
 module.exports = {
   listDepots,
   getDepotById,
-  getDepotByOwnerUserId,
-  listDepotsByOwnerUserId,
   getDepotByDepotUserId,
   createDepot,
   updateDepot,

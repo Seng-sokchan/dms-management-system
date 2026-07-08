@@ -1,11 +1,14 @@
 import { useMemo } from "react";
-import { hasMobileMenu, resolveMobileRoot, sortMobileMenus } from "../utils/mobileAccess";
+import {
+  getMobileMenusForRole,
+  hasMobileMenu,
+  resolveMobileRoot,
+  sortMobileMenus,
+} from "../utils/mobileAccess";
 
 export function useMobileNavigation(user) {
   return useMemo(() => {
-    const allowedMobileMenus = sortMobileMenus(
-      Array.isArray(user?.allowedMobileMenus) ? user.allowedMobileMenus : [],
-    );
+    const allowedMobileMenus = sortMobileMenus(getMobileMenusForRole(user?.role));
     return {
       root: resolveMobileRoot(user),
       allowedMobileMenus,

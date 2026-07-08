@@ -1,3 +1,5 @@
+import roleMobileMenus from "../constants/roleMobileMenus.json";
+
 const MOBILE_MENU_ORDER = {
   "mobile.newOrder": 1,
   "mobile.myOrders": 2,
@@ -8,10 +10,18 @@ const MOBILE_MENU_ORDER = {
   "mobile.depotOrders": 7,
 };
 
+export function getMobileMenusForRole(role) {
+  const key = String(role || "").trim();
+  const menus = roleMobileMenus[key];
+  return Array.isArray(menus) ? [...menus] : [];
+}
+
 export function hasMobileMenu(user, menuKey) {
-  const menus = user?.allowedMobileMenus;
-  if (!Array.isArray(menus)) return false;
-  return menus.includes(menuKey);
+  return getMobileMenusForRole(user?.role).includes(menuKey);
+}
+
+export function canUseMobileApp(user) {
+  return getMobileMenusForRole(user?.role).length > 0;
 }
 
 export function resolveMobileRoot(user) {

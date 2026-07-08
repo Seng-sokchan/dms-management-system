@@ -1,22 +1,21 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { canAccessMenuKey, canAccessPath, hasAdminClientAccess, MENU_ITEMS } from "./constants/menus";
+import { hasAdminPanelAccess } from "./constants/menus";
 import { AdminLayout } from "./components/layout/AdminLayout";
 import { Button } from "./components/ui/Button";
 import { DashboardBootstrapScreen } from "./components/ui/DashboardBootstrapScreen";
 import { LoginForm } from "./features/auth/LoginForm";
 import { useAdminDashboard } from "./hooks/useAdminDashboard";
-import { CreateOrderPage } from "./pages/CreateOrderPage";
 import { DeliveryAgentsPage } from "./pages/DeliveryAgentsPage";
 import { OrdersPage } from "./pages/OrdersPage";
 import { AssignOrdersPage } from "./pages/AssignOrdersPage";
-import { OrderMovementPage } from "./pages/OrderMovementPage";
 import { PaymentsPage } from "./pages/PaymentsPage";
 import { CustomerOrderHistoryPage } from "./pages/CustomerOrderHistoryPage";
 import { OverviewPage } from "./pages/OverviewPage";
 import { CatalogsPage } from "./pages/CatalogsPage";
 import { ItemsPage } from "./pages/ItemsPage";
 import { CustomerItemPricesPage } from "./pages/CustomerItemPricesPage";
+import { DepotItemPricesPage } from "./pages/DepotItemPricesPage";
 import { ProducersPage } from "./pages/ProducersPage";
 import { CustomersPage } from "./pages/CustomersPage";
 import { ProvincesPage } from "./pages/ProvincesPage";
@@ -55,7 +54,6 @@ function App() {
     paymentTotals,
     flash,
     dismissFlash,
-    newOrder,
     newProducer,
     newCustomer,
     newProvince,
@@ -70,7 +68,6 @@ function App() {
     newMonthlySchedule,
     setNewMonthlySchedule,
     setAuth,
-    setNewOrder,
     setNewProducer,
     setNewCustomer,
     setNewProvince,
@@ -81,7 +78,6 @@ function App() {
     setNewBorrowMaterial,
     setNewCustomerBorrow,
     login,
-    submitOrder,
     submitCatalog,
     submitCatalogUpdate,
     submitCatalogDelete,
@@ -107,7 +103,6 @@ function App() {
     submitDelivery,
     submitDeliveryUpdate,
     submitDeliveryDelete,
-    submitOrderMovement,
     submitOrderDeliveryAssignment,
     submitSendOrderToFactory,
     submitBorrowMaterial,
@@ -124,23 +119,13 @@ function App() {
     users,
     newUser,
     setNewUser,
-    roleMenusByRole,
     roles,
-    menuCatalog,
-    mobileMenuCatalog,
-    statusTransitionsByStatus,
-    roleAccessByRole,
-    roleStatusPermissionsByRole,
     submitUser,
     submitUserUpdate,
     submitUserDelete,
-    submitRoleMenus,
-    submitStatusTransitions,
-    submitRoleAccess,
-    submitRoleStatusPermissions,
     logout,
   } = useAdminDashboard();
-  const isAllowedAdminPanelRole = hasAdminClientAccess(user) && canAccessMenuKey(user, "overview");
+  const isAllowedAdminPanelRole = hasAdminPanelAccess(user);
 
   if (!token) {
     return (
@@ -197,7 +182,7 @@ function App() {
             </div>
             <p style={{ margin: "0 0 16px", color: "var(--text-muted)" }}>
               {t("accessDenied.message", {
-                defaultValue: "This account cannot access the admin panel. Please sign in with an account that has admin access.",
+                defaultValue: "Only Admin and Owner accounts can access the admin panel.",
               })}
             </p>
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
@@ -217,129 +202,75 @@ function App() {
     </AdminLayout>
   );
 
-  const firstAllowedPath = (() => {
-    const first = MENU_ITEMS.find((item) => canAccessMenuKey(user, item.key));
-    return first?.path || null;
-  })();
-
-  const renderDeniedRoute = () => {
-    if (firstAllowedPath) return <Navigate to={firstAllowedPath} replace />;
-    return (
-      <section className="panel">
-        <div className="panel-header">
-          <h3 style={{ margin: 0 }}>
-            {t("accessDenied.title", { defaultValue: "Access Restricted" })}
-          </h3>
-        </div>
-        <p style={{ margin: "0 0 16px", color: "var(--text-muted)" }}>
-          {t("accessDenied.message", {
-            defaultValue: "This account cannot access the admin panel. Please sign in with an account that has admin access.",
-          })}
-        </p>
-        <div style={{ display: "flex", justifyContent: "flex-end" }}>
-          <Button variant="primary" onClick={() => logout()}>
-            {t("accessDenied.ok", { defaultValue: "OK" })}
-          </Button>
-        </div>
-      </section>
-    );
-  };
-
   return (
     <Routes>
-      <Route path="/" element={<Navigate to={firstAllowedPath || "/overview"} replace />} />
+      <Route path="/" element={<Navigate to="/overview" replace />} />
       <Route
         path="/overview"
         element={withLayout(
-          canAccessPath(user, "/overview") ? (
-            <OverviewPage
-              summary={summary}
-              statuses={statuses}
-              isRefreshing={isOverviewRefreshing}
-              lastUpdatedAt={overviewLastUpdatedAt}
-            />
-          ) : (
-            renderDeniedRoute()
-          ),
-        )}
-      />
-      <Route
-        path="/create-order"
-        element={withLayout(
-          canAccessPath(user, "/create-order") ? (
-            <CreateOrderPage
-              user={user}
-              customers={customers}
-              items={items}
-              newOrder={newOrder}
-              setNewOrder={setNewOrder}
-              onCreateOrder={submitOrder}
-            />
-          ) : (
-            renderDeniedRoute()
-          ),
+          <OverviewPage
+            summary={summary}
+            statuses={statuses}
+            isRefreshing={isOverviewRefreshing}
+            lastUpdatedAt={overviewLastUpdatedAt}
+          />,
         )}
       />
       <Route
         path="/catalogs"
         element={withLayout(
-          canAccessPath(user, "/catalogs") ? (
-            <CatalogsPage
-              newCatalog={newCatalog}
-              setNewCatalog={setNewCatalog}
-              onCreateCatalog={submitCatalog}
-              onUpdateCatalog={submitCatalogUpdate}
-              onDeleteCatalog={submitCatalogDelete}
-              catalogs={catalogs}
-            />
-          ) : (
-            renderDeniedRoute()
-          ),
+          <CatalogsPage
+            newCatalog={newCatalog}
+            setNewCatalog={setNewCatalog}
+            onCreateCatalog={submitCatalog}
+            onUpdateCatalog={submitCatalogUpdate}
+            onDeleteCatalog={submitCatalogDelete}
+            catalogs={catalogs}
+          />,
         )}
       />
       <Route
         path="/items"
         element={withLayout(
-          canAccessPath(user, "/items") ? (
-            <ItemsPage
-              catalogs={catalogs}
-              items={items}
-              newItem={newItem}
-              setNewItem={setNewItem}
-              onCreateItem={submitItem}
-              onUpdateItem={submitItemUpdate}
-              onDeleteItem={submitItemDelete}
-            />
-          ) : (
-            renderDeniedRoute()
-          ),
+          <ItemsPage
+            catalogs={catalogs}
+            items={items}
+            newItem={newItem}
+            setNewItem={setNewItem}
+            onCreateItem={submitItem}
+            onUpdateItem={submitItemUpdate}
+            onDeleteItem={submitItemDelete}
+          />,
         )}
       />
       <Route
         path="/customer-item-prices"
         element={withLayout(
-          canAccessPath(user, "/customer-item-prices") ? (
-            <CustomerItemPricesPage
+          <CustomerItemPricesPage
               customers={customers}
-              depots={depots}
               items={items}
               customerItemPrices={customerItemPrices}
-              depotItemPrices={depotItemPrices}
               onSaveCustomerPrice={submitCustomerItemPrice}
               onDeleteCustomerPrice={submitCustomerItemPriceDelete}
+            />
+        )}
+      />
+      <Route
+        path="/depot-item-prices"
+        element={withLayout(
+          <DepotItemPricesPage
+              depots={depots}
+              items={items}
+              depotItemPrices={depotItemPrices}
               onSaveDepotPrice={submitDepotItemPrice}
               onDeleteDepotPrice={submitDepotItemPriceDelete}
             />
-          ) : (
-            renderDeniedRoute()
-          ),
         )}
       />
       <Route
         path="/customers"
         element={withLayout(
-          canAccessPath(user, "/customers") ? (
-            <CustomersPage
+          <CustomersPage
               customers={customers}
               depots={depots}
               provinces={provinces}
@@ -349,16 +280,12 @@ function App() {
               onUpdateCustomer={submitCustomerUpdate}
               onDeleteCustomer={submitCustomerDelete}
             />
-          ) : (
-            renderDeniedRoute()
-          ),
         )}
       />
       <Route
         path="/provinces"
         element={withLayout(
-          canAccessPath(user, "/provinces") ? (
-            <ProvincesPage
+          <ProvincesPage
               provinces={provinces}
               newProvince={newProvince}
               setNewProvince={setNewProvince}
@@ -366,26 +293,18 @@ function App() {
               onUpdateProvince={submitProvinceUpdate}
               onDeleteProvince={submitProvinceDelete}
             />
-          ) : (
-            renderDeniedRoute()
-          ),
         )}
       />
       <Route
         path="/tracking-customer-location"
         element={withLayout(
-          canAccessPath(user, "/tracking-customer-location") ? (
-            <TrackingCustomerLocationPage customers={customers} />
-          ) : (
-            renderDeniedRoute()
-          ),
+          <TrackingCustomerLocationPage customers={customers} />
         )}
       />
       <Route
         path="/depots"
         element={withLayout(
-          canAccessPath(user, "/depots") ? (
-            <DepotsPage
+          <DepotsPage
               depots={depots}
               users={users}
               user={user}
@@ -395,26 +314,18 @@ function App() {
               onUpdateDepot={submitDepotUpdate}
               onDeleteDepot={submitDepotDelete}
             />
-          ) : (
-            renderDeniedRoute()
-          ),
         )}
       />
       <Route
         path="/customers-by-depot"
         element={withLayout(
-          canAccessPath(user, "/customers-by-depot") ? (
-            <CustomersByDepotPage depots={depots} customers={customers} />
-          ) : (
-            renderDeniedRoute()
-          ),
+          <CustomersByDepotPage depots={depots} customers={customers} />
         )}
       />
       <Route
         path="/borrowed-materials"
         element={withLayout(
-          canAccessPath(user, "/borrowed-materials") ? (
-            <BorrowedMaterialsPage
+          <BorrowedMaterialsPage
               user={user}
               customers={customers}
               orders={orders}
@@ -442,16 +353,12 @@ function App() {
               onLoadBorrowMaterialMonthlyScheduleDetail={loadBorrowMaterialMonthlyScheduleDetail}
               onUpdateBorrowMaterialMonthlyInstallmentStatus={submitBorrowMaterialMonthlyInstallmentStatusUpdate}
             />
-          ) : (
-            renderDeniedRoute()
-          ),
         )}
       />
       <Route
         path="/producers"
         element={withLayout(
-          canAccessPath(user, "/producers") ? (
-            <ProducersPage
+          <ProducersPage
               producers={producers}
               newProducer={newProducer}
               setNewProducer={setNewProducer}
@@ -459,16 +366,12 @@ function App() {
               onUpdateProducer={submitProducerUpdate}
               onDeleteProducer={submitProducerDelete}
             />
-          ) : (
-            renderDeniedRoute()
-          ),
         )}
       />
       <Route
         path="/delivery-agents"
         element={withLayout(
-          canAccessPath(user, "/delivery-agents") ? (
-            <DeliveryAgentsPage
+          <DeliveryAgentsPage
               deliveryAgents={deliveryAgents}
               newDelivery={newDelivery}
               setNewDelivery={setNewDelivery}
@@ -476,104 +379,56 @@ function App() {
               onUpdateDelivery={submitDeliveryUpdate}
               onDeleteDelivery={submitDeliveryDelete}
             />
-          ) : (
-            renderDeniedRoute()
-          ),
         )}
       />
       <Route
         path="/users"
         element={withLayout(
-          canAccessPath(user, "/users") ? (
-            <UsersPage
+          <UsersPage
               users={users}
               customers={customers}
               deliveryAgents={deliveryAgents}
+              depots={depots}
               currentUser={user}
               newUser={newUser}
               setNewUser={setNewUser}
               onCreateUser={submitUser}
               onUpdateUser={submitUserUpdate}
               onDeleteUser={submitUserDelete}
-              roleMenusByRole={roleMenusByRole}
               roles={roles}
-              menuCatalog={menuCatalog}
-              mobileMenuCatalog={mobileMenuCatalog}
-              statuses={statuses}
-              statusTransitionsByStatus={statusTransitionsByStatus}
-              roleAccessByRole={roleAccessByRole}
-              roleStatusPermissionsByRole={roleStatusPermissionsByRole}
-              onSaveRoleMenus={submitRoleMenus}
-              onSaveStatusTransitions={submitStatusTransitions}
-              onSaveRoleAccess={submitRoleAccess}
-              onSaveRoleStatusPermissions={submitRoleStatusPermissions}
             />
-          ) : (
-            renderDeniedRoute()
-          ),
         )}
       />
       <Route
         path="/orders"
         element={withLayout(
-          canAccessPath(user, "/orders") ? (
-            <OrdersPage orders={orders} deliveryAgents={deliveryAgents} />
-          ) : (
-            renderDeniedRoute()
-          ),
+          <OrdersPage orders={orders} deliveryAgents={deliveryAgents} />
         )}
       />
       <Route
         path="/assign-orders"
         element={withLayout(
-          canAccessPath(user, "/assign-orders") ? (
-            <AssignOrdersPage
+          <AssignOrdersPage
               orders={orders}
               deliveryAgents={deliveryAgents}
               onAssignDelivery={submitOrderDeliveryAssignment}
               onSubmitToFactory={submitSendOrderToFactory}
             />
-          ) : (
-            renderDeniedRoute()
-          ),
-        )}
-      />
-      <Route
-        path="/order-movement"
-        element={withLayout(
-          canAccessPath(user, "/order-movement") ? (
-            <OrderMovementPage
-              orders={orders}
-              statuses={statuses}
-              onMoveStatus={submitOrderMovement}
-            />
-          ) : (
-            renderDeniedRoute()
-          ),
         )}
       />
       <Route
         path="/payments"
         element={withLayout(
-          canAccessPath(user, "/payments") ? (
-            <PaymentsPage paymentTotals={paymentTotals} />
-          ) : (
-            renderDeniedRoute()
-          ),
+          <PaymentsPage paymentTotals={paymentTotals} />
         )}
       />
       <Route
         path="/customer-order-history"
         element={withLayout(
-          canAccessPath(user, "/customer-order-history") ? (
-            <CustomerOrderHistoryPage customers={customers} orders={orders} />
-          ) : (
-            renderDeniedRoute()
-          ),
+          <CustomerOrderHistoryPage customers={customers} orders={orders} />
         )}
       />
-      <Route path="/create" element={<Navigate to="/create-order" replace />} />
-      <Route path="*" element={<Navigate to={firstAllowedPath || "/overview"} replace />} />
+      <Route path="*" element={<Navigate to="/overview" replace />} />
     </Routes>
   );
 }
