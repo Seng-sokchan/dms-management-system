@@ -21,43 +21,7 @@ import { listMobileOrders } from "../services/ordersApi";
 import { getApiErrorMessage } from "../services/apiClient";
 import { usePaymentCompletionRefresh } from "../hooks/usePaymentCompletionRefresh";
 import { formatPaymentAmount } from "../utils/formatPaymentAmount";
-
-function groupDepotOrders(orders) {
-  const batchMap = new Map();
-  const singles = [];
-
-  for (const order of orders) {
-    const batchId = order?.depotBatchId;
-    if (batchId) {
-      if (!batchMap.has(batchId)) batchMap.set(batchId, []);
-      batchMap.get(batchId).push(order);
-    } else {
-      singles.push({ type: "single", order });
-    }
-  }
-
-  const sections = [];
-  for (const [batchId, batchOrders] of batchMap.entries()) {
-    sections.push({ type: "batch", batchId, orders: batchOrders });
-  }
-  for (const item of singles) {
-    sections.push(item);
-  }
-
-  sections.sort((a, b) => {
-    const idA =
-      a.type === "batch"
-        ? Math.max(...a.orders.map((order) => Number(order.id) || 0))
-        : Number(a.order.id) || 0;
-    const idB =
-      b.type === "batch"
-        ? Math.max(...b.orders.map((order) => Number(order.id) || 0))
-        : Number(b.order.id) || 0;
-    return idB - idA;
-  });
-
-  return sections;
-}
+import { groupDepotOrders, sumBatchAmountDue } from "../utils/groupOrdersByBatch";
 
 export default function DepotOrdersScreen() {
   const navigation = useNavigation();
@@ -181,7 +145,7 @@ export default function DepotOrdersScreen() {
       if (item.type === "batch") {
         return (
           <BatchOrderCard
-            batchId={item.batchId}
+            masterOrderId={item.masterOrderId}
             orders={item.orders}
             styles={styles}
             t={t}
@@ -234,7 +198,7 @@ export default function DepotOrdersScreen() {
         <FlatList
           data={listSections}
           keyExtractor={(item) =>
-            item.type === "batch" ? `batch-${item.batchId}` : `order-${item.order.id}`
+            item.type === "batch" ? `batch-${item.masterOrderId}` : `order-${item.order.id}`
           }
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
@@ -253,15 +217,7 @@ export default function DepotOrdersScreen() {
   );
 }
 
-function sumBatchAmountDue(orders) {
-  return (orders || []).reduce((sum, order) => {
-    const status = order?.paymentStatus || "unpaid";
-    if (status === "paid") return sum;
-    return sum + Number(order?.amountTotal || 0);
-  }, 0);
-}
-
-function BatchOrderCard({ batchId, orders, styles, t, locale, navigation, token }) {
+function BatchOrderCard({ masterOrderId, orders, styles, t, locale, navigation, token }) {
   const totalAmount = orders.reduce((sum, order) => sum + Number(order?.amountTotal || 0), 0);
   const totalQuantity = orders.reduce((sum, order) => sum + Number(order?.orderedQty || 0), 0);
   const amountDue = sumBatchAmountDue(orders);
@@ -271,7 +227,9 @@ function BatchOrderCard({ batchId, orders, styles, t, locale, navigation, token 
   return (
     <Card style={styles.orderCard}>
       <View style={styles.orderHeader}>
-        <Text style={styles.orderTitle}>{t("depot.batchGroupTitle")}</Text>
+        <Text style={styles.orderTitle}>
+          {orders[0]?.masterOrderNo || t("depot.batchGroupTitle")}
+        </Text>
       </View>
       <Text style={styles.batchTotal}>
         {t(totalQuantity === 1 ? "depot.batchTotalQuantity" : "depot.batchTotalQuantity_plural", {
@@ -293,7 +251,7 @@ function BatchOrderCard({ batchId, orders, styles, t, locale, navigation, token 
       )}
       <View style={styles.batchDivider} />
       <DepotBatchPaymentActions
-        batchId={batchId}
+        masterOrderId={masterOrderId}
         orders={orders}
         navigation={navigation}
         token={token}

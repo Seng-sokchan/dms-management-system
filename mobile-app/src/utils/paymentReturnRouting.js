@@ -22,7 +22,7 @@ export async function resolvePaymentReturnNavigation(
   {
     paymentId,
     orderId,
-    batchId,
+    masterOrderId,
     orderIds,
     orders,
     order,
@@ -41,7 +41,12 @@ export async function resolvePaymentReturnNavigation(
 
   const status = payment?.status || "unpaid";
   const resolvedOrderId = orderId != null ? Number(orderId) : payment?.orderId;
-  const resolvedBatchId = batchId != null ? String(batchId) : undefined;
+  const resolvedMasterOrderId =
+    masterOrderId != null
+      ? Number(masterOrderId)
+      : Array.isArray(payment?.orderIds) && payment.orderIds.length > 1
+        ? Number(payment.orderId)
+        : undefined;
   const resolvedOrderIds = Array.isArray(orderIds)
     ? orderIds.map((id) => Number(id))
     : Array.isArray(payment?.orderIds)
@@ -49,13 +54,13 @@ export async function resolvePaymentReturnNavigation(
       : undefined;
 
   const resumeCheckout = async () => {
-    if (resolvedBatchId) {
+    if (resolvedMasterOrderId) {
       const batchOrders =
         Array.isArray(orders) && orders.length
           ? orders
           : (resolvedOrderIds || []).map((id) => ({ id }));
       return navigateToBatchOrderPaymentDeferred({
-        batchId: resolvedBatchId,
+        masterOrderId: resolvedMasterOrderId,
         orders: batchOrders,
         role,
       });
@@ -75,7 +80,7 @@ export async function resolvePaymentReturnNavigation(
     return navigateToPaymentResultDeferred({
       paymentId,
       orderId: resolvedOrderId,
-      batchId: resolvedBatchId,
+      masterOrderId: resolvedMasterOrderId,
       orderIds: resolvedOrderIds,
       fromAbaReturn: fromAbaReturn === true,
       role,

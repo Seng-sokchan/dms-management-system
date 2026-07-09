@@ -159,7 +159,7 @@ export default function CartScreen({ navigation }) {
     try {
       await preOrderCart(token, user, items);
       await clearCart();
-      showSuccess(t("cart.preOrderReadyTitle"), t("cart.preOrderReadyMessage"), {
+      showSuccess(t("cart.preOrderReadyTitle"), "", {
         dismissible: false,
         actions: [
           { text: t("cart.viewMyOrders"), onPress: goToMyOrders },

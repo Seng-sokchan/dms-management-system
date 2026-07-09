@@ -38,7 +38,7 @@ export function usePaymentReturnResume({ enabled = false } = {}) {
             const ok = await resolvePaymentReturnNavigation(token, {
               paymentId: pending.paymentId,
               orderId: pending.orderId,
-              batchId: pending.batchId,
+              masterOrderId: pending.masterOrderId,
               orderIds: pending.orderIds,
               order: pending.order,
               orders: pending.orders,

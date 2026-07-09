@@ -301,6 +301,147 @@ async function dropLegacyDepotOwnerUser(conn) {
   `);
 }
 
+async function backfillOrderNumbers(conn) {
+  for (const [targetType, prefix] of [[1, "ORD"], [2, "DEP"]]) {
+    const [existing] = await conn.query(
+      `SELECT COALESCE(MAX(CAST(SUBSTRING(order_no, 5) AS UNSIGNED)), 0) AS max_seq
+       FROM orders
+       WHERE target_type = ? AND order_no IS NOT NULL AND order_no LIKE ?`,
+      [targetType, `${prefix}-%`],
+    );
+    let seq = Number(existing[0]?.max_seq || 0);
+
+    const [rows] = await conn.query(
+      "SELECT id FROM orders WHERE target_type = ? AND order_no IS NULL ORDER BY id ASC",
+      [targetType],
+    );
+
+    for (const row of rows) {
+      seq += 1;
+      const orderNo = `${prefix}-${String(seq).padStart(6, "0")}`;
+      await conn.query("UPDATE orders SET order_no = ? WHERE id = ?", [orderNo, row.id]);
+    }
+  }
+}
+
+async function ensureOrderMasterType(conn) {
+  if (!(await tableExists(conn, "orders"))) return;
+
+  if (!(await columnExists(conn, "orders", "target_type"))) {
+    if (await columnExists(conn, "orders", "type")) {
+      await conn.query(
+        "ALTER TABLE orders CHANGE COLUMN type target_type tinyint(3) unsigned NOT NULL DEFAULT '1'",
+      );
+    } else {
+      await conn.query(
+        "ALTER TABLE orders ADD COLUMN target_type tinyint(3) unsigned NOT NULL DEFAULT '1' AFTER id",
+      );
+    }
+  }
+
+  if (await columnExists(conn, "orders", "batch_kind")) {
+    await conn.query("UPDATE orders SET target_type = 2 WHERE batch_kind = 'depot' AND target_type = 1");
+    await conn.query("UPDATE orders SET target_type = 1 WHERE batch_kind = 'customer' AND target_type = 1");
+  }
+
+  await conn.query(`
+    UPDATE orders om
+    INNER JOIN (
+      SELECT od.order_id
+      FROM order_details od
+      GROUP BY od.order_id
+      HAVING COUNT(DISTINCT od.customer_id) > 1
+    ) multi ON multi.order_id = om.id
+    SET om.target_type = 2
+  `);
+
+  await conn.query(`
+    UPDATE orders om
+    INNER JOIN (
+      SELECT od.order_id
+      FROM order_details od
+      GROUP BY od.order_id
+      HAVING COUNT(DISTINCT od.customer_id) = 1 AND COUNT(*) >= 2
+    ) cart ON cart.order_id = om.id
+    SET om.target_type = 1
+    WHERE om.target_type <> 2
+  `);
+
+  if (await indexExists(conn, "orders", "uq_orders_depot_batch_id")) {
+    await conn.query("ALTER TABLE orders DROP INDEX uq_orders_depot_batch_id");
+  }
+  if (await columnExists(conn, "orders", "depot_batch_id")) {
+    await conn.query("ALTER TABLE orders DROP COLUMN depot_batch_id");
+  }
+  if (await columnExists(conn, "orders", "batch_kind")) {
+    await conn.query("ALTER TABLE orders DROP COLUMN batch_kind");
+  }
+  if (await columnExists(conn, "orders", "type")) {
+    await conn.query("ALTER TABLE orders DROP COLUMN type");
+  }
+  if (await indexExists(conn, "orders", "idx_orders_type")) {
+    await conn.query("ALTER TABLE orders DROP INDEX idx_orders_type");
+  }
+  if (!(await indexExists(conn, "orders", "idx_orders_target_type"))) {
+    await conn.query("ALTER TABLE orders ADD KEY idx_orders_target_type (target_type)");
+  }
+
+  if (!(await columnExists(conn, "orders", "order_no"))) {
+    await conn.query(
+      "ALTER TABLE orders ADD COLUMN order_no varchar(16) DEFAULT NULL AFTER target_type",
+    );
+  }
+
+  await backfillOrderNumbers(conn);
+
+  if (!(await indexExists(conn, "orders", "uq_orders_order_no"))) {
+    await conn.query("ALTER TABLE orders ADD UNIQUE KEY uq_orders_order_no (order_no)");
+  }
+
+  await conn.query("DROP VIEW IF EXISTS v_orders");
+  await conn.query(`
+    CREATE VIEW v_orders AS
+    SELECT
+      od.id,
+      om.id AS master_order_id,
+      om.target_type AS master_order_type,
+      om.order_no AS master_order_no,
+      c.name AS customer_name,
+      od.customer_id,
+      od.item_id,
+      od.currency,
+      od.ordered_qty,
+      od.delivered_qty,
+      od.loss_qty,
+      od.unit_price,
+      od.producer_id,
+      od.delivery_agent_id,
+      od.delivery_time,
+      od.amount_total,
+      CASE
+        WHEN EXISTS (SELECT 1 FROM payments p WHERE p.order_id = om.id) THEN 'paid'
+        ELSE 'unpaid'
+      END AS payment_status,
+      s.name AS status,
+      od.created_at,
+      od.updated_at,
+      c.phone AS customer_phone,
+      c.latitude AS customer_latitude,
+      c.longitude AS customer_longitude,
+      p.name AS producer_name,
+      da.name AS delivery_agent_name,
+      it.name AS item_name,
+      it.sku AS item_sku
+    FROM order_details od
+    INNER JOIN orders om ON om.id = od.order_id
+    INNER JOIN customers c ON c.id = od.customer_id
+    INNER JOIN items it ON it.id = od.item_id
+    INNER JOIN status s ON s.id = od.status
+    LEFT JOIN producers p ON p.id = od.producer_id
+    LEFT JOIN delivery_agents da ON da.id = od.delivery_agent_id
+  `);
+}
+
 async function ensureRulesSchema() {
   const pool = getPool();
   const conn = await pool.getConnection();
@@ -308,6 +449,7 @@ async function ensureRulesSchema() {
     await ensureDepotUserLinkOnUsers(conn);
     await dropLegacyDepotOwnerUser(conn);
     await dropLegacyRulesArtifacts(conn);
+    await ensureOrderMasterType(conn);
   } finally {
     conn.release();
   }

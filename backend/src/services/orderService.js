@@ -15,13 +15,13 @@ const itemRepository = require("../repositories/items");
 const customerItemPriceRepository = require("../repositories/customerItemPrices");
 const deliveryAgentRepository = require("../repositories/deliveryAgents");
 const producerRepository = require("../repositories/producers");
+const { ORDER_TYPE_CUSTOMER, ORDER_TYPE_DEPOT } = require("../constants/orderTypes");
 const lookupRepository = require("../repositories/lookups");
 const overviewRepository = require("../repositories/overview");
 const { getNextStatuses, getStatusNames: getCachedStatusNames, canUpdateAnyStatus } = require("./rulesCache");
 const { assertCanSetStatus } = require("./accessPolicyService");
 const { getPool } = require("../../database/pool");
 const { BadRequestError, NotFoundError, ForbiddenError } = require("../errors");
-const crypto = require("node:crypto");
 const telegramService = require("./telegramService");
 
 /** New orders always use this producer; delivery agent is set later via assign. */
@@ -214,7 +214,7 @@ async function createBatch({ customerId, lines }) {
     await conn.beginTransaction();
     await assertCustomerCanPlaceNewOrder(customerId, conn);
 
-    const master = await orderRepository.createMasterOrder(null, conn);
+    const master = await orderRepository.createMasterOrder(ORDER_TYPE_CUSTOMER, conn);
     const orders = [];
     for (const row of rowsToInsert) {
       orders.push(await orderRepository.createOrder({ ...row, masterOrderId: master.id }, conn));
@@ -307,17 +307,17 @@ async function createDepotBatch({ user, lines }) {
 
   const pool = getPool();
   const conn = await pool.getConnection();
-  const batchId = crypto.randomUUID();
   try {
     await conn.beginTransaction();
     for (const customerId of uniqueCustomerIds) {
       await assertCustomerCanPlaceNewOrder(customerId, conn);
     }
 
+    const master = await orderRepository.createMasterOrder(ORDER_TYPE_DEPOT, conn);
     const orders = [];
     for (const row of rowsToInsert) {
       orders.push(
-        await orderRepository.createOrder({ ...row, depotBatchId: batchId }, conn),
+        await orderRepository.createOrder({ ...row, masterOrderId: master.id }, conn),
       );
     }
     await conn.commit();

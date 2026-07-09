@@ -54,7 +54,7 @@ export function usePaymentDeepLink({ enabled = false } = {}) {
       const ok = await resolvePaymentReturnNavigation(authToken, {
         paymentId,
         orderId: pending?.orderId,
-        batchId: pending?.batchId,
+        masterOrderId: pending?.masterOrderId,
         orderIds: pending?.orderIds,
         order: pending?.order,
         orders: pending?.orders,

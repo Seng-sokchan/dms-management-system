@@ -2,6 +2,7 @@ import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import AuthenticatedTabs from "./AuthenticatedTabs";
 import OrderPaymentScreen from "../screens/OrderPaymentScreen";
+import BatchOrderPaymentScreen from "../screens/BatchOrderPaymentScreen";
 import PaymentResultScreen from "../screens/PaymentResultScreen";
 import { useStackScreenOptions } from "./screenOptions";
 import { useTranslation } from "react-i18next";
@@ -19,6 +20,11 @@ export default function CustomerRootNavigator() {
         name="OrderPayment"
         component={OrderPaymentScreen}
         options={{ title: t("payment.checkoutTitle") }}
+      />
+      <Stack.Screen
+        name="BatchOrderPayment"
+        component={BatchOrderPaymentScreen}
+        options={{ title: t("payment.batchCheckoutTitle") }}
       />
       <Stack.Screen
         name="PaymentResult"

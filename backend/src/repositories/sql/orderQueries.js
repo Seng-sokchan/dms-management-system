@@ -9,7 +9,8 @@ const PAYMENT_STATUS_EXPR = `
 const ORDER_DETAIL_SELECT = `
   od.id,
   om.id AS master_order_id,
-  om.depot_batch_id,
+  om.target_type AS master_order_type,
+  om.order_no AS master_order_no,
   c.name AS customer_name,
   od.customer_id,
   od.item_id,

@@ -1,4 +1,5 @@
 const crypto = require("node:crypto");
+const { ORDER_TYPE_CUSTOMER, ORDER_TYPE_DEPOT } = require("../constants/orderTypes");
 const paymentRepository = require("../repositories/payments");
 const orderRepository = require("../repositories/orders");
 const customerRepository = require("../repositories/customers");
@@ -90,6 +91,9 @@ async function mapPaymentResponseWithOrders(paymentOrSession, extra = {}) {
   const mapped = mapper(paymentOrSession);
   if (orderDetailIds.length > 0) {
     mapped.orderIds = orderDetailIds.map((id) => Number(id));
+    if (orderDetailIds.length > 1) {
+      mapped.masterOrderId = Number(masterOrderId);
+    }
   }
   return mapped;
 }
@@ -241,7 +245,6 @@ async function saveCheckoutSession({
   returnParams,
   expiresAt,
   idempotencyKey,
-  batchId,
   orderIds,
 }) {
   const session = {
@@ -254,7 +257,6 @@ async function saveCheckoutSession({
     returnParams,
     expiresAt: expiresAt instanceof Date ? expiresAt.toISOString() : expiresAt,
     idempotencyKey,
-    batchId: batchId ? String(batchId) : null,
     orderIds: orderIds || null,
   };
   return paymentStatusCache.saveCheckoutSession(session);
@@ -306,11 +308,16 @@ async function createPaymentIntent({ orderId, currency, idempotencyKey }, { user
   return enrichCheckoutResponse(session, {}, { user });
 }
 
-async function createBatchPaymentIntent({ batchId, currency, idempotencyKey }, { user }) {
+async function createBatchPaymentIntent({ masterOrderId, currency, idempotencyKey }, { user }) {
   assertPaywayConfigured();
 
-  if (!hasDataScope(user, "depot") && !hasDataScope(user, "all") && !hasDataScope(user, "owner")) {
-    throw new ForbiddenError("Batch payment is only available for Depot users");
+  if (
+    !hasDataScope(user, "depot")
+    && !hasDataScope(user, "customer")
+    && !hasDataScope(user, "all")
+    && !hasDataScope(user, "owner")
+  ) {
+    throw new ForbiddenError("Batch payment is not available for this account");
   }
 
   const depot = hasDataScope(user, "depot") ? await getDepotForUser(user) : null;
@@ -318,9 +325,30 @@ async function createBatchPaymentIntent({ batchId, currency, idempotencyKey }, {
     throw new ForbiddenError("Depot profile not found");
   }
 
-  let orders = await orderRepository.listOrdersByDepotBatchId(batchId);
+  const master = await orderRepository.getMasterOrderById(masterOrderId);
+  if (!master) {
+    throw new NotFoundError("Master order not found");
+  }
+
+  let orders = await orderRepository.listOrdersByMasterOrderId(masterOrderId);
   if (!orders.length) {
-    throw new NotFoundError("No orders found for this batch");
+    throw new NotFoundError("No orders found for this master order");
+  }
+
+  if (hasDataScope(user, "customer")) {
+    if (master.targetType !== ORDER_TYPE_CUSTOMER) {
+      throw new BadRequestError("This order must be paid individually");
+    }
+    const customer = await customerRepository.getCustomerByUserId(user.sub);
+    if (!customer) throw new ForbiddenError("Customer profile not found");
+    orders = orders.filter((order) => String(order.customerId) === String(customer.id));
+    if (!orders.length) {
+      throw new NotFoundError("No orders found for this master order");
+    }
+  }
+
+  if (hasDataScope(user, "depot") && master.targetType !== ORDER_TYPE_DEPOT) {
+    throw new BadRequestError("This is not a depot batch order");
   }
 
   for (const order of orders) {
@@ -331,7 +359,8 @@ async function createBatchPaymentIntent({ batchId, currency, idempotencyKey }, {
     throw new BadRequestError("Some orders in this batch are already paid");
   }
 
-  const existingPending = await paymentStatusCache.findCheckoutByBatchId(batchId);
+  const resolvedMasterOrderId = Number(masterOrderId);
+  const existingPending = await paymentStatusCache.findCheckoutByMasterOrderId(resolvedMasterOrderId);
   const paymentCurrency = normalizePaymentCurrency(currency || orders[0]?.currency);
   const totalAmount = await resolveOrdersPaymentAmount(orders, paymentCurrency);
 
@@ -340,7 +369,7 @@ async function createBatchPaymentIntent({ batchId, currency, idempotencyKey }, {
       await paymentStatusCache.removeCheckoutSession(existingPending.id);
     } else if (normalizePaymentCurrency(existingPending.currency) === paymentCurrency) {
       return enrichCheckoutResponse(existingPending, {
-        batchId,
+        masterOrderId: resolvedMasterOrderId,
         orderIds: orders.map((order) => Number(order.id)),
       }, { user });
     } else {
@@ -353,7 +382,6 @@ async function createBatchPaymentIntent({ batchId, currency, idempotencyKey }, {
   }
 
   const firstOrder = orders[0];
-  const masterOrderId = Number(firstOrder.masterOrderId);
   const orderIds = orders.map((order) => order.id);
 
   const paymentId = crypto.randomUUID();
@@ -361,26 +389,25 @@ async function createBatchPaymentIntent({ batchId, currency, idempotencyKey }, {
   const expiresAt = new Date(Date.now() + CHECKOUT_TTL_MS);
   const returnParams = buildCheckoutReturnParams({
     paymentId,
-    batchId,
+    masterOrderId: resolvedMasterOrderId,
     orderIds: orderIds.map(String),
   });
 
   const session = await saveCheckoutSession({
     paymentId,
-    masterOrderId,
+    masterOrderId: resolvedMasterOrderId,
     customerId: firstOrder.customerId,
     paywayTranId,
     amount: totalAmount,
     currency: paymentCurrency,
     returnParams,
     expiresAt,
-    idempotencyKey: idempotencyKey || `batch-${batchId}-${Date.now()}`,
-    batchId,
+    idempotencyKey: idempotencyKey || `batch-${resolvedMasterOrderId}-${Date.now()}`,
     orderIds: orderIds.map(String),
   });
 
   return enrichCheckoutResponse(session, {
-    batchId,
+    masterOrderId: resolvedMasterOrderId,
     orderIds: orderIds.map((id) => Number(id)),
   }, { user });
 }

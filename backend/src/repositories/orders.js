@@ -1,9 +1,9 @@
-const crypto = require("node:crypto");
 const { getPool } = require("../../database/pool");
 const { nowIso } = require("../utils");
 const { mapOrder } = require("./mappers");
 const { unwrapProcedureRows, getProcedureMeta } = require("./unwrap");
 const { getStatusIdByName } = require("./lookups");
+const { ORDER_TYPE_CUSTOMER, formatOrderNo } = require("../constants/orderTypes");
 const V = require("./sql/readViews");
 const {
   ORDER_DETAIL_LIST_SELECT,
@@ -15,15 +15,56 @@ function resolveExecutor(executor) {
   return executor || getPool();
 }
 
-async function createMasterOrder(depotBatchId, executor) {
+async function allocateOrderNo(targetType, executor) {
   const db = resolveExecutor(executor);
-  const batchId = depotBatchId ? String(depotBatchId) : crypto.randomUUID();
+  const type = Number(targetType) === 2 ? 2 : 1;
+  const prefix = type === 2 ? "DEP" : "ORD";
+  const [rows] = await db.query(
+    `SELECT order_no FROM orders
+     WHERE target_type = ? AND order_no IS NOT NULL AND order_no LIKE ?
+     ORDER BY id DESC LIMIT 1`,
+    [type, `${prefix}-%`],
+  );
+
+  let nextSeq = 1;
+  if (rows[0]?.order_no) {
+    const parts = String(rows[0].order_no).split("-");
+    const parsed = Number(parts[parts.length - 1]);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      nextSeq = parsed + 1;
+    }
+  }
+
+  return formatOrderNo(type, nextSeq);
+}
+
+async function createMasterOrder(orderType, executor) {
+  const db = resolveExecutor(executor);
+  const targetType = Number(orderType) === 2 ? 2 : 1;
+  const orderNo = await allocateOrderNo(targetType, executor);
   const ts = nowIso();
   const [result] = await db.query(
-    "INSERT INTO orders (depot_batch_id, created_at, updated_at) VALUES (?, ?, ?)",
-    [batchId, ts, ts],
+    "INSERT INTO orders (target_type, order_no, created_at, updated_at) VALUES (?, ?, ?, ?)",
+    [targetType, orderNo, ts, ts],
   );
-  return { id: result.insertId, depotBatchId: batchId };
+  return { id: result.insertId, targetType, orderNo };
+}
+
+async function getMasterOrderById(masterOrderId, executor) {
+  const db = resolveExecutor(executor);
+  const [rows] = await db.query(
+    "SELECT id, target_type, order_no, created_at, updated_at FROM orders WHERE id = ? LIMIT 1",
+    [Number(masterOrderId)],
+  );
+  return rows[0]
+    ? {
+        id: Number(rows[0].id),
+        targetType: Number(rows[0].target_type) === 2 ? 2 : 1,
+        orderNo: rows[0].order_no != null ? String(rows[0].order_no) : null,
+        createdAt: rows[0].created_at,
+        updatedAt: rows[0].updated_at,
+      }
+    : null;
 }
 
 async function getMasterOrderIdForDetailId(detailId, executor) {
@@ -35,22 +76,6 @@ async function getMasterOrderIdForDetailId(detailId, executor) {
   return rows[0]?.order_id != null ? Number(rows[0].order_id) : null;
 }
 
-async function getMasterOrderByDepotBatchId(depotBatchId, executor) {
-  const db = resolveExecutor(executor);
-  const [rows] = await db.query(
-    "SELECT id, depot_batch_id, created_at, updated_at FROM orders WHERE depot_batch_id = ? LIMIT 1",
-    [String(depotBatchId)],
-  );
-  return rows[0]
-    ? {
-        id: Number(rows[0].id),
-        depotBatchId: rows[0].depot_batch_id ? String(rows[0].depot_batch_id) : null,
-        createdAt: rows[0].created_at,
-        updatedAt: rows[0].updated_at,
-      }
-    : null;
-}
-
 async function listOrderDetailIdsByMasterOrderId(masterOrderId, executor) {
   const db = resolveExecutor(executor);
   const [rows] = await db.query(
@@ -58,6 +83,18 @@ async function listOrderDetailIdsByMasterOrderId(masterOrderId, executor) {
     [Number(masterOrderId)],
   );
   return rows.map((row) => String(row.id));
+}
+
+async function listOrdersByMasterOrderId(masterOrderId, executor) {
+  const db = resolveExecutor(executor);
+  const [rows] = await db.query(
+    `SELECT ${ORDER_DETAIL_LIST_SELECT}
+     ${ORDER_DETAIL_FROM}
+     WHERE om.id = ?
+     ORDER BY od.id ASC`,
+    [Number(masterOrderId)],
+  );
+  return rows.map(mapOrder);
 }
 
 async function listOrders() {
@@ -168,16 +205,9 @@ async function createOrder(payload, executor) {
   let masterOrderId = null;
   if (order.masterOrderId) {
     masterOrderId = Number(order.masterOrderId);
-  } else if (order.depotBatchId) {
-    const existing = await getMasterOrderByDepotBatchId(order.depotBatchId, executor);
-    if (existing) {
-      masterOrderId = existing.id;
-    } else {
-      const master = await createMasterOrder(order.depotBatchId, executor);
-      masterOrderId = master.id;
-    }
   } else {
-    const master = await createMasterOrder(null, executor);
+    const masterType = order.masterOrderType != null ? Number(order.masterOrderType) : ORDER_TYPE_CUSTOMER;
+    const master = await createMasterOrder(masterType, executor);
     masterOrderId = master.id;
   }
 
@@ -333,26 +363,14 @@ async function deleteOrder(id) {
   return { affectedRows: Number(meta.affectedRows || 0), order };
 }
 
-async function listOrdersByDepotBatchId(depotBatchId, executor) {
-  const db = resolveExecutor(executor);
-  const [rows] = await db.query(
-    `SELECT ${ORDER_DETAIL_LIST_SELECT}
-     ${ORDER_DETAIL_FROM}
-     WHERE om.depot_batch_id = ?
-     ORDER BY od.id ASC`,
-    [String(depotBatchId)],
-  );
-  return rows.map(mapOrder);
-}
-
 module.exports = {
   createMasterOrder,
+  getMasterOrderById,
   getMasterOrderIdForDetailId,
-  getMasterOrderByDepotBatchId,
   listOrderDetailIdsByMasterOrderId,
+  listOrdersByMasterOrderId,
   listOrders,
   getOrderById,
-  listOrdersByDepotBatchId,
   listFactoryNotificationOrdersByOrderId,
   countNonTerminalOrdersByCustomer,
   countUnpaidReceivedOrdersByCustomer,

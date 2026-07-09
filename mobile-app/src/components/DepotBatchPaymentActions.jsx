@@ -21,7 +21,12 @@ function resolveBatchPaymentState(orders) {
   return { badge: "mixed", canPay: false, mixed: true };
 }
 
-export default function DepotBatchPaymentActions({ batchId, orders, navigation }) {
+export default function DepotBatchPaymentActions({
+  masterOrderId,
+  orders,
+  navigation,
+  i18nPrefix = "depot",
+}) {
   const { t } = useTranslation();
   const { colors, spacing, typography, borders } = useTheme();
   const stackNav = navigation?.getParent?.() || navigation;
@@ -48,7 +53,7 @@ export default function DepotBatchPaymentActions({ batchId, orders, navigation }
 
   const badgeLabel =
     paymentState.badge === "mixed"
-      ? t("depot.batchPaymentMixed")
+      ? t(`${i18nPrefix}.batchPaymentMixed`)
       : t(`payment.status.${paymentState.badge}`, paymentState.badge);
 
   const showActionsBelowBadge = paymentState.canPay || paymentState.mixed;
@@ -67,14 +72,14 @@ export default function DepotBatchPaymentActions({ batchId, orders, navigation }
         </View>
       </View>
       {paymentState.mixed ? (
-        <Text style={styles.hint}>{t("depot.batchPaymentMixedHint")}</Text>
+        <Text style={styles.hint}>{t(`${i18nPrefix}.batchPaymentMixedHint`)}</Text>
       ) : null}
       {paymentState.canPay ? (
         <PrimaryButton
-          title={t("depot.payBatch")}
+          title={t(`${i18nPrefix}.payBatch`)}
           onPress={() =>
             stackNav?.navigate("BatchOrderPayment", {
-              batchId,
+              masterOrderId,
               orders,
             })
           }

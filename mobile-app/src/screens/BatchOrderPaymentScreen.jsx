@@ -13,9 +13,10 @@ import { usePaymentAmountOptions } from "../hooks/usePaymentAmountOptions";
 import { getApiErrorMessage } from "../services/apiClient";
 import { createBatchPaymentIntent, getOrderPayment } from "../services/paymentsApi";
 import { formatPaymentAmount } from "../utils/formatPaymentAmount";
+import { ORDER_TYPE_CUSTOMER } from "../constants/orderTypes";
 
 export default function BatchOrderPaymentScreen({ route, navigation }) {
-  const batchId = route.params?.batchId;
+  const masterOrderId = route.params?.masterOrderId;
   const orders = useMemo(
     () => (Array.isArray(route.params?.orders) ? route.params.orders : []),
     [route.params?.orders],
@@ -36,18 +37,19 @@ export default function BatchOrderPaymentScreen({ route, navigation }) {
     [amount, currency],
   );
   const orderIds = useMemo(() => orders.map((order) => order.id), [orders]);
+  const isCustomerBatch = orders[0]?.masterOrderType === ORDER_TYPE_CUSTOMER;
   const merchantName = t("payment.storeName");
 
   const buildPendingReturn = useCallback(
     (resolved) => ({
       paymentId: resolved.paymentId,
       orderId: orderIds[0] ?? null,
-      batchId,
+      masterOrderId,
       orderIds,
       orders,
       role: user?.role || "Depot",
     }),
-    [batchId, orderIds, orders, user?.role],
+    [masterOrderId, orderIds, orders, user?.role],
   );
 
   const onPaymentSuccess = useCallback(
@@ -56,12 +58,12 @@ export default function BatchOrderPaymentScreen({ route, navigation }) {
       navigation.replace("PaymentResult", {
         paymentId,
         orderId: orderIds[0] ?? null,
-        batchId,
+        masterOrderId,
         orderIds,
         fromAbaReturn,
       });
     },
-    [batchId, navigation, orderIds],
+    [masterOrderId, navigation, orderIds],
   );
 
   const resumePaymentLookup = useCallback(
@@ -89,11 +91,11 @@ export default function BatchOrderPaymentScreen({ route, navigation }) {
   });
 
   const handleAbaKhqrPay = () => {
-    if (!token || !batchId || loadingAmounts || amount == null) return;
+    if (!token || !masterOrderId || loadingAmounts || amount == null) return;
     void startCheckout(async () => {
       try {
         return await createBatchPaymentIntent(token, {
-          batchId,
+          masterOrderId,
           paymentOption: "checkout",
           currency,
         });
@@ -107,7 +109,7 @@ export default function BatchOrderPaymentScreen({ route, navigation }) {
     });
   };
 
-  if (!batchId || orders.length === 0) {
+  if (!masterOrderId || orders.length === 0) {
     return (
       <Screen>
         <Text>{t("depot.batchPaymentMissing")}</Text>
@@ -134,7 +136,9 @@ export default function BatchOrderPaymentScreen({ route, navigation }) {
                   {t("payment.orderLabel", { id: item.id })}
                 </Text>
                 <Text style={styles.lineMeta}>
-                  {item.customerName || "-"} · {item.itemName || "-"}
+                  {isCustomerBatch
+                    ? item.itemName || "-"
+                    : `${item.customerName || "-"} · ${item.itemName || "-"}`}
                 </Text>
                 <Text style={styles.lineMeta}>
                   {t("depot.batchOrderQuantity", { qty: Number(item.orderedQty || 0) })}

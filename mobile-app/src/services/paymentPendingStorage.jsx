@@ -5,7 +5,7 @@ const KEY = "dms:pending-payment-return";
 export async function setPendingPaymentReturn({
   paymentId,
   orderId,
-  batchId,
+  masterOrderId,
   orderIds,
   order,
   orders,
@@ -17,7 +17,7 @@ export async function setPendingPaymentReturn({
     JSON.stringify({
       paymentId: String(paymentId),
       orderId: orderId != null ? String(orderId) : null,
-      batchId: batchId != null ? String(batchId) : null,
+      masterOrderId: masterOrderId != null ? String(masterOrderId) : null,
       orderIds: Array.isArray(orderIds) ? orderIds.map(String) : null,
       order: order || null,
       orders: Array.isArray(orders) ? orders : null,

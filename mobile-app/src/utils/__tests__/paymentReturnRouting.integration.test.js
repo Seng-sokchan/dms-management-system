@@ -39,7 +39,7 @@ describe("resolvePaymentReturnNavigation", () => {
     expect(navigateToPaymentResultDeferred).toHaveBeenCalledWith({
       paymentId,
       orderId: 42,
-      batchId: undefined,
+      masterOrderId: undefined,
       orderIds: undefined,
       fromAbaReturn: true,
       role: "Customer",
@@ -56,17 +56,17 @@ describe("resolvePaymentReturnNavigation", () => {
     });
   });
 
-  it("resumes batch checkout when unpaid with batchId", async () => {
+  it("resumes batch checkout when unpaid with masterOrderId", async () => {
     getPayment.mockResolvedValue({ status: "unpaid", orderIds: [1, 2] });
     await resolvePaymentReturnNavigation(token, {
       paymentId,
-      batchId: "batch-1",
+      masterOrderId: 12,
       orderIds: [1, 2],
       orders: [{ id: 1 }, { id: 2 }],
       role: "Depot",
     });
     expect(navigateToBatchOrderPaymentDeferred).toHaveBeenCalledWith({
-      batchId: "batch-1",
+      masterOrderId: 12,
       orders: [{ id: 1 }, { id: 2 }],
       role: "Depot",
     });

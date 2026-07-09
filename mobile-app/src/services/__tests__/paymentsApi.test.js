@@ -45,13 +45,13 @@ describe("paymentsApi", () => {
 
   it("createBatchPaymentIntent posts to /payments/batch-intents", async () => {
     await createBatchPaymentIntent(token, {
-      batchId: "batch-1",
+      masterOrderId: 12,
       paymentOption: "checkout",
       currency: "USD",
     });
     expect(apiClient.post).toHaveBeenCalledWith(
       "/payments/batch-intents",
-      { batchId: "batch-1", paymentOption: "checkout", currency: "USD" },
+      { masterOrderId: 12, paymentOption: "checkout", currency: "USD" },
       authConfig(token),
     );
   });

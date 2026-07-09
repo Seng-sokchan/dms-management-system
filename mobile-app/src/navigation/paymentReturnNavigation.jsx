@@ -58,7 +58,7 @@ function isAlreadyOnCheckout(screenName, matchParams = {}) {
   if (matchParams.orderId != null && Number(params?.order?.id) !== Number(matchParams.orderId)) {
     return false;
   }
-  if (matchParams.batchId != null && String(params?.batchId) !== String(matchParams.batchId)) {
+  if (matchParams.masterOrderId != null && Number(params?.masterOrderId) !== Number(matchParams.masterOrderId)) {
     return false;
   }
   return true;
@@ -80,7 +80,7 @@ function deferNavigate(dispatchFn) {
 export function navigateToPaymentResult({
   paymentId,
   orderId,
-  batchId,
+  masterOrderId,
   orderIds,
   fromAbaReturn,
   role = "Customer",
@@ -96,7 +96,7 @@ export function navigateToPaymentResult({
   const params = {
     paymentId: String(paymentId),
     orderId: orderId != null ? Number(orderId) : undefined,
-    batchId: batchId != null ? String(batchId) : undefined,
+    masterOrderId: masterOrderId != null ? Number(masterOrderId) : undefined,
     orderIds: Array.isArray(orderIds) ? orderIds.map((id) => Number(id)) : undefined,
     fromAbaReturn: fromAbaReturn !== false,
   };
@@ -150,10 +150,10 @@ export function navigateToOrderPayment({ order, role = "Customer" }) {
   }
 }
 
-export function navigateToBatchOrderPayment({ batchId, orders, role = "Depot" }) {
-  if (!batchId || !navigationRef.isReady()) return false;
+export function navigateToBatchOrderPayment({ masterOrderId, orders, role = "Depot" }) {
+  if (!masterOrderId || !navigationRef.isReady()) return false;
 
-  if (isAlreadyOnCheckout("BatchOrderPayment", { batchId })) return true;
+  if (isAlreadyOnCheckout("BatchOrderPayment", { masterOrderId })) return true;
 
   const activeRoot = getActivePaymentRoot();
   if (!activeRoot) return false;
@@ -166,7 +166,7 @@ export function navigateToBatchOrderPayment({ batchId, orders, role = "Depot" })
         name: root,
         params: {
           screen: "BatchOrderPayment",
-          params: { batchId: String(batchId), orders: orders || [] },
+          params: { masterOrderId: Number(masterOrderId), orders: orders || [] },
         },
       }),
     );

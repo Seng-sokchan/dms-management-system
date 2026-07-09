@@ -17,7 +17,7 @@ const SUCCESS_GREEN = "#42B56E";
 export default function PaymentResultScreen({ route, navigation }) {
   const paymentIdParam = route.params?.paymentId;
   const orderIdParam = route.params?.orderId;
-  const batchIdParam = route.params?.batchId;
+  const masterOrderIdParam = route.params?.masterOrderId;
   const orderIdsParam = Array.isArray(route.params?.orderIds) ? route.params.orderIds : null;
   const { user } = useAuth();
   const { t } = useTranslation();
@@ -37,9 +37,9 @@ export default function PaymentResultScreen({ route, navigation }) {
 
     setRedirecting(true);
     const timer = setTimeout(() => {
-      if (batchIdParam) {
+      if (masterOrderIdParam) {
         navigation.replace("BatchOrderPayment", {
-          batchId: batchIdParam,
+          masterOrderId: masterOrderIdParam,
           orders: orderIdsParam?.map((id) => ({ id })) || [],
         });
         return;
@@ -52,7 +52,7 @@ export default function PaymentResultScreen({ route, navigation }) {
     }, 1800);
 
     return () => clearTimeout(timer);
-  }, [batchIdParam, isPaid, loading, navigation, orderIdParam, orderIdsParam, paymentIdParam]);
+  }, [masterOrderIdParam, isPaid, loading, navigation, orderIdParam, orderIdsParam, paymentIdParam]);
 
   useEffect(() => {
     if (loading || !paymentIdParam) return;

@@ -206,11 +206,13 @@ CREATE TABLE `items` (
 
 CREATE TABLE `orders` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `depot_batch_id` char(36) DEFAULT NULL,
+  `target_type` tinyint(3) unsigned NOT NULL DEFAULT '1',
+  `order_no` varchar(16) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_orders_depot_batch_id` (`depot_batch_id`)
+  UNIQUE KEY `uq_orders_order_no` (`order_no`),
+  KEY `idx_orders_target_type` (`target_type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE `order_details` (
@@ -467,7 +469,8 @@ CREATE VIEW v_orders AS
 SELECT
   od.id,
   om.id AS master_order_id,
-  om.depot_batch_id,
+  om.target_type AS master_order_type,
+  om.order_no AS master_order_no,
   c.name AS customer_name,
   od.customer_id,
   od.item_id,

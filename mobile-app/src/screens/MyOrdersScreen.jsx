@@ -4,12 +4,14 @@ import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
+import DepotBatchPaymentActions from "../components/DepotBatchPaymentActions";
 import OrderPaymentActions, { formatPaymentAmount } from "../components/OrderPaymentActions";
 import { Card, EmptyState, ErrorBanner, Screen, SectionHeader } from "../components/ui";
 import { getApiErrorMessage } from "../services/apiClient";
 import { listMobileOrders } from "../services/ordersApi";
 import { usePaymentCompletionRefresh } from "../hooks/usePaymentCompletionRefresh";
 import { formatOrderStatus } from "../utils/formatOrderStatus";
+import { groupCustomerOrders, sumBatchAmountDue } from "../utils/groupOrdersByBatch";
 
 export default function MyOrdersScreen() {
   const { token } = useAuth();
@@ -36,6 +38,16 @@ export default function MyOrdersScreen() {
           flex: 1,
         },
         meta: {
+          marginTop: spacing.xs,
+          color: colors.textMuted,
+          fontSize: typography.bodySmall,
+        },
+        batchTitle: {
+          fontSize: typography.body,
+          fontWeight: "700",
+          color: colors.textPrimary,
+        },
+        batchMeta: {
           marginTop: spacing.xs,
           color: colors.textMuted,
           fontSize: typography.bodySmall,
@@ -70,7 +82,49 @@ export default function MyOrdersScreen() {
     void loadOrders();
   });
 
-  const renderItem = ({ item }) => (
+  const listSections = useMemo(() => groupCustomerOrders(orders), [orders]);
+
+  const renderBatchCard = ({ masterOrderId, orders: batchOrders }) => {
+    const totalAmount = batchOrders.reduce((sum, order) => sum + Number(order?.amountTotal || 0), 0);
+    const amountDue = sumBatchAmountDue(batchOrders);
+    const amountPaid = Math.max(0, totalAmount - amountDue);
+    const currency = batchOrders[0]?.currency || "KHR";
+
+    return (
+      <Card style={styles.card}>
+        <Text style={styles.batchTitle}>
+          {batchOrders[0]?.masterOrderNo || t("payment.orderLabel", { id: masterOrderId })}
+        </Text>
+        <Text style={styles.batchMeta}>
+          {t(
+            batchOrders.length === 1 ? "payment.batchGroupCount" : "payment.batchGroupCount_plural",
+            { count: batchOrders.length },
+          )}
+        </Text>
+        {amountDue > 0 ? (
+          <Text style={styles.batchMeta}>
+            {t("payment.batchToPay", {
+              amount: formatPaymentAmount(amountDue, currency),
+            })}
+          </Text>
+        ) : (
+          <Text style={styles.batchMeta}>
+            {t("payment.batchPaidAmount", {
+              amount: formatPaymentAmount(amountPaid, currency),
+            })}
+          </Text>
+        )}
+        <DepotBatchPaymentActions
+          masterOrderId={masterOrderId}
+          orders={batchOrders}
+          navigation={navigation}
+          i18nPrefix="payment"
+        />
+      </Card>
+    );
+  };
+
+  const renderSingleCard = (item) => (
     <Card style={styles.card}>
       <View style={styles.row}>
         <View style={{ flex: 1 }}>
@@ -89,6 +143,13 @@ export default function MyOrdersScreen() {
     </Card>
   );
 
+  const renderItem = ({ item }) => {
+    if (item.type === "batch") {
+      return renderBatchCard(item);
+    }
+    return renderSingleCard(item.order);
+  };
+
   return (
     <Screen busy={loading && orders.length === 0 && !loadError} busyMessage={t("payment.loading")}>
       <SectionHeader title={t("payment.myOrdersTitle")} subtitle={t("payment.myOrdersSubtitle")} />
@@ -100,8 +161,10 @@ export default function MyOrdersScreen() {
         />
       ) : null}
       <FlatList
-        data={orders}
-        keyExtractor={(item) => String(item.id)}
+        data={listSections}
+        keyExtractor={(item) =>
+          item.type === "batch" ? `batch-${item.masterOrderId}` : `order-${item.order.id}`
+        }
         renderItem={renderItem}
         refreshing={loading}
         onRefresh={loadOrders}
