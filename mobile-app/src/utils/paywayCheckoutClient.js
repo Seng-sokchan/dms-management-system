@@ -10,6 +10,7 @@ export function parsePaywayClientResponse(response) {
       message: "Invalid PayWay response",
       qrString: null,
       qrImageUrl: null,
+      checkoutQrUrl: null,
       deeplinkUrl: null,
       playStoreUrl: null,
       appStoreUrl: null,
@@ -22,6 +23,7 @@ export function parsePaywayClientResponse(response) {
 
   const qrString = root?.qrString || root?.qr_string || null;
   const qrImage = root?.qrImage || root?.qr_image || null;
+  const checkoutQrUrl = unescapeUrl(root?.checkout_qr_url);
 
   let deeplinkUrl = unescapeUrl(root?.abapay_deeplink || root?.deeplink);
   if (!deeplinkUrl && qrString) {
@@ -36,7 +38,11 @@ export function parsePaywayClientResponse(response) {
       : unescapeUrl(imageValue);
   }
   if (!qrImageUrl) {
-    qrImageUrl = unescapeUrl(root?.checkout_qr_url || root?.checkout_url || root?.qr_image_url);
+    const fallbackImage = unescapeUrl(root?.qr_image_url);
+    // checkout_qr_url is PayWay's hosted webpage, not a QR image.
+    if (fallbackImage && fallbackImage !== checkoutQrUrl) {
+      qrImageUrl = fallbackImage;
+    }
   }
 
   return {
@@ -44,6 +50,7 @@ export function parsePaywayClientResponse(response) {
     message: response?.status?.message || response?.description || null,
     qrString: qrString ? String(qrString) : null,
     qrImageUrl,
+    checkoutQrUrl: checkoutQrUrl || unescapeUrl(root?.checkout_url),
     deeplinkUrl,
     playStoreUrl: unescapeUrl(root?.play_store),
     appStoreUrl: unescapeUrl(root?.app_store),
@@ -115,7 +122,7 @@ export async function submitPaywayCheckoutForm(paywayCheckout) {
   if (!parsed.ok) {
     throw new Error(parsed.message || "PayWay request failed");
   }
-  if (!parsed.qrString && !parsed.qrImageUrl) {
+  if (!parsed.qrString && !parsed.qrImageUrl && !parsed.checkoutQrUrl && !parsed.deeplinkUrl) {
     throw new Error("PayWay did not return KHQR data");
   }
   return parsed;

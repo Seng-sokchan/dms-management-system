@@ -145,11 +145,12 @@ describe("useAbaKhqrCheckout", () => {
     expect(checkout.activePaymentId).toBe("pay-001");
   });
 
-  it("shows KHQR only when ABA is not installed", async () => {
+  it("shows hosted webview when ABA is not installed", async () => {
     resolveAbaPaymentRoute.mockResolvedValue({
-      mode: "khqr_qr",
+      mode: "webview",
       qrString: "qr",
-      qrImageUrl: "https://example.com/qr.png",
+      qrImageUrl: null,
+      checkoutQrUrl: "https://checkout.payway.com.kh/checkout/demo",
       deeplinkUrl: "abamobilebank://test",
       abaInstalled: false,
     });
@@ -158,7 +159,17 @@ describe("useAbaKhqrCheckout", () => {
     expect(openAbaPaywayCheckout).not.toHaveBeenCalled();
   });
 
-  it("falls back to KHQR when ABA deeplink fails to open", async () => {
+  it("falls back to hosted webview when ABA deeplink fails to open", async () => {
+    resolveAbaPaymentRoute.mockResolvedValue({
+      mode: "aba_app",
+      deeplinkUrl: "abamobilebank://test",
+      qrString: "qr",
+      qrImageUrl: null,
+      checkoutQrUrl: "https://checkout.payway.com.kh/checkout/demo",
+      playStoreUrl: null,
+      appStoreUrl: null,
+      abaInstalled: true,
+    });
     openAbaPaywayCheckout.mockResolvedValue({ opened: "failed" });
     await runCheckout(defaultProps, () => Promise.resolve(mockPaymentIntent));
     expect(openAbaPaywayCheckout).toHaveBeenCalled();

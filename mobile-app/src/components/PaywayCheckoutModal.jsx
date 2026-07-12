@@ -20,7 +20,6 @@ import { buildQrImageUri } from "../utils/buildQrImageUri";
 import { submitPaymentPurchase } from "../services/paymentsApi";
 import { submitPaywayCheckoutForm } from "../utils/paywayCheckoutClient";
 import KhqrScanCard, { SCREEN_BG } from "./payment/KhqrScanCard";
-import { AbaKhqrLogoMark } from "./payment/PaymentMethodIcons";
 import { ABA_KHQR_TEAL } from "../theme/abaKhqrBrand";
 
 function resolveExpiryMs(expiresAt) {
@@ -47,9 +46,9 @@ export default function PaywayCheckoutModal({
   visible,
   paymentId,
   paywayCheckout,
+  checkoutQrUrl: checkoutQrUrlProp,
   expiresAt,
   amountLabel,
-  merchantName,
   skipAutoFallback = false,
   onClose,
   onPaid,
@@ -66,11 +65,19 @@ export default function PaywayCheckoutModal({
   const [fallbackPurchase, setFallbackPurchase] = useState(null);
   const [sessionExpired, setSessionExpired] = useState(() => resolveExpiryMs(expiresAt) <= 0);
 
+  const hostedCheckoutUri = useMemo(() => {
+    const fromProp = typeof checkoutQrUrlProp === "string" ? checkoutQrUrlProp.trim() : "";
+    if (fromProp) return fromProp;
+    const fromPurchase = fallbackPurchase?.checkoutQrUrl;
+    return typeof fromPurchase === "string" && fromPurchase.trim() ? fromPurchase.trim() : null;
+  }, [checkoutQrUrlProp, fallbackPurchase?.checkoutQrUrl]);
+
   const checkoutPageUri = useMemo(() => {
+    if (hostedCheckoutUri) return hostedCheckoutUri;
     if (!paymentId || !token) return null;
     const params = new URLSearchParams({ token });
     return `${API_BASE_URL}/payments/${encodeURIComponent(paymentId)}/checkout-page?${params.toString()}`;
-  }, [paymentId, token]);
+  }, [hostedCheckoutUri, paymentId, token]);
 
   const { status, error } = usePaymentStatus(paymentId, {
     autoRefresh: visible && Boolean(paymentId) && !sessionExpired,
@@ -78,7 +85,6 @@ export default function PaywayCheckoutModal({
 
   const isPaid = status === "paid";
   const isExpired = sessionExpired || status === "expired";
-  const storeName = merchantName || t("payment.storeName");
 
   useEffect(() => {
     if (status === "expired") {
@@ -87,7 +93,7 @@ export default function PaywayCheckoutModal({
   }, [status]);
 
   const loadFallbackCheckout = useCallback(async () => {
-    if (!paywayCheckout || fallbackStartedRef.current) return;
+    if ((!paywayCheckout && !(token && paymentId)) || fallbackStartedRef.current) return;
     fallbackStartedRef.current = true;
     setUseFallback(true);
     setFallbackLoading(true);
@@ -98,6 +104,10 @@ export default function PaywayCheckoutModal({
           ? await submitPaymentPurchase(token, paymentId)
           : await submitPaywayCheckoutForm(paywayCheckout);
       setFallbackPurchase(parsed);
+      if (parsed?.checkoutQrUrl) {
+        // Prefer hosted PayWay page over local KHQR card.
+        setUseFallback(false);
+      }
     } catch (err) {
       setWebError(err?.message || t("payment.checkoutUnavailable"));
     } finally {
@@ -179,35 +189,35 @@ export default function PaywayCheckoutModal({
         },
         header: {
           paddingTop: insets.top + spacing.sm,
-          paddingHorizontal: spacing.lg,
-          paddingBottom: spacing.md,
+          paddingHorizontal: spacing.md,
+          paddingBottom: spacing.sm,
+          minHeight: insets.top + 48,
+          flexDirection: "row",
           alignItems: "center",
+          justifyContent: "flex-end",
+          backgroundColor: "#FFFFFF",
+          zIndex: 2,
+          elevation: 2,
+          borderBottomWidth: StyleSheet.hairlineWidth,
+          borderBottomColor: "#E5E7EB",
         },
         closeBtn: {
-          position: "absolute",
-          right: spacing.lg,
-          top: insets.top + spacing.sm,
-          padding: spacing.xs,
+          paddingHorizontal: spacing.md,
+          paddingVertical: spacing.sm,
+          minWidth: 44,
+          minHeight: 44,
+          alignItems: "center",
+          justifyContent: "center",
         },
         closeText: {
-          fontSize: typography.bodySmall,
-          fontWeight: "700",
-          color: ABA_KHQR_TEAL,
-        },
-        title: {
-          marginTop: spacing.sm,
           fontSize: typography.body,
           fontWeight: "700",
-          color: colors.textPrimary,
-        },
-        amount: {
-          marginTop: spacing.xs,
-          fontSize: typography.bodySmall,
-          color: colors.textSecondary,
+          color: ABA_KHQR_TEAL,
         },
         webview: {
           flex: 1,
           backgroundColor: SCREEN_BG,
+          zIndex: 0,
         },
         center: {
           flex: 1,
@@ -253,12 +263,15 @@ export default function PaywayCheckoutModal({
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <View style={styles.overlay}>
         <View style={styles.header}>
-          <Pressable style={styles.closeBtn} onPress={onClose} hitSlop={12}>
+          <Pressable
+            style={styles.closeBtn}
+            onPress={onClose}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={t("payment.checkoutWebClose")}
+          >
             <Text style={styles.closeText}>{t("payment.checkoutWebClose")}</Text>
           </Pressable>
-          <AbaKhqrLogoMark size={40} />
-          <Text style={styles.title}>{storeName}</Text>
-          {amountLabel ? <Text style={styles.amount}>{amountLabel}</Text> : null}
         </View>
 
         {isExpired ? (

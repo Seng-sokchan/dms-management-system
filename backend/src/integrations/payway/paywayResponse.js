@@ -5,16 +5,30 @@ function unescapeUrl(value) {
   return value.trim().replace(/\\\//g, "/");
 }
 
+function isHttpUrl(value) {
+  return typeof value === "string" && /^https?:\/\//i.test(value.trim());
+}
+
 /**
  * @param {object|null} response PayWay purchase response
- * @returns {{ deeplinkUrl: string|null, checkoutUrl: string|null, qrString: string|null, playStoreUrl: string|null, appStoreUrl: string|null }}
+ * @returns {{
+ *   deeplinkUrl: string|null,
+ *   checkoutQrUrl: string|null,
+ *   checkoutUrl: string|null,
+ *   qrString: string|null,
+ *   qrImageUrl: string|null,
+ *   playStoreUrl: string|null,
+ *   appStoreUrl: string|null,
+ * }}
  */
 function parsePurchaseResponse(response) {
   if (!response || typeof response !== "object") {
     return {
       deeplinkUrl: null,
+      checkoutQrUrl: null,
       checkoutUrl: null,
       qrString: null,
+      qrImageUrl: null,
       playStoreUrl: null,
       appStoreUrl: null,
     };
@@ -28,20 +42,39 @@ function parsePurchaseResponse(response) {
     deeplinkUrl = `abamobilebank://ababank.com?type=payway&qrcode=${encodeURIComponent(String(qrString))}`;
   }
 
-  const checkoutUrl = unescapeUrl(
-    root.checkout_qr_url || root.checkout_url || root.qr_image_url || root.payment_url,
-  );
+  const checkoutQrUrl = unescapeUrl(root.checkout_qr_url);
+  const checkoutUrl = checkoutQrUrl
+    || unescapeUrl(root.checkout_url || root.payment_url);
+
+  const qrImage = root.qrImage || root.qr_image;
+  let qrImageUrl = null;
+  if (qrImage && String(qrImage).trim()) {
+    const imageValue = String(qrImage).trim();
+    qrImageUrl = imageValue.startsWith("data:image") ? imageValue : unescapeUrl(imageValue);
+  }
+  if (!qrImageUrl) {
+    const fallbackImage = unescapeUrl(root.qr_image_url);
+    // Do not treat checkout_qr_url (hosted webpage) as a QR image.
+    if (fallbackImage && fallbackImage !== checkoutQrUrl) {
+      qrImageUrl = fallbackImage;
+    }
+  }
 
   return {
     deeplinkUrl,
+    checkoutQrUrl: checkoutQrUrl || (isHttpUrl(checkoutUrl) ? checkoutUrl : null),
     checkoutUrl,
     qrString: qrString ? String(qrString) : null,
+    qrImageUrl,
     playStoreUrl: unescapeUrl(root.play_store),
     appStoreUrl: unescapeUrl(root.app_store),
   };
 }
 
 function extractHostedCheckoutUrl(response, purchaseUrl) {
+  const parsed = parsePurchaseResponse(response);
+  if (parsed.checkoutQrUrl) return parsed.checkoutQrUrl;
+
   const html = response?.raw;
   if (typeof html !== "string" || !html.trim()) return null;
 
@@ -50,8 +83,8 @@ function extractHostedCheckoutUrl(response, purchaseUrl) {
 
   let base;
   try {
-    const parsed = new URL(String(purchaseUrl || ""));
-    base = `${parsed.protocol}//${parsed.host}`;
+    const parsedPurchase = new URL(String(purchaseUrl || ""));
+    base = `${parsedPurchase.protocol}//${parsedPurchase.host}`;
   } catch {
     base = "https://checkout.payway.com.kh";
   }

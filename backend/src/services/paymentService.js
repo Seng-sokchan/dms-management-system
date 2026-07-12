@@ -169,7 +169,10 @@ function parseCheckoutReturnParams(returnParams) {
   }
 }
 
-async function buildPaywayCheckoutFormForSession(session, { user, paymentOption = "checkout" } = {}) {
+async function buildPaywayCheckoutFormForSession(session, {
+  user,
+  paymentOption = paywayClient.DEFAULT_PAYMENT_OPTION,
+} = {}) {
   const baseParams = {
     tranId: session.paywayTranId,
     amount: session.amount,
@@ -543,32 +546,16 @@ async function loadActiveCheckoutSession(paymentId, { user }) {
   return session;
 }
 
-function unescapePaywayUrl(value) {
-  if (typeof value !== "string" || !value.trim()) return null;
-  return value.trim().replace(/\\\//g, "/");
-}
-
 function mapPurchaseForClient(response) {
   assertPurchaseSuccess(response);
   const parsed = parsePurchaseResponse(response);
-  const root = response?.data && typeof response.data === "object" ? response.data : response;
-  const qrImage = root?.qrImage || root?.qr_image;
-  let qrImageUrl = null;
-  if (qrImage && String(qrImage).trim()) {
-    const imageValue = String(qrImage).trim();
-    qrImageUrl = imageValue.startsWith("data:image") ? imageValue : unescapePaywayUrl(imageValue);
-  }
-  if (!qrImageUrl) {
-    qrImageUrl = unescapePaywayUrl(
-      root?.checkout_qr_url || root?.checkout_url || root?.qr_image_url,
-    ) || parsed.checkoutUrl;
-  }
-  if (!parsed.qrString && !qrImageUrl) {
+  if (!parsed.qrString && !parsed.qrImageUrl && !parsed.checkoutQrUrl && !parsed.deeplinkUrl) {
     throw new BadRequestError("PayWay did not return KHQR data");
   }
   return {
     qrString: parsed.qrString,
-    qrImageUrl,
+    qrImageUrl: parsed.qrImageUrl,
+    checkoutQrUrl: parsed.checkoutQrUrl,
     deeplinkUrl: parsed.deeplinkUrl,
     playStoreUrl: parsed.playStoreUrl,
     appStoreUrl: parsed.appStoreUrl,
@@ -580,7 +567,7 @@ async function submitPaywayPurchase(paymentId, { user }) {
   await paymentStatusCache.startLiveCheck(session);
   const paywayCheckout = await buildPaywayCheckoutFormForSession(session, {
     user,
-    paymentOption: "abapay_deeplink",
+    paymentOption: paywayClient.DEFAULT_PAYMENT_OPTION || "abapay_khqr_deeplink",
   });
   const response = await paywayClient.submitCheckoutForm(paywayCheckout);
   return mapPurchaseForClient(response);
@@ -590,7 +577,10 @@ async function getCheckoutPage(paymentId, { user }) {
   const session = await loadActiveCheckoutSession(paymentId, { user });
   await paymentStatusCache.startLiveCheck(session);
 
-  const paywayCheckout = await buildPaywayCheckoutFormForSession(session, { user });
+  const paywayCheckout = await buildPaywayCheckoutFormForSession(session, {
+    user,
+    paymentOption: paywayClient.DEFAULT_PAYMENT_OPTION || "abapay_khqr_deeplink",
+  });
   try {
     const response = await paywayClient.submitCheckoutForm(paywayCheckout);
     const hostedUrl = extractHostedCheckoutUrl(response, paywayCheckout.action);

@@ -36,11 +36,25 @@ describe("paywayCheckoutClient", () => {
           qr_string: "qr-alias",
           qr_image: "https:\\/\\/payway.example\\/qr.png",
           abapay_deeplink: "abamobilebank:\\/\\/ababank.com?type=payway",
+          checkout_qr_url: "https:\\/\\/checkout.payway.com.kh\\/checkout\\/abc",
         },
       });
       expect(result.qrString).toBe("qr-alias");
       expect(result.qrImageUrl).toBe("https://payway.example/qr.png");
       expect(result.deeplinkUrl).toBe("abamobilebank://ababank.com?type=payway");
+      expect(result.checkoutQrUrl).toBe("https://checkout.payway.com.kh/checkout/abc");
+    });
+
+    it("does not treat checkout_qr_url as a QR image", () => {
+      const result = parsePaywayClientResponse({
+        status: { code: "00" },
+        data: {
+          qrString: "payload",
+          checkout_qr_url: "https://checkout.payway.com.kh/checkout/abc",
+        },
+      });
+      expect(result.checkoutQrUrl).toBe("https://checkout.payway.com.kh/checkout/abc");
+      expect(result.qrImageUrl).toBeNull();
     });
 
     it("builds deeplink from qrString when abapay_deeplink is missing", () => {
@@ -134,6 +148,27 @@ describe("paywayCheckoutClient", () => {
       await expect(submitPaywayCheckoutForm(mockPaywayCheckout)).rejects.toThrow(
         "PayWay did not return KHQR data",
       );
+    });
+
+    it("accepts checkout_qr_url without qrString", async () => {
+      global.fetch = jest.fn(() =>
+        Promise.resolve({
+          text: () =>
+            Promise.resolve(
+              JSON.stringify({
+                status: { code: "00" },
+                data: {
+                  abapay_deeplink: "abamobilebank://ababank.com?type=payway",
+                  checkout_qr_url: "https://checkout.payway.com.kh/checkout/abc",
+                },
+              }),
+            ),
+        }),
+      );
+
+      const result = await submitPaywayCheckoutForm(mockPaywayCheckout);
+      expect(result.checkoutQrUrl).toBe("https://checkout.payway.com.kh/checkout/abc");
+      expect(result.deeplinkUrl).toContain("abamobilebank://");
     });
 
     it("throws on request timeout", async () => {

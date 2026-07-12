@@ -7,7 +7,7 @@ function getPaywayConfig() {
   ).trim();
   const checkUrl = String(
     process.env.PAYWAY_CHECK_URL
-      || "https://checkout-sandbox.payway.com.kh/api/payment-gateway/v1/payments/check-transaction",
+      || "https://checkout-sandbox.payway.com.kh/api/payment-gateway/v1/payments/check-transaction-2",
   ).trim();
   const callbackUrl = String(process.env.PAYWAY_CALLBACK_URL || "").trim();
   const returnDeeplinkBase = String(
@@ -66,10 +66,18 @@ function encodeItemsBase64(items) {
   return Buffer.from(JSON.stringify(payload), "utf8").toString("base64");
 }
 
+/** PayWay `return_url` must be Base64-encoded (server pushback / webhook URL). */
+function encodeReturnUrl(url) {
+  const value = String(url || "").trim();
+  if (!value) return "";
+  return Buffer.from(value, "utf8").toString("base64");
+}
+
 module.exports = {
   getPaywayConfig,
   assertPaywayConfigured,
   formatPaywayReqTime,
   formatAmountForPayway,
   encodeItemsBase64,
+  encodeReturnUrl,
 };

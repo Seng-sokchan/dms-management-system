@@ -30,7 +30,7 @@ export default function PaymentResultScreen({ route, navigation }) {
   const [redirecting, setRedirecting] = useState(false);
 
   const isPaid = status === "paid";
-  const email = user?.email || user?.username || t("payment.successEmailFallback");
+  const customerName = user?.name || user?.username || t("payment.successNameFallback");
 
   useEffect(() => {
     if (loading || !paymentIdParam || isPaid) return undefined;
@@ -224,7 +224,7 @@ export default function PaymentResultScreen({ route, navigation }) {
           <PaymentSuccessIllustration />
           <Text style={styles.successTitle}>{t("payment.successTitle")}</Text>
           <Text style={styles.successHint}>
-            {t("payment.successEmailHint", { email })}
+            {t("payment.successNameHint", { name: customerName })}
           </Text>
           {error ? <Text style={styles.error}>{error}</Text> : null}
         </View>

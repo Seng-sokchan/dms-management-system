@@ -13,6 +13,7 @@ export const mockPaywaySuccessResponse = {
     qrString: "00020101021234567890",
     qrImage: "https://payway.example/qr.png",
     abapay_deeplink: "abamobilebank://ababank.com?type=payway&qrcode=encoded",
+    checkout_qr_url: "https://checkout.payway.com.kh/checkout/demo-hosted",
     play_store: "market://details?id=com.paygo24.ibank",
     app_store: "https://apps.apple.com/app/aba-mobile",
   },

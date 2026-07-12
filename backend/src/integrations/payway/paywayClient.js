@@ -5,6 +5,7 @@ const {
   formatPaywayReqTime,
   formatAmountForPayway,
   encodeItemsBase64,
+  encodeReturnUrl,
 } = require("./paywayConfig");
 
 async function postForm(url, formData) {
@@ -32,14 +33,17 @@ async function postForm(url, formData) {
   return json;
 }
 
+const DEFAULT_PAYMENT_OPTION = "abapay_khqr_deeplink";
+const HOSTED_VIEW_TYPE = "hosted_view";
+
 function isCheckoutPaymentOption(paymentOption) {
   const option = String(paymentOption || "").toLowerCase();
   return option === "checkout" || option === "payway_checkout";
 }
 
 function resolvePaymentOptionForPayway(paymentOption) {
-  if (isCheckoutPaymentOption(paymentOption)) return "";
-  return paymentOption || "abapay_deeplink";
+  if (isCheckoutPaymentOption(paymentOption)) return DEFAULT_PAYMENT_OPTION;
+  return paymentOption || DEFAULT_PAYMENT_OPTION;
 }
 
 function getCheckoutScriptUrl() {
@@ -108,7 +112,8 @@ function buildPurchaseFormFields({
       phone: customer?.phone || "0000000000",
       type: "purchase",
       payment_option: resolvePaymentOptionForPayway(paymentOption),
-      return_url: "",
+      // Server pushback URL (Base64). Do not use callback_url for ecommerce checkout.
+      return_url: encodeReturnUrl(cfg.callbackUrl),
       cancel_url: "",
       continue_success_url: "",
       return_deeplink: returnDeeplink || "",
@@ -120,13 +125,16 @@ function buildPurchaseFormFields({
   };
 }
 
+function appendPaywayExtras(fields) {
+  // view_type is not part of the purchase hash (PayWay v2 docs).
+  fields.view_type = HOSTED_VIEW_TYPE;
+  return fields;
+}
+
 function buildPaywayCheckoutForm(params) {
   const { hashFields, cfg } = buildPurchaseFormFields(params);
   const hash = hashForPurchase(hashFields, cfg.apiKey);
-  const fields = { ...hashFields, hash };
-  if (cfg.callbackUrl) {
-    fields.callback_url = cfg.callbackUrl;
-  }
+  const fields = appendPaywayExtras({ ...hashFields, hash });
   return {
     action: cfg.purchaseUrl,
     fields,
@@ -167,9 +175,7 @@ async function createPurchase(params) {
     }
   }
   form.append("hash", hash);
-  if (cfg.callbackUrl) {
-    form.append("callback_url", cfg.callbackUrl);
-  }
+  form.append("view_type", HOSTED_VIEW_TYPE);
 
   return postForm(cfg.purchaseUrl, form);
 }
@@ -216,6 +222,9 @@ module.exports = {
   getCheckoutScriptUrl,
   resolveCheckoutPluginBase,
   isCheckoutPaymentOption,
+  resolvePaymentOptionForPayway,
+  DEFAULT_PAYMENT_OPTION,
+  HOSTED_VIEW_TYPE,
   checkTransaction,
   isApprovedCheckResponse,
 };

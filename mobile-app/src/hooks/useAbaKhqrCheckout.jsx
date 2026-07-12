@@ -15,8 +15,8 @@ import { resolvePaywayCheckoutIntent } from "../utils/resolvePaywayCheckoutInten
 import { ABA_KHQR_TEAL } from "../theme/abaKhqrBrand";
 
 /**
- * Shared ABA KHQR checkout: open ABA Mobile when installed; show KHQR only if ABA is unavailable
- * or the deeplink fails. WebView is the last fallback.
+ * Shared ABA KHQR checkout: open ABA Mobile when installed; otherwise show PayWay hosted
+ * checkout (checkout_qr_url) in a WebView. Local KHQR card is only used if hosted URL is missing.
  */
 export function useAbaKhqrCheckout({
   token,
@@ -121,7 +121,11 @@ export function useAbaKhqrCheckout({
         return;
       }
 
-      setQrPayload({ qrString: route.qrString, qrImageUrl: route.qrImageUrl });
+      setQrPayload({
+        qrString: route.qrString,
+        qrImageUrl: route.qrImageUrl,
+        checkoutQrUrl: route.checkoutQrUrl,
+      });
 
       if (route.mode === "aba_app") {
         const result = await openAbaPaywayCheckout(
@@ -138,9 +142,15 @@ export function useAbaKhqrCheckout({
           setCheckoutMode(null);
           return;
         }
+        // Deeplink failed → fall through to hosted checkout / KHQR.
       }
 
-      // ABA missing / deeplink failed → show KHQR scan UI only now.
+      if (route.mode === "webview" || route.checkoutQrUrl) {
+        setCheckoutMode("webview");
+        return;
+      }
+
+      // ABA missing / deeplink failed and no hosted URL → show KHQR scan UI.
       setCheckoutMode("khqr_qr");
     },
     [buildPendingReturn, openWebviewFallback, showError, t, token],
@@ -214,6 +224,7 @@ export function useAbaKhqrCheckout({
         visible={checkoutMode === "webview"}
         paymentId={checkoutSession?.paymentId}
         paywayCheckout={checkoutSession?.paywayCheckout}
+        checkoutQrUrl={qrPayload?.checkoutQrUrl}
         expiresAt={checkoutSession?.expiresAt}
         amountLabel={amountLabel}
         merchantName={merchantName}

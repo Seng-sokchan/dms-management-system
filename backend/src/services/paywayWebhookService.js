@@ -55,7 +55,7 @@ async function promoteCheckoutToPayment(session, providerTranId, rawCallbackPayl
 }
 
 /**
- * Process PayWay server pushback (callback_url).
+ * Process PayWay server pushback (`return_url`).
  */
 async function processCallback(body) {
   const normalized = normalizePaywayCallback(body);
