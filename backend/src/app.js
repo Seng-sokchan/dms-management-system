@@ -9,6 +9,9 @@ const { errorHandler } = require("./middleware/errorHandler");
 
 const app = express();
 
+// Behind Caddy/reverse proxy so express-rate-limit can use X-Forwarded-For safely.
+app.set("trust proxy", Number(process.env.TRUST_PROXY_HOPS || 1));
+
 function parseCorsOrigins() {
   const origins = new Set();
   for (const key of ["FRONTEND_URL", "MOBILE_URL"]) {

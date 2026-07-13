@@ -37,6 +37,7 @@ import {
   buildRouteSummaryFromDirections,
   getOrderDestination,
   haversineMeters,
+  normalizeHeading,
   orderHasCustomerCoords,
   pickNearestReadyOrder,
   shouldRefreshByDistance,
@@ -291,8 +292,8 @@ export default function DeliveryNavigationScreen() {
       const ok = await ensureDriverLocationReady();
       if (!ok) return null;
       const info = await getCurrentDriverPositionAsync(GET_CURRENT_OPTIONS);
-      const { latitude, longitude } = info.coords;
-      const loc = { latitude, longitude };
+      const { latitude, longitude, heading } = info.coords;
+      const loc = { latitude, longitude, heading: normalizeHeading(heading) };
       setDriverLocationImmediate(loc);
       return loc;
     } catch {

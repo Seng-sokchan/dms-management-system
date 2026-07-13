@@ -31,6 +31,36 @@ export function haversineMeters(lat1, lon1, lat2, lon2) {
   return R * c;
 }
 
+/** Normalize GPS heading (degrees clockwise from north). Returns null when unavailable. */
+export function normalizeHeading(heading) {
+  const n = Number(heading);
+  if (!Number.isFinite(n) || n < 0) return null;
+  return ((n % 360) + 360) % 360;
+}
+
+/** Bearing from point A to B in degrees (0 = north, clockwise). */
+export function bearingDegrees(from, to) {
+  const lat1 = parseCoord(from?.latitude);
+  const lng1 = parseCoord(from?.longitude);
+  const lat2 = parseCoord(to?.latitude);
+  const lng2 = parseCoord(to?.longitude);
+  if (lat1 == null || lng1 == null || lat2 == null || lng2 == null) return null;
+  const toRad = (d) => (d * Math.PI) / 180;
+  const toDeg = (r) => (r * 180) / Math.PI;
+  const φ1 = toRad(lat1);
+  const φ2 = toRad(lat2);
+  const Δλ = toRad(lng2 - lng1);
+  const y = Math.sin(Δλ) * Math.cos(φ2);
+  const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+  return ((toDeg(Math.atan2(y, x)) % 360) + 360) % 360;
+}
+
+/** Absolute smallest angle difference between two headings (0–180). */
+export function headingDeltaDegrees(a, b) {
+  if (a == null || b == null) return 180;
+  return Math.abs(((a - b + 540) % 360) - 180);
+}
+
 export function orderHasCustomerCoords(order) {
   const lat = parseCoord(order?.customerLatitude);
   const lng = parseCoord(order?.customerLongitude);

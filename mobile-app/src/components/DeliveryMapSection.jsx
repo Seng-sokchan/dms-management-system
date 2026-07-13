@@ -5,11 +5,99 @@ import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppIcon } from "./ui";
 import { DeliveryRouteDirections } from "./DeliveryRouteDirections";
-import { buildMapRegion, getOrderDestination } from "../utils/deliveryNavigation";
+import {
+  bearingDegrees,
+  buildMapRegion,
+  getOrderDestination,
+} from "../utils/deliveryNavigation";
 import { useTheme } from "../context/ThemeContext";
-import { getGoogleMapStyle } from "../theme/mapStyles";
 
 const DRIVER_FOLLOW_DELTA = 0.018;
+
+function DriverTruckMarker({ coordinate, heading, destination }) {
+  const [tracksViewChanges, setTracksViewChanges] = useState(true);
+  const rotation = useMemo(() => {
+    if (heading != null) return heading;
+    const towardStop = bearingDegrees(coordinate, destination);
+    return towardStop ?? 0;
+  }, [coordinate, destination, heading]);
+
+  useEffect(() => {
+    setTracksViewChanges(true);
+    const timer = setTimeout(() => setTracksViewChanges(false), 350);
+    return () => clearTimeout(timer);
+  }, [rotation, coordinate?.latitude, coordinate?.longitude]);
+
+  return (
+    <Marker
+      coordinate={coordinate}
+      anchor={{ x: 0.5, y: 0.55 }}
+      flat
+      rotation={rotation}
+      tracksViewChanges={tracksViewChanges}
+      title="You"
+      description="Your location"
+      zIndex={10}
+    >
+      <View style={driverMarkerStyles.wrap} pointerEvents="none">
+        <View style={driverMarkerStyles.directionTip} />
+        <View style={driverMarkerStyles.badge}>
+          <AppIcon
+            name="truck"
+            size={18}
+            color="#FFFFFF"
+            style={driverMarkerStyles.truckIcon}
+          />
+        </View>
+      </View>
+    </Marker>
+  );
+}
+
+const driverMarkerStyles = StyleSheet.create({
+  wrap: {
+    width: 44,
+    height: 52,
+    alignItems: "center",
+    justifyContent: "flex-start",
+  },
+  directionTip: {
+    width: 0,
+    height: 0,
+    borderLeftWidth: 7,
+    borderRightWidth: 7,
+    borderBottomWidth: 10,
+    borderLeftColor: "transparent",
+    borderRightColor: "transparent",
+    borderBottomColor: "#111111",
+    marginBottom: -1,
+  },
+  badge: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#111111",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2.5,
+    borderColor: "#FFFFFF",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000000",
+        shadowOpacity: 0.28,
+        shadowRadius: 3,
+        shadowOffset: { width: 0, height: 1 },
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+  // MCI "truck" faces east; rotate so cab points toward the direction tip (north / up).
+  truckIcon: {
+    transform: [{ rotate: "-90deg" }],
+  },
+});
 
 function DeliveryMapSectionInner({
   driverLocation,
@@ -30,7 +118,8 @@ function DeliveryMapSectionInner({
 }) {
   const { t } = useTranslation();
   const { colors, isDark, radii, resolvedMode, shadows, sizes, spacing, typography } = useTheme();
-  const mapStyle = useMemo(() => getGoogleMapStyle(isDark), [isDark]);
+  // Prefer native MapColorScheme via userInterfaceStyle. customMapStyle JSON disables
+  // Google Maps dark/light color scheme on Android and was leaving the map light in dark theme.
   const mapProvider = Platform.OS === "android" ? PROVIDER_GOOGLE : undefined;
   const mapUserInterfaceStyle = isDark ? "dark" : "light";
   const styles = useMemo(
@@ -223,16 +312,13 @@ function DeliveryMapSectionInner({
     warnings.push(directionsError);
   }
 
-  const showDriverMarker = !fullScreen && driverLocation;
-
   const mapMarkers = (
     <>
-      {showDriverMarker ? (
-        <Marker
+      {driverLocation ? (
+        <DriverTruckMarker
           coordinate={driverLocation}
-          pinColor="#111111"
-          title="You"
-          description="Your location"
+          heading={driverLocation.heading}
+          destination={activeDestination}
         />
       ) : null}
       {activeDestination ? (
@@ -285,10 +371,9 @@ function DeliveryMapSectionInner({
             provider={mapProvider}
             style={{ width: resolvedWidth, height: resolvedHeight }}
             initialRegion={mapRegion}
-            customMapStyle={mapStyle}
             userInterfaceStyle={mapUserInterfaceStyle}
             loadingEnabled
-            showsUserLocation
+            showsUserLocation={false}
             showsMyLocationButton={false}
             toolbarEnabled={false}
             onPanDrag={handlePanDrag}
@@ -350,7 +435,6 @@ function DeliveryMapSectionInner({
           provider={mapProvider}
           style={styles.map}
           initialRegion={mapRegion}
-          customMapStyle={mapStyle}
           userInterfaceStyle={mapUserInterfaceStyle}
           onPanDrag={handlePanDrag}
         >

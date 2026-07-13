@@ -1,6 +1,12 @@
 /**
  * Google Maps JSON styles for react-native-maps `customMapStyle`.
- * Light uses the default Google palette; dark aligns with app darkColors.
+ *
+ * Prefer `userInterfaceStyle` ("light" | "dark") for theme switching.
+ * On Android, JSON `customMapStyle` disables native MapColorScheme, which
+ * caused the map to stay light while the app was in dark theme.
+ *
+ * Keep these styles only if you need brand-specific map coloring beyond
+ * the native light/dark schemes — and do not combine them with theme toggles.
  */
 
 /** Default Google Maps appearance (light). */

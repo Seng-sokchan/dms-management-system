@@ -189,7 +189,7 @@ export function DeliveryOrdersBottomSheet({
 
   return (
     <Animated.View
-      pointerEvents={expanded ? "auto" : "box-none"}
+      pointerEvents="auto"
       style={[
         styles.sheet,
         {
@@ -215,7 +215,7 @@ export function DeliveryOrdersBottomSheet({
           )}
         </Pressable>
       </View>
-      <View style={styles.body} pointerEvents={expanded ? "auto" : "none"}>
+      <View style={styles.body} pointerEvents="auto">
         {children}
       </View>
     </Animated.View>

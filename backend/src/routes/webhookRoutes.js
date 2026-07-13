@@ -12,6 +12,11 @@ const webhookLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Probe-friendly GET (browsers / uptime checks). Real PayWay pushbacks are POST only.
+router.get("/webhooks/payway", (_req, res) => {
+  res.status(200).json({ ok: true });
+});
+
 router.post("/webhooks/payway", ...paywayWebhookParser, webhookLimiter, handlePaywayCallback);
 
 module.exports = router;

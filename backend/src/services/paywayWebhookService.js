@@ -5,15 +5,20 @@ const { normalizePaywayCallback } = require("../integrations/payway/paywayWebhoo
 const { emitPaymentStatus } = require("../socket/paymentStatusSocket");
 const paymentStatusCache = require("./paymentStatusCache");
 
-const PAYWAY_SUCCESS_STATUS = new Set([0, "0", "APPROVED", "PAID", "PREAUTH_APPROVED"]);
+/** PayWay pushback uses `status: 0` for approved (not `payment_status`). */
+function isPaywayPushbackSuccess(payload) {
+  if (!payload || typeof payload !== "object") return false;
+  const status = payload.status;
+  if (status === 0 || status === "0") return true;
+  const paymentStatus = payload.payment_status ?? payload.data?.payment_status;
+  return String(paymentStatus || "").toUpperCase() === "APPROVED";
+}
 
-function isPaywaySuccessStatus(status) {
-  if (PAYWAY_SUCCESS_STATUS.has(status)) return true;
-  if (typeof status === "string") {
-    const upper = status.toUpperCase();
-    return PAYWAY_SUCCESS_STATUS.has(upper);
-  }
-  return false;
+/** Check-transaction response must report payment_status APPROVED before insert. */
+function hasApprovedPaymentStatus(body) {
+  if (!body || typeof body !== "object") return false;
+  const paymentStatus = body.payment_status ?? body.data?.payment_status;
+  return String(paymentStatus || "").toUpperCase() === "APPROVED";
 }
 
 async function promoteCheckoutToPayment(session, providerTranId, rawCallbackPayload) {
@@ -60,7 +65,6 @@ async function promoteCheckoutToPayment(session, providerTranId, rawCallbackPayl
 async function processCallback(body) {
   const normalized = normalizePaywayCallback(body);
   const tranId = normalized.tranId;
-  const status = normalized.status;
   const merchantRef = normalized.merchantRef;
   const payload = normalized.raw || body;
 
@@ -87,13 +91,13 @@ async function processCallback(body) {
     throw err;
   }
 
-  if (!isPaywaySuccessStatus(status)) {
+  if (!isPaywayPushbackSuccess(payload)) {
     await paymentStatusCache.removeCheckoutSession(session.id);
     return { paymentId: session.id, status: "unpaid", failed: true };
   }
 
   const checkResult = await paywayClient.checkTransaction(tranId);
-  if (!paywayClient.isApprovedCheckResponse(checkResult)) {
+  if (!hasApprovedPaymentStatus(checkResult)) {
     return {
       paymentId: session.id,
       status: "unpaid",
@@ -101,7 +105,11 @@ async function processCallback(body) {
     };
   }
 
-  const updated = await promoteCheckoutToPayment(session, tranId, payload);
+  const updated = await promoteCheckoutToPayment(session, tranId, {
+    ...payload,
+    payment_status: "APPROVED",
+    checkResult,
+  });
   await paymentStatusCache.setPaid(updated);
   emitPaymentStatus(updated);
   return { paymentId: updated.id, status: "paid", paid: true };
@@ -111,14 +119,16 @@ async function reconcileCheckoutSession(session) {
   if (!session?.paywayTranId) return session;
   try {
     const checkResult = await paywayClient.checkTransaction(session.paywayTranId);
-    if (paywayClient.isApprovedCheckResponse(checkResult)) {
-      const payment = await promoteCheckoutToPayment(session, session.paywayTranId, {
-        source: "reconcile",
-        checkResult,
-      });
-      await paymentStatusCache.setPaid(payment);
-      return payment;
+    if (!hasApprovedPaymentStatus(checkResult)) {
+      return session;
     }
+    const payment = await promoteCheckoutToPayment(session, session.paywayTranId, {
+      source: "reconcile",
+      payment_status: "APPROVED",
+      checkResult,
+    });
+    await paymentStatusCache.setPaid(payment);
+    return payment;
   } catch (err) {
     // eslint-disable-next-line no-console
     console.warn("[payway-reconcile] check failed", session.id, err.message);

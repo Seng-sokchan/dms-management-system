@@ -9,7 +9,12 @@ import {
   ensureDriverLocationReady,
   watchDriverPosition,
 } from "../utils/driverLocationProvider";
-import { haversineMeters, shouldRefreshByDistance } from "../utils/deliveryNavigation";
+import {
+  haversineMeters,
+  headingDeltaDegrees,
+  normalizeHeading,
+  shouldRefreshByDistance,
+} from "../utils/deliveryNavigation";
 
 const EMIT_MIN_INTERVAL_MS = 8000;
 const MOVE_EMIT_THRESHOLD_M = 35;
@@ -50,6 +55,7 @@ export function useDeliveryLiveTracking({
   const lastUiLocationAt = useRef(0);
   const lastUiLat = useRef(null);
   const lastUiLng = useRef(null);
+  const lastUiHeading = useRef(null);
   const lastEmitAt = useRef(0);
   const lastLat = useRef(null);
   const lastLng = useRef(null);
@@ -74,10 +80,14 @@ export function useDeliveryLiveTracking({
         loc,
         UI_LOCATION_MOVE_THRESHOLD_M,
       );
-    if (!forceUi && !timeOk && !moveOk) return;
+    const headingOk =
+      forceUi ||
+      (loc.heading != null && headingDeltaDegrees(lastUiHeading.current, loc.heading) >= 12);
+    if (!forceUi && !timeOk && !moveOk && !headingOk) return;
     lastUiLocationAt.current = now;
     lastUiLat.current = loc.latitude;
     lastUiLng.current = loc.longitude;
+    lastUiHeading.current = loc.heading ?? lastUiHeading.current;
     setDriverLocation(loc);
   }, []);
 
@@ -100,8 +110,12 @@ export function useDeliveryLiveTracking({
     }
 
     function handlePosition(info) {
-      const { latitude, longitude, accuracy } = info.coords;
-      const loc = { latitude, longitude };
+      const { latitude, longitude, accuracy, heading } = info.coords;
+      const loc = {
+        latitude,
+        longitude,
+        heading: normalizeHeading(heading),
+      };
       driverLocationRef.current = loc;
 
       onPositionForNavRef.current?.(latitude, longitude);
