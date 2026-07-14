@@ -258,7 +258,7 @@
     "methodKhqrScan": "ស្កេន KHQR QR",
     "storeName": "ហាង DMS",
     "methodAbaKhqr": "ABA KHQR",
-    "methodAbaKhqrHint": "ស្កេនដើម្បីបង់ប្រាក់ជាមួយកម្មវិធីធនាគារណាមួយ",
+    "methodAbaKhqrHint": "ស្គែនទូទាត់តាមកម្មវិធីធនាគារសមាជិក KHQR",
     "methodCard": "កាតឥណទាន/ឥណពន្ធ",
     "methodCardHint": "Visa, Mastercard, Amex, JCB, UnionPay",
     "methodAlipay": "Alipay",

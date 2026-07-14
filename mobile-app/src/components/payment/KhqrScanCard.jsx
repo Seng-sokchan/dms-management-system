@@ -26,6 +26,7 @@ function DashedDivider() {
  */
 export default function KhqrScanCard({
   amountLabel,
+  merchantName,
   qrString,
   qrImageUrl,
   loading = false,
@@ -43,7 +44,13 @@ export default function KhqrScanCard({
       </View>
 
       <View style={styles.body}>
-        <Text style={styles.amountCaption}>{t("payment.amountToPay")}</Text>
+        {merchantName ? (
+          <Text style={styles.merchantName} numberOfLines={2}>
+            {merchantName}
+          </Text>
+        ) : (
+          <Text style={styles.amountCaption}>{t("payment.amountToPay")}</Text>
+        )}
         {amountLabel ? <Text style={styles.amountValue}>{amountLabel}</Text> : null}
 
         <DashedDivider />
@@ -134,6 +141,15 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#9CA3AF",
     marginBottom: 4,
+  },
+  merchantName: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#9CA3AF",
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+    textAlign: "center",
+    marginBottom: 6,
   },
   amountValue: {
     fontSize: 28,

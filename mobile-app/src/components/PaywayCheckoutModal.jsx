@@ -3,16 +3,14 @@ import {
   ActivityIndicator,
   Linking,
   Modal,
-  Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
 import { WebView } from "react-native-webview";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
-import { useTheme } from "../context/ThemeContext";
 import { usePaymentStatus } from "../hooks/usePaymentStatus";
 import { API_BASE_URL } from "../config/appConfig";
 import { PAYMENT_INTENT_TTL_MS } from "../constants/paymentConstants";
@@ -20,6 +18,8 @@ import { buildQrImageUri } from "../utils/buildQrImageUri";
 import { submitPaymentPurchase } from "../services/paymentsApi";
 import { submitPaywayCheckoutForm } from "../utils/paywayCheckoutClient";
 import KhqrScanCard, { SCREEN_BG } from "./payment/KhqrScanCard";
+import KhqrCheckoutHeader from "./payment/KhqrCheckoutHeader";
+import KhqrCheckoutFooter from "./payment/KhqrCheckoutFooter";
 import { ABA_KHQR_TEAL } from "../theme/abaKhqrBrand";
 
 function resolveExpiryMs(expiresAt) {
@@ -49,14 +49,13 @@ export default function PaywayCheckoutModal({
   checkoutQrUrl: checkoutQrUrlProp,
   expiresAt,
   amountLabel,
+  merchantName,
   skipAutoFallback = false,
   onClose,
   onPaid,
 }) {
   const { t } = useTranslation();
   const { token } = useAuth();
-  const { colors, spacing, typography } = useTheme();
-  const insets = useSafeAreaInsets();
   const paidNotifiedRef = useRef(false);
   const fallbackStartedRef = useRef(false);
   const [webError, setWebError] = useState(null);
@@ -85,6 +84,7 @@ export default function PaywayCheckoutModal({
 
   const isPaid = status === "paid";
   const isExpired = sessionExpired || status === "expired";
+  const showNativeLayout = useFallback || isExpired;
 
   useEffect(() => {
     if (status === "expired") {
@@ -105,7 +105,6 @@ export default function PaywayCheckoutModal({
           : await submitPaywayCheckoutForm(paywayCheckout);
       setFallbackPurchase(parsed);
       if (parsed?.checkoutQrUrl) {
-        // Prefer hosted PayWay page over local KHQR card.
         setUseFallback(false);
       }
     } catch (err) {
@@ -180,112 +179,30 @@ export default function PaywayCheckoutModal({
     [fallbackPurchase?.qrImageUrl, fallbackPurchase?.qrString],
   );
 
-  const styles = useMemo(
-    () =>
-      StyleSheet.create({
-        overlay: {
-          flex: 1,
-          backgroundColor: SCREEN_BG,
-        },
-        header: {
-          paddingTop: insets.top + spacing.sm,
-          paddingHorizontal: spacing.md,
-          paddingBottom: spacing.sm,
-          minHeight: insets.top + 48,
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "flex-end",
-          backgroundColor: "#FFFFFF",
-          zIndex: 2,
-          elevation: 2,
-          borderBottomWidth: StyleSheet.hairlineWidth,
-          borderBottomColor: "#E5E7EB",
-        },
-        closeBtn: {
-          paddingHorizontal: spacing.md,
-          paddingVertical: spacing.sm,
-          minWidth: 44,
-          minHeight: 44,
-          alignItems: "center",
-          justifyContent: "center",
-        },
-        closeText: {
-          fontSize: typography.body,
-          fontWeight: "700",
-          color: ABA_KHQR_TEAL,
-        },
-        webview: {
-          flex: 1,
-          backgroundColor: SCREEN_BG,
-          zIndex: 0,
-        },
-        center: {
-          flex: 1,
-          alignItems: "center",
-          justifyContent: "center",
-          padding: spacing.xl,
-        },
-        qrImage: {
-          width: 240,
-          height: 240,
-          backgroundColor: "#fff",
-        },
-        scanTitle: {
-          marginTop: spacing.lg,
-          fontSize: typography.body,
-          fontWeight: "700",
-          color: colors.textPrimary,
-          textAlign: "center",
-        },
-        hint: {
-          marginTop: spacing.md,
-          paddingHorizontal: spacing.lg,
-          paddingBottom: insets.bottom + spacing.md,
-        },
-        hintText: {
-          fontSize: typography.caption,
-          color: colors.textMuted,
-          textAlign: "center",
-          lineHeight: 18,
-        },
-        error: {
-          color: colors.danger,
-          fontSize: typography.bodySmall,
-          textAlign: "center",
-        },
-      }),
-    [colors, insets.bottom, insets.top, spacing, typography],
-  );
-
-  const statusLabel = t(`payment.result.${status}`, status);
+  const showErrorBanner = Boolean((webError && !useFallback) || error);
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <View style={styles.overlay}>
-        <View style={styles.header}>
-          <Pressable
-            style={styles.closeBtn}
-            onPress={onClose}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel={t("payment.checkoutWebClose")}
-          >
-            <Text style={styles.closeText}>{t("payment.checkoutWebClose")}</Text>
-          </Pressable>
-        </View>
+        <KhqrCheckoutHeader onClose={onClose} />
 
         {isExpired ? (
           <View style={styles.center}>
             <Text style={styles.error}>{t("payment.khqrExpired")}</Text>
           </View>
         ) : useFallback ? (
-          <View style={styles.center}>
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            bounces={false}
+          >
             {fallbackLoading ? (
               <ActivityIndicator color={ABA_KHQR_TEAL} size="large" />
             ) : fallbackPurchase?.qrString || fallbackPurchase?.qrImageUrl || qrUri ? (
               <>
                 <KhqrScanCard
                   amountLabel={amountLabel}
+                  merchantName={merchantName}
                   qrString={fallbackPurchase?.qrString}
                   qrImageUrl={fallbackPurchase?.qrImageUrl}
                 />
@@ -294,7 +211,7 @@ export default function PaywayCheckoutModal({
             ) : (
               <Text style={styles.error}>{webError || t("payment.checkoutUnavailable")}</Text>
             )}
-          </View>
+          </ScrollView>
         ) : !checkoutPageUri ? (
           <View style={styles.center}>
             <Text style={styles.error}>{t("payment.checkoutUnavailable")}</Text>
@@ -326,18 +243,57 @@ export default function PaywayCheckoutModal({
           />
         )}
 
-        <View style={styles.hint}>
-          {webError && !useFallback ? <Text style={styles.error}>{webError}</Text> : null}
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-          <Text style={styles.hintText}>
-            {isPaid
-              ? t("payment.khqrPaidHint")
-              : isExpired
-                ? t("payment.khqrExpired")
-                : t("payment.checkoutWebHint", { status: statusLabel })}
-          </Text>
-        </View>
+        {showErrorBanner ? (
+          <View style={styles.errorBanner}>
+            {webError && !useFallback ? <Text style={styles.error}>{webError}</Text> : null}
+            {error ? <Text style={styles.error}>{error}</Text> : null}
+          </View>
+        ) : null}
+
+        {showNativeLayout && !isExpired ? <KhqrCheckoutFooter amountLabel={amountLabel} /> : null}
       </View>
     </Modal>
   );
 }
+
+const styles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: SCREEN_BG,
+  },
+  webview: {
+    flex: 1,
+    backgroundColor: SCREEN_BG,
+  },
+  center: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 24,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  scanTitle: {
+    marginTop: 24,
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#111827",
+    textAlign: "center",
+  },
+  errorBanner: {
+    paddingHorizontal: 24,
+    paddingTop: 12,
+    paddingBottom: 12,
+  },
+  error: {
+    color: "#DC2626",
+    fontSize: 14,
+    textAlign: "center",
+  },
+});
