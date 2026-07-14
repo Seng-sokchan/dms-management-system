@@ -491,6 +491,8 @@ SELECT
   od.created_at,
   od.updated_at,
   c.phone AS customer_phone,
+  c.province_id AS customer_province_id,
+  pr.name AS customer_province_name,
   c.latitude AS customer_latitude,
   c.longitude AS customer_longitude,
   p.name AS producer_name,
@@ -502,6 +504,7 @@ INNER JOIN orders om ON om.id = od.order_id
 INNER JOIN customers c ON c.id = od.customer_id
 INNER JOIN items it ON it.id = od.item_id
 INNER JOIN status s ON s.id = od.status
+LEFT JOIN provinces pr ON pr.id = c.province_id AND pr.is_active = 1
 LEFT JOIN producers p ON p.id = od.producer_id
 LEFT JOIN delivery_agents da ON da.id = od.delivery_agent_id;
 

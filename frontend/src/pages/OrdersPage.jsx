@@ -211,12 +211,77 @@ async function copyTextToClipboard(text) {
 
 export function OrdersPage({ orders, deliveryAgents = [] }) {
   const { t, i18n } = useTranslation();
+  const [activeProvince, setActiveProvince] = useState(null);
+  const [provinceSearchText, setProvinceSearchText] = useState("");
+  const [appliedProvinceSearch, setAppliedProvinceSearch] = useState("");
   const [activeTruck, setActiveTruck] = useState(null);
   const [truckSearchText, setTruckSearchText] = useState("");
   const [appliedTruckSearch, setAppliedTruckSearch] = useState("");
   const [copiedTruckKey, setCopiedTruckKey] = useState(null);
 
   const agentById = useMemo(() => buildAgentLookup(deliveryAgents), [deliveryAgents]);
+  const dash = t("orders.dash");
+
+  const groupedByProvince = useMemo(() => {
+    const map = new Map();
+    (orders || []).forEach((order) => {
+      const id =
+        order.customerProvinceId != null && String(order.customerProvinceId).trim() !== ""
+          ? String(order.customerProvinceId)
+          : null;
+      const key = id ?? "__unassigned__";
+      if (!map.has(key)) {
+        map.set(key, []);
+      }
+      map.get(key).push(order);
+    });
+    return Array.from(map.entries())
+      .map(([provinceKey, rows]) => {
+        const nameFromOrder = rows.find((r) => r.customerProvinceName)?.customerProvinceName;
+        const provinceLabel =
+          nameFromOrder ||
+          (provinceKey === "__unassigned__" ? t("orders.unassignedProvince") : dash);
+        const qty = rows.reduce((sum, row) => sum + Number(row.orderedQty || 0), 0);
+        return {
+          provinceKey,
+          provinceLabel,
+          rows,
+          qty,
+        };
+      })
+      .sort((a, b) => a.provinceLabel.localeCompare(b.provinceLabel));
+  }, [orders, t, dash]);
+
+  const filteredGroupedProvinces = useMemo(() => {
+    const keyword = appliedProvinceSearch.trim().toLowerCase();
+    if (!keyword) return groupedByProvince;
+    return groupedByProvince.filter((row) =>
+      [row.provinceLabel, row.qty]
+        .filter((value) => value != null && value !== "")
+        .some((value) => String(value).toLowerCase().includes(keyword)),
+    );
+  }, [groupedByProvince, appliedProvinceSearch]);
+
+  const {
+    page: provincePage,
+    pageSize: provincePageSize,
+    paged: pagedGroupedProvinces,
+    setPage: setProvincePage,
+    setPageSize: setProvincePageSize,
+  } = usePagination(filteredGroupedProvinces, { resetKey: appliedProvinceSearch });
+
+  const pivotedProvince = useMemo(
+    () => pivotOrdersByCustomer(activeProvince?.rows ?? [], dash),
+    [activeProvince?.rows, dash],
+  );
+
+  const {
+    page: modalProvinceOrderPage,
+    pageSize: modalProvinceOrderPageSize,
+    paged: pagedModalProvinceRows,
+    setPage: setModalProvinceOrderPage,
+    setPageSize: setModalProvinceOrderPageSize,
+  } = usePagination(pivotedProvince.rows, { resetKey: activeProvince?.provinceKey ?? "" });
 
   const groupedByTruck = useMemo(() => {
     const map = new Map();
@@ -267,8 +332,6 @@ export function OrdersPage({ orders, deliveryAgents = [] }) {
     setPageSize: setTruckPageSize,
   } = usePagination(filteredGroupedTrucks, { resetKey: appliedTruckSearch });
 
-  const dash = t("orders.dash");
-
   const pivotedTruck = useMemo(
     () => pivotOrdersByCustomer(activeTruck?.rows ?? [], dash),
     [activeTruck?.rows, dash],
@@ -282,7 +345,13 @@ export function OrdersPage({ orders, deliveryAgents = [] }) {
     setPageSize: setModalTruckOrderPageSize,
   } = usePagination(pivotedTruck.rows, { resetKey: activeTruck?.truckKey ?? "" });
 
+  function openProvince(province) {
+    setActiveTruck(null);
+    setActiveProvince(province);
+  }
+
   function openTruck(truck) {
+    setActiveProvince(null);
     setActiveTruck(truck);
   }
 
@@ -304,6 +373,55 @@ export function OrdersPage({ orders, deliveryAgents = [] }) {
         <h2>{t("orders.title")}</h2>
         <p className="section-lead">{t("orders.lead")}</p>
       </div>
+      <section className="panel">
+        <div className="panel-header">
+          <h3>{t("orders.byProvince")}</h3>
+          <p className="panel-meta">
+            {groupedByProvince.length === 1
+              ? t("orders.rowOne", { n: groupedByProvince.length })
+              : t("orders.rowMany", { n: groupedByProvince.length })}
+          </p>
+        </div>
+        <DataTable
+          showSearch
+          searchValue={provinceSearchText}
+          onSearchValueChange={setProvinceSearchText}
+          onSearch={() => setAppliedProvinceSearch(provinceSearchText)}
+          searchPlaceholder={t("orders.searchProvincesPlaceholder")}
+          searchButtonLabel={t("common.search", { defaultValue: "Search" })}
+          pagination={{
+            page: provincePage,
+            pageSize: provincePageSize,
+            totalRows: filteredGroupedProvinces.length,
+            onPageChange: setProvincePage,
+            onPageSizeChange: setProvincePageSize,
+          }}
+        >
+          <thead>
+            <tr>
+              <th>{t("orders.province")}</th>
+              <th>{t("orders.qty")}</th>
+              <th>{t("orders.actions", { defaultValue: "Actions" })}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pagedGroupedProvinces.map((row) => (
+              <tr key={row.provinceKey}>
+                <td>{row.provinceLabel}</td>
+                <td>
+                  <span className="qty-chip">{row.qty}</span>
+                </td>
+                <td>
+                  <Button variant="sm" onClick={() => openProvince(row)}>
+                    {t("orders.view", { defaultValue: "View" })}
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </DataTable>
+      </section>
+
       <section className="panel">
         <div className="panel-header">
           <h3>{t("orders.byTruck")}</h3>
@@ -365,6 +483,70 @@ export function OrdersPage({ orders, deliveryAgents = [] }) {
           </tbody>
         </DataTable>
       </section>
+
+      {activeProvince ? (
+        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="orders-province-view-title">
+          <section className="panel modal-card modal-card--orders-truck modal-card--orders-pivot">
+            <div className="panel-header">
+              <h3 id="orders-province-view-title">
+                {t("orders.provinceOrdersFor", {
+                  defaultValue: "Orders for {{province}}",
+                  province: activeProvince.provinceLabel,
+                })}
+              </h3>
+              <Button variant="ghost" tone="cancel" onClick={() => setActiveProvince(null)}>
+                {t("customers.cancel")}
+              </Button>
+            </div>
+            <OrdersPivotTable
+              itemColumns={pivotedProvince.itemColumns}
+              pagedRows={pagedModalProvinceRows}
+              allRows={pivotedProvince.rows}
+              dash={dash}
+              customerHeader={t("orders.customer")}
+              totalLabel={t("orders.totalAll", { defaultValue: "Total" })}
+              pagination={{
+                page: modalProvinceOrderPage,
+                pageSize: modalProvinceOrderPageSize,
+                totalRows: pivotedProvince.rows.length,
+                onPageChange: setModalProvinceOrderPage,
+                onPageSizeChange: setModalProvinceOrderPageSize,
+              }}
+            />
+            <div className="orders-truck-delivery-qty" style={{ marginTop: "1.5rem" }}>
+              <h4 style={{ marginTop: 0 }}>{t("orders.deliveryQtyDetail", { defaultValue: "Delivery quantities" })}</h4>
+              <DataTable className="orders-truck-delivery-qty__table">
+                <thead>
+                  <tr>
+                    <th>{t("orders.orderId", { defaultValue: "Order" })}</th>
+                    <th>{t("orders.customer")}</th>
+                    <th>{t("orders.item")}</th>
+                    <th>{t("orders.qty")}</th>
+                    <th>{t("orders.distributed")}</th>
+                    <th>{t("orders.loss")}</th>
+                    <th>{t("orders.status")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(activeProvince.rows || []).map((order) => (
+                    <tr key={order.id}>
+                      <td>{order.id}</td>
+                      <td>{getCustomerLabel(order, dash)}</td>
+                      <td>{order.itemName || dash}</td>
+                      <td>{order.orderedQty ?? dash}</td>
+                      <td>{order.deliveredQty != null ? order.deliveredQty : dash}</td>
+                      <td>{order.lossQty != null ? order.lossQty : dash}</td>
+                      <td>
+                        <span className="status-chip">{order.status || dash}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </DataTable>
+            </div>
+          </section>
+        </div>
+      ) : null}
 
       {activeTruck ? (
         <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="orders-truck-view-title">
