@@ -22,9 +22,15 @@ const deactivateUser = asyncHandler(async (req, res) => {
   return noContent(res);
 });
 
+const resetUserPassword = asyncHandler(async (req, res) => {
+  const user = await userManagementService.resetUserPassword(req.user, req.params.id);
+  return success(res, user);
+});
+
 module.exports = {
   listUsers,
   createUser,
   updateUser,
   deactivateUser,
+  resetUserPassword,
 };

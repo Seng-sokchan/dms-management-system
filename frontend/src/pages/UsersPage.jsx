@@ -7,6 +7,8 @@ import { DataTable } from "../components/ui/DataTable";
 import { useConfirm } from "../components/ui/ConfirmProvider";
 
 const FALLBACK_ROLES = ["Admin", "Owner", "Logistics", "Delivery", "Customer", "Depot"];
+const HIDDEN_CREATE_ROLES = new Set(["Admin", "Owner"]);
+const DEFAULT_CREATE_ROLE = "Customer";
 
 function linkedCustomerLabel(customers, customerId) {
   if (customerId == null || String(customerId).trim() === "") return "—";
@@ -52,7 +54,7 @@ const EMPTY_NEW = {
   name: "",
   username: "",
   password: "",
-  role: "Owner",
+  role: DEFAULT_CREATE_ROLE,
   customerId: "",
   deliveryAgentId: "",
   depotId: "",
@@ -69,18 +71,24 @@ export function UsersPage({
   onCreateUser,
   onUpdateUser,
   onDeleteUser,
+  onResetUserPassword,
   roles = [],
 }) {
   const { t } = useTranslation();
   const { confirm } = useConfirm();
   const [editingUser, setEditingUser] = useState(EMPTY_EDIT);
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [createdCredentials, setCreatedCredentials] = useState(null);
   const [searchText, setSearchText] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
   const roleNames = useMemo(() => {
     const fromApi = Array.isArray(roles) ? roles.map((row) => row.name).filter(Boolean) : [];
     return fromApi.length ? fromApi : FALLBACK_ROLES;
   }, [roles]);
+  const createRoleNames = useMemo(
+    () => roleNames.filter((role) => !HIDDEN_CREATE_ROLES.has(role)),
+    [roleNames],
+  );
   const isEditing = useMemo(() => Boolean(editingUser.id), [editingUser.id]);
   const filteredUsers = useMemo(() => {
     const visibleUsers = users.filter(
@@ -119,7 +127,7 @@ export function UsersPage({
   }
 
   function requestOpenCreateModal() {
-    setNewUser(EMPTY_NEW);
+    setNewUser({ ...EMPTY_NEW });
     setCreateModalOpen(true);
   }
 
@@ -129,9 +137,17 @@ export function UsersPage({
 
   async function submitCreate(event) {
     event.preventDefault();
-    const ok = await onCreateUser(event);
+    const result = await onCreateUser(event);
+    const ok = result?.ok ?? result;
     if (ok) {
       closeCreateModal();
+      if (result?.generatedUsername || result?.generatedPassword) {
+        setCreatedCredentials({
+          username: result.generatedUsername,
+          password: result.generatedPassword,
+          variant: "create",
+        });
+      }
     }
   }
 
@@ -214,6 +230,26 @@ export function UsersPage({
     await onDeleteUser(userId);
   }
 
+  async function handleResetPassword(user) {
+    if (
+      !(await confirm({
+        title: t("users.resetPasswordTitle"),
+        message: t("users.confirmResetPassword", { name: user.name || user.username }),
+        tone: "danger",
+      }))
+    ) {
+      return;
+    }
+    const result = await onResetUserPassword(user.id);
+    if (result?.ok && result.generatedPassword) {
+      setCreatedCredentials({
+        username: result.generatedUsername || user.username,
+        password: result.generatedPassword,
+        variant: "reset",
+      });
+    }
+  }
+
   return (
     <section className="admin-page">
       <div className="section-heading section-heading--with-actions">
@@ -279,6 +315,13 @@ export function UsersPage({
                         </Button>
                         <Button
                           variant="ghost"
+                          onClick={() => void handleResetPassword(user)}
+                          disabled={currentUser?.id === user.id || !user.isActive}
+                        >
+                          {t("users.resetPassword")}
+                        </Button>
+                        <Button
+                          variant="ghost"
                           tone="delete"
                           onClick={() => void handleDelete(user.id)}
                           disabled={currentUser?.id === user.id || !user.isActive}
@@ -312,12 +355,6 @@ export function UsersPage({
             <label className="form-label" htmlFor="user-name">{t("users.name")}</label>
             <input id="user-name" value={newUser.name} onChange={(event) => setNewUser({ ...newUser, name: event.target.value })} required minLength={2} autoFocus />
 
-            <label className="form-label" htmlFor="user-username">{t("users.username")}</label>
-            <input id="user-username" value={newUser.username} onChange={(event) => setNewUser({ ...newUser, username: event.target.value })} required minLength={3} />
-
-            <label className="form-label" htmlFor="user-password">{t("users.password")}</label>
-            <input id="user-password" type="password" value={newUser.password} onChange={(event) => setNewUser({ ...newUser, password: event.target.value })} required minLength={6} />
-
             <label className="form-label" htmlFor="user-role">{t("users.role")}</label>
             <select
               id="user-role"
@@ -334,7 +371,7 @@ export function UsersPage({
               }}
               required
             >
-              {roleNames.map((role) => (
+              {createRoleNames.map((role) => (
                 <option key={role} value={role}>{t(`roles.${role}`, { defaultValue: role })}</option>
               ))}
             </select>
@@ -409,6 +446,73 @@ export function UsersPage({
               <Button variant="ghost" tone="cancel" onClick={requestCloseCreateModal}>{t("users.cancel")}</Button>
             </div>
           </form>
+        </div>
+      ) : null}
+
+      {createdCredentials ? (
+        <div
+          className="modal-overlay"
+          role="presentation"
+          onClick={() => setCreatedCredentials(null)}
+        >
+          <div
+            className="panel form modal-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="creds-modal-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id="creds-modal-title">
+              {createdCredentials.variant === "reset"
+                ? t("users.credentialsResetTitle")
+                : t("users.credentialsTitle")}
+            </h3>
+            <p className="section-lead">
+              {createdCredentials.variant === "reset"
+                ? t("users.credentialsResetHint")
+                : t("users.credentialsHint")}
+            </p>
+
+            <label className="form-label">{t("users.username")}</label>
+            <div className="credentials-copy-row">
+              <input
+                type="text"
+                readOnly
+                value={createdCredentials.username || ""}
+                className="input-readonly input-monospace"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => navigator.clipboard?.writeText(createdCredentials.username || "")}
+              >
+                {t("users.copy")}
+              </Button>
+            </div>
+
+            <label className="form-label">{t("users.password")}</label>
+            <div className="credentials-copy-row">
+              <input
+                type="text"
+                readOnly
+                value={createdCredentials.password}
+                className="input-readonly input-monospace"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => navigator.clipboard?.writeText(createdCredentials.password)}
+              >
+                {t("users.copy")}
+              </Button>
+            </div>
+
+            <div className="row-actions" style={{ marginTop: "1rem" }}>
+              <Button variant="primary" onClick={() => setCreatedCredentials(null)}>
+                {t("users.done")}
+              </Button>
+            </div>
+          </div>
         </div>
       ) : null}
 

@@ -126,10 +126,12 @@
   },
   "overview": {
     "title": "Overview",
-    "lead": "Revenue, fulfillment, and network snapshot.",
+    "lead": "Financial health, order pipeline, and fulfillment at a glance.",
     "lastUpdated": "Last updated: {{time}}",
     "lastUpdatedFallback": "not available yet",
-    "refreshing": "Refreshing data... Last updated: {{lastUpdated}}"
+    "refreshing": "Refreshing data... Last updated: {{lastUpdated}}",
+    "refresh": "Refresh",
+    "refreshingAction": "Refreshing…"
   },
   "createOrder": {
     "title": "New order",
@@ -561,7 +563,19 @@
     "linkedDepot": "Linked depot",
     "selectDepot": "— Unassigned —",
     "depotLinkHint": "Only for the Depot role: ties this login to a depot so scoped data belongs to that depot.",
-    "linkedDepotRoleHint": "Set role to «Depot» above, then choose the depot to link."
+    "linkedDepotRoleHint": "Set role to «Depot» above, then choose the depot to link.",
+    "usernameAutoHint": "Auto-assigned based on role",
+    "passwordGenerated": "Generated password",
+    "regenerate": "Regenerate",
+    "credentialsTitle": "Account created",
+    "credentialsHint": "Copy and share these credentials with the user. This is the only time the password will be shown.",
+    "copy": "Copy",
+    "done": "Done",
+    "resetPassword": "Reset password",
+    "resetPasswordTitle": "Reset password",
+    "confirmResetPassword": "Generate a new password for {{name}}? The current password will stop working immediately.",
+    "credentialsResetTitle": "Password reset",
+    "credentialsResetHint": "Copy and share the new password with the user. This is the only time it will be shown."
   },
   "orders": {
     "title": "Orders",
@@ -711,24 +725,32 @@
     "done": "Done"
   },
   "dashboard": {
+    "sections": {
+      "atAGlance": "At a glance",
+      "collection": "Collection health",
+      "pipeline": "Order pipeline",
+      "fulfillment": "Fulfillment & network"
+    },
     "totalOrders": "Total orders",
     "totalOrdersHint": "All rows in orders",
     "revenue": "Revenue",
-    "revenueHint": "Booked order totals",
+    "revenueHint": "Paid order totals only",
     "lifecycleProgress": "Lifecycle progress",
     "lifecycleProgressHint": "{{delivered}} delivered of {{total}} orders",
     "collected": "Collected",
     "collectedHint": "Payments applied to orders",
     "outstanding": "Outstanding",
     "outstandingHint": "Revenue − collected",
+    "collectionRate": "Collection rate",
+    "collectionRateHint": "Share of revenue collected so far",
+    "fulfillmentRate": "Fulfillment rate",
     "byStatus": "Orders by status",
     "byPayment": "Orders by payment state",
-    "deliveryNetwork": "Delivery & network",
-    "discrepancy": "Discrepancy units",
-    "discrepancyRate": "Discrepancy rate",
+    "orderedUnits": "Ordered units",
+    "deliveredUnits": "Delivered units",
+    "undeliveredUnits": "Undelivered units",
     "lossUnits": "Loss units",
     "lossRate": "Loss rate",
-    "remainingUnits": "Remaining units",
     "agentCount": "Delivery agents",
     "producerCount": "Producers"
   },
@@ -831,6 +853,7 @@
     "createUser": "Create user failed",
     "updateUser": "Update user failed",
     "deleteUser": "Deactivate user failed",
+    "resetUserPassword": "Reset password failed",
     "saveBakongToken": "Could not save Bakong token",
     "confirmBakongPayment": "Could not record payment in the app. The transaction still succeeded on Bakong.",
     "updateRoleMenus": "Could not save menu access for that role",

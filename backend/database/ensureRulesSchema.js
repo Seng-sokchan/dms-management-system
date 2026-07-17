@@ -170,6 +170,7 @@ async function dropLegacyRulesArtifacts(conn) {
     "sp_add_role_status_permission",
     "sp_delete_role_socket_channels_by_role_id",
     "sp_add_role_socket_channel",
+    "sp_insert_order_status_history",
   ];
   for (const procName of dropProcedures) {
     await conn.query(`DROP PROCEDURE IF EXISTS ${procName}`);
@@ -182,6 +183,7 @@ async function dropLegacyRulesArtifacts(conn) {
     "role_menus",
     "status_transitions",
     "menus",
+    "order_status_history",
   ];
   for (const tableName of dropTables) {
     await conn.query(`DROP TABLE IF EXISTS ${tableName}`);
@@ -382,8 +384,8 @@ async function ensureOrderMasterType(conn) {
   if (await indexExists(conn, "orders", "idx_orders_type")) {
     await conn.query("ALTER TABLE orders DROP INDEX idx_orders_type");
   }
-  if (!(await indexExists(conn, "orders", "idx_orders_target_type"))) {
-    await conn.query("ALTER TABLE orders ADD KEY idx_orders_target_type (target_type)");
+  if (await indexExists(conn, "orders", "idx_orders_target_type")) {
+    await conn.query("ALTER TABLE orders DROP INDEX idx_orders_target_type");
   }
 
   if (!(await columnExists(conn, "orders", "order_no"))) {
@@ -445,6 +447,88 @@ async function ensureOrderMasterType(conn) {
   `);
 }
 
+async function dropIndexIfExists(conn, tableName, indexName) {
+  if (!(await tableExists(conn, tableName))) return;
+  if (await indexExists(conn, tableName, indexName)) {
+    await conn.query(`ALTER TABLE \`${tableName}\` DROP INDEX \`${indexName}\``);
+  }
+}
+
+async function addIndexIfMissing(conn, tableName, indexName, columnsSql) {
+  if (!(await tableExists(conn, tableName))) return;
+  if (!(await indexExists(conn, tableName, indexName))) {
+    await conn.query(`ALTER TABLE \`${tableName}\` ADD KEY \`${indexName}\` ${columnsSql}`);
+  }
+}
+
+async function ensureOptimizedIndexes(conn) {
+  // Redundant: left-prefix already covered by UNIQUE keys
+  await dropIndexIfExists(conn, "borrow_material_monthly_installments", "idx_bmmsi_schedule");
+  await dropIndexIfExists(conn, "customer_borrowed_materials", "idx_cbm_customer");
+  await dropIndexIfExists(conn, "customer_item_prices", "idx_customer_item_prices_customer");
+  await dropIndexIfExists(conn, "depot_item_prices", "idx_depot_item_prices_depot");
+
+  // Low value: name/sku on small lookup tables (queries use id)
+  await dropIndexIfExists(conn, "borrow_materials", "idx_borrow_materials_name");
+  await dropIndexIfExists(conn, "catalogs", "idx_catalogs_name");
+  await dropIndexIfExists(conn, "delivery_agents", "idx_delivery_agents_name");
+  await dropIndexIfExists(conn, "depots", "idx_depots_name");
+  await dropIndexIfExists(conn, "items", "idx_items_name");
+  await dropIndexIfExists(conn, "items", "idx_items_sku");
+  await dropIndexIfExists(conn, "producers", "idx_producers_name");
+  await dropIndexIfExists(conn, "provinces", "idx_provinces_name");
+  await dropIndexIfExists(conn, "orders", "idx_orders_target_type");
+
+  // Hot path composites on order_details (replace weak single-column indexes)
+  await addIndexIfMissing(conn, "order_details", "idx_od_customer_status", "(customer_id, status)");
+  await addIndexIfMissing(conn, "order_details", "idx_od_agent_status", "(delivery_agent_id, status)");
+  await addIndexIfMissing(conn, "order_details", "idx_od_status_created", "(status, created_at)");
+
+  await dropIndexIfExists(conn, "order_details", "idx_order_details_status");
+  await dropIndexIfExists(conn, "order_details", "idx_order_details_created_at");
+  await dropIndexIfExists(conn, "order_details", "idx_order_details_customer_id");
+  await dropIndexIfExists(conn, "order_details", "idx_order_details_delivery_agent");
+}
+
+async function ensureDashboardViews(conn) {
+  await conn.query("DROP VIEW IF EXISTS v_dashboard_currency_totals");
+  await conn.query("DROP VIEW IF EXISTS v_dashboard_totals");
+  await conn.query(`
+    CREATE VIEW v_dashboard_totals AS
+    SELECT
+      (SELECT COUNT(*) FROM order_details) AS orders,
+      (SELECT COUNT(*) FROM producers WHERE is_active = 1) AS producers,
+      (SELECT COUNT(*) FROM delivery_agents WHERE is_active = 1) AS deliveryAgents,
+      (SELECT COALESCE(SUM(od.amount_total), 0)
+       FROM order_details od
+       INNER JOIN orders om ON om.id = od.order_id
+       WHERE EXISTS (SELECT 1 FROM payments p WHERE p.order_id = om.id)) AS totalRevenue,
+      (SELECT COALESCE(SUM(amount), 0) FROM payments) AS totalCollected,
+      (SELECT COALESCE(SUM(ordered_qty), 0) FROM order_details) AS totalOrderedQty,
+      (SELECT COALESCE(SUM(delivered_qty), 0) FROM order_details) AS totalDeliveredQty,
+      (SELECT COALESCE(SUM(loss_qty), 0) FROM order_details) AS totalLossQty,
+      (SELECT COALESCE(SUM(
+        GREATEST(ordered_qty - COALESCE(delivered_qty, 0) - COALESCE(loss_qty, 0), 0)
+      ), 0) FROM order_details) AS totalRemainingQty
+  `);
+  await conn.query(`
+    CREATE VIEW v_dashboard_currency_totals AS
+    SELECT
+      (SELECT COALESCE(SUM(od.amount_total), 0)
+       FROM order_details od
+       INNER JOIN orders om ON om.id = od.order_id
+       WHERE od.currency = 'USD'
+         AND EXISTS (SELECT 1 FROM payments p WHERE p.order_id = om.id)) AS total_revenue_usd,
+      (SELECT COALESCE(SUM(od.amount_total), 0)
+       FROM order_details od
+       INNER JOIN orders om ON om.id = od.order_id
+       WHERE od.currency = 'KHR'
+         AND EXISTS (SELECT 1 FROM payments p WHERE p.order_id = om.id)) AS total_revenue_khr,
+      (SELECT COALESCE(SUM(CASE WHEN currency = 'USD' THEN amount ELSE 0 END), 0) FROM payments) AS total_collected_usd,
+      (SELECT COALESCE(SUM(CASE WHEN currency = 'KHR' THEN amount ELSE 0 END), 0) FROM payments) AS total_collected_khr
+  `);
+}
+
 async function ensureRulesSchema() {
   const pool = getPool();
   const conn = await pool.getConnection();
@@ -453,6 +537,8 @@ async function ensureRulesSchema() {
     await dropLegacyDepotOwnerUser(conn);
     await dropLegacyRulesArtifacts(conn);
     await ensureOrderMasterType(conn);
+    await ensureDashboardViews(conn);
+    await ensureOptimizedIndexes(conn);
   } finally {
     conn.release();
   }

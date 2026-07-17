@@ -4,6 +4,7 @@ const {
   createUser,
   updateUser,
   deactivateUser,
+  resetUserPassword,
 } = require("../../../controllers/userManagementController");
 const { requireAuth, requireRoles } = require("../../../middleware/auth");
 const { validate } = require("../../../validators/validate");
@@ -23,6 +24,13 @@ router.post(
   requireAdminPanel,
   validate({ body: createUserSchema }),
   createUser,
+);
+router.post(
+  "/users/:id/reset-password",
+  requireAuth,
+  requireAdminPanel,
+  validate({ params: userIdParamsSchema }),
+  resetUserPassword,
 );
 router.post(
   "/users/:id",

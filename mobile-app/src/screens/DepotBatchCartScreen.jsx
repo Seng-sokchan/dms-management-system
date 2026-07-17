@@ -26,6 +26,7 @@ import { getApiErrorMessage } from "../services/apiClient";
 import { createDepotBatch } from "../services/ordersApi";
 import { fetchCustomers } from "../services/customersApi";
 import { fetchItems } from "../services/itemsApi";
+import { useOrderWindow } from "../hooks/useOrderWindow";
 
 export default function DepotBatchCartScreen() {
   const navigation = useNavigation();
@@ -47,6 +48,11 @@ export default function DepotBatchCartScreen() {
   const [customers, setCustomers] = useState([]);
   const [items, setItems] = useState([]);
   const [submitting, setSubmitting] = useState(false);
+  const { orderWindowClosed } = useOrderWindow();
+
+  function showOrderWindowClosedAlert() {
+    showWarning(t("orderWindow.closedTitle"), t("orderWindow.closedAlertMessage"));
+  }
 
   const styles = useMemo(
     () =>
@@ -127,6 +133,15 @@ export default function DepotBatchCartScreen() {
           gap: spacing.sm,
         },
         actionBtn: { flex: 1 },
+        blockNotice: {
+          marginBottom: spacing.md,
+          backgroundColor: colors.warningSoft,
+        },
+        blockNoticeText: {
+          color: colors.textSecondary,
+          fontSize: typography.bodySmall,
+          lineHeight: 20,
+        },
       }),
     [borders, colors, radii, sizes, spacing, typography],
   );
@@ -187,6 +202,10 @@ export default function DepotBatchCartScreen() {
       showWarning(t("depot.batchEmptyTitle"), t("depot.batchEmptyMessage"));
       return;
     }
+    if (orderWindowClosed) {
+      showOrderWindowClosedAlert();
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -219,6 +238,12 @@ export default function DepotBatchCartScreen() {
           </Pressable>
         }
       />
+
+      {orderWindowClosed ? (
+        <Card style={styles.blockNotice}>
+          <Text style={styles.blockNoticeText}>{t("orderWindow.closedBanner")}</Text>
+        </Card>
+      ) : null}
 
       <View style={styles.body}>
         <FlatList
@@ -297,6 +322,7 @@ export default function DepotBatchCartScreen() {
               tone="success"
               onPress={handleSubmit}
               loading={submitting}
+              disabled={orderWindowClosed}
               icon={<AppIcon name="check-circle-outline" size={18} color={colors.onPrimary} />}
             />
           </View>

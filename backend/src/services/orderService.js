@@ -391,14 +391,11 @@ async function updateStatus(orderId, nextStatus, { user, allowReverse = false } 
     const updatedOrders = await orderRepository.updateOrderStatuses(
       notificationOrders.map((row) => row.id),
       nextStatus,
-      { changedByUserId: user?.sub ?? null },
     );
     return updatedOrders.find((row) => String(row.id) === String(orderId)) || updatedOrders[0] || null;
   }
 
-  return orderRepository.updateOrderStatus(orderId, nextStatus, {
-    changedByUserId: user?.sub ?? null,
-  });
+  return orderRepository.updateOrderStatus(orderId, nextStatus);
 }
 
 /**

@@ -107,6 +107,11 @@
     "increaseQty": "Increase quantity for {{name}}",
     "removeItem": "Remove {{name}} from cart"
   },
+  "orderWindow": {
+    "closedTitle": "Ordering closed",
+    "closedBanner": "Orders are accepted daily from 6:00 AM to 6:00 PM (Cambodia time).",
+    "closedAlertMessage": "Ordering is closed for today. Please try again between 6:00 AM and 6:00 PM Cambodia time."
+  },
   "tracking": {
     "title": "Tracking",
     "subtitle": "Live driver location when your order is ready for delivery",

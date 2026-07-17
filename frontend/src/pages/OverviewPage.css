@@ -1,0 +1,39 @@
+.overview-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.overview-header-text {
+  margin-bottom: 0;
+  flex: 1 1 16rem;
+}
+
+.overview-header-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.45rem;
+  flex: 0 0 auto;
+}
+
+.overview-updated {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-faint);
+  text-align: right;
+}
+
+@media (max-width: 600px) {
+  .overview-header-actions {
+    align-items: flex-start;
+    width: 100%;
+  }
+
+  .overview-updated {
+    text-align: left;
+  }
+}

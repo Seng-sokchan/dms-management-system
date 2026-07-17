@@ -123,7 +123,9 @@ function App() {
     submitUser,
     submitUserUpdate,
     submitUserDelete,
+    submitUserResetPassword,
     logout,
+    refresh,
   } = useAdminDashboard();
   const isAllowedAdminPanelRole = hasAdminPanelAccess(user);
 
@@ -213,6 +215,7 @@ function App() {
             statuses={statuses}
             isRefreshing={isOverviewRefreshing}
             lastUpdatedAt={overviewLastUpdatedAt}
+            onRefresh={refresh}
           />,
         )}
       />
@@ -395,6 +398,7 @@ function App() {
               onCreateUser={submitUser}
               onUpdateUser={submitUserUpdate}
               onDeleteUser={submitUserDelete}
+              onResetUserPassword={submitUserResetPassword}
               roles={roles}
             />
         )}

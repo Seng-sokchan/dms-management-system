@@ -126,10 +126,12 @@
   },
   "overview": {
     "title": "ទិដ្ឋភាពរួម",
-    "lead": "ចំណូល ការអនុវត្ត និងទិដ្ឋភាពបណ្ដាញ។",
+    "lead": "សុខភាពហិរញ្ញវត្ថុ បណ្ដាញការកម្មង់ និងការអនុវត្តក្នុងមួយភ្នែក។",
     "lastUpdated": "បានធ្វើបច្ចុប្បន្នភាពចុងក្រោយ៖ {{time}}",
     "lastUpdatedFallback": "មិនទាន់មានទិន្នន័យ",
-    "refreshing": "កំពុងធ្វើបច្ចុប្បន្នភាពទិន្នន័យ... បានធ្វើបច្ចុប្បន្នភាពចុងក្រោយ៖ {{lastUpdated}}"
+    "refreshing": "កំពុងធ្វើបច្ចុប្បន្នភាពទិន្នន័យ... បានធ្វើបច្ចុប្បន្នភាពចុងក្រោយ៖ {{lastUpdated}}",
+    "refresh": "ធ្វើបច្ចុប្បន្នភាព",
+    "refreshingAction": "កំពុងធ្វើបច្ចុប្បន្នភាព…"
   },
   "createOrder": {
     "title": "ការកម្មង់ថ្មី",
@@ -561,7 +563,19 @@
     "linkedDepot": "ឃ្លាំងដែលភ្ជាប់",
     "selectDepot": "— មិនបានភ្ជាប់ —",
     "depotLinkHint": "សម្រាប់តួនាទី Depot ប៉ុណ្ណោះ៖ ភ្ជាប់ការចូលនេះទៅឃ្លាំង ដើម្បីឱ្យទិន្នន័យតាមឃ្លាំង។",
-    "linkedDepotRoleHint": "កំណត់តួនាទីជា «Depot» ខាងលើ រួចជ្រើសរើសឃ្លាំងដើម្បីភ្ជាប់។"
+    "linkedDepotRoleHint": "កំណត់តួនាទីជា «Depot» ខាងលើ រួចជ្រើសរើសឃ្លាំងដើម្បីភ្ជាប់។",
+    "usernameAutoHint": "ត្រូវបានកំណត់ដោយស្វ័យប្រវត្តិតាមតួនាទី",
+    "passwordGenerated": "លេខសម្ងាត់ដែលបង្កើតស្វ័យប្រវត្តិ",
+    "regenerate": "បង្កើតថ្មី",
+    "credentialsTitle": "គណនីត្រូវបានបង្កើត",
+    "credentialsHint": "សូមចម្លងព័ត៌មានទាំងនេះ ហើយចែករំលែកជាមួយអ្នកប្រើ។ លេខសម្ងាត់នេះនឹងបង្ហាញតែម្តងប៉ុណ្ណោះ។",
+    "copy": "ចម្លង",
+    "done": "រួចរាល់",
+    "resetPassword": "កំណត់លេខសម្ងាត់ឡើងវិញ",
+    "resetPasswordTitle": "កំណត់លេខសម្ងាត់ឡើងវិញ",
+    "confirmResetPassword": "បង្កើតលេខសម្ងាត់ថ្មីសម្រាប់ {{name}}? លេខសម្ងាត់បច្ចុប្បន្ននឹងបញ្ឈប់ភ្លាមៗ។",
+    "credentialsResetTitle": "លេខសម្ងាត់ត្រូវបានកំណត់ឡើងវិញ",
+    "credentialsResetHint": "សូមចម្លងលេខសម្ងាត់ថ្មី ហើយចែករំលែកជាមួយអ្នកប្រើ។ វានឹងបង្ហាញតែម្តងប៉ុណ្ណោះ។"
   },
   "orders": {
     "title": "ការកម្មង់",
@@ -711,24 +725,32 @@
     "done": "រួចរាល់"
   },
   "dashboard": {
+    "sections": {
+      "atAGlance": "ទិដ្ឋភាពរួម",
+      "collection": "សុខភាពការប្រមូល",
+      "pipeline": "បណ្ដាញការកម្មង់",
+      "fulfillment": "ការអនុវត្ត & បណ្ដាញ"
+    },
     "totalOrders": "ការកម្មង់សរុប",
     "totalOrdersHint": "គ្រប់ជួរក្នុងតារាងការកម្មង់",
     "revenue": "ចំណូល",
-    "revenueHint": "សរុបចំណូលបានកក់",
+    "revenueHint": "សរុបចំណូលពីការកម្មង់ដែលបានបង់ប្រាក់រួច",
     "lifecycleProgress": "វឌ្ឍនភាពវដ្តការងារ",
     "lifecycleProgressHint": "បានដឹកជូន {{delivered}} ក្នុងចំណោមការកម្មង់ {{total}}",
     "collected": "ប្រមូលបាន",
     "collectedHint": "ការទូទាត់អនុវត្តលើការកម្មង់",
     "outstanding": "ជំពាក់",
     "outstandingHint": "ចំណូល − ប្រមូលបាន",
+    "collectionRate": "អត្រាប្រមូល",
+    "collectionRateHint": "ភាគរយចំណូលដែលបានប្រមូលរួច",
+    "fulfillmentRate": "អត្រាអនុវត្ត",
     "byStatus": "ការកម្មង់តាមស្ថានភាព",
     "byPayment": "ការកម្មង់តាមស្ថានទូទាត់",
-    "deliveryNetwork": "ដឹកជញ្ជូន & បណ្ដាញ",
-    "discrepancy": "ឯកតាមិនត្រឹម",
-    "discrepancyRate": "អត្រាមិនត្រឹម",
+    "orderedUnits": "ឯកតាកម្មង់",
+    "deliveredUnits": "ឯកតាដឹកជូន",
+    "undeliveredUnits": "ឯកតាមិនទាន់ដឹក",
     "lossUnits": "ឯកតាខាត",
     "lossRate": "អត្រាខាត",
-    "remainingUnits": "ឯកតានៅសល់",
     "agentCount": "ភ្នាក់ងារដឹកជញ្ជូន",
     "producerCount": "អ្នកផលិត"
   },
@@ -831,6 +853,7 @@
     "createUser": "បង្កើតអ្នកប្រើបរាជ័យ",
     "updateUser": "កែប្រែអ្នកប្រើបរាជ័យ",
     "deleteUser": "បិទគណនីអ្នកប្រើបរាជ័យ",
+    "resetUserPassword": "កំណត់លេខសម្ងាត់ឡើងវិញបរាជ័យ",
     "saveBakongToken": "មិនអាចរក្សាទុក Bakong token",
     "confirmBakongPayment": "មិនអាចកត់ត្រាការទូទាត់ក្នុងកម្មវិធី។ ការទូទាត់នៅតែជោគជ័យនៅលើ Bakong។",
     "updateRoleMenus": "មិនអាចរក្សាការចូលប្រើម៉ឺនុយសម្រាប់តួនាទីនោះ",

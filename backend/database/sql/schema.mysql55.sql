@@ -1,7 +1,8 @@
 SET NAMES utf8;
 SET FOREIGN_KEY_CHECKS = 0;
 
--- Tables use indexes for joins only; no FOREIGN KEY constraints (integrity in app layer).
+-- Indexes target hot WHERE/JOIN paths; no FOREIGN KEY constraints (integrity in app layer).
+-- Prefer composites on order_details; skip name indexes on small lookup tables.
 
 DROP TABLE IF EXISTS `borrow_materials`;
 DROP TABLE IF EXISTS `borrow_material_monthly_installments`;
@@ -18,7 +19,6 @@ DROP TABLE IF EXISTS `depot_item_prices`;
 DROP TABLE IF EXISTS `items`;
 DROP TABLE IF EXISTS `orders`;
 DROP TABLE IF EXISTS `order_details`;
-DROP TABLE IF EXISTS `order_status_history`;
 DROP TABLE IF EXISTS `payments`;
 DROP TABLE IF EXISTS `producers`;
 DROP TABLE IF EXISTS `provinces`;
@@ -34,8 +34,7 @@ CREATE TABLE `borrow_materials` (
   `is_active` tinyint(1) NOT NULL DEFAULT '1',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `idx_borrow_materials_name` (`name`)
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE `borrow_material_monthly_installments` (
@@ -49,8 +48,7 @@ CREATE TABLE `borrow_material_monthly_installments` (
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_bmmsi_schedule_period` (`schedule_id`,`period_no`),
-  KEY `idx_bmmsi_schedule` (`schedule_id`)
+  UNIQUE KEY `uq_bmmsi_schedule_period` (`schedule_id`,`period_no`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE `borrow_material_monthly_schedules` (
@@ -94,8 +92,7 @@ CREATE TABLE `catalogs` (
   `is_active` tinyint(1) NOT NULL DEFAULT '1',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `idx_catalogs_name` (`name`)
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE `customers` (
@@ -125,7 +122,6 @@ CREATE TABLE `customer_borrowed_materials` (
   `updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_cbm_customer_material` (`customer_id`,`material_id`),
-  KEY `idx_cbm_customer` (`customer_id`),
   KEY `idx_cbm_material` (`material_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
@@ -139,7 +135,6 @@ CREATE TABLE `customer_item_prices` (
   `updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_customer_item_currency` (`customer_id`,`item_id`,`currency`),
-  KEY `idx_customer_item_prices_customer` (`customer_id`),
   KEY `idx_customer_item_prices_item` (`item_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
@@ -151,8 +146,7 @@ CREATE TABLE `delivery_agents` (
   `is_active` tinyint(1) NOT NULL DEFAULT '1',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `idx_delivery_agents_name` (`name`)
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE `delivery_agent_locations` (
@@ -172,8 +166,7 @@ CREATE TABLE `depots` (
   `is_active` tinyint(1) NOT NULL DEFAULT '1',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `idx_depots_name` (`name`)
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE `depot_item_prices` (
@@ -186,7 +179,6 @@ CREATE TABLE `depot_item_prices` (
   `updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_depot_item_currency` (`depot_id`,`item_id`,`currency`),
-  KEY `idx_depot_item_prices_depot` (`depot_id`),
   KEY `idx_depot_item_prices_item` (`item_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
@@ -199,8 +191,6 @@ CREATE TABLE `items` (
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
-  KEY `idx_items_name` (`name`),
-  KEY `idx_items_sku` (`sku`),
   KEY `idx_items_catalog` (`catalog_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
@@ -211,8 +201,7 @@ CREATE TABLE `orders` (
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_orders_order_no` (`order_no`),
-  KEY `idx_orders_target_type` (`target_type`)
+  UNIQUE KEY `uq_orders_order_no` (`order_no`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE `order_details` (
@@ -234,27 +223,11 @@ CREATE TABLE `order_details` (
   `updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_order_details_order_id` (`order_id`),
-  KEY `idx_order_details_status` (`status`),
-  KEY `idx_order_details_created_at` (`created_at`),
+  KEY `idx_od_customer_status` (`customer_id`,`status`),
+  KEY `idx_od_agent_status` (`delivery_agent_id`,`status`),
+  KEY `idx_od_status_created` (`status`,`created_at`),
   KEY `idx_order_details_producer_id` (`producer_id`),
-  KEY `idx_order_details_delivery_agent` (`delivery_agent_id`),
-  KEY `idx_order_details_customer_id` (`customer_id`),
   KEY `idx_order_details_item_id` (`item_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
-CREATE TABLE `order_status_history` (
-  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `order_id` int(10) unsigned DEFAULT NULL,
-  `from_status` tinyint(3) unsigned DEFAULT NULL,
-  `to_status` tinyint(3) unsigned NOT NULL,
-  `changed_by_user_id` int(10) unsigned DEFAULT NULL,
-  `changed_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `note` varchar(255) DEFAULT '',
-  PRIMARY KEY (`id`),
-  KEY `idx_order_status_history_order` (`order_id`,`changed_at`),
-  KEY `idx_order_status_history_from_status` (`from_status`),
-  KEY `idx_order_status_history_to_status` (`to_status`),
-  KEY `idx_order_status_history_user` (`changed_by_user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE `payments` (
@@ -285,8 +258,7 @@ CREATE TABLE `producers` (
   `is_active` tinyint(1) NOT NULL DEFAULT '1',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `idx_producers_name` (`name`)
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE `provinces` (
@@ -295,8 +267,7 @@ CREATE TABLE `provinces` (
   `is_active` tinyint(1) NOT NULL DEFAULT '1',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `idx_provinces_name` (`name`)
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE `roles` (
@@ -594,21 +565,32 @@ SELECT
   (SELECT COUNT(*) FROM order_details) AS orders,
   (SELECT COUNT(*) FROM producers WHERE is_active = 1) AS producers,
   (SELECT COUNT(*) FROM delivery_agents WHERE is_active = 1) AS deliveryAgents,
-  (SELECT COALESCE(SUM(amount_total), 0) FROM order_details) AS totalRevenue,
+  (SELECT COALESCE(SUM(od.amount_total), 0)
+   FROM order_details od
+   INNER JOIN orders om ON om.id = od.order_id
+   WHERE EXISTS (SELECT 1 FROM payments p WHERE p.order_id = om.id)) AS totalRevenue,
   (SELECT COALESCE(SUM(amount), 0) FROM payments) AS totalCollected,
-  0 AS totalDiscrepancy,
+  (SELECT COALESCE(SUM(ordered_qty), 0) FROM order_details) AS totalOrderedQty,
+  (SELECT COALESCE(SUM(delivered_qty), 0) FROM order_details) AS totalDeliveredQty,
   (SELECT COALESCE(SUM(loss_qty), 0) FROM order_details) AS totalLossQty,
-  0 AS totalRemainingQty;
+  (SELECT COALESCE(SUM(
+    GREATEST(ordered_qty - COALESCE(delivered_qty, 0) - COALESCE(loss_qty, 0), 0)
+  ), 0) FROM order_details) AS totalRemainingQty;
 
 CREATE VIEW v_dashboard_currency_totals AS
 SELECT
-  COALESCE(SUM(CASE WHEN od.currency = 'USD' THEN od.amount_total ELSE 0 END), 0) AS total_revenue_usd,
-  COALESCE(SUM(CASE WHEN od.currency = 'KHR' THEN od.amount_total ELSE 0 END), 0) AS total_revenue_khr,
-  COALESCE(SUM(CASE WHEN p.currency = 'USD' THEN p.amount ELSE 0 END), 0) AS total_collected_usd,
-  COALESCE(SUM(CASE WHEN p.currency = 'KHR' THEN p.amount ELSE 0 END), 0) AS total_collected_khr
-FROM order_details od
-LEFT JOIN orders om ON om.id = od.order_id
-LEFT JOIN payments p ON p.order_id = om.id;
+  (SELECT COALESCE(SUM(od.amount_total), 0)
+   FROM order_details od
+   INNER JOIN orders om ON om.id = od.order_id
+   WHERE od.currency = 'USD'
+     AND EXISTS (SELECT 1 FROM payments p WHERE p.order_id = om.id)) AS total_revenue_usd,
+  (SELECT COALESCE(SUM(od.amount_total), 0)
+   FROM order_details od
+   INNER JOIN orders om ON om.id = od.order_id
+   WHERE od.currency = 'KHR'
+     AND EXISTS (SELECT 1 FROM payments p WHERE p.order_id = om.id)) AS total_revenue_khr,
+  (SELECT COALESCE(SUM(CASE WHEN currency = 'USD' THEN amount ELSE 0 END), 0) FROM payments) AS total_collected_usd,
+  (SELECT COALESCE(SUM(CASE WHEN currency = 'KHR' THEN amount ELSE 0 END), 0) FROM payments) AS total_collected_khr;
 
 -- Write stored procedures
 DROP PROCEDURE IF EXISTS sp_add_role_menu;
@@ -647,7 +629,6 @@ DROP PROCEDURE IF EXISTS sp_delete_order_group;
 DROP PROCEDURE IF EXISTS sp_delete_producer;
 DROP PROCEDURE IF EXISTS sp_delete_province;
 DROP PROCEDURE IF EXISTS sp_delete_truck;
-DROP PROCEDURE IF EXISTS sp_insert_order_status_history;
 DROP PROCEDURE IF EXISTS sp_set_customer_user_link;
 DROP PROCEDURE IF EXISTS sp_set_delivery_agent_user_link;
 DROP PROCEDURE IF EXISTS sp_set_depot_user_link;
@@ -834,15 +815,6 @@ CREATE PROCEDURE sp_update_order_status(
 UPDATE order_details
 SET status = p_status, updated_at = p_updated_at
 WHERE id = p_id;
-CREATE PROCEDURE sp_insert_order_status_history(
-  IN p_order_id INT UNSIGNED,
-  IN p_from_status TINYINT UNSIGNED,
-  IN p_to_status TINYINT UNSIGNED,
-  IN p_changed_by_user_id INT UNSIGNED,
-  IN p_note VARCHAR(255)
-)
-INSERT INTO order_status_history (order_id, from_status, to_status, changed_by_user_id, note)
-VALUES (p_order_id, p_from_status, p_to_status, p_changed_by_user_id, p_note);
 CREATE PROCEDURE sp_confirm_order_delivery(
   IN p_id INT UNSIGNED,
   IN p_status TINYINT UNSIGNED,

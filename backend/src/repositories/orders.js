@@ -275,26 +275,18 @@ async function updateOrderAssignment(id, payload) {
   return getOrderById(id);
 }
 
-async function updateOrderStatus(id, status, { changedByUserId = null, note = "" } = {}) {
+async function updateOrderStatus(id, status) {
   const before = await getOrderById(id);
   if (!before) return null;
-  const fromStatusId = await getStatusIdByName(before.status);
   const toStatusId = await getStatusIdByName(status);
   if (!toStatusId) {
     throw new Error("Status not found");
   }
   await getPool().query("CALL sp_update_order_status(?, ?, ?)", [id, toStatusId, nowIso()]);
-  await getPool().query("CALL sp_insert_order_status_history(?, ?, ?, ?, ?)", [
-    id,
-    fromStatusId,
-    toStatusId,
-    changedByUserId,
-    note || "",
-  ]);
   return getOrderById(id);
 }
 
-async function updateOrderStatuses(ids, status, { changedByUserId = null, note = "" } = {}) {
+async function updateOrderStatuses(ids, status) {
   const uniqueIds = [...new Set((ids || []).map((id) => Number(id)).filter(Number.isFinite))];
   if (uniqueIds.length === 0) return [];
 
@@ -312,18 +304,11 @@ async function updateOrderStatuses(ids, status, { changedByUserId = null, note =
       const before = await getOrderById(id, conn);
       if (!before) continue;
 
-      const fromStatusId = await getStatusIdByName(before.status, conn);
       await conn.query("UPDATE order_details SET status = ?, updated_at = ? WHERE id = ?", [
         toStatusId,
         nowIso(),
         id,
       ]);
-      await conn.query(
-        `INSERT INTO order_status_history
-           (order_id, from_status, to_status, changed_by_user_id, note)
-         VALUES (?, ?, ?, ?, ?)`,
-        [id, fromStatusId, toStatusId, changedByUserId, note || ""],
-      );
       changedIds.push(id);
     }
 

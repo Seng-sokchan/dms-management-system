@@ -10,6 +10,7 @@ import {
   createItem,
   deleteItem,
   deleteUser,
+  resetUserPassword,
   createCatalog,
   createCustomer,
   createProvince,
@@ -55,6 +56,7 @@ import {
 import i18n from "../i18n/config";
 import { useConfirm } from "../components/ui/ConfirmProvider";
 import { getApiErrorMessage as getApiErrorMessageFromResponse, unwrapApiData } from "../services/apiClient";
+import { isAutoCredentialRole } from "../utils/userCredentials";
 
 function getErrorMessage(error, errorKey) {
   return getApiErrorMessageFromResponse(error, i18n.t(errorKey));
@@ -148,7 +150,7 @@ export function useAdminDashboard() {
     name: "",
     username: "",
     password: "",
-    role: "Owner",
+    role: "Customer",
     customerId: "",
     deliveryAgentId: "",
     depotId: "",
@@ -223,13 +225,7 @@ export function useAdminDashboard() {
         setStatuses([]);
         setOrders([]);
         setUsers([]);
-        setRoleMenusByRole(null);
         setRoles([]);
-        setMenuCatalog([]);
-        setMobileMenuCatalog([]);
-        setStatusTransitionsByStatus(null);
-        setRoleAccessByRole(null);
-        setRoleStatusPermissionsByRole(null);
         setCustomers([]);
         setProvinces([]);
         setDepots([]);
@@ -584,10 +580,12 @@ export function useAdminDashboard() {
     const customerIdToLink = String(raw.customerId || "").trim();
     const createPayload = {
       name: raw.name,
-      username: raw.username,
-      password: raw.password,
       role: raw.role,
     };
+    if (!isAutoCredentialRole(raw.role)) {
+      createPayload.username = raw.username;
+      createPayload.password = raw.password;
+    }
     const deliveryAgentIdToLink = String(raw.deliveryAgentId || "").trim();
     if (raw.role === "Delivery" && deliveryAgentIdToLink) {
       createPayload.deliveryAgentId = deliveryAgentIdToLink;
@@ -607,17 +605,20 @@ export function useAdminDashboard() {
         name: "",
         username: "",
         password: "",
-        role: "Owner",
+        role: "Customer",
         customerId: "",
         deliveryAgentId: "",
         depotId: "",
       });
       await refresh();
-      await showSuccessPopup(i18n.t("success.userAdded"));
-      return true;
+      return {
+        ok: true,
+        generatedUsername: created?.username || null,
+        generatedPassword: created?.generatedPassword || null,
+      };
     } catch (error) {
       showError(getErrorMessage(error, "errors.createUser"));
-      return false;
+      return { ok: false };
     }
   }
 
@@ -638,6 +639,21 @@ export function useAdminDashboard() {
       showSuccess(i18n.t("success.userDeleted"));
     } catch (error) {
       showError(getErrorMessage(error, "errors.deleteUser"));
+    }
+  }
+
+  async function submitUserResetPassword(userId) {
+    try {
+      const res = await resetUserPassword(token, userId);
+      const updated = unwrapApiData(res.data);
+      return {
+        ok: true,
+        generatedUsername: updated?.username || null,
+        generatedPassword: updated?.generatedPassword || null,
+      };
+    } catch (error) {
+      showError(getErrorMessage(error, "errors.resetUserPassword"));
+      return { ok: false };
     }
   }
 
@@ -936,6 +952,7 @@ export function useAdminDashboard() {
     submitUser,
     submitUserUpdate,
     submitUserDelete,
+    submitUserResetPassword,
     submitBorrowMaterial,
     submitBorrowMaterialUpdate,
     submitBorrowMaterialDelete,

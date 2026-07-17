@@ -20,7 +20,11 @@ export default function CartScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { colors, radii, sizes, spacing, typography, borders } = useTheme();
   const [submitting, setSubmitting] = useState(false);
-  const { blockerOrder, canPlaceOrder } = useOrderPlacementGate();
+  const { blockerOrder, orderWindowClosed, canPlaceOrder } = useOrderPlacementGate();
+
+  function showOrderWindowClosedAlert() {
+    showWarning(t("orderWindow.closedTitle"), t("orderWindow.closedAlertMessage"));
+  }
 
   function showUnpaidReceivedAlert(order) {
     showWarning(t("cart.unpaidReceivedBlockTitle"), t("cart.unpaidReceivedBlockMessage", { id: order?.id }), {
@@ -151,6 +155,10 @@ export default function CartScreen({ navigation }) {
       showWarning(t("cart.emptyAlertTitle"), t("cart.emptyAlertMessage"));
       return;
     }
+    if (orderWindowClosed) {
+      showOrderWindowClosedAlert();
+      return;
+    }
     if (blockerOrder) {
       showUnpaidReceivedAlert(blockerOrder);
       return;
@@ -181,6 +189,11 @@ export default function CartScreen({ navigation }) {
   return (
     <Screen busy={submitting} busyMessage={t("cart.preOrder")}>
       <SectionHeader title={t("cart.title")} subtitle={t(subtitleKey, { count: totalQty })} />
+      {orderWindowClosed ? (
+        <Card style={styles.blockNotice}>
+          <Text style={styles.blockNoticeText}>{t("orderWindow.closedBanner")}</Text>
+        </Card>
+      ) : null}
       {blockerOrder ? (
         <Card style={styles.blockNotice}>
           <Text style={styles.blockNoticeText}>{t("cart.unpaidReceivedBanner")}</Text>

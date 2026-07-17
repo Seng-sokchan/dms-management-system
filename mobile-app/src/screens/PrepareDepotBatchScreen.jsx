@@ -28,6 +28,7 @@ import {
 import { fetchCustomers } from "../services/customersApi";
 import { fetchItems } from "../services/itemsApi";
 import { getApiErrorMessage } from "../services/apiClient";
+import { useOrderWindow } from "../hooks/useOrderWindow";
 function createStyles({ colors, radii, spacing, typography, sizes, layout, borders }) {
   return StyleSheet.create({
     centered: {
@@ -43,6 +44,15 @@ function createStyles({ colors, radii, spacing, typography, sizes, layout, borde
     errorCard: {
       marginBottom: spacing.md,
       backgroundColor: colors.surfaceSoft,
+    },
+    blockNotice: {
+      marginBottom: spacing.md,
+      backgroundColor: colors.warningSoft,
+    },
+    blockNoticeText: {
+      color: colors.textSecondary,
+      fontSize: typography.bodySmall,
+      lineHeight: 20,
     },
     errorTitle: {
       color: colors.textPrimary,
@@ -194,6 +204,7 @@ export default function PrepareDepotBatchScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState("");
+  const { orderWindowClosed } = useOrderWindow();
 
   /** Modal state for picking an item to add to a particular customer's cart */
   const [pickerCustomerId, setPickerCustomerId] = useState("");
@@ -260,6 +271,12 @@ export default function PrepareDepotBatchScreen() {
           }
         />
 
+        {orderWindowClosed ? (
+          <Card style={styles.blockNotice}>
+            <Text style={styles.blockNoticeText}>{t("orderWindow.closedBanner")}</Text>
+          </Card>
+        ) : null}
+
         {loading ? <SkeletonList count={3} ItemComponent={DepotCustomerCardSkeleton} /> : null}
 
         {!loading && !!loadError && (
@@ -295,6 +312,7 @@ export default function PrepareDepotBatchScreen() {
               customer={customer}
               styles={styles}
               colors={colors}
+              disabled={orderWindowClosed}
               onPress={() => setPickerCustomerId(String(customer.id))}
             />
           )}
@@ -327,10 +345,10 @@ export default function PrepareDepotBatchScreen() {
   );
 }
 
-function CustomerListRow({ customer, styles, colors, onPress }) {
+function CustomerListRow({ customer, styles, colors, onPress, disabled = false }) {
   const { t } = useTranslation();
   return (
-    <Pressable onPress={onPress}>
+    <Pressable onPress={onPress} disabled={disabled} style={disabled ? { opacity: 0.5 } : undefined}>
       <Card style={styles.customerRow}>
         <View style={styles.customerRowInner}>
           <View style={{ flex: 1 }}>

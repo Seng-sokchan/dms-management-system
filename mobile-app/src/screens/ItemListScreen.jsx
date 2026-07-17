@@ -41,7 +41,7 @@ export default function ItemListScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState("");
-  const { blockerOrder } = useOrderPlacementGate();
+  const { blockerOrder, orderWindowClosed } = useOrderPlacementGate();
 
   const styles = useMemo(
     () =>
@@ -168,6 +168,11 @@ export default function ItemListScreen({ navigation }) {
         subtitle={t("catalog.subtitle")}
         rightAction={<CartHeaderButton navigation={navigation} totalItems={totalItems} styles={styles} />}
       />
+      {orderWindowClosed ? (
+        <Card style={styles.blockNotice}>
+          <Text style={styles.blockNoticeText}>{t("orderWindow.closedBanner")}</Text>
+        </Card>
+      ) : null}
       {blockerOrder ? (
         <Card style={styles.blockNotice}>
           <Text style={styles.blockNoticeText}>{t("cart.unpaidReceivedBanner")}</Text>
@@ -213,6 +218,7 @@ export default function ItemListScreen({ navigation }) {
             <PrimaryButton
               title={t("catalog.addToCart")}
               onPress={() => addItem(item)}
+              disabled={orderWindowClosed}
               style={styles.addButton}
               icon={<AppIcon name="cart-plus" size={18} color={colors.onPrimary} />}
             />

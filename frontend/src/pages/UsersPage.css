@@ -1,3 +1,11 @@
+/* Auto-credential form fields */
+.input-readonly { background: var(--surface-muted, #f1f5f9); color: var(--text-muted, #64748b); cursor: default; border-color: var(--border, #e2e8f0); }
+.input-monospace { font-family: ui-monospace, "Cascadia Code", "Source Code Pro", monospace; font-size: 0.875rem; letter-spacing: 0.02em; }
+.password-auto-row { display: flex; gap: 0.5rem; align-items: stretch; }
+.password-auto-row input { flex: 1; min-width: 0; }
+.credentials-copy-row { display: flex; gap: 0.5rem; align-items: stretch; margin-bottom: 0.75rem; }
+.credentials-copy-row input { flex: 1; min-width: 0; }
+
 /* Users page — role menu access modal */
 
 .modal-card--menu-access { width: min(700px, 100%); max-height: min(90vh, 44rem); display: flex; flex-direction: column; overflow: hidden; box-shadow: var(--shadow-lg); border: 1px solid var(--border); }

@@ -90,6 +90,5 @@ Fullstack implementation based on the attached plan:
 - `orders` link to `items` via `item_id` (required); display name comes from the `items` row (joined with `items` / `catalogs` as needed), not a duplicate column on `orders`.
 - IDs are numeric (`INT UNSIGNED` for main entities).
 - Foreign keys and indexes are still included for maintainability and performance.
-- `order_status_history` is populated when order **status** is changed (PATCH or mobile); rows link to `users.id` via `changed_by_user_id`.
 - API responses use camelCase; DB columns are snake_case; list endpoints **join** related tables (e.g. order rows include producer/agent names, payments include order customer/item labels).
 - Profile endpoint `/v1/users/me` returns `{ id, name, username, role, allowedMenus }`.

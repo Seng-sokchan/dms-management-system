@@ -16,3 +16,7 @@ export async function updateUser(token, userId, payload) {
 export async function deleteUser(token, userId) {
   return apiClient.delete(`/users/${userId}`, authConfig(token));
 }
+
+export async function resetUserPassword(token, userId) {
+  return apiClient.post(`/users/${userId}/reset-password`, {}, authConfig(token));
+}

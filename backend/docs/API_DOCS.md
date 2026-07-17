@@ -45,6 +45,5 @@ Base URL: `http://localhost:4000/v1` (production: `https://api.dmscambodia.com/v
 - Active tables used by current API: `users`, `producers`, `delivery_agents`, `orders`, `payments`.
 - `users.delivery_agent_id` (nullable, unique when set) links a **Delivery** login to `delivery_agents.id`; order assignment still uses `orders.delivery_agent_id`.
 - `orders` uses the same single-item structure as current frontend/backend contracts.
-- `order_status_history` exists as optional audit table for future enhancement.
 - `delivery_agent_locations` stores the latest GPS per `delivery_agent_id` (upsert, throttled writes) while drivers emit `delivery:location` over Socket.IO.
 - Initialize DB with: `npm run db:init` (uses `.env` DB credentials).

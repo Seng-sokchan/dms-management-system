@@ -1,5 +1,10 @@
 const bcrypt = require("bcryptjs");
 const {
+  isAutoCredentialRole,
+  nextUsernameForRole,
+  generateRandomPassword,
+} = require("../utils/userCredentials");
+const {
   listUsers: listUsersDb,
   createUser: createUserDb,
   updateUser: updateUserDb,
@@ -26,10 +31,23 @@ async function listUsers() {
 }
 
 async function createUser(payload) {
-  if (HIDDEN_USERNAMES.has(String(payload.username || "").trim().toLowerCase())) {
+  let username = String(payload.username || "").trim();
+  let plainPassword = payload.password || "";
+  let generatedPassword = null;
+
+  if (isAutoCredentialRole(payload.role)) {
+    // Auto-assign username and password for Customer/Depot roles
+    const allUsers = await listUsersDb();
+    const existingUsernames = allUsers.map((u) => u.username);
+    username = nextUsernameForRole(payload.role, existingUsernames);
+    plainPassword = generateRandomPassword();
+    generatedPassword = plainPassword;
+  }
+
+  if (HIDDEN_USERNAMES.has(username.toLowerCase())) {
     throw new BadRequestError("Username is reserved");
   }
-  const passwordHash = await bcrypt.hash(payload.password, 10);
+  const passwordHash = await bcrypt.hash(plainPassword, 10);
   const rawAgent = payload.deliveryAgentId;
   const hasAgentLink = rawAgent != null && String(rawAgent).trim() !== "";
   if (hasAgentLink && payload.role !== "Delivery") {
@@ -43,7 +61,7 @@ async function createUser(payload) {
   try {
     const created = await createUserDb({
       name: payload.name,
-      username: payload.username,
+      username,
       role: payload.role,
       passwordHash,
     });
@@ -57,7 +75,11 @@ async function createUser(payload) {
       if (!depot) throw new BadRequestError("Depot not found");
       await setDepotUserLink(null, Number(rawDepot), Number(created.id));
     }
-    return getUserById(created.id);
+    const user = await getUserById(created.id);
+    if (generatedPassword !== null) {
+      return { ...user, generatedPassword };
+    }
+    return user;
   } catch (error) {
     if (error && error.message === "Role not found") throw new BadRequestError("Role not found");
     if (error && error.code === "ER_DUP_ENTRY") throw new ConflictError("Username already exists");
@@ -180,9 +202,32 @@ async function deactivateUser(currentUser, userId) {
   return deleted;
 }
 
+async function resetUserPassword(currentUser, userId) {
+  if (String(currentUser.sub) === String(userId)) {
+    throw new BadRequestError("You cannot reset your own password here");
+  }
+  const existing = await getUserById(userId);
+  if (!existing) throw new NotFoundError("User not found");
+  if (isHiddenUser(existing)) {
+    throw new BadRequestError("System admin user password cannot be reset");
+  }
+  if (!existing.isActive) {
+    throw new BadRequestError("Cannot reset password for an inactive user");
+  }
+
+  const plainPassword = generateRandomPassword();
+  const passwordHash = await bcrypt.hash(plainPassword, 10);
+  const user = await updateUserDb(userId, { passwordHash });
+  if (!user) throw new NotFoundError("User not found");
+
+  const refreshed = await getUserById(userId);
+  return { ...refreshed, generatedPassword: plainPassword };
+}
+
 module.exports = {
   listUsers,
   createUser,
   updateUser,
   deactivateUser,
+  resetUserPassword,
 };

@@ -56,7 +56,6 @@ async function run() {
 
   await dbConn.query("DELETE FROM payments");
   await dbConn.query("DELETE FROM delivery_agent_locations");
-  await dbConn.query("DELETE FROM order_status_history");
   await dbConn.query("DELETE FROM borrow_material_monthly_installments");
   await dbConn.query("DELETE FROM borrow_material_monthly_schedules");
   await dbConn.query("DELETE FROM borrow_material_order_loans");

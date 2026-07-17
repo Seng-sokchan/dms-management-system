@@ -3,12 +3,14 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useAuth } from "../context/AuthContext";
 import { listMobileOrders } from "../services/ordersApi";
 import { findUnpaidReceivedOrder } from "../utils/orderPlacementGate";
+import { useOrderWindow } from "./useOrderWindow";
 import { usePaymentCompletionRefresh } from "./usePaymentCompletionRefresh";
 
 export function useOrderPlacementGate({ enabled = true } = {}) {
   const { token } = useAuth();
   const [loading, setLoading] = useState(true);
   const [blockerOrder, setBlockerOrder] = useState(null);
+  const { orderWindowOpen, orderWindowClosed } = useOrderWindow({ enabled });
 
   const refresh = useCallback(async () => {
     if (!enabled || !token) {
@@ -41,7 +43,9 @@ export function useOrderPlacementGate({ enabled = true } = {}) {
   return {
     loading,
     blockerOrder,
-    canPlaceOrder: !blockerOrder,
+    orderWindowOpen,
+    orderWindowClosed,
+    canPlaceOrder: !blockerOrder && orderWindowOpen,
     refresh,
   };
 }

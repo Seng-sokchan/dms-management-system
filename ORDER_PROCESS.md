@@ -120,7 +120,6 @@ Typical API:
 - `status`: order status lookup
 - `payment_statuses`: payment status lookup
 - `payments`: payment transactions
-- `order_status_history`: status audit history
 
 ## Notes
 
