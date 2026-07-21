@@ -9,7 +9,8 @@ import { useMobileNavigation } from "../hooks/useMobileNavigation";
 import { useTheme } from "../context/ThemeContext";
 import DeliveryTrackingScreen from "../screens/DeliveryTrackingScreen";
 import DeliveryNavigationScreen from "../screens/DeliveryNavigationScreen";
-import ProfileScreen from "../screens/ProfileScreen";
+import ProfileNavigator from "./ProfileNavigator";
+import { profileTabOptions } from "./profileTabOptions";
 import { AppIcon } from "../components/ui";
 import FloatingTabBar from "../components/navigation/FloatingTabBar";
 import { useFloatingTabScreenOptions, useStackScreenOptions } from "./screenOptions";
@@ -99,8 +100,13 @@ export default function DeliveryNavigator() {
       {hasMenu("mobile.profile") ? (
       <Tab.Screen
         name="DeliveryProfile"
-        component={ProfileScreen}
-        options={{ title: t("nav.profile"), tabBarLabel: t("nav.profile"), tabBarIcon: TabIconProfile }}
+        component={ProfileNavigator}
+        options={({ route }) => ({
+          title: t("nav.profile"),
+          tabBarLabel: t("nav.profile"),
+          tabBarIcon: TabIconProfile,
+          ...profileTabOptions({ route }, floatingTabScreenOptions, colors),
+        })}
       />
       ) : null}
     </Tab.Navigator>

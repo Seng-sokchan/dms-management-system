@@ -102,6 +102,22 @@ async function listOrders() {
   return rows.map(mapOrder);
 }
 
+/** True when the agent has at least one Ready_For_Delivery order_detail. */
+async function agentHasReadyForDeliveryOrder(deliveryAgentId) {
+  const agentId = Number(deliveryAgentId);
+  if (!Number.isFinite(agentId) || agentId <= 0) return false;
+  const [rows] = await getPool().query(
+    `SELECT 1 AS ok
+     FROM order_details od
+     INNER JOIN status s ON s.id = od.status
+     WHERE od.delivery_agent_id = ?
+       AND s.name = 'Ready_For_Delivery'
+     LIMIT 1`,
+    [agentId],
+  );
+  return Boolean(rows[0]);
+}
+
 async function getOrderById(id, executor) {
   const db = resolveExecutor(executor);
   const [rows] = await db.query(`SELECT * FROM ${V.ORDERS} WHERE id = ? LIMIT 1`, [id]);
@@ -355,6 +371,7 @@ module.exports = {
   listOrderDetailIdsByMasterOrderId,
   listOrdersByMasterOrderId,
   listOrders,
+  agentHasReadyForDeliveryOrder,
   getOrderById,
   listFactoryNotificationOrdersByOrderId,
   countNonTerminalOrdersByCustomer,

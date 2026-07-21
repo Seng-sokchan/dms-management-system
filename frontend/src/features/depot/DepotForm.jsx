@@ -2,18 +2,9 @@ import { useTranslation } from "react-i18next";
 import { Button } from "../../components/ui/Button";
 import "./DepotForm.css";
 
-function formatUserOptionLabel(u) {
-  const name = u?.name ? String(u.name) : "";
-  const username = u?.username ? String(u.username) : "";
-  if (name && username) return `${name} (${username})`;
-  return name || username || String(u?.id ?? "");
-}
-
-export function DepotCreatePopupForm({ open, users = [], newDepot, setNewDepot, onCreateDepot, onClose }) {
+export function DepotCreatePopupForm({ open, newDepot, setNewDepot, onCreateDepot, onClose }) {
   const { t } = useTranslation();
   if (!open) return null;
-
-  const depotUsers = users.filter((u) => u?.isActive !== false && u?.role === "Depot");
 
   return (
     <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="depot-create-title">
@@ -51,21 +42,6 @@ export function DepotCreatePopupForm({ open, users = [], newDepot, setNewDepot, 
           value={newDepot.address}
           onChange={(event) => setNewDepot((prev) => ({ ...prev, address: event.target.value }))}
         />
-        <label className="form-label" htmlFor="depot-depot-user-id">
-          {t("depots.depotUserId")}
-        </label>
-        <select
-          id="depot-depot-user-id"
-          value={newDepot.depotUserId}
-          onChange={(event) => setNewDepot((prev) => ({ ...prev, depotUserId: event.target.value }))}
-        >
-          <option value="">{t("depots.depotUserPlaceholder")}</option>
-          {depotUsers.map((u) => (
-            <option key={u.id} value={u.id}>
-              {formatUserOptionLabel(u)}
-            </option>
-          ))}
-        </select>
         <div className="row-actions">
           <Button variant="primary" type="submit">
             {t("depots.save")}
@@ -79,11 +55,9 @@ export function DepotCreatePopupForm({ open, users = [], newDepot, setNewDepot, 
   );
 }
 
-export function DepotEditPopupForm({ open, users = [], editingDepot, setEditingDepot, onSubmitEdit, onClose }) {
+export function DepotEditPopupForm({ open, editingDepot, setEditingDepot, onSubmitEdit, onClose }) {
   const { t } = useTranslation();
   if (!open) return null;
-
-  const depotUsers = users.filter((u) => u?.isActive !== false && u?.role === "Depot");
 
   return (
     <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="depot-edit-title">
@@ -115,21 +89,6 @@ export function DepotEditPopupForm({ open, users = [], editingDepot, setEditingD
           value={editingDepot.address}
           onChange={(event) => setEditingDepot((prev) => ({ ...prev, address: event.target.value }))}
         />
-        <label className="form-label" htmlFor="depot-edit-depot-user-id">
-          {t("depots.depotUserId")}
-        </label>
-        <select
-          id="depot-edit-depot-user-id"
-          value={editingDepot.depotUserId}
-          onChange={(event) => setEditingDepot((prev) => ({ ...prev, depotUserId: event.target.value }))}
-        >
-          <option value="">{t("depots.depotUserPlaceholder")}</option>
-          {depotUsers.map((u) => (
-            <option key={u.id} value={u.id}>
-              {formatUserOptionLabel(u)}
-            </option>
-          ))}
-        </select>
         <div className="row-actions">
           <Button variant="primary" type="submit">
             {t("depots.update")}

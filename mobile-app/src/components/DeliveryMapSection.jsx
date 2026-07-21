@@ -14,7 +14,7 @@ import { useTheme } from "../context/ThemeContext";
 
 const DRIVER_FOLLOW_DELTA = 0.018;
 
-function DriverTruckMarker({ coordinate, heading, destination }) {
+function DriverTruckMarker({ coordinate, heading, destination, title, description }) {
   const [tracksViewChanges, setTracksViewChanges] = useState(true);
   const rotation = useMemo(() => {
     if (heading != null) return heading;
@@ -35,8 +35,8 @@ function DriverTruckMarker({ coordinate, heading, destination }) {
       flat
       rotation={rotation}
       tracksViewChanges={tracksViewChanges}
-      title="You"
-      description="Your location"
+      title={title || "You"}
+      description={description || "Your location"}
       zIndex={10}
     >
       <View style={driverMarkerStyles.wrap} pointerEvents="none">
@@ -106,8 +106,8 @@ function DeliveryMapSectionInner({
   activeDestination,
   directionsOrigin,
   directionsError,
-  readyForDeliveryOrders,
-  readyOrdersMissingCoordsCount,
+  readyForDeliveryOrders = [],
+  readyOrdersMissingCoordsCount = 0,
   onDirectionsError,
   onRouteReady,
   fullScreen = false,
@@ -115,6 +115,14 @@ function DeliveryMapSectionInner({
   overlayTopInset = 0,
   mapWidth = 0,
   mapHeight = 0,
+  /** "driver" | "watcher" — watcher uses tracking copy and driver marker labels */
+  audience = "driver",
+  driverMarkerTitle,
+  destinationTitle,
+  destinationDescription,
+  sectionTitle,
+  sectionLead,
+  hideHeader = false,
 }) {
   const { t } = useTranslation();
   const { colors, isDark, radii, resolvedMode, shadows, sizes, spacing, typography } = useTheme();
@@ -131,7 +139,6 @@ function DeliveryMapSectionInner({
           backgroundColor: colors.surfaceMuted,
         },
         mapSection: {
-          marginTop: spacing.md,
           marginBottom: spacing.md,
         },
         mapSectionTitle: {
@@ -312,6 +319,20 @@ function DeliveryMapSectionInner({
     warnings.push(directionsError);
   }
 
+  const resolvedDriverTitle =
+    driverMarkerTitle
+    || (audience === "watcher"
+      ? driverLocation?.name || t("tracking.driver")
+      : t("tracking.you"));
+  const resolvedDestTitle =
+    destinationTitle
+    || (audience === "watcher"
+      ? t("tracking.destinationPin")
+      : activeNavOrder?.customerName || "Delivery");
+  const resolvedDestDescription =
+    destinationDescription
+    || (audience === "watcher" ? t("tracking.destination") : "Next stop");
+
   const mapMarkers = (
     <>
       {driverLocation ? (
@@ -319,14 +340,16 @@ function DeliveryMapSectionInner({
           coordinate={driverLocation}
           heading={driverLocation.heading}
           destination={activeDestination}
+          title={resolvedDriverTitle}
+          description={audience === "watcher" ? t("tracking.liveLocation") : "Your location"}
         />
       ) : null}
       {activeDestination ? (
         <Marker
           coordinate={activeDestination}
           pinColor="#dc2626"
-          title={activeNavOrder?.customerName || "Delivery"}
-          description="Next stop"
+          title={resolvedDestTitle}
+          description={resolvedDestDescription}
         />
       ) : null}
       {otherStops.map((stop) => (
@@ -410,19 +433,33 @@ function DeliveryMapSectionInner({
     );
   }
 
-  return (
-    <View style={styles.mapSection}>
-      <Text style={styles.mapSectionTitle}>{t("delivery.mapTitle")}</Text>
-      {activeNavOrder ? (
-        <Text style={styles.mapSectionLead}>
-          {t("delivery.mapNextStop", {
+  const resolvedSectionTitle =
+    sectionTitle
+    || (audience === "watcher" ? t("tracking.mapTitle") : t("delivery.mapTitle"));
+  const resolvedSectionLead =
+    sectionLead
+    || (activeNavOrder
+      ? audience === "watcher"
+        ? t("tracking.mapLead", {
+            id: activeNavOrder.id,
+            name: activeNavOrder.customerName || activeNavOrder.itemName || t("delivery.routeCustomerFallback"),
+          })
+        : t("delivery.mapNextStop", {
             id: activeNavOrder.id,
             name: activeNavOrder.customerName || t("delivery.routeCustomerFallback"),
-          })}
-        </Text>
-      ) : (
-        <Text style={styles.mapSectionLead}>{t("delivery.waitingForGps")}</Text>
-      )}
+          })
+      : audience === "watcher"
+        ? t("tracking.waitingForDriver")
+        : t("delivery.waitingForGps"));
+
+  return (
+    <View style={styles.mapSection}>
+      {!hideHeader ? (
+        <>
+          <Text style={styles.mapSectionTitle}>{resolvedSectionTitle}</Text>
+          <Text style={styles.mapSectionLead}>{resolvedSectionLead}</Text>
+        </>
+      ) : null}
       {warnings.map((msg) => (
         <Text key={msg} style={styles.mapWarning}>
           {msg}

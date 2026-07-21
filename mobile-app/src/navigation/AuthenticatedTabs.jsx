@@ -5,9 +5,10 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import ItemListScreen from "../screens/ItemListScreen";
 import CartScreen from "../screens/CartScreen";
-import ProfileScreen from "../screens/ProfileScreen";
 import CustomerTrackingScreen from "../screens/CustomerTrackingScreen";
 import MyOrdersScreen from "../screens/MyOrdersScreen";
+import ProfileNavigator from "./ProfileNavigator";
+import { profileTabOptions } from "./profileTabOptions";
 import { AppIcon } from "../components/ui";
 import FloatingTabBar from "../components/navigation/FloatingTabBar";
 import { useAuth } from "../context/AuthContext";
@@ -54,7 +55,6 @@ function TabIconOrders({ color, size }) {
 
 const Tab = createBottomTabNavigator();
 const NewOrderStack = createNativeStackNavigator();
-const ProfileStack = createNativeStackNavigator();
 
 function NewOrderNavigator() {
   const stackScreenOptions = useStackScreenOptions();
@@ -73,20 +73,6 @@ function NewOrderNavigator() {
         options={{ title: t("nav.cart"), presentation: "card" }}
       />
     </NewOrderStack.Navigator>
-  );
-}
-
-function ProfileNavigator() {
-  const stackScreenOptions = useStackScreenOptions();
-
-  return (
-    <ProfileStack.Navigator screenOptions={stackScreenOptions}>
-      <ProfileStack.Screen
-        name="ProfileHome"
-        component={ProfileScreen}
-        options={{ headerShown: false }}
-      />
-    </ProfileStack.Navigator>
   );
 }
 
@@ -131,7 +117,11 @@ export default function AuthenticatedTabs() {
       <Tab.Screen
         name="ProfileTab"
         component={ProfileNavigator}
-        options={{ title: t("nav.profile"), tabBarIcon: TabIconProfile }}
+        options={({ route }) => ({
+          title: t("nav.profile"),
+          tabBarIcon: TabIconProfile,
+          ...profileTabOptions({ route }, floatingTabScreenOptions, colors),
+        })}
       />
       ) : null}
     </Tab.Navigator>

@@ -142,8 +142,6 @@ export default function DeliveryNavigationScreen() {
   const ordersRef = useRef(orders);
   const directionsOriginRef = useRef(null);
   const directionsDebounceRef = useRef(null);
-  const manualNavLockRef = useRef(false);
-  const manualNavOrderIdRef = useRef(null);
 
   directionsOriginRef.current = directionsOrigin;
   ordersRef.current = orders;
@@ -178,24 +176,6 @@ export default function DeliveryNavigationScreen() {
     const loc = location;
     if (!loc) return;
 
-    if (manualNavLockRef.current && manualNavOrderIdRef.current != null) {
-      const lockedId = manualNavOrderIdRef.current;
-      const stillValid = rows.some(
-        (order) =>
-          String(order.id) === String(lockedId) &&
-          order.status === "Ready_For_Delivery" &&
-          orderHasCustomerCoords(order),
-      );
-      if (stillValid) {
-        setActiveNavOrderId(String(lockedId));
-        lastNavRecalcLat.current = loc.latitude;
-        lastNavRecalcLng.current = loc.longitude;
-        return;
-      }
-      manualNavLockRef.current = false;
-      manualNavOrderIdRef.current = null;
-    }
-
     const nearest = pickNearestReadyOrder(rows, loc.latitude, loc.longitude);
     setActiveNavOrderId(nearest ? String(nearest.order.id) : null);
     if (nearest) {
@@ -206,7 +186,6 @@ export default function DeliveryNavigationScreen() {
 
   const handlePositionForNav = useCallback(
     (latitude, longitude) => {
-      if (manualNavLockRef.current) return;
       const prevLat = lastNavRecalcLat.current;
       const prevLng = lastNavRecalcLng.current;
       if (prevLat != null && prevLng != null) {
@@ -231,22 +210,6 @@ export default function DeliveryNavigationScreen() {
       mapVisible: true,
       onPositionForNav: handlePositionForNav,
     });
-
-  const handleSelectNavOrder = useCallback(
-    (orderId) => {
-      const order = ordersRef.current.find((row) => String(row.id) === String(orderId));
-      if (!order || !orderHasCustomerCoords(order)) return;
-      manualNavLockRef.current = true;
-      manualNavOrderIdRef.current = String(orderId);
-      setActiveNavOrderId(String(orderId));
-      const loc = driverLocationRef.current;
-      if (loc) {
-        lastNavRecalcLat.current = loc.latitude;
-        lastNavRecalcLng.current = loc.longitude;
-      }
-    },
-    [driverLocationRef],
-  );
 
   useEffect(() => {
     setRouteSummary(null);
@@ -329,10 +292,6 @@ export default function DeliveryNavigationScreen() {
       const orderBefore = ordersRef.current.find((row) => String(row.id) === String(orderId));
 
       if (status === "Recieve_By_Customer") {
-        if (String(orderId) === String(manualNavOrderIdRef.current)) {
-          manualNavLockRef.current = false;
-          manualNavOrderIdRef.current = null;
-        }
         setActiveNavOrderId(null);
       }
 
@@ -419,10 +378,6 @@ export default function DeliveryNavigationScreen() {
 
       const orderBefore = ordersRef.current.find((row) => String(row.id) === String(orderId));
 
-      if (String(orderId) === String(manualNavOrderIdRef.current)) {
-        manualNavLockRef.current = false;
-        manualNavOrderIdRef.current = null;
-      }
       setActiveNavOrderId(null);
       setConfirmOrder(null);
 
@@ -498,16 +453,6 @@ export default function DeliveryNavigationScreen() {
   );
 
   useEffect(() => {
-    if (manualNavLockRef.current && manualNavOrderIdRef.current != null) {
-      const lockedStillReady = readyForDeliveryOrders.some(
-        (order) => String(order.id) === String(manualNavOrderIdRef.current),
-      );
-      if (!lockedStillReady) {
-        manualNavLockRef.current = false;
-        manualNavOrderIdRef.current = null;
-      }
-    }
-
     const activeStillReady = readyForDeliveryOrders.some(
       (order) => String(order.id) === String(activeNavOrderId),
     );
@@ -523,35 +468,40 @@ export default function DeliveryNavigationScreen() {
   const keyExtractor = useCallback((item) => `active-${item.id}`, []);
 
   const renderOrderItem = useCallback(
-    ({ item }) => (
-      <DeliveryOrderCard
-        item={item}
-        mode="active"
-        isActiveNav={String(item.id) === String(activeNavOrderId)}
-        submittingOrderId={submittingOrderId}
-        onAddToCart={() => {}}
-        onStatusChange={changeOrderStatus}
-        onRequestDeliver={handleRequestDeliver}
-        onSelectForNav={handleSelectNavOrder}
-        canSelectForNav={orderHasCustomerCoords(item)}
-      />
-    ),
-    [activeNavOrderId, submittingOrderId, changeOrderStatus, handleRequestDeliver, handleSelectNavOrder],
+    ({ item }) => {
+      const isActiveNav = String(item.id) === String(activeNavOrderId);
+      return (
+        <DeliveryOrderCard
+          item={item}
+          mode="active"
+          isActiveNav={isActiveNav}
+          submittingOrderId={submittingOrderId}
+          onAddToCart={() => {}}
+          onStatusChange={changeOrderStatus}
+          onRequestDeliver={isActiveNav ? handleRequestDeliver : undefined}
+          canSelectForNav={false}
+        />
+      );
+    },
+    [activeNavOrderId, submittingOrderId, changeOrderStatus, handleRequestDeliver],
   );
 
   const sheetPeekTitle = useMemo(() => {
     if (activeNavOrder) {
-      return `Next · #${activeNavOrder.id} ${activeNavOrder.customerName || ""}`.trim();
+      return t("delivery.routeNextStop", {
+        id: activeNavOrder.id,
+        name: activeNavOrder.customerName || t("delivery.routeCustomerFallback"),
+      });
     }
-    return `${readyForDeliveryOrders.length} active deliver${readyForDeliveryOrders.length === 1 ? "y" : "ies"}`;
-  }, [activeNavOrder, readyForDeliveryOrders.length]);
+    return t("delivery.activeDeliveries");
+  }, [activeNavOrder, t]);
 
   const routeBarTop = insets.top + spacing.sm + NAV_BACK_ROW_HEIGHT + spacing.sm;
   const mapOverlayTop = routeBarTop + NAV_ROUTE_BAR_HEIGHT + spacing.xs;
 
   const sheetPeekSubtitle = useMemo(() => {
     if (activeNavOrder) {
-      return `${readyForDeliveryOrders.length} stop${readyForDeliveryOrders.length === 1 ? "" : "s"} remaining`;
+      return t("delivery.remainingStops", { count: readyForDeliveryOrders.length });
     }
     const label =
       trackingStatus === "active"

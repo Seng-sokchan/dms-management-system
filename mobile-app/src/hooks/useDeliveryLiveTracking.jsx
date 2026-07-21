@@ -3,6 +3,11 @@ import { Linking, Platform } from "react-native";
 import { io } from "socket.io-client";
 import { useAlert } from "../context/AlertContext";
 import i18n from "../i18n/config";
+import {
+  enqueueDeliveryLocation,
+  readDeliveryLocationQueue,
+  replaceDeliveryLocationQueue,
+} from "../services/locationQueueStorage";
 import { getSocketBaseUrl } from "../services/socketUrl";
 import {
   clearDriverWatch,
@@ -20,6 +25,7 @@ const EMIT_MIN_INTERVAL_MS = 8000;
 const MOVE_EMIT_THRESHOLD_M = 35;
 const UI_LOCATION_MIN_INTERVAL_MS = 2000;
 const UI_LOCATION_MOVE_THRESHOLD_M = 40;
+const EMIT_ACK_TIMEOUT_MS = 5000;
 
 const ANDROID_WATCH_OPTIONS = {
   enableHighAccuracy: true,
@@ -37,9 +43,38 @@ const IOS_WATCH_OPTIONS = {
   maximumAge: 10000,
 };
 
+function buildLocationPayload(latitude, longitude, accuracy) {
+  return {
+    latitude,
+    longitude,
+    accuracy: accuracy != null ? Number(accuracy) : undefined,
+    recordedAt: new Date().toISOString(),
+  };
+}
+
+function emitLocationWithAck(socket, payload) {
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (ok) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(ok);
+    };
+    const timer = setTimeout(() => finish(false), EMIT_ACK_TIMEOUT_MS);
+    try {
+      socket.emit("delivery:location", payload, (ack) => {
+        finish(Boolean(ack?.ok));
+      });
+    } catch {
+      finish(false);
+    }
+  });
+}
+
 /**
  * Live GPS + Socket.IO for delivery agents.
- * Socket emits use full GPS rate; React `driverLocation` is throttled for UI.
+ * Offline GPS points are queued in AsyncStorage and uploaded when the socket reconnects.
  */
 export function useDeliveryLiveTracking({
   token,
@@ -61,7 +96,7 @@ export function useDeliveryLiveTracking({
   const lastLng = useRef(null);
   const socketRef = useRef(null);
   const watchIdRef = useRef(null);
-  const pendingLocationRef = useRef(null);
+  const flushingQueueRef = useRef(false);
   const locationErrorShownRef = useRef(false);
   const onPositionForNavRef = useRef(onPositionForNav);
 
@@ -94,19 +129,59 @@ export function useDeliveryLiveTracking({
   useEffect(() => {
     let cancelled = false;
 
+    async function saveLocationOffline(payload) {
+      try {
+        await enqueueDeliveryLocation(payload);
+        if (!cancelled) setTrackingStatus("offline_queued");
+      } catch {
+        /* ignore storage errors */
+      }
+    }
+
+    async function flushQueuedLocations(socket) {
+      if (!socket?.connected || flushingQueueRef.current) return;
+      flushingQueueRef.current = true;
+      try {
+        let queue = await readDeliveryLocationQueue();
+        if (!queue.length) {
+          if (!cancelled) setTrackingStatus("active");
+          return;
+        }
+        if (!cancelled) setTrackingStatus("syncing_queue");
+
+        while (queue.length > 0 && socket.connected && !cancelled) {
+          const item = queue[0];
+          const ok = await emitLocationWithAck(socket, item);
+          if (!ok) break;
+          queue = queue.slice(1);
+          await replaceDeliveryLocationQueue(queue);
+        }
+
+        if (!cancelled) {
+          setTrackingStatus(queue.length > 0 ? "offline_queued" : "active");
+        }
+      } catch {
+        if (!cancelled) setTrackingStatus("offline_queued");
+      } finally {
+        flushingQueueRef.current = false;
+      }
+    }
+
     function emitLocation(latitude, longitude, accuracy) {
-      const payload = {
-        latitude,
-        longitude,
-        accuracy: accuracy != null ? Number(accuracy) : undefined,
-      };
-      if (socketRef.current?.connected) {
-        socketRef.current.emit("delivery:location", payload);
-        pendingLocationRef.current = null;
-        setTrackingStatus("active");
+      const payload = buildLocationPayload(latitude, longitude, accuracy);
+      const socket = socketRef.current;
+      if (socket?.connected) {
+        void emitLocationWithAck(socket, payload).then((ok) => {
+          if (cancelled) return;
+          if (ok) {
+            setTrackingStatus("active");
+            return;
+          }
+          void saveLocationOffline(payload);
+        });
         return;
       }
-      pendingLocationRef.current = payload;
+      void saveLocationOffline(payload);
     }
 
     function handlePosition(info) {
@@ -197,18 +272,16 @@ export function useDeliveryLiveTracking({
         extraHeaders: { Authorization: `Bearer ${accessToken}` },
         transports: ["polling", "websocket"],
         reconnection: true,
-        reconnectionAttempts: 8,
+        reconnectionAttempts: Infinity,
         reconnectionDelay: 2000,
+        reconnectionDelayMax: 10000,
       });
       socketRef.current = socket;
 
       socket.on("connect", () => {
         if (cancelled) return;
         setTrackingStatus("connected");
-        if (pendingLocationRef.current) {
-          socket.emit("delivery:location", pendingLocationRef.current);
-          pendingLocationRef.current = null;
-        }
+        void flushQueuedLocations(socket);
       });
       socket.on("disconnect", () => {
         if (!cancelled) setTrackingStatus("disconnected");
@@ -236,7 +309,7 @@ export function useDeliveryLiveTracking({
     return () => {
       cancelled = true;
       setTrackingStatus("idle");
-      pendingLocationRef.current = null;
+      flushingQueueRef.current = false;
       if (watchIdRef.current != null) {
         clearDriverWatch(watchIdRef.current);
         watchIdRef.current = null;

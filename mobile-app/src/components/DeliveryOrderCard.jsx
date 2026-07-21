@@ -19,6 +19,7 @@ function DeliveryOrderCardInner({
   const { colors, radii, spacing, typography } = useTheme();
   const isSubmitting = submittingOrderId === item.id;
   const isSelectableActive = mode === "active" && onSelectForNav && canSelectForNav;
+  const canMarkDelivered = mode === "active" && isActiveNav && typeof onRequestDeliver === "function";
 
   const styles = useMemo(
     () =>
@@ -74,9 +75,15 @@ function DeliveryOrderCardInner({
           paddingVertical: spacing.sm,
           paddingHorizontal: spacing.lg,
         },
+        actionButtonDisabled: {
+          backgroundColor: colors.surfaceSoft,
+        },
         actionText: {
           color: colors.onPrimary,
           fontWeight: "700",
+        },
+        actionTextDisabled: {
+          color: colors.textMuted,
         },
       }),
     [colors, radii, spacing, typography],
@@ -107,13 +114,15 @@ function DeliveryOrderCardInner({
         ) : null}
         {mode === "active" ? (
           <TouchableOpacity
-            style={styles.actionButton}
-            disabled={isSubmitting}
-            onPress={() =>
-              onRequestDeliver ? onRequestDeliver(item) : onStatusChange(item.id, "Recieve_By_Customer")
-            }
+            style={[styles.actionButton, !canMarkDelivered && styles.actionButtonDisabled]}
+            disabled={isSubmitting || !canMarkDelivered}
+            onPress={() => {
+              if (canMarkDelivered) onRequestDeliver(item);
+            }}
           >
-            <Text style={styles.actionText}>{t("delivery.delivered")}</Text>
+            <Text style={[styles.actionText, !canMarkDelivered && styles.actionTextDisabled]}>
+              {t("delivery.delivered")}
+            </Text>
           </TouchableOpacity>
         ) : null}
       </View>

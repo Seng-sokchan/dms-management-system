@@ -25,6 +25,7 @@ DROP TABLE IF EXISTS `provinces`;
 DROP TABLE IF EXISTS `roles`;
 DROP TABLE IF EXISTS `status`;
 DROP TABLE IF EXISTS `users`;
+DROP TABLE IF EXISTS `app_settings`;
 
 CREATE TABLE `borrow_materials` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -304,6 +305,13 @@ CREATE TABLE `users` (
   UNIQUE KEY `uq_users_delivery_agent_id` (`delivery_agent_id`),
   UNIQUE KEY `uq_users_depot_id` (`depot_id`),
   KEY `idx_users_role_id` (`role_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE `app_settings` (
+  `setting_key` varchar(64) NOT NULL,
+  `setting_value` text NOT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`setting_key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- Read views (replaces sp_get_* / sp_list_* for queries)

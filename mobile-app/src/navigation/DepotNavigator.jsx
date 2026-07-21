@@ -7,7 +7,8 @@ import PrepareDepotBatchScreen from "../screens/PrepareDepotBatchScreen";
 import DepotBatchCartScreen from "../screens/DepotBatchCartScreen";
 import DepotOrdersScreen from "../screens/DepotOrdersScreen";
 import DepotTrackingScreen from "../screens/DepotTrackingScreen";
-import ProfileScreen from "../screens/ProfileScreen";
+import ProfileNavigator from "./ProfileNavigator";
+import { profileTabOptions } from "./profileTabOptions";
 import { useAuth } from "../context/AuthContext";
 import { useMobileNavigation } from "../hooks/useMobileNavigation";
 import { AppIcon } from "../components/ui";
@@ -56,7 +57,6 @@ const Tab = createBottomTabNavigator();
 const PrepareStack = createNativeStackNavigator();
 const OrdersStack = createNativeStackNavigator();
 const TrackingStack = createNativeStackNavigator();
-const ProfileStack = createNativeStackNavigator();
 
 function PrepareNavigator() {
   const stackScreenOptions = useStackScreenOptions();
@@ -105,20 +105,6 @@ function TrackingNavigator() {
   );
 }
 
-function ProfileNavigator() {
-  const stackScreenOptions = useStackScreenOptions();
-
-  return (
-    <ProfileStack.Navigator screenOptions={stackScreenOptions}>
-      <ProfileStack.Screen
-        name="ProfileHome"
-        component={ProfileScreen}
-        options={{ headerShown: false }}
-      />
-    </ProfileStack.Navigator>
-  );
-}
-
 export default function DepotNavigator() {
   const floatingTabScreenOptions = useFloatingTabScreenOptions();
   const { colors } = useTheme();
@@ -161,7 +147,12 @@ export default function DepotNavigator() {
       <Tab.Screen
         name="DepotProfileTab"
         component={ProfileNavigator}
-        options={{ title: t("nav.profile"), tabBarLabel: t("nav.profile"), tabBarIcon: TabIconProfile }}
+        options={({ route }) => ({
+          title: t("nav.profile"),
+          tabBarLabel: t("nav.profile"),
+          tabBarIcon: TabIconProfile,
+          ...profileTabOptions({ route }, floatingTabScreenOptions, colors),
+        })}
       />
       ) : null}
     </Tab.Navigator>

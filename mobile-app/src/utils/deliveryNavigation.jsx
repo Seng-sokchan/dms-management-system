@@ -97,6 +97,59 @@ export function pickNearestReadyOrder(orders, driverLat, driverLng) {
   return best;
 }
 
+/**
+ * Keep watching the current in-delivery order until it leaves the trackable list,
+ * then advance to the next nearest ready order (same idea as driver navigation).
+ */
+export function resolveActiveTrackableOrderId(trackableOrders, { driverLat, driverLng, currentId } = {}) {
+  if (!Array.isArray(trackableOrders) || trackableOrders.length === 0) return "";
+
+  const currentKey = currentId != null && String(currentId).trim() !== "" ? String(currentId) : "";
+  if (currentKey && trackableOrders.some((order) => String(order.id) === currentKey)) {
+    return currentKey;
+  }
+
+  const nearest = pickNearestReadyOrder(trackableOrders, driverLat, driverLng);
+  if (nearest?.order?.id != null) return String(nearest.order.id);
+
+  return trackableOrders[0]?.id != null ? String(trackableOrders[0].id) : "";
+}
+
+/**
+ * Ready-for-delivery orders for the nav list: active stop first, then by driving distance.
+ */
+export function sortReadyOrdersForNavigation(orders, { activeNavOrderId, driverLat, driverLng } = {}) {
+  if (!Array.isArray(orders) || orders.length === 0) return [];
+
+  const lat = parseCoord(driverLat);
+  const lng = parseCoord(driverLng);
+
+  const distanceFor = (order) => {
+    const dest = getOrderDestination(order);
+    if (lat == null || lng == null || !dest) return Number.POSITIVE_INFINITY;
+    return haversineMeters(lat, lng, dest.latitude, dest.longitude);
+  };
+
+  return [...orders]
+    .filter((order) => order?.status === READY_STATUS)
+    .sort((a, b) => {
+      const aActive = activeNavOrderId != null && String(a.id) === String(activeNavOrderId);
+      const bActive = activeNavOrderId != null && String(b.id) === String(activeNavOrderId);
+      if (aActive && !bActive) return -1;
+      if (!aActive && bActive) return 1;
+
+      const aHasCoords = orderHasCustomerCoords(a);
+      const bHasCoords = orderHasCustomerCoords(b);
+      if (aHasCoords && !bHasCoords) return -1;
+      if (!aHasCoords && bHasCoords) return 1;
+
+      const distDiff = distanceFor(a) - distanceFor(b);
+      if (distDiff !== 0) return distDiff;
+
+      return Number(a.id) - Number(b.id);
+    });
+}
+
 export function buildMapRegion(driver, destination, fallbackRegion = PHNOM_PENH_REGION) {
   const dLat = parseCoord(driver?.latitude);
   const dLng = parseCoord(driver?.longitude);

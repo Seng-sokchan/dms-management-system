@@ -1,131 +1,115 @@
 # Order Process (Start to End)
 
-This document reflects the current implementation from order creation through payment and delivery completion.
+This document reflects the **current implementation** from order creation through payment and delivery completion.
 
 ## Overview
 
-- Core object: `orders`
-- Status lookup table: `status`
-- Payment status lookup table: `payment_statuses`
-- Key roles involved:
-  - `Owner` / `Admin`: create and manage orders
-  - `Logistics` / `Delivery`: works in Confirm Orders and delivery confirmation flows
-  - `Owner` / `Admin`: payment recording
+- Workflow unit: `order_details` (line items under an `orders` header / batch)
+- Status lookup: `status` table
+- Payment status: `UNPAID` / `PAID` (independent of delivery status)
+- Key roles:
+  - `Owner` / `Admin`: create and manage orders, assign producer / delivery agent
+  - `Delivery`: start delivery (→ `Ready_For_Delivery`), confirm receipt with loss qty
+  - `Customer` / `Depot`: track live GPS while `Ready_For_Delivery`
+  - `Owner` / `Admin`: record payments
 
-## Step-by-Step Flow
+## Status lifecycle
 
-### Step 1 - Order Created
+```
+Owner_Preparing → Sent_To_Factory → Ready_For_Delivery → Recieve_By_Customer
+```
 
-- Action: create order from UI (`/create-order`) or API
-- Initial values:
-  - `status = NEW_ORDER`
-  - `payment_status = UNPAID`
-  - delivery proof fields are empty
+| Status | Meaning |
+|--------|---------|
+| `Owner_Preparing` | Order created; owner prepares and can assign producer / delivery agent |
+| `Sent_To_Factory` | Sent to factory / producer (Telegram notify may fire) |
+| `Ready_For_Delivery` | Out for delivery; **live GPS tracking is available** |
+| `Recieve_By_Customer` | Delivery confirmed (spelling preserved in DB/code) |
 
-Typical API:
-- `POST /v1/orders`
+Payment does **not** drive these transitions.
 
----
+## Step-by-step flow
 
-### Step 2 - Owner Prepares and Assigns Delivery
+### Step 1 — Order created
 
-- Action: owner prepares the order and assigns delivery agent / producer information
-- Data saved:
-  - `producer_id`
-  - `delivery_agent_id` (when known)
-- Status after assign:
-  - `OWNER_PREPARING`
+- Create order from admin UI or API (`POST /v1/orders`)
+- Initial status: `Owner_Preparing`
+- Initial payment status: `UNPAID`
+- Placement gate: a customer cannot place a new order while they already have unpaid `Recieve_By_Customer` order(s) at or above the current limit
+  - Normal: max **1** unpaid received order
+  - Special day (Admin/Owner toggle): max **2** unpaid received orders
+  - Flag: `app_settings.special_day_enabled` via `GET/PUT /v1/app-settings/special-day`
 
-Typical API:
-- `PATCH /v1/orders/:id`
+### Step 2 — Owner prepares and assigns
 
----
+- Assign `producer_id` and/or `delivery_agent_id` as needed
+- Status remains `Owner_Preparing` until explicitly moved
+- Typical API: `POST /v1/orders/:id` (assignment) / status move endpoints
 
-### Step 3 - Send to Logistics Supplier
+### Step 3 — Sent to factory
 
-- Trigger: owner passes step 2 information to logistics supplier.
-- Result:
-  - status becomes `SENT_TO_LOGISTICS_SUPPLIER`
+- Status → `Sent_To_Factory`
+- Factory / Telegram notification may be sent for the batch
 
----
+### Step 4 — Start delivery (out for delivery)
 
-### Step 4 - Send Out For Delivery
+- Delivery app batches `Sent_To_Factory` orders and starts delivery
+- Status → `Ready_For_Delivery`
+- Driver GPS is published over Socket.IO (`delivery:location`)
+- Latest point stored in `delivery_agent_locations` (throttled); optional Redis cache when `REDIS_URL` is set
+- Customer / Depot / Admin watchers can subscribe for live updates
 
-- Action: logistics confirms handover and starts delivery.
-- Status moves to:
-  - `OUT_FOR_DELIVERY`
+### Step 5 — Confirm delivery
 
-Typical API:
-- `PATCH /v1/orders/:id`
+- Driver (or Admin) confirms with **loss quantity** only
+- `deliveredQty = orderedQty - lossQty`
+- Status → `Recieve_By_Customer`
+- Typical API: `POST /v1/orders/:id/delivery-confirmation` with `{ lossQty }`
+- Mobile: `POST /v1/mobile/orders/:id/delivery-confirmation`
 
----
+There is **no** delivery proof type (PHOTO / SIGNATURE / OTP) in the current codebase.
 
-### Step 5 - Delivery to Customer
+### Step 6 — Payment (can happen later)
 
-- Action: delivery reaches the customer and final delivery confirmation is prepared.
+- Record payments via `POST /v1/payments`
+- Aggregates update `amount_paid` and `payment_status` (`UNPAID` / `PAID`)
+- Payment does not force a delivery status change
 
----
+## Live tracking
 
-### Step 6 - Customer Confirms Receipt
+| Audience | Mechanism |
+|----------|-----------|
+| Delivery driver | Emits GPS while active `Ready_For_Delivery` orders exist |
+| Customer | `subscribe:customer-order-tracking` + REST fallback `GET /v1/mobile/orders/:id/delivery-location` |
+| Depot / Admin / Owner / Logistics | `subscribe:delivery-locations` watcher room |
 
-- Action: confirm actual delivered quantities
-- Required data:
-  - `deliveredQty`
-  - `lossQty`
-  - `remainingQty`
-  - `deliveryProofType` (`PHOTO` / `SIGNATURE` / `OTP`)
-  - `deliveryProofValue` (proof reference/value)
-- Validation:
-  - `deliveredQty + lossQty + remainingQty <= orderedQty`
-- Status moves to:
-  - `RECEIVED_BY_CUSTOMER`
+Tracking is available **only** at `Ready_For_Delivery` with a delivery agent assigned.
 
-Typical API:
-- `POST /v1/orders/:id/delivery-confirmation`
-
----
-
-### Step 7 - Payment (Can Happen Later)
-
-- Action: record payment entries
-- Payment records are stored in `payments`
-- Order aggregates update:
-  - `amount_paid`
-  - `payment_status` (`UNPAID` / `PAID`)
-- If fully paid:
-  - `payment_status = PAID`
-- Payment no longer forces status transition, so customer can pay later.
-
-Typical API:
-- `POST /v1/payments`
-
-## Status Summary
+## Status summary
 
 ### Order status (`status` table)
 
-1. `NEW_ORDER`
-2. `OWNER_PREPARING`
-3. `SENT_TO_LOGISTICS_SUPPLIER`
-4. `OUT_FOR_DELIVERY`
-5. `RECEIVED_BY_CUSTOMER`
+1. `Owner_Preparing`
+2. `Sent_To_Factory`
+3. `Ready_For_Delivery`
+4. `Recieve_By_Customer`
 
-### Payment status (`payment_statuses` table)
+### Payment status
 
 1. `UNPAID`
 2. `PAID`
 
-## Related Tables
+## Related tables
 
-- `orders`: main transaction
-- `status`: order status lookup
-- `payment_statuses`: payment status lookup
-- `payments`: payment transactions
+- `orders` — batch / order header (`order_no`, `target_type`)
+- `order_details` — line workflow (customer, item, qty, status, agent, delivered/loss)
+- `status` — order status lookup
+- `delivery_agents` — agent master data
+- `delivery_agent_locations` — latest GPS per agent
+- `payments` — payment transactions
+- `app_settings` — system flags (e.g. `special_day_enabled`)
 
 ## Notes
 
-- API uses standard status behavior in controllers/middleware:
-  - success: `200` / `201` (depending on endpoint)
-  - validation/client error: `400`
-  - unauthorized: `401`
-  - forbidden: `403`
-  - internal error: `500`
+- API status codes: `200` / `201` success; `400` validation; `401` unauthorized; `403` forbidden; `500` server error
+- Redis is **optional** for last-known location cache; Socket.IO + MySQL work without it

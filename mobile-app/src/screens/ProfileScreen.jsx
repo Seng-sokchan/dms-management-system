@@ -1,10 +1,13 @@
 import React, { useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text } from "react-native";
 import { useTranslation } from "react-i18next";
+import { useAlert } from "../context/AlertContext";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import SettingsSection from "../components/settings/SettingsSection";
 import { AppIcon, Card, Screen, SectionHeader } from "../components/ui";
+import { getApiErrorMessage } from "../services/apiClient";
+import { deleteMyAccount } from "../services/authApi";
 
 function pickLabel(user, key) {
   if (!user) return "—";
@@ -19,10 +22,12 @@ function roleSubtitle(role, t) {
 }
 
 export default function ProfileScreen() {
-  const { user, logout } = useAuth();
+  const { user, token, logout } = useAuth();
   const { t } = useTranslation();
-  const { colors, radii, spacing, typography } = useTheme();
+  const { showError, showAlert } = useAlert();
+  const { colors, radii, spacing, typography, borders, sizes } = useTheme();
   const [signingOut, setSigningOut] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const styles = useMemo(
     () =>
@@ -57,12 +62,47 @@ export default function ProfileScreen() {
           fontWeight: "600",
           color: colors.textPrimary,
         },
+        dangerCard: {
+          marginTop: spacing.lg,
+        },
+        dangerTitle: {
+          fontSize: typography.body,
+          fontWeight: "700",
+          color: colors.textPrimary,
+          marginBottom: spacing.sm,
+        },
+        dangerBody: {
+          fontSize: typography.bodySmall,
+          color: colors.textMuted,
+          lineHeight: 20,
+          marginBottom: spacing.md,
+        },
+        deleteButton: {
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: spacing.sm,
+          paddingVertical: spacing.md,
+          paddingHorizontal: spacing.md,
+          borderRadius: radii.md,
+          backgroundColor: colors.surfaceSoft,
+          ...borders.panel,
+          borderColor: colors.danger,
+        },
+        deleteLabel: {
+          fontSize: typography.body,
+          fontWeight: "700",
+          color: colors.danger,
+        },
+        scrollContent: {
+          paddingBottom: sizes.tabBarOffset + spacing.lg,
+        },
       }),
-    [colors, radii, spacing, typography],
+    [borders.panel, colors, radii, sizes.tabBarOffset, spacing, typography],
   );
 
   async function handleSignOut() {
-    if (signingOut) return;
+    if (signingOut || deleting) return;
     setSigningOut(true);
     try {
       await logout();
@@ -71,36 +111,92 @@ export default function ProfileScreen() {
     }
   }
 
+  async function performDeleteAccount() {
+    if (!token || deleting) return;
+    setDeleting(true);
+    try {
+      await deleteMyAccount(token);
+      await logout();
+    } catch (error) {
+      showError(
+        t("profile.deleteAccountFailed"),
+        getApiErrorMessage(error, t("profile.deleteAccountFailedDefault")),
+      );
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  function handleDeleteAccount() {
+    if (signingOut || deleting) return;
+    showAlert({
+      tone: "warning",
+      title: t("profile.deleteAccountTitle"),
+      message: t("profile.deleteAccountMessage"),
+      dismissible: true,
+      actions: [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("profile.deleteAccountConfirm"),
+          style: "destructive",
+          onPress: () => {
+            void performDeleteAccount();
+          },
+        },
+      ],
+    });
+  }
+
   return (
-    <Screen busy={signingOut}>
-      <SectionHeader
-        title={t("profile.title")}
-        subtitle={roleSubtitle(user?.role, t)}
-        rightAction={
+    <Screen busy={signingOut || deleting}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
+        <SectionHeader
+          title={t("profile.title")}
+          subtitle={roleSubtitle(user?.role, t)}
+          rightAction={
+            <Pressable
+              onPress={handleSignOut}
+              disabled={signingOut || deleting}
+              hitSlop={8}
+              style={styles.signOutButton}
+              accessibilityRole="button"
+              accessibilityLabel={t("profile.signOut")}
+            >
+              <AppIcon name="logout" size={18} color={colors.textPrimary} />
+              <Text style={styles.signOutLabel}>{t("profile.signOut")}</Text>
+            </Pressable>
+          }
+        />
+        <Card>
+          <Text style={styles.fieldLabel}>{t("profile.username")}</Text>
+          <Text style={styles.fieldValue}>{pickLabel(user, "username")}</Text>
+          <Text style={[styles.fieldLabel, styles.fieldLabelSpaced]}>{t("profile.name")}</Text>
+          <Text style={styles.fieldValue}>{pickLabel(user, "name")}</Text>
+          <Text style={[styles.fieldLabel, styles.fieldLabelSpaced]}>{t("profile.role")}</Text>
+          <Text style={styles.fieldValue}>{pickLabel(user, "role")}</Text>
+          <Text style={[styles.fieldLabel, styles.fieldLabelSpaced]}>{t("profile.phone")}</Text>
+          <Text style={styles.fieldValue}>{pickLabel(user, "phone")}</Text>
+        </Card>
+        <SettingsSection />
+        <Card style={styles.dangerCard}>
+          <Text style={styles.dangerTitle}>{t("profile.deleteAccount")}</Text>
+          <Text style={styles.dangerBody}>{t("profile.deleteAccountHint")}</Text>
           <Pressable
-            onPress={handleSignOut}
-            disabled={signingOut}
-            hitSlop={8}
-            style={styles.signOutButton}
+            onPress={handleDeleteAccount}
+            disabled={signingOut || deleting}
+            style={styles.deleteButton}
             accessibilityRole="button"
-            accessibilityLabel={t("profile.signOut")}
+            accessibilityLabel={t("profile.deleteAccount")}
           >
-            <AppIcon name="logout" size={18} color={colors.textPrimary} />
-            <Text style={styles.signOutLabel}>{t("profile.signOut")}</Text>
+            <AppIcon name="trash-can-outline" size={18} color={colors.danger} />
+            <Text style={styles.deleteLabel}>{t("profile.deleteAccount")}</Text>
           </Pressable>
-        }
-      />
-      <Card>
-        <Text style={styles.fieldLabel}>{t("profile.username")}</Text>
-        <Text style={styles.fieldValue}>{pickLabel(user, "username")}</Text>
-        <Text style={[styles.fieldLabel, styles.fieldLabelSpaced]}>{t("profile.name")}</Text>
-        <Text style={styles.fieldValue}>{pickLabel(user, "name")}</Text>
-        <Text style={[styles.fieldLabel, styles.fieldLabelSpaced]}>{t("profile.role")}</Text>
-        <Text style={styles.fieldValue}>{pickLabel(user, "role")}</Text>
-        <Text style={[styles.fieldLabel, styles.fieldLabelSpaced]}>{t("profile.email")}</Text>
-        <Text style={styles.fieldValue}>{pickLabel(user, "email")}</Text>
-      </Card>
-      <SettingsSection />
+        </Card>
+      </ScrollView>
     </Screen>
   );
 }

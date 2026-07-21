@@ -1,5 +1,5 @@
 const authService = require("../services/authService");
-const { success } = require("../utils/response");
+const { success, noContent } = require("../utils/response");
 const { asyncHandler } = require("../errors");
 
 const login = asyncHandler(async (req, res) => {
@@ -12,7 +12,13 @@ const me = asyncHandler(async (req, res) => {
   return success(res, payload);
 });
 
+const deleteMyAccount = asyncHandler(async (req, res) => {
+  await authService.deleteMyAccount(req.user);
+  return noContent(res);
+});
+
 module.exports = {
   login,
   me,
+  deleteMyAccount,
 };

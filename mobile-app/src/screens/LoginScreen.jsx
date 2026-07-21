@@ -11,8 +11,11 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { PRIVACY_POLICY_URL, TERMS_OF_SERVICE_URL } from "../config/appConfig";
+import { openLegalDocument } from "../navigation/openLegalDocument";
 import { useAlert } from "../context/AlertContext";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
@@ -22,6 +25,7 @@ import { getRememberedUsername, setRememberedUsername } from "../services/prefer
 const logoImage = require("../../assets/images/logo.png");
 
 export default function LoginScreen() {
+  const navigation = useNavigation();
   const { login } = useAuth();
   const { t } = useTranslation();
   const { showError } = useAlert();
@@ -122,6 +126,18 @@ export default function LoginScreen() {
         },
         passwordToggle: {
           padding: spacing.sm,
+        },
+        legalRow: {
+          flexDirection: "row",
+          flexWrap: "wrap",
+          justifyContent: "center",
+          gap: spacing.md,
+          marginTop: spacing.lg,
+        },
+        legalLink: {
+          fontSize: typography.caption,
+          fontWeight: "600",
+          color: colors.primary,
         },
       }),
     [colors, isCompact, keyboardVisible, logoSize, spacing, typography.caption, typography.h2],
@@ -233,6 +249,32 @@ export default function LoginScreen() {
                 loading={loading}
                 icon={<AppIcon name="login" size={18} color={colors.onPrimary} />}
               />
+              <View style={styles.legalRow}>
+                <Pressable
+                  onPress={() =>
+                    openLegalDocument(navigation, {
+                      url: PRIVACY_POLICY_URL,
+                      title: t("settings.privacyPolicy"),
+                    })
+                  }
+                  accessibilityRole="button"
+                  accessibilityLabel={t("settings.privacyPolicy")}
+                >
+                  <Text style={styles.legalLink}>{t("settings.privacyPolicy")}</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() =>
+                    openLegalDocument(navigation, {
+                      url: TERMS_OF_SERVICE_URL,
+                      title: t("settings.termsOfService"),
+                    })
+                  }
+                  accessibilityRole="button"
+                  accessibilityLabel={t("settings.termsOfService")}
+                >
+                  <Text style={styles.legalLink}>{t("settings.termsOfService")}</Text>
+                </Pressable>
+              </View>
             </Card>
           </Pressable>
         </ScrollView>

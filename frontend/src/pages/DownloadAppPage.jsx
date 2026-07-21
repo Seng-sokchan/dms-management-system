@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { Trans, useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "../components/ui/LanguageSwitcher";
 import "./DownloadAppPage.css";
@@ -126,6 +127,11 @@ export function DownloadAppPage() {
               <Trans i18nKey="downloadApp.note" components={{ code: <code /> }} />
             </p>
           ) : null}
+
+          <footer className="download-app-legal">
+            <Link to="/privacy">{t("legal.privacyLink")}</Link>
+            <Link to="/terms">{t("legal.termsLink")}</Link>
+          </footer>
         </article>
       </main>
     </div>

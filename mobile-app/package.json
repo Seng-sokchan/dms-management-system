@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "android": "node -r ./scripts/polyfill-util-styletext.cjs ./node_modules/react-native/cli.js run-android",
+    "android": "node -r ./scripts/polyfill-util-styletext.cjs ./node_modules/react-native/cli.js run-android --active-arch-only",
     "android:release": "cd android && gradlew.bat assembleRelease -PreactNativeArchitectures=arm64-v8a",
     "android:install-release": "adb install -r android/app/build/outputs/apk/release/app-release.apk",
     "website:apk": "node scripts/copy-apk-to-website.cjs",

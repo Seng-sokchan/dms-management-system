@@ -38,6 +38,12 @@ export const MENU_ITEMS = [
     subKey: "nav.customerOrderHistorySub",
   },
   { key: "users", path: "/users", labelKey: "nav.users", subKey: "nav.usersSub" },
+  {
+    key: "systemSettings",
+    path: "/system-settings",
+    labelKey: "nav.systemSettings",
+    subKey: "nav.systemSettingsSub",
+  },
 ];
 
 const PATH_TO_MENU_KEY = MENU_ITEMS.reduce((acc, item) => {

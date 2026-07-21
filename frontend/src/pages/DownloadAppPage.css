@@ -308,6 +308,27 @@
   word-break: break-all;
 }
 
+.download-app-legal {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--download-border);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1.25rem;
+  font-size: 0.875rem;
+}
+
+.download-app-legal a {
+  color: var(--download-primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.download-app-legal a:hover {
+  text-decoration: underline;
+}
+
 @media (min-width: 480px) {
   .download-app-card {
     padding: 2rem 2rem 2.25rem;

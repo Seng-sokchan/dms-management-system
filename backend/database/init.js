@@ -94,6 +94,11 @@ async function run() {
       "(6, 'Depot')",
   );
 
+  await dbConn.query(
+    `INSERT INTO app_settings (setting_key, setting_value, updated_at)
+     VALUES ('special_day_enabled', '0', NOW())`,
+  );
+
   const passwordHash = await bcrypt.hash(SEED_PASSWORD, 10);
   const now = new Date();
   for (const user of SEED_USERS) {

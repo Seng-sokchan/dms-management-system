@@ -1,8 +1,11 @@
 import React, { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
+import { PRIVACY_POLICY_URL, TERMS_OF_SERVICE_URL } from "../../config/appConfig";
 import { useTheme } from "../../context/ThemeContext";
 import { changeAppLanguage } from "../../i18n/config";
+import { openLegalDocument } from "../../navigation/openLegalDocument";
 import { Card } from "../ui";
 
 const THEME_OPTIONS = [
@@ -42,6 +45,7 @@ function OptionRow({ label, selected, onPress, styles }) {
 }
 
 export default function SettingsSection() {
+  const navigation = useNavigation();
   const { t, i18n } = useTranslation();
   const { colors, preference, setPreference, fontSizePreference, setFontSizePreference, spacing, typography, radii, borders } =
     useTheme();
@@ -118,9 +122,39 @@ export default function SettingsSection() {
           fontWeight: "700",
           color: colors.primary,
         },
+        linkRow: {
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          paddingVertical: spacing.md,
+          paddingHorizontal: spacing.md,
+          borderRadius: radii.md,
+          marginBottom: spacing.sm,
+          backgroundColor: colors.surfaceSoft,
+          ...borders.panel,
+        },
+        linkLabel: {
+          fontSize: typography.body,
+          fontWeight: "600",
+          color: colors.primary,
+        },
       }),
     [borders.panel, colors, radii, spacing, typography],
   );
+
+  function openPrivacyPolicy() {
+    openLegalDocument(navigation, {
+      url: PRIVACY_POLICY_URL,
+      title: t("settings.privacyPolicy"),
+    });
+  }
+
+  function openTermsOfService() {
+    openLegalDocument(navigation, {
+      url: TERMS_OF_SERVICE_URL,
+      title: t("settings.termsOfService"),
+    });
+  }
 
   return (
     <Card style={{ marginTop: spacing.lg }}>
@@ -176,6 +210,24 @@ export default function SettingsSection() {
           styles={styles}
         />
       ))}
+
+      <Text style={[styles.rowLabel, { marginTop: spacing.md }]}>{t("settings.legal")}</Text>
+      <Pressable
+        onPress={openPrivacyPolicy}
+        style={styles.linkRow}
+        accessibilityRole="button"
+        accessibilityLabel={t("settings.privacyPolicy")}
+      >
+        <Text style={styles.linkLabel}>{t("settings.privacyPolicy")}</Text>
+      </Pressable>
+      <Pressable
+        onPress={openTermsOfService}
+        style={styles.linkRow}
+        accessibilityRole="button"
+        accessibilityLabel={t("settings.termsOfService")}
+      >
+        <Text style={styles.linkLabel}>{t("settings.termsOfService")}</Text>
+      </Pressable>
     </Card>
   );
 }

@@ -236,11 +236,7 @@ function attachDeliveryLocationSocket(httpServer) {
         }
         return;
       }
-      const allOrders = await orderRepository.listOrders();
-      const hasActiveDeliveryOrder = allOrders.some(
-        (order) =>
-          String(order.deliveryAgentId || "") === agentId && order.status === "Ready_For_Delivery",
-      );
+      const hasActiveDeliveryOrder = await orderRepository.agentHasReadyForDeliveryOrder(agentId);
       if (!hasActiveDeliveryOrder) {
         if (typeof ack === "function") {
           ack({ ok: false, error: "Tracking is available only for Ready_For_Delivery orders" });

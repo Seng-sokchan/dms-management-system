@@ -13,12 +13,10 @@ const EMPTY_EDIT = {
   name: "",
   phone: "",
   address: "",
-  depotUserId: "",
 };
 
 export function DepotsPage({
   depots,
-  users = [],
   user,
   newDepot,
   setNewDepot,
@@ -40,7 +38,7 @@ export function DepotsPage({
     const keyword = depotAppliedSearch.trim().toLowerCase();
     if (!keyword) return depots;
     return depots.filter((depot) =>
-      [depot.id, depot.name, depot.phone, depot.address, depot.depotUserName]
+      [depot.id, depot.name, depot.phone, depot.address]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(keyword)),
     );
@@ -59,7 +57,6 @@ export function DepotsPage({
       name: depot.name || "",
       phone: depot.phone || "",
       address: depot.address || "",
-      depotUserId: depot.depotUserId || "",
     });
   }
 
@@ -74,7 +71,6 @@ export function DepotsPage({
       name: editingDepot.name,
       phone: editingDepot.phone,
       address: editingDepot.address,
-      depotUserId: editingDepot.depotUserId.trim() === "" ? null : editingDepot.depotUserId.trim(),
     });
     setEditingDepot(EMPTY_EDIT);
   }
@@ -151,7 +147,6 @@ export function DepotsPage({
                 <th>{t("depots.name")}</th>
                 <th>{t("depots.phone")}</th>
                 <th>{t("depots.address")}</th>
-                <th>{t("depots.depotUser")}</th>
                 {canManageDepots ? <th>Actions</th> : null}
               </tr>
             </thead>
@@ -162,7 +157,6 @@ export function DepotsPage({
                   <td>{depot.name}</td>
                   <td>{depot.phone || "—"}</td>
                   <td>{depot.address || "—"}</td>
-                  <td>{depot.depotUserName || "—"}</td>
                   {canManageDepots ? (
                     <td>
                       <div className="row-actions">
@@ -184,7 +178,6 @@ export function DepotsPage({
 
       <DepotCreatePopupForm
         open={showCreateModal}
-        users={users}
         newDepot={newDepot}
         setNewDepot={setNewDepot}
         onCreateDepot={onCreateDepot}
@@ -193,7 +186,6 @@ export function DepotsPage({
 
       <DepotEditPopupForm
         open={isEditing}
-        users={users}
         editingDepot={editingDepot}
         setEditingDepot={setEditingDepot}
         onSubmitEdit={submitEdit}

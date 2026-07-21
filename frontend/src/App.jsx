@@ -24,6 +24,7 @@ import { TrackingCustomerLocationPage } from "./pages/TrackingCustomerLocationPa
 import { DepotsPage } from "./pages/DepotsPage";
 import { BorrowedMaterialsPage } from "./pages/BorrowedMaterialsPage";
 import { UsersPage } from "./pages/UsersPage";
+import { SystemSettingsPage } from "./pages/SystemSettingsPage";
 import "./App.css";
 
 function App() {
@@ -301,7 +302,7 @@ function App() {
       <Route
         path="/tracking-customer-location"
         element={withLayout(
-          <TrackingCustomerLocationPage customers={customers} />
+          <TrackingCustomerLocationPage customers={customers} orders={orders} token={token} />
         )}
       />
       <Route
@@ -309,7 +310,6 @@ function App() {
         element={withLayout(
           <DepotsPage
               depots={depots}
-              users={users}
               user={user}
               newDepot={newDepot}
               setNewDepot={setNewDepot}
@@ -402,6 +402,10 @@ function App() {
               roles={roles}
             />
         )}
+      />
+      <Route
+        path="/system-settings"
+        element={withLayout(<SystemSettingsPage token={token} />)}
       />
       <Route
         path="/orders"

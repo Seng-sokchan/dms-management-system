@@ -20,18 +20,31 @@
     "fontSize": "Font size",
     "fontSizeSmall": "Small",
     "fontSizeMedium": "Medium",
-    "fontSizeBig": "Big"
+    "fontSizeBig": "Big",
+    "legal": "Legal",
+    "privacyPolicy": "Privacy Policy",
+    "termsOfService": "Terms of Service"
+  },
+  "legal": {
+    "loadError": "Could not load this page. Check your connection and try again."
   },
   "profile": {
     "title": "Profile",
     "username": "Username",
     "name": "Name",
     "role": "Role",
-    "email": "Email",
+    "phone": "Phone",
     "signOut": "Sign out",
     "roleDelivery": "Delivery driver",
     "roleDepot": "Depot operator",
-    "roleCustomer": "Customer account"
+    "roleCustomer": "Customer account",
+    "deleteAccount": "Delete account",
+    "deleteAccountHint": "Permanently deactivate your login. Order history may be kept for business records. See Privacy Policy for details.",
+    "deleteAccountTitle": "Delete your account?",
+    "deleteAccountMessage": "You will be signed out and will not be able to sign in again. This cannot be undone from the app.",
+    "deleteAccountConfirm": "Delete account",
+    "deleteAccountFailed": "Could not delete account",
+    "deleteAccountFailedDefault": "Unable to delete account. Try again or email admin@dmscambodia.com."
   },
   "nav": {
     "order": "Order",
@@ -96,9 +109,9 @@
     "preOrder": "Pre-Order",
     "sku": "SKU: {{sku}}",
     "unpaidReceivedBlockTitle": "Payment required",
-    "unpaidReceivedBlockMessage": "Order #{{id}} was delivered but is not paid yet. Pay it before placing a new order.",
+    "unpaidReceivedBlockMessage": "Order #{{id}} was delivered but is not paid yet. Pay your unpaid delivered order(s) before placing a new order.",
     "unpaidReceivedPayNow": "Pay now",
-    "unpaidReceivedBanner": "You have an unpaid delivered order. Pay it before placing a new order.",
+    "unpaidReceivedBanner": "You have unpaid delivered order(s). Pay them before placing a new order.",
     "continueShopping": "Continue shopping",
     "viewMyOrders": "View my orders",
     "cartRestoredBanner": "Your cart was restored from your last session.",
@@ -136,10 +149,14 @@
     "socketDisconnected": "Disconnected",
     "socketError": "Connection error",
     "orderLabel": "#{{id}} · {{name}}",
+    "mapLead": "Order #{{id}} · {{name}}",
+    "statusSteps": {
+      "title": "Order status"
+    },
     "progress": {
       "title": "Delivery Progress",
       "statusLabel": "Status",
-      "statusOutForDelivery": "🚚 Out for delivery",
+      "statusOutForDelivery": "Out for delivery",
       "driverLabel": "Driver",
       "driverEnRouteYou": "En route to your location",
       "driverEnRouteCustomer": "En route to {{name}}",
@@ -194,6 +211,8 @@
     "orderStatus": "Status: {{status}}",
     "routeEtaDistance": "{{minutes}} min · {{km}} km",
     "routeNextStop": "#{{id}} · {{name}}",
+    "remainingStops": "{{count}} stop remaining",
+    "remainingStops_plural": "{{count}} stops remaining",
     "routeCustomerFallback": "Customer",
     "mapTitle": "Navigation",
     "mapNextStop": "Next stop: #{{id}} — {{name}}",
@@ -429,9 +448,18 @@
     "openSettings": "Open settings"
   },
   "orderStatus": {
+    "ownerPreparing": "Owner preparing",
     "sentToFactory": "Sent to factory",
     "readyForDelivery": "Ready for delivery",
     "receivedByCustomer": "Received by customer",
+    "delivered": "Delivered",
+    "cancelled": "Cancelled"
+  },
+  "orderStatusShort": {
+    "ownerPreparing": "Preparing",
+    "sentToFactory": "Factory",
+    "readyForDelivery": "Delivery",
+    "receivedByCustomer": "Received",
     "delivered": "Delivered",
     "cancelled": "Cancelled"
   }

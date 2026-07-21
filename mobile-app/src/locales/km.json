@@ -20,18 +20,31 @@
     "fontSize": "ទំហំអក្សរ",
     "fontSizeSmall": "តូច",
     "fontSizeMedium": "មធ្យម",
-    "fontSizeBig": "ធំ"
+    "fontSizeBig": "ធំ",
+    "legal": "ផ្លូវច្បាប់",
+    "privacyPolicy": "គោលការណ៍ភាពឯកជន",
+    "termsOfService": "លក្ខខណ្ឌប្រើប្រាស់"
+  },
+  "legal": {
+    "loadError": "មិនអាចផ្ទុកទំព័រនេះបានទេ។ ពិនិត្យការតភ្ជាប់របស់អ្នក ហើយសាកល្បងម្តងទៀត។"
   },
   "profile": {
     "title": "ប្រវត្តិរូប",
     "username": "ឈ្មោះអ្នកប្រើ",
     "name": "ឈ្មោះ",
     "role": "តួនាទី",
-    "email": "អ៊ីមែល",
+    "phone": "ទូរស័ព្ទ",
     "signOut": "ចាកចេញ",
     "roleDelivery": "អ្នកបើកបរដឹកជញ្ជូន",
     "roleDepot": "ប្រតិបត្តិករឃ្លាំង",
-    "roleCustomer": "គណនីអតិថិជន"
+    "roleCustomer": "គណនីអតិថិជន",
+    "deleteAccount": "លុបគណនី",
+    "deleteAccountHint": "បិទការចូលរបស់អ្នកជាអចិន្ត្រៃយ៍។ ប្រវត្តិបញ្ជាទិញអាចត្រូវរក្សាទុកសម្រាប់កំណត់ត្រាអាជីវកម្ម។ មើលគោលការណ៍ភាពឯកជនសម្រាប់ព័ត៌មានលម្អិត។",
+    "deleteAccountTitle": "លុបគណនីរបស់អ្នក?",
+    "deleteAccountMessage": "អ្នកនឹងត្រូវចាកចេញ ហើយមិនអាចចូលម្តងទៀតបានទេ។ មិនអាចត្រឡប់វិញពីកម្មវិធីបានទេ។",
+    "deleteAccountConfirm": "លុបគណនី",
+    "deleteAccountFailed": "មិនអាចលុបគណនីបានទេ",
+    "deleteAccountFailedDefault": "មិនអាចលុបគណនីបានទេ។ សាកល្បងម្តងទៀត ឬផ្ញើអ៊ីមែលមក admin@dmscambodia.com។"
   },
   "nav": {
     "order": "បញ្ជាទិញ",
@@ -96,7 +109,7 @@
     "preOrder": "បញ្ជាទិញជាមុន",
     "sku": "SKU: {{sku}}",
     "unpaidReceivedBlockTitle": "ត្រូវការបង់ប្រាក់",
-    "unpaidReceivedBlockMessage": "ការបញ្ជាទិញ #{{id}} ត្រូវបានដឹកជញ្ជូនហើយ ប៉ុន្តែមិនទាន់បង់ទេ។ សូមបង់មុនពេលបញ្ជាទិញថ្មី។",
+    "unpaidReceivedBlockMessage": "ការបញ្ជាទិញ #{{id}} ត្រូវបានដឹកជញ្ជូនហើយ ប៉ុន្តែមិនទាន់បង់ទេ។ សូមបង់ការបញ្ជាទិញដែលបានដឹកជញ្ជូនហើយមិនទាន់បង់ មុនពេលបញ្ជាទិញថ្មី។",
     "unpaidReceivedPayNow": "បង់ឥឡូវ",
     "unpaidReceivedBanner": "អ្នកមានការបញ្ជាទិញដែលដឹកជញ្ជូនហើយ ប៉ុន្តែមិនទាន់បង់ទេ។ សូមបង់មុនពេលបញ្ជាទិញថ្មី។",
     "continueShopping": "បន្តទិញ",
@@ -136,10 +149,14 @@
     "socketDisconnected": "បានផ្តាច់",
     "socketError": "កំហុសការតភ្ជាប់",
     "orderLabel": "#{{id}} · {{name}}",
+    "mapLead": "ការបញ្ជាទិញ #{{id}} · {{name}}",
+    "statusSteps": {
+      "title": "ស្ថានភាពការបញ្ជាទិញ"
+    },
     "progress": {
       "title": "វឌ្ឍនភាពដឹកជញ្ជូន",
       "statusLabel": "ស្ថានភាព",
-      "statusOutForDelivery": "🚚 កំពុងដឹកជញ្ជូន",
+      "statusOutForDelivery": "កំពុងដឹកជញ្ជូន",
       "driverLabel": "អ្នកបើកបរ",
       "driverEnRouteYou": "កំពុងធ្វើដំណើរទៅទីតាំងរបស់អ្នក",
       "driverEnRouteCustomer": "កំពុងធ្វើដំណើរទៅ {{name}}",
@@ -194,6 +211,8 @@
     "orderStatus": "ស្ថានភាព: {{status}}",
     "routeEtaDistance": "{{minutes}} នាទី · {{km}} គ.ម",
     "routeNextStop": "#{{id}} · {{name}}",
+    "remainingStops": "នៅសល់ {{count}} ចំណុច",
+    "remainingStops_plural": "នៅសល់ {{count}} ចំណុច",
     "routeCustomerFallback": "អតិថិជន",
     "mapTitle": "រុករកផ្លូវ",
     "mapNextStop": "ចំណុចបន្ទាប់: #{{id}} — {{name}}",
@@ -429,10 +448,19 @@
     "openSettings": "បើកការកំណត់"
   },
   "orderStatus": {
+    "ownerPreparing": "ម្ចាស់កំពុងរៀបចំ",
     "sentToFactory": "បានផ្ញើទៅរោងចក្រ",
     "readyForDelivery": "រួចរាល់ដឹកជញ្ជូន",
     "receivedByCustomer": "អតិថិជនបានទទួល",
     "delivered": "បានដឹកជញ្ជូន",
     "cancelled": "បានលុបចោល"
+  },
+  "orderStatusShort": {
+    "ownerPreparing": "រៀបចំ",
+    "sentToFactory": "រោងចក្រ",
+    "readyForDelivery": "ដឹកជញ្ជូន",
+    "receivedByCustomer": "បានទទួល",
+    "delivered": "បានដឹក",
+    "cancelled": "លុបចោល"
   }
 }

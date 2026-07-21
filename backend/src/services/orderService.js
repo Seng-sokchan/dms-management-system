@@ -20,6 +20,7 @@ const lookupRepository = require("../repositories/lookups");
 const overviewRepository = require("../repositories/overview");
 const { getNextStatuses, getStatusNames: getCachedStatusNames, canUpdateAnyStatus } = require("./rulesCache");
 const { assertCanSetStatus } = require("./accessPolicyService");
+const { getUnpaidReceivedOrderLimit } = require("./appSettingsService");
 const { getPool } = require("../../database/pool");
 const { BadRequestError, NotFoundError, ForbiddenError } = require("../errors");
 const telegramService = require("./telegramService");
@@ -28,7 +29,7 @@ const telegramService = require("./telegramService");
 const DEFAULT_NEW_ORDER_PRODUCER_ID = "1";
 
 const UNPAID_RECEIVED_ORDERS_MESSAGE =
-  "Pay for your received order before placing a new order.";
+  "Pay for your received unpaid order(s) before placing a new order.";
 
 // ---------------------------------------------------------------------------
 // Status helpers (pure)
@@ -128,7 +129,8 @@ async function getDashboardSummary() {
 
 async function assertCustomerCanPlaceNewOrder(customerId, executor) {
   const n = await orderRepository.countUnpaidReceivedOrdersByCustomer(customerId, executor);
-  if (n > 0) {
+  const limit = await getUnpaidReceivedOrderLimit();
+  if (n >= limit) {
     throw new BadRequestError(UNPAID_RECEIVED_ORDERS_MESSAGE);
   }
 }
@@ -173,7 +175,7 @@ async function create(payload) {
 /**
  * Create multiple orders for one customer in a single transaction.
  * Same validation as {@link create} per line; fails entirely if any line is invalid
- * or the customer has unpaid received orders at commit time.
+ * or the customer is at/above the unpaid-received order limit at commit time.
  */
 async function createBatch({ customerId, lines }) {
   const producer = await producerRepository.getProducerById(DEFAULT_NEW_ORDER_PRODUCER_ID);

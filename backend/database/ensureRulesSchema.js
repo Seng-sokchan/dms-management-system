@@ -529,6 +529,21 @@ async function ensureDashboardViews(conn) {
   `);
 }
 
+async function ensureAppSettings(conn) {
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS app_settings (
+      setting_key varchar(64) NOT NULL,
+      setting_value text NOT NULL,
+      updated_at datetime DEFAULT NULL,
+      PRIMARY KEY (setting_key)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8
+  `);
+  await conn.query(
+    `INSERT IGNORE INTO app_settings (setting_key, setting_value, updated_at)
+     VALUES ('special_day_enabled', '0', NOW())`,
+  );
+}
+
 async function ensureRulesSchema() {
   const pool = getPool();
   const conn = await pool.getConnection();
@@ -539,6 +554,7 @@ async function ensureRulesSchema() {
     await ensureOrderMasterType(conn);
     await ensureDashboardViews(conn);
     await ensureOptimizedIndexes(conn);
+    await ensureAppSettings(conn);
   } finally {
     conn.release();
   }

@@ -211,7 +211,11 @@ export function DeliveryOrdersBottomSheet({
               <Text style={styles.hint}>Swipe down for full map</Text>
             </>
           ) : (
-            <Text style={styles.peekHint}>Swipe up for more</Text>
+            <>
+              {peekTitle ? <Text style={styles.peekTitle}>{peekTitle}</Text> : null}
+              {peekSubtitle ? <Text style={styles.peekSubtitle}>{peekSubtitle}</Text> : null}
+              <Text style={styles.peekHint}>Swipe up for more</Text>
+            </>
           )}
         </Pressable>
       </View>

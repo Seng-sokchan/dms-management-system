@@ -7,6 +7,8 @@ import "./i18n/config.js";
 import "./index.css";
 import App from "./App.jsx";
 import { DownloadAppPage } from "./pages/DownloadAppPage";
+import { PrivacyPolicyPage } from "./pages/PrivacyPolicyPage";
+import { TermsOfServicePage } from "./pages/TermsOfServicePage";
 
 (() => {
   const href = String(evaLogo);
@@ -30,6 +32,8 @@ createRoot(document.getElementById("root")).render(
     <BrowserRouter>
       <Routes>
         <Route path="/download-app" element={<DownloadAppPage />} />
+        <Route path="/privacy" element={<PrivacyPolicyPage />} />
+        <Route path="/terms" element={<TermsOfServicePage />} />
         <Route
           path="*"
           element={

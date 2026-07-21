@@ -1,0 +1,141 @@
+/* Public legal pages — standalone (no auth, no React) */
+
+:root {
+  --bg: #f0f4f8;
+  --bg-accent: #e8f0fe;
+  --surface: #ffffff;
+  --text: #0f172a;
+  --text-muted: #64748b;
+  --border: #e2e8f0;
+  --primary: #3b82f6;
+  --shadow-lg: 0 24px 64px rgba(15, 23, 42, 0.12);
+  --radius-lg: 24px;
+  --font: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font);
+}
+
+.legal-body {
+  background: linear-gradient(160deg, var(--bg) 0%, var(--bg-accent) 45%, #f8fafc 100%);
+  min-height: 100vh;
+}
+
+.legal-page {
+  position: relative;
+  z-index: 1;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 3rem;
+}
+
+.legal-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 1.75rem 1.5rem 2rem;
+}
+
+.legal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.legal-header .brand-mark {
+  font-weight: 700;
+  font-size: 1.125rem;
+  letter-spacing: 0.04em;
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.legal-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.legal-nav a {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.legal-nav a:hover {
+  text-decoration: underline;
+}
+
+.legal-card h1 {
+  margin: 0 0 0.35rem;
+  font-size: 1.75rem;
+  line-height: 1.25;
+  color: var(--text);
+}
+
+.legal-updated {
+  margin: 0 0 1.5rem;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.legal-card h2 {
+  margin: 1.75rem 0 0.5rem;
+  font-size: 1.125rem;
+  color: var(--text);
+}
+
+.legal-card p,
+.legal-card li {
+  color: var(--text);
+  margin: 0 0 0.75rem;
+  line-height: 1.65;
+}
+
+.legal-card ul {
+  margin: 0 0 0.75rem;
+  padding-left: 1.25rem;
+}
+
+.legal-card a {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.legal-footer {
+  margin-top: 2rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  font-size: 0.875rem;
+}
+
+.legal-footer a {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.legal-footer a:hover {
+  text-decoration: underline;
+}
+
+@media (min-width: 640px) {
+  .legal-card {
+    padding: 2.25rem 2.5rem 2.5rem;
+  }
+}

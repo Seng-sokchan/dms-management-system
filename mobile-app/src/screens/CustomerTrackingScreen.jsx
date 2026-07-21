@@ -1,19 +1,25 @@
-import React, { useCallback, useMemo, useRef, useState } from "react";
-import { FlatList, Pressable, StyleSheet, Text } from "react-native";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Pressable, ScrollView, StyleSheet, Text } from "react-native";
 import { useTranslation } from "react-i18next";
-import Geolocation from "@react-native-community/geolocation";
 import { useFocusEffect } from "@react-navigation/native";
 import { io } from "socket.io-client";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
+import { DeliveryMapSection } from "../components/DeliveryMapSection";
 import DeliveryProgressCard from "../components/DeliveryProgressCard";
+import OrderStatusSteps from "../components/OrderStatusSteps";
+import TrackingOrderChips from "../components/TrackingOrderChips";
 import { Card, EmptyState, ErrorBanner, Screen, SectionHeader, TrackingChipsSkeleton } from "../components/ui";
 import { useDeliveryLocationHistory } from "../hooks/useDeliveryLocationHistory";
 import { useDeliveryRouteProgress } from "../hooks/useDeliveryRouteProgress";
 import { getApiErrorMessage } from "../services/apiClient";
 import { listMobileOrders } from "../services/ordersApi";
 import { getSocketBaseUrl } from "../services/socketUrl";
-import { ensureLocationPermission } from "../utils/locationPermission";
+import { getOrderDestination, resolveActiveTrackableOrderId } from "../utils/deliveryNavigation";
+import {
+  ensureDriverLocationReady,
+  getCurrentDriverPositionAsync,
+} from "../utils/driverLocationProvider";
 import { getSocketStatusLabel } from "../utils/trackingLabels";
 
 const TRACKABLE_STATUS = "Ready_For_Delivery";
@@ -21,7 +27,7 @@ const TRACKABLE_STATUS = "Ready_For_Delivery";
 export default function CustomerTrackingScreen() {
   const { token } = useAuth();
   const { t } = useTranslation();
-  const { colors, radii, spacing, typography } = useTheme();
+  const { colors, radii, spacing, typography, sizes } = useTheme();
   const socketRef = useRef(null);
   const applyLiveRef = useRef(null);
   const applySubscribeRef = useRef(null);
@@ -31,11 +37,15 @@ export default function CustomerTrackingScreen() {
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [socketState, setSocketState] = useState("idle");
   const [error, setError] = useState("");
+  const [mapDirectionsError, setMapDirectionsError] = useState("");
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        container: { paddingBottom: spacing.sm },
+        container: { flex: 1 },
+        scrollContent: {
+          paddingBottom: sizes.tabBarOffset + spacing.lg,
+        },
         ordersCard: { marginBottom: spacing.md, paddingVertical: spacing.md },
         cardTitle: {
           color: colors.textPrimary,
@@ -49,25 +59,8 @@ export default function CustomerTrackingScreen() {
           fontSize: typography.caption,
           fontWeight: "500",
         },
-        chipList: { paddingVertical: spacing.xs },
-        orderChip: {
-          marginRight: spacing.sm,
-          borderRadius: radii.pill,
-          paddingHorizontal: spacing.md,
-          paddingVertical: spacing.sm,
-          backgroundColor: colors.surfaceSoft,
-        },
-        orderChipActive: { backgroundColor: colors.primary },
-        orderChipTitle: {
-          color: colors.textPrimary,
-          fontWeight: "600",
-          fontSize: typography.bodySmall,
-        },
-        orderChipTitleActive: { color: colors.onPrimary },
-        orderChipSub: { color: colors.textMuted, marginTop: 2, fontSize: typography.caption },
-        orderChipSubActive: { color: colors.onPrimary, opacity: 0.72 },
       }),
-    [colors, radii, spacing, typography],
+    [colors, sizes.tabBarOffset, spacing, typography],
   );
 
   const trackableOrders = useMemo(
@@ -79,6 +72,11 @@ export default function CustomerTrackingScreen() {
     () => trackableOrders.find((row) => String(row.id) === String(selectedOrderId)),
     [trackableOrders, selectedOrderId],
   );
+
+  const deliveryDestination = useMemo(() => {
+    if (!selectedOrder) return myLocation;
+    return getOrderDestination(selectedOrder) || myLocation;
+  }, [selectedOrder, myLocation]);
 
   const driverName = selectedOrder?.deliveryAgentName || t("tracking.driver");
 
@@ -111,9 +109,9 @@ export default function CustomerTrackingScreen() {
     };
   }, [driverName, lastKnown]);
 
-  const { progressRows, resetRoute, isLoadingRoute } = useDeliveryRouteProgress({
+  const { progressRows, resetRoute, isLoadingRoute, directionsError } = useDeliveryRouteProgress({
     origin: driverLocation,
-    destination: myLocation,
+    destination: deliveryDestination,
     driverName: driverLocation?.name || driverName,
     audience: "customer",
     orderStatus: selectedOrder?.status,
@@ -142,43 +140,45 @@ export default function CustomerTrackingScreen() {
     try {
       const rows = await listMobileOrders(token);
       setOrders(rows);
-      setSelectedOrderId((prev) => {
-        if (!prev) {
-          const firstId = rows.find(
-            (row) => row?.status === TRACKABLE_STATUS && row?.deliveryAgentId,
-          )?.id;
-          return firstId ? String(firstId) : "";
-        }
-        const stillVisible = rows.some(
-          (row) =>
-            String(row?.id) === String(prev)
-            && row?.status === TRACKABLE_STATUS
-            && row?.deliveryAgentId,
-        );
-        if (!stillVisible) {
-          resetHistory();
-          return "";
-        }
-        return prev;
-      });
     } catch (err) {
       setError(getApiErrorMessage(err, t("tracking.loadFailed")));
     } finally {
       setLoadingOrders(false);
     }
-    const ok = await ensureLocationPermission();
+    const ok = await ensureDriverLocationReady();
     if (!ok) return;
-    Geolocation.getCurrentPosition(
-      (info) => {
-        setMyLocation({
-          latitude: info.coords.latitude,
-          longitude: info.coords.longitude,
-        });
-      },
-      () => {},
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 },
-    );
-  }, [resetHistory, token, t]);
+    try {
+      const info = await getCurrentDriverPositionAsync({
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 30000,
+      });
+      setMyLocation({
+        latitude: info.coords.latitude,
+        longitude: info.coords.longitude,
+      });
+    } catch {
+      /* destination falls back to order coords */
+    }
+  }, [token, t]);
+
+  const linkedOrderId = useMemo(
+    () =>
+      resolveActiveTrackableOrderId(trackableOrders, {
+        driverLat: driverLocation?.latitude,
+        driverLng: driverLocation?.longitude,
+        currentId: selectedOrderId,
+      }),
+    [trackableOrders, driverLocation?.latitude, driverLocation?.longitude, selectedOrderId],
+  );
+
+  useEffect(() => {
+    if (!linkedOrderId || linkedOrderId === selectedOrderId) return;
+    setSelectedOrderId(linkedOrderId);
+    resetHistory();
+    resetRoute();
+    setMapDirectionsError("");
+  }, [linkedOrderId, resetHistory, resetRoute, selectedOrderId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -225,29 +225,10 @@ export default function CustomerTrackingScreen() {
     }, [selectedOrderId, subscribeSelectedOrder]),
   );
 
-  const renderOrder = ({ item }) => {
-    const isActive = String(item.id) === String(selectedOrderId);
-    return (
-      <Pressable
-        onPress={() => {
-          setSelectedOrderId(String(item.id));
-          resetHistory();
-          resetRoute();
-        }}
-        style={[styles.orderChip, isActive && styles.orderChipActive]}
-        accessibilityRole="button"
-        accessibilityState={{ selected: isActive }}
-        accessibilityLabel={t("tracking.orderLabel", { id: item.id, name: item.itemName || "Order" })}
-      >
-        <Text style={[styles.orderChipTitle, isActive && styles.orderChipTitleActive]}>
-          {t("tracking.orderLabel", { id: item.id, name: item.itemName || "Order" })}
-        </Text>
-        <Text style={[styles.orderChipSub, isActive && styles.orderChipSubActive]}>
-          {item.deliveryTime || t("orderStatus.readyForDelivery")}
-        </Text>
-      </Pressable>
-    );
-  };
+  const getOrderSubtitle = useCallback(
+    (item) => item.deliveryTime || t("orderStatus.readyForDelivery"),
+    [t],
+  );
 
   const connectionLabel = useMemo(() => {
     if (socketState === "connected" && lastKnown && !isStale) {
@@ -270,48 +251,68 @@ export default function CustomerTrackingScreen() {
 
   return (
     <Screen contentStyle={styles.container} busy={busy}>
-      <SectionHeader title={t("tracking.title")} subtitle={t("tracking.subtitle")} />
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
+        <SectionHeader title={t("tracking.title")} subtitle={t("tracking.subtitle")} />
 
-      <Card style={styles.ordersCard}>
-        <Text style={styles.cardTitle}>{t("tracking.activeOrders")}</Text>
-        {loadingOrders ? (
-          <TrackingChipsSkeleton />
-        ) : trackableOrders.length === 0 ? (
-          <EmptyState
-            icon="map-marker-radius"
-            title={t("tracking.noOrders")}
-            action={
-              <Pressable onPress={() => loadOrdersAndLocation()} accessibilityRole="button">
-                <Text style={{ color: colors.primary, fontWeight: "700" }}>{t("common.tryAgain")}</Text>
-              </Pressable>
-            }
+        <Card style={styles.ordersCard}>
+          <Text style={styles.cardTitle}>{t("tracking.activeOrders")}</Text>
+          {loadingOrders ? (
+            <TrackingChipsSkeleton />
+          ) : trackableOrders.length === 0 ? (
+            <EmptyState
+              icon="map-marker-radius"
+              title={t("tracking.noOrders")}
+              action={
+                <Pressable onPress={() => loadOrdersAndLocation()} accessibilityRole="button">
+                  <Text style={{ color: colors.primary, fontWeight: "700" }}>{t("common.tryAgain")}</Text>
+                </Pressable>
+              }
+            />
+          ) : (
+            <TrackingOrderChips
+              orders={trackableOrders}
+              linkedOrderId={linkedOrderId}
+              getSubtitle={getOrderSubtitle}
+            />
+          )}
+          <Text style={styles.statusLine}>
+            {t("tracking.connection")} · {connectionLabel}
+          </Text>
+        </Card>
+
+        {selectedOrder ? (
+          <>
+            <OrderStatusSteps status={selectedOrder.status} />
+            <DeliveryMapSection
+              audience="watcher"
+              hideHeader
+              driverLocation={driverLocation}
+              activeNavOrder={selectedOrder}
+              activeNavOrderId={selectedOrder.id}
+              activeDestination={deliveryDestination}
+              directionsOrigin={driverLocation}
+              directionsError={mapDirectionsError || directionsError}
+              readyForDeliveryOrders={[]}
+              readyOrdersMissingCoordsCount={0}
+              onDirectionsError={setMapDirectionsError}
+              onRouteReady={() => setMapDirectionsError("")}
+            />
+            <DeliveryProgressCard title={t("tracking.progress.title")} rows={progressRows} />
+          </>
+        ) : null}
+
+        {displayError ? (
+          <ErrorBanner
+            title={t("tracking.title")}
+            message={displayError}
+            onRetry={loadOrdersAndLocation}
           />
-        ) : (
-          <FlatList
-            horizontal
-            data={trackableOrders}
-            keyExtractor={(item) => String(item.id)}
-            renderItem={renderOrder}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.chipList}
-          />
-        )}
-        <Text style={styles.statusLine}>
-          {t("tracking.connection")} · {connectionLabel}
-        </Text>
-      </Card>
-
-      {selectedOrder ? (
-        <DeliveryProgressCard title={t("tracking.progress.title")} rows={progressRows} />
-      ) : null}
-
-      {displayError ? (
-        <ErrorBanner
-          title={t("tracking.title")}
-          message={displayError}
-          onRetry={loadOrdersAndLocation}
-        />
-      ) : null}
+        ) : null}
+      </ScrollView>
     </Screen>
   );
 }

@@ -1,11 +1,10 @@
-# DMS App (Android, no Expo)
+# DMS App (Android + iOS)
 
-React Native CLI app for **Customer** users:
-- Login / logout
-- Item list
-- Add to cart
-- Pre-order from cart
-- Popup sample QR code after pre-order
+React Native CLI app for **Customer**, **Delivery**, and **Depot** users.
+
+For App Store submission (privacy URL, account deletion, privacy labels, export compliance), see [APP_STORE.md](./APP_STORE.md).
+
+For Google Play submission (package name, Data safety, signing, AAB), see [PLAY_STORE.md](./PLAY_STORE.md).
 
 ## Backend API requirements
 

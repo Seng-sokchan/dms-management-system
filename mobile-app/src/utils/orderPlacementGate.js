@@ -1,19 +1,40 @@
-const UNPAID_PAYMENT = new Set(["unpaid"]);
+const UNPAID_PAYMENT = new Set(["unpaid", "pending"]);
 
 const RECEIVED_STATUS = "Recieve_By_Customer";
 
-export function findUnpaidReceivedOrder(orders) {
-  return (
-    (orders || []).find(
-      (order) =>
-        order?.status === RECEIVED_STATUS
-        && UNPAID_PAYMENT.has(order?.paymentStatus || "unpaid"),
-    ) || null
+const DEFAULT_UNPAID_RECEIVED_LIMIT = 1;
+
+export function listUnpaidReceivedOrders(orders) {
+  return (orders || []).filter(
+    (order) =>
+      order?.status === RECEIVED_STATUS
+      && UNPAID_PAYMENT.has(String(order?.paymentStatus || "unpaid").toLowerCase()),
   );
 }
 
-export function canPlaceNewOrder(orders) {
-  return !findUnpaidReceivedOrder(orders);
+export function countUnpaidReceivedOrders(orders) {
+  return listUnpaidReceivedOrders(orders).length;
+}
+
+export function normalizeUnpaidReceivedLimit(limit) {
+  const n = Number(limit);
+  if (n === 2) return 2;
+  return DEFAULT_UNPAID_RECEIVED_LIMIT;
+}
+
+/**
+ * Returns one unpaid received order to highlight in the UI when placement is blocked.
+ * Prefer the oldest/first match when over the allowed limit.
+ */
+export function findUnpaidReceivedOrder(orders, limit = DEFAULT_UNPAID_RECEIVED_LIMIT) {
+  const unpaid = listUnpaidReceivedOrders(orders);
+  const max = normalizeUnpaidReceivedLimit(limit);
+  if (unpaid.length < max) return null;
+  return unpaid[0] || null;
+}
+
+export function canPlaceNewOrder(orders, limit = DEFAULT_UNPAID_RECEIVED_LIMIT) {
+  return countUnpaidReceivedOrders(orders) < normalizeUnpaidReceivedLimit(limit);
 }
 
 export function getCustomerRootNavigation(navigation) {

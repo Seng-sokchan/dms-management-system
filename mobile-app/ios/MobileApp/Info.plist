@@ -35,7 +35,9 @@
 		<true/>
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Your location is shared with dispatch while you are on duty and this screen is open.</string>
+	<string>DMS uses your location to show delivery progress on the map and to share the driver’s position with dispatch and customers while tracking is active.</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIRequiredDeviceCapabilities</key>

@@ -11,7 +11,9 @@ import { ThemeProvider, useTheme } from "./src/context/ThemeContext";
 import { CartProvider } from "./src/context/CartContext";
 import { darkColors, lightColors } from "./src/theme/palettes";
 import LoginScreen from "./src/screens/LoginScreen";
+import LegalDocumentScreen from "./src/screens/LegalDocumentScreen";
 import CustomerRootNavigator from "./src/navigation/CustomerRootNavigator";
+import { LEGAL_DOCUMENT_ROUTE } from "./src/navigation/ProfileNavigator";
 import DeliveryNavigator from "./src/navigation/DeliveryNavigator";
 import DepotRootNavigator from "./src/navigation/DepotRootNavigator";
 import { useStackScreenOptions } from "./src/navigation/screenOptions";
@@ -80,7 +82,17 @@ function AppNavigator() {
     >
       <Stack.Navigator screenOptions={stackScreenOptions}>
         {!token ? (
-          <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
+          <>
+            <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
+            <Stack.Screen
+              name={LEGAL_DOCUMENT_ROUTE}
+              component={LegalDocumentScreen}
+              options={({ route }) => ({
+                title: route.params?.title ?? "",
+                headerBackTitleVisible: false,
+              })}
+            />
+          </>
         ) : mobileRoot === "DeliveryMain" ? (
           <Stack.Screen
             name="DeliveryMain"

@@ -9,3 +9,7 @@ export async function fetchMe(token) {
   const response = await apiClient.get("/users/me", authConfig(token));
   return unwrapApiData(response.data);
 }
+
+export async function deleteMyAccount(token) {
+  await apiClient.delete("/users/me", authConfig(token));
+}

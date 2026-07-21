@@ -1,4 +1,4 @@
-package com.mobileapp
+package com.dmscambodia.app
 
 import android.content.Intent
 import com.facebook.react.ReactActivity
