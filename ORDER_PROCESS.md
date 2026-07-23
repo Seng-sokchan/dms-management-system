@@ -24,7 +24,7 @@ Owner_Preparing → Sent_To_Factory → Ready_For_Delivery → Recieve_By_Custom
 | `Owner_Preparing` | Order created; owner prepares and can assign producer / delivery agent |
 | `Sent_To_Factory` | Sent to factory / producer (Telegram notify may fire) |
 | `Ready_For_Delivery` | Out for delivery; **live GPS tracking is available** |
-| `Recieve_By_Customer` | Delivery confirmed (spelling preserved in DB/code) |
+| `Recieve_By_Customer` | Delivery confirmed (spelling preserved in DB/code); Telegram notify may fire |
 
 Payment does **not** drive these transitions.
 
@@ -66,6 +66,7 @@ Payment does **not** drive these transitions.
 - Status → `Recieve_By_Customer`
 - Typical API: `POST /v1/orders/:id/delivery-confirmation` with `{ lossQty }`
 - Mobile: `POST /v1/mobile/orders/:id/delivery-confirmation`
+- Telegram group alert may be sent (soft-fail: delivery still succeeds if Telegram is down)
 
 There is **no** delivery proof type (PHOTO / SIGNATURE / OTP) in the current codebase.
 

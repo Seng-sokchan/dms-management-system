@@ -207,6 +207,7 @@
     "nextStop": "ចំណុចបន្ទាប់",
     "addToCart": "បន្ថែមទៅកន្ត្រក",
     "delivered": "បានដឹកជញ្ជូន",
+    "deliverNearTargetHint": "បើកទៅជិតទីតាំងអតិថិជនដើម្បីបញ្ជាការដឹកជញ្ជូន។",
     "orderCustomer": "អតិថិជន: {{name}}",
     "orderStatus": "ស្ថានភាព: {{status}}",
     "routeEtaDistance": "{{minutes}} នាទី · {{km}} គ.ម",

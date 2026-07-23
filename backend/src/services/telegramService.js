@@ -1,5 +1,5 @@
 /**
- * Telegram Bot API notifications for factory alerts.
+ * Telegram Bot API notifications for factory and delivery alerts.
  */
 const { BadRequestError } = require("../errors");
 const { logError } = require("../utils/logger");
@@ -191,9 +191,50 @@ async function notifyOrderSentToFactory(orderOrOrders, user) {
   await sendMessage(text);
 }
 
+function formatOrderDeliveredMessage(order, { deliveredQty, lossQty } = {}) {
+  const driverName = order?.deliveryAgentName || "—";
+  const customerName = order?.customerName || "—";
+  const itemName = order?.itemName || "—";
+  const orderedQty = order?.orderedQty;
+
+  const lines = [
+    `${escapeHtml(formatDateTime())}: ${escapeHtml(driverName)}`,
+    "",
+    "-បានដឹកជញ្ជូន",
+    `អតិថិជន៖ ${escapeHtml(customerName)} | ផលិតផល៖ ${escapeHtml(itemName)}`,
+    `បញ្ជាទិញ៖ ${escapeHtml(formatQty(orderedQty))} | បានដឹកជញ្ជូន៖ ${escapeHtml(formatQty(deliveredQty))} | បាត់បង់៖ ${escapeHtml(formatQty(lossQty))}`,
+  ];
+
+  return lines.join("\n");
+}
+
+/**
+ * Soft-fail: logs and returns on missing config or send errors so delivery confirm is not blocked.
+ */
+async function notifyOrderDelivered(order, { deliveredQty, lossQty } = {}) {
+  if (!isTelegramConfigured()) {
+    logError("Telegram not configured for delivered notification", {
+      orderId: order?.id,
+    });
+    return;
+  }
+
+  try {
+    const text = formatOrderDeliveredMessage(order, { deliveredQty, lossQty });
+    await sendMessage(text);
+  } catch (err) {
+    logError("Telegram delivered notification failed", {
+      orderId: order?.id,
+      message: err?.message || String(err),
+    });
+  }
+}
+
 module.exports = {
   isTelegramConfigured,
   formatOrderSentToFactoryMessage,
+  formatOrderDeliveredMessage,
   sendMessage,
   notifyOrderSentToFactory,
+  notifyOrderDelivered,
 };

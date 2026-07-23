@@ -24,3 +24,6 @@ export const FAKE_DEV_LOCATION = {
   latitude: 11.5564,
   longitude: 104.9282,
 };
+
+/** Max distance (m) from customer coords before Delivered can be tapped. */
+export const DELIVERY_CONFIRM_RADIUS_M = 150;

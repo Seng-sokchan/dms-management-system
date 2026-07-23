@@ -207,6 +207,7 @@
     "nextStop": "Next stop",
     "addToCart": "Add to Cart",
     "delivered": "Delivered",
+    "deliverNearTargetHint": "Drive closer to the customer location to confirm delivery.",
     "orderCustomer": "Customer: {{name}}",
     "orderStatus": "Status: {{status}}",
     "routeEtaDistance": "{{minutes}} min · {{km}} km",

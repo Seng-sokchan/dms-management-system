@@ -75,6 +75,25 @@ export function getOrderDestination(order) {
 }
 
 /**
+ * True when the driver is within `radiusM` of the order customer coords.
+ * If the order has no customer coords, returns true (cannot geofence).
+ * If driver location is missing, returns false.
+ */
+export function isDriverNearOrderDestination(driverLoc, order, radiusM) {
+  const radius = Number(radiusM);
+  if (!Number.isFinite(radius) || radius < 0) return false;
+
+  const driverLat = parseCoord(driverLoc?.latitude);
+  const driverLng = parseCoord(driverLoc?.longitude);
+  if (driverLat == null || driverLng == null) return false;
+
+  const dest = getOrderDestination(order);
+  if (!dest) return true;
+
+  return haversineMeters(driverLat, driverLng, dest.latitude, dest.longitude) <= radius;
+}
+
+/**
  * Among Ready_For_Delivery orders with customer coords, return the nearest to the driver.
  * @returns {{ order: object, distanceM: number } | null}
  */

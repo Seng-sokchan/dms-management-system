@@ -8,6 +8,7 @@ function DeliveryOrderCardInner({
   item,
   mode,
   isActiveNav,
+  isNearTarget = false,
   submittingOrderId,
   onAddToCart,
   onStatusChange,
@@ -19,7 +20,12 @@ function DeliveryOrderCardInner({
   const { colors, radii, spacing, typography } = useTheme();
   const isSubmitting = submittingOrderId === item.id;
   const isSelectableActive = mode === "active" && onSelectForNav && canSelectForNav;
-  const canMarkDelivered = mode === "active" && isActiveNav && typeof onRequestDeliver === "function";
+  const canMarkDelivered =
+    mode === "active" &&
+    isActiveNav &&
+    isNearTarget &&
+    typeof onRequestDeliver === "function";
+  const showNearTargetHint = mode === "active" && isActiveNav && !isNearTarget;
 
   const styles = useMemo(
     () =>
@@ -64,6 +70,11 @@ function DeliveryOrderCardInner({
           fontSize: typography.caption,
           color: colors.textMuted,
         },
+        nearTargetHint: {
+          marginTop: spacing.sm,
+          fontSize: typography.caption,
+          color: colors.textMuted,
+        },
         actionsRow: {
           flexDirection: "row",
           gap: spacing.sm,
@@ -102,6 +113,9 @@ function DeliveryOrderCardInner({
       <Text style={styles.orderStatus}>
         {t("delivery.orderStatus", { status: item.status })}
       </Text>
+      {showNearTargetHint ? (
+        <Text style={styles.nearTargetHint}>{t("delivery.deliverNearTargetHint")}</Text>
+      ) : null}
       <View style={styles.actionsRow}>
         {mode === "pending" ? (
           <TouchableOpacity

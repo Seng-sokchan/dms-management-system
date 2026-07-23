@@ -437,7 +437,15 @@ async function confirmDelivery(orderId, { lossQty }, { user } = {}) {
   }
 
   const deliveredQty = orderedQty - loss;
-  return orderRepository.confirmOrderDelivery(orderId, { deliveredQty, lossQty: loss });
+  const updated = await orderRepository.confirmOrderDelivery(orderId, {
+    deliveredQty,
+    lossQty: loss,
+  });
+  await telegramService.notifyOrderDelivered(updated || order, {
+    deliveredQty,
+    lossQty: loss,
+  });
+  return updated;
 }
 
 /**

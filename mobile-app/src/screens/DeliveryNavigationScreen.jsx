@@ -33,10 +33,12 @@ import {
   ensureDriverLocationReady,
   getCurrentDriverPositionAsync,
 } from "../utils/driverLocationProvider";
+import { DELIVERY_CONFIRM_RADIUS_M } from "../config/appConfig";
 import {
   buildRouteSummaryFromDirections,
   getOrderDestination,
   haversineMeters,
+  isDriverNearOrderDestination,
   normalizeHeading,
   orderHasCustomerCoords,
   pickNearestReadyOrder,
@@ -363,14 +365,28 @@ export default function DeliveryNavigationScreen() {
     [navigation, recomputeActiveNavOrder, refreshDriverLocationOnce, driverLocationRef],
   );
 
-  const handleRequestDeliver = useCallback((order) => {
-    setConfirmOrder(order);
-  }, []);
+  const handleRequestDeliver = useCallback(
+    (order) => {
+      const loc = driverLocationRef.current;
+      if (!isDriverNearOrderDestination(loc, order, DELIVERY_CONFIRM_RADIUS_M)) {
+        showError(t("delivery.confirmTitle"), t("delivery.deliverNearTargetHint"));
+        return;
+      }
+      setConfirmOrder(order);
+    },
+    [driverLocationRef, showError, t],
+  );
 
   const handleConfirmDelivery = useCallback(
     async ({ lossQty }) => {
       const order = confirmOrder;
       if (!order) return;
+
+      const loc = driverLocationRef.current;
+      if (!isDriverNearOrderDestination(loc, order, DELIVERY_CONFIRM_RADIUS_M)) {
+        showError(t("delivery.confirmTitle"), t("delivery.deliverNearTargetHint"));
+        return;
+      }
 
       const orderId = order.id;
       const accessToken = typeof token === "string" ? token.trim() : "";
@@ -470,11 +486,15 @@ export default function DeliveryNavigationScreen() {
   const renderOrderItem = useCallback(
     ({ item }) => {
       const isActiveNav = String(item.id) === String(activeNavOrderId);
+      const isNearTarget =
+        isActiveNav &&
+        isDriverNearOrderDestination(driverLocation, item, DELIVERY_CONFIRM_RADIUS_M);
       return (
         <DeliveryOrderCard
           item={item}
           mode="active"
           isActiveNav={isActiveNav}
+          isNearTarget={isNearTarget}
           submittingOrderId={submittingOrderId}
           onAddToCart={() => {}}
           onStatusChange={changeOrderStatus}
@@ -483,7 +503,13 @@ export default function DeliveryNavigationScreen() {
         />
       );
     },
-    [activeNavOrderId, submittingOrderId, changeOrderStatus, handleRequestDeliver],
+    [
+      activeNavOrderId,
+      driverLocation,
+      submittingOrderId,
+      changeOrderStatus,
+      handleRequestDeliver,
+    ],
   );
 
   const sheetPeekTitle = useMemo(() => {
