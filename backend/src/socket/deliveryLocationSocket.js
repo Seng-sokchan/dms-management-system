@@ -3,6 +3,7 @@ const Redis = require("ioredis");
 const { resolveUserFromAccessToken } = require("../middleware/auth");
 const { setIo } = require("./ioRegistry");
 const { attachPaymentStatusHandlers } = require("./paymentStatusSocket");
+const { attachSpecialDayHandlers } = require("./specialDaySocket");
 const orderRepository = require("../repositories/orders");
 const customerRepository = require("../repositories/customers");
 const deliveryLocationService = require("../services/deliveryLocationService");
@@ -162,6 +163,7 @@ function attachDeliveryLocationSocket(httpServer) {
   io.on("connection", (socket) => {
     const { user } = socket.data;
     attachPaymentStatusHandlers(io, socket);
+    attachSpecialDayHandlers(io, socket);
     const customerTrackingRooms = new Set();
 
     socket.on("subscribe:delivery-locations", () => {

@@ -16,6 +16,8 @@ function pickLabel(user, key) {
 }
 
 function roleSubtitle(role, t) {
+  if (role === "Admin") return t("profile.roleAdmin");
+  if (role === "Owner") return t("profile.roleOwner");
   if (role === "Delivery") return t("profile.roleDelivery");
   if (role === "Depot") return t("profile.roleDepot");
   return t("profile.roleCustomer");

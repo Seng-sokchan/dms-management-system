@@ -31,7 +31,10 @@ const ORDER_DETAIL_SELECT = `
   p.name AS producer_name,
   da.name AS delivery_agent_name,
   it.name AS item_name,
-  it.sku AS item_sku`;
+  it.sku AS item_sku,
+  EXISTS (
+    SELECT 1 FROM special_day_deliveries sdd WHERE sdd.order_detail_id = od.id
+  ) AS is_special_day`;
 
 const ORDER_DETAIL_FROM = `
   FROM order_details od

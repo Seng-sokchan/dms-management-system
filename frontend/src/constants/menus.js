@@ -30,6 +30,7 @@ export const MENU_ITEMS = [
   { key: "deliveryAgents", path: "/delivery-agents", labelKey: "nav.delivery", subKey: "nav.deliverySub" },
   { key: "orders", path: "/orders", labelKey: "nav.orders", subKey: "nav.ordersSub" },
   { key: "assignOrders", path: "/assign-orders", labelKey: "nav.assignOrders", subKey: "nav.assignOrdersSub" },
+  { key: "specialDay", path: "/special-day", labelKey: "nav.specialDay", subKey: "nav.specialDaySub" },
   { key: "payments", path: "/payments", labelKey: "nav.payments", subKey: "nav.paymentsSub" },
   {
     key: "customerOrderHistory",
@@ -38,12 +39,6 @@ export const MENU_ITEMS = [
     subKey: "nav.customerOrderHistorySub",
   },
   { key: "users", path: "/users", labelKey: "nav.users", subKey: "nav.usersSub" },
-  {
-    key: "systemSettings",
-    path: "/system-settings",
-    labelKey: "nav.systemSettings",
-    subKey: "nav.systemSettingsSub",
-  },
 ];
 
 const PATH_TO_MENU_KEY = MENU_ITEMS.reduce((acc, item) => {

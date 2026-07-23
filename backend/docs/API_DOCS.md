@@ -34,8 +34,7 @@ Base URL: `http://localhost:4000/v1` (production: `https://api.dmscambodia.com/v
 - `PAYWAY_RETURN_DEEPLINK_BASE` — e.g. `dms://payment/result/success` (ABA Mobile opens this after pay; mobile app shows transaction completed UI)
 - PayWay checkout sessions are stored in **Redis only** (`payment:watch:*`, `payment:tran:*`, `payment:pending`); completed payments are persisted in `payments`. `REDIS_URL` is required to start checkout. Live KHQR polling runs every 5 seconds while checkout is open.
 - `GET /dashboard/summary`
-- `GET /app-settings/special-day` — any authenticated user; `{ enabled, unpaidReceivedLimit }` (`1` normal / `2` when special day is on)
-- `PUT /app-settings/special-day` — Admin/Owner only; body `{ "enabled": true|false }`; when enabled, customers may keep 2 unpaid `Recieve_By_Customer` orders before placing another (normal limit is 1)
+- Special-day fulfill orders are exempt from the unpaid-received placement gate (limit remains **1** for normal orders).
 
 ## Mobile Integration Endpoints
 - `GET /mobile/orders` — **Customer** sees orders for their linked customer; **Delivery** sees only orders whose `delivery_agent_id` matches `users.delivery_agent_id` for that login (empty list if the user is not linked to an agent).
@@ -45,8 +44,8 @@ Base URL: `http://localhost:4000/v1` (production: `https://api.dmscambodia.com/v
 
 ## Database Model (v3, App-Aligned)
 - Schema is defined in `backend/database/sql/schema.mysql55.sql` (MySQL 5.5.8 compatible).
-- Active tables used by current API: `users`, `producers`, `delivery_agents`, `orders`, `payments`, `app_settings`.
-- `app_settings` stores key/value flags such as `special_day_enabled` (`0`/`1`) for the unpaid-received order placement limit.
+- Active tables used by current API: `users`, `producers`, `delivery_agents`, `orders`, `payments`, `special_days` (+ registrations/assignments/deliveries).
+- Special-day deliveries (`special_day_deliveries`) are excluded from the unpaid-received placement gate.
 - `users.delivery_agent_id` (nullable, unique when set) links a **Delivery** login to `delivery_agents.id`; order assignment still uses `orders.delivery_agent_id`.
 - `orders` uses the same single-item structure as current frontend/backend contracts.
 - `delivery_agent_locations` stores the latest GPS per `delivery_agent_id` (upsert, throttled writes) while drivers emit `delivery:location` over Socket.IO.

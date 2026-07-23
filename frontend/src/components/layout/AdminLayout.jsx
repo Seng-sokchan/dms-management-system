@@ -27,7 +27,6 @@ const PAGE_PATH_MAP = {
   "/payments":        "payments",
   "/customer-order-history": "customerOrderHistory",
   "/users":           "users",
-  "/system-settings": "systemSettings",
 };
 
 /* ── SVG icons keyed by menu key ── */
@@ -119,6 +118,15 @@ const NAV_ICONS = {
       <path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5" />
     </svg>
   ),
+  specialDay: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <line x1="16" y1="2" x2="16" y2="6" />
+      <line x1="8" y1="2" x2="8" y2="6" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+      <path d="M12 14l1.1 2.2 2.4.4-1.7 1.7.4 2.4L12 19.5 9.8 20.7l.4-2.4-1.7-1.7 2.4-.4L12 14z" />
+    </svg>
+  ),
   orders: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" />
@@ -154,12 +162,6 @@ const NAV_ICONS = {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="8" r="4" />
       <path d="M4 20c0-4 3.582-7 8-7s8 3 8 7" />
-    </svg>
-  ),
-  systemSettings: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="3" />
-      <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
     </svg>
   ),
 };
@@ -210,12 +212,12 @@ const NAV_GROUPS = [
   {
     labelKey: "nav.sectionFulfillment",
     defaultLabel: "Fulfillment",
-    keys: ["deliveryAgents"],
+    keys: ["deliveryAgents", "specialDay"],
   },
   {
     labelKey: "nav.sectionAdmin",
     defaultLabel: "Admin",
-    keys: ["users", "systemSettings"],
+    keys: ["users"],
   },
 ];
 

@@ -7,6 +7,7 @@ import ItemListScreen from "../screens/ItemListScreen";
 import CartScreen from "../screens/CartScreen";
 import CustomerTrackingScreen from "../screens/CustomerTrackingScreen";
 import MyOrdersScreen from "../screens/MyOrdersScreen";
+import SpecialDayOptInScreen from "../screens/SpecialDayOptInScreen";
 import ProfileNavigator from "./ProfileNavigator";
 import { profileTabOptions } from "./profileTabOptions";
 import { AppIcon } from "../components/ui";
@@ -51,6 +52,10 @@ function TabIconTracking({ color, size }) {
 
 function TabIconOrders({ color, size }) {
   return <AppIcon name="receipt" color={color} size={size} />;
+}
+
+function TabIconSpecialDay({ color, size }) {
+  return <AppIcon name="calendar-star" color={color} size={size} />;
 }
 
 const Tab = createBottomTabNavigator();
@@ -104,6 +109,13 @@ export default function AuthenticatedTabs() {
         name="MyOrders"
         component={MyOrdersScreen}
         options={{ title: t("nav.orders"), tabBarIcon: TabIconOrders }}
+      />
+      ) : null}
+      {hasMenu("mobile.specialDay") ? (
+      <Tab.Screen
+        name="SpecialDay"
+        component={SpecialDayOptInScreen}
+        options={{ title: t("nav.specialDay"), tabBarIcon: TabIconSpecialDay }}
       />
       ) : null}
       {hasMenu("mobile.tracking") ? (

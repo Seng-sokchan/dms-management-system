@@ -195,7 +195,12 @@ async function countUnpaidReceivedOrdersByCustomer(customerId, executor) {
      INNER JOIN status s ON s.id = od.status
      WHERE od.customer_id = ?
        AND s.name = ?
-       AND (${PAYMENT_STATUS_EXPR}) IN ('unpaid', 'pending')`,
+       AND (${PAYMENT_STATUS_EXPR}) IN ('unpaid', 'pending')
+       AND NOT EXISTS (
+         SELECT 1
+         FROM special_day_deliveries sdd
+         WHERE sdd.order_detail_id = od.id
+       )`,
     [Number(customerId), TERMINAL_ORDER_STATUS_NAME],
   );
   return Number(rows[0]?.cnt || 0);

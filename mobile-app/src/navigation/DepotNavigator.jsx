@@ -7,6 +7,7 @@ import PrepareDepotBatchScreen from "../screens/PrepareDepotBatchScreen";
 import DepotBatchCartScreen from "../screens/DepotBatchCartScreen";
 import DepotOrdersScreen from "../screens/DepotOrdersScreen";
 import DepotTrackingScreen from "../screens/DepotTrackingScreen";
+import SpecialDayOptInScreen from "../screens/SpecialDayOptInScreen";
 import ProfileNavigator from "./ProfileNavigator";
 import { profileTabOptions } from "./profileTabOptions";
 import { useAuth } from "../context/AuthContext";
@@ -47,6 +48,10 @@ function TabIconOrders({ color, size }) {
 
 function TabIconTracking({ color, size }) {
   return <AppIcon name="map-marker-radius" color={color} size={size} />;
+}
+
+function TabIconSpecialDay({ color, size }) {
+  return <AppIcon name="calendar-star" color={color} size={size} />;
 }
 
 function TabIconProfile({ color, size }) {
@@ -134,6 +139,13 @@ export default function DepotNavigator() {
         name="DepotOrdersTab"
         component={OrdersNavigator}
         options={{ title: t("nav.orders"), tabBarLabel: t("nav.orders"), tabBarIcon: TabIconOrders }}
+      />
+      ) : null}
+      {hasMenu("mobile.specialDay") ? (
+      <Tab.Screen
+        name="DepotSpecialDay"
+        component={SpecialDayOptInScreen}
+        options={{ title: t("nav.specialDay"), tabBarLabel: t("nav.specialDay"), tabBarIcon: TabIconSpecialDay }}
       />
       ) : null}
       {hasMenu("mobile.tracking") ? (

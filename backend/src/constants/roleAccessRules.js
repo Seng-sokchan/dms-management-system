@@ -12,8 +12,8 @@ const ROLE_DATA_SCOPE = {
 };
 
 const ROLE_CLIENTS = {
-  Admin: ["admin"],
-  Owner: ["admin"],
+  Admin: ["admin", "mobile"],
+  Owner: ["admin", "mobile"],
   Logistics: [],
   Delivery: ["mobile"],
   Customer: ["mobile"],
@@ -42,8 +42,8 @@ const ROLE_STATUS_PERMISSIONS = {
 };
 
 const ROLE_SOCKET_CHANNELS = {
-  Admin: ["delivery-locations-watcher"],
-  Owner: ["delivery-locations-watcher"],
+  Admin: ["delivery-locations-watcher", "special-day-watcher"],
+  Owner: ["delivery-locations-watcher", "special-day-watcher"],
   Logistics: ["delivery-locations-watcher"],
   Depot: ["delivery-locations-watcher"],
 };
@@ -81,6 +81,7 @@ const ADMIN_MENUS = [
   "customerOrderHistory",
   "users",
   "borrowedMaterials",
+  "specialDay",
 ];
 
 const ADMIN_MANAGE_MENUS = [
@@ -119,9 +120,11 @@ const ROLE_ADMIN_MENUS = {
 };
 
 const ROLE_MOBILE_MENUS = {
-  Delivery: ["mobile.live", "mobile.profile"],
-  Customer: ["mobile.newOrder", "mobile.myOrders", "mobile.tracking", "mobile.profile"],
-  Depot: ["mobile.prepareBatch", "mobile.depotOrders", "mobile.tracking", "mobile.profile"],
+  Admin: ["mobile.adminHome", "mobile.profile"],
+  Owner: ["mobile.adminHome", "mobile.profile"],
+  Delivery: ["mobile.live", "mobile.specialDay", "mobile.profile"],
+  Customer: ["mobile.newOrder", "mobile.myOrders", "mobile.specialDay", "mobile.tracking", "mobile.profile"],
+  Depot: ["mobile.prepareBatch", "mobile.depotOrders", "mobile.specialDay", "mobile.tracking", "mobile.profile"],
 };
 
 function getDataScopeForRole(roleName) {

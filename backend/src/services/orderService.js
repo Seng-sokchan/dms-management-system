@@ -20,13 +20,15 @@ const lookupRepository = require("../repositories/lookups");
 const overviewRepository = require("../repositories/overview");
 const { getNextStatuses, getStatusNames: getCachedStatusNames, canUpdateAnyStatus } = require("./rulesCache");
 const { assertCanSetStatus } = require("./accessPolicyService");
-const { getUnpaidReceivedOrderLimit } = require("./appSettingsService");
 const { getPool } = require("../../database/pool");
 const { BadRequestError, NotFoundError, ForbiddenError } = require("../errors");
 const telegramService = require("./telegramService");
 
 /** New orders always use this producer; delivery agent is set later via assign. */
 const DEFAULT_NEW_ORDER_PRODUCER_ID = "1";
+
+/** Normal unpaid received orders that block placing another order (special-day deliveries are excluded). */
+const UNPAID_RECEIVED_ORDER_LIMIT = 1;
 
 const UNPAID_RECEIVED_ORDERS_MESSAGE =
   "Pay for your received unpaid order(s) before placing a new order.";
@@ -129,8 +131,7 @@ async function getDashboardSummary() {
 
 async function assertCustomerCanPlaceNewOrder(customerId, executor) {
   const n = await orderRepository.countUnpaidReceivedOrdersByCustomer(customerId, executor);
-  const limit = await getUnpaidReceivedOrderLimit();
-  if (n >= limit) {
+  if (n >= UNPAID_RECEIVED_ORDER_LIMIT) {
     throw new BadRequestError(UNPAID_RECEIVED_ORDERS_MESSAGE);
   }
 }

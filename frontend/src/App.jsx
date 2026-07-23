@@ -24,7 +24,7 @@ import { TrackingCustomerLocationPage } from "./pages/TrackingCustomerLocationPa
 import { DepotsPage } from "./pages/DepotsPage";
 import { BorrowedMaterialsPage } from "./pages/BorrowedMaterialsPage";
 import { UsersPage } from "./pages/UsersPage";
-import { SystemSettingsPage } from "./pages/SystemSettingsPage";
+import { SpecialDayPage } from "./pages/SpecialDayPage";
 import "./App.css";
 
 function App() {
@@ -404,8 +404,10 @@ function App() {
         )}
       />
       <Route
-        path="/system-settings"
-        element={withLayout(<SystemSettingsPage token={token} />)}
+        path="/special-day"
+        element={withLayout(
+          <SpecialDayPage token={token} items={items} deliveryAgents={deliveryAgents} />,
+        )}
       />
       <Route
         path="/orders"

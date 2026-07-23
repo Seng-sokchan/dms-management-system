@@ -1,5 +1,7 @@
 {
-  "Delivery": ["mobile.live", "mobile.profile"],
-  "Customer": ["mobile.newOrder", "mobile.myOrders", "mobile.tracking", "mobile.profile"],
-  "Depot": ["mobile.prepareBatch", "mobile.depotOrders", "mobile.tracking", "mobile.profile"]
+  "Admin": ["mobile.adminHome", "mobile.profile"],
+  "Owner": ["mobile.adminHome", "mobile.profile"],
+  "Delivery": ["mobile.live", "mobile.specialDay", "mobile.profile"],
+  "Customer": ["mobile.newOrder", "mobile.myOrders", "mobile.specialDay", "mobile.tracking", "mobile.profile"],
+  "Depot": ["mobile.prepareBatch", "mobile.depotOrders", "mobile.specialDay", "mobile.tracking", "mobile.profile"]
 }

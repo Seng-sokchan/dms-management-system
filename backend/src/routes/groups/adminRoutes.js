@@ -1,5 +1,5 @@
 const userManagementRoutes = require("./admin/userManagementRoutes");
 const rulesRoutes = require("./admin/rulesRoutes");
-const appSettingsRoutes = require("./admin/appSettingsRoutes");
+const specialDayRoutes = require("./admin/specialDayRoutes");
 
-module.exports = [userManagementRoutes, rulesRoutes, appSettingsRoutes];
+module.exports = [userManagementRoutes, rulesRoutes, specialDayRoutes];

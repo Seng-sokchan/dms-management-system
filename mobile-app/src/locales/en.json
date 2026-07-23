@@ -38,6 +38,8 @@
     "roleDelivery": "Delivery driver",
     "roleDepot": "Depot operator",
     "roleCustomer": "Customer account",
+    "roleAdmin": "Administrator",
+    "roleOwner": "Owner",
     "deleteAccount": "Delete account",
     "deleteAccountHint": "Permanently deactivate your login. Order history may be kept for business records. See Privacy Policy for details.",
     "deleteAccountTitle": "Delete your account?",
@@ -53,7 +55,8 @@
     "cart": "Your Cart",
     "live": "Live",
     "prepare": "Prepare",
-    "orders": "Orders"
+    "orders": "Orders",
+    "specialDay": "Special day"
   },
   "auth": {
     "brandTitle": "DMS",
@@ -64,13 +67,13 @@
     "passwordPlaceholder": "Enter your password",
     "showPassword": "Show password",
     "hidePassword": "Hide password",
-    "helper": "Use your Customer, Delivery, or Depot account to continue",
+    "helper": "Use your Admin, Owner, Customer, Delivery, or Depot account to continue",
     "signIn": "Sign In",
     "usernameRequired": "Username is required",
     "passwordRequired": "Password is required",
     "loginFailed": "Login failed",
     "loginFailedDefault": "Unable to login",
-    "roleNotAllowed": "Only Customer, Delivery, or Depot accounts can use this app",
+    "roleNotAllowed": "This account cannot use the mobile app",
     "sessionExpiredTitle": "Session expired",
     "sessionExpiredMessage": "Your sign-in has expired. Please sign in again.",
     "sessionUnauthorizedMessage": "Your session is no longer valid. Please sign in again.",
@@ -463,5 +466,273 @@
     "receivedByCustomer": "Received",
     "delivered": "Delivered",
     "cancelled": "Cancelled"
+  },
+  "admin": {
+    "home": {
+      "brand": "DMS Admin",
+      "subtitle": "Tap a menu to continue"
+    },
+    "comingSoon": {
+      "title": "Coming soon",
+      "body": "This admin screen is not available on mobile yet. Use the web admin panel for full management."
+    },
+    "nav": {
+      "overview": "Overview",
+      "catalogs": "Catalogs",
+      "items": "Items",
+      "customerItemPrices": "Customer item prices",
+      "depotItemPrices": "Depot item prices",
+      "customers": "Customers",
+      "provinces": "Provinces",
+      "trackingCustomerLocation": "Tracking & Live Fleet",
+      "borrowedMaterials": "Borrowed materials",
+      "depots": "Depots",
+      "customersByDepot": "Customers by depot",
+      "producers": "Producers",
+      "deliveryAgents": "Delivery",
+      "orders": "Orders",
+      "assignOrders": "Assign orders",
+      "specialDay": "Special day",
+      "payments": "Payments",
+      "customerOrderHistory": "Customer order history",
+      "users": "User management"
+    },
+    "overview": {
+      "loadFailed": "Could not load overview",
+      "emptyTitle": "No overview data",
+      "emptyBody": "Pull down to refresh.",
+      "atAGlance": "At a glance",
+      "totalOrders": "Orders",
+      "deliveryAgents": "Delivery agents",
+      "revenueUsd": "Revenue (USD)",
+      "revenueKhr": "Revenue (KHR)",
+      "byStatus": "Orders by status"
+    },
+    "orders": {
+      "loadFailed": "Could not load orders",
+      "emptyTitle": "No orders",
+      "emptyBody": "Pull down to refresh.",
+      "dash": "—",
+      "delivery": "Delivery"
+    },
+    "customers": {
+      "loadFailed": "Could not load customers",
+      "emptyTitle": "No customers",
+      "emptyBody": "Pull down to refresh.",
+      "searchPlaceholder": "Search customers…",
+      "dash": "—",
+      "depot": "Depot",
+      "province": "Province",
+      "createTitle": "New customer",
+      "editTitle": "Edit customer",
+      "confirmDelete": "Delete this customer?",
+      "latitude": "Latitude",
+      "longitude": "Longitude"
+    },
+    "assign": {
+      "loadFailed": "Could not load assignable orders",
+      "emptyTitle": "No orders to assign",
+      "emptyBody": "Today's Owner Preparing orders will appear here.",
+      "hint": "{{count}} today · {{selected}} selected",
+      "assignSelected": "Assign selected",
+      "pickAgent": "Choose delivery agent",
+      "cancel": "Cancel",
+      "unassigned": "Unassigned",
+      "assignFailed": "Assignment failed",
+      "assignedTitle": "Assigned",
+      "assignedMessage": "{{count}} order(s) assigned to {{name}}",
+      "submitSection": "Submit to factory",
+      "submitOne": "Submit {{customer}} ({{agent}})",
+      "submitFailed": "Submit failed",
+      "submittedTitle": "Submitted",
+      "submittedMessage": "Order moved to Sent to Factory"
+    },
+    "common": {
+      "new": "New",
+      "edit": "Edit",
+      "delete": "Delete",
+      "save": "Save",
+      "cancel": "Cancel",
+      "confirm": "Confirm",
+      "name": "Name",
+      "note": "Note",
+      "phone": "Phone",
+      "address": "Address",
+      "deleteTitle": "Delete?",
+      "deleteMessage": "This cannot be undone."
+    },
+    "crud": {
+      "loadFailed": "Could not load data",
+      "saveFailed": "Could not save",
+      "deleteFailed": "Could not delete",
+      "savedTitle": "Saved",
+      "savedMessage": "Changes were saved.",
+      "validationTitle": "Missing information",
+      "nameRequired": "Name is required"
+    },
+    "catalogs": {
+      "empty": "No catalogs yet",
+      "createTitle": "New catalog",
+      "editTitle": "Edit catalog",
+      "confirmDelete": "Delete this catalog?"
+    },
+    "items": {
+      "empty": "No items yet",
+      "createTitle": "New item",
+      "editTitle": "Edit item",
+      "confirmDelete": "Delete this item?",
+      "sku": "SKU",
+      "catalog": "Catalog",
+      "validation": "Catalog and name are required",
+      "needCatalog": "Create a catalog first",
+      "needCatalogBody": "Items belong to a catalog. Add a catalog from the menu, then come back."
+    },
+    "provinces": {
+      "empty": "No provinces yet",
+      "createTitle": "New province",
+      "editTitle": "Edit province",
+      "confirmDelete": "Delete this province?"
+    },
+    "depots": {
+      "empty": "No depots yet",
+      "createTitle": "New depot",
+      "editTitle": "Edit depot",
+      "confirmDelete": "Delete this depot?"
+    },
+    "producers": {
+      "empty": "No producers yet",
+      "createTitle": "New producer",
+      "editTitle": "Edit producer",
+      "confirmDelete": "Delete this producer?"
+    },
+    "deliveryAgents": {
+      "empty": "No delivery agents yet",
+      "createTitle": "New delivery agent",
+      "editTitle": "Edit delivery agent",
+      "confirmDelete": "Delete this delivery agent?"
+    },
+    "prices": {
+      "empty": "No prices yet",
+      "formTitle": "Set price",
+      "unitPrice": "Unit price",
+      "customer": "Customer",
+      "depot": "Depot",
+      "item": "Item",
+      "currency": "Currency",
+      "validation": "Customer/depot, item, and price are required",
+      "confirmDelete": "Delete this price?"
+    },
+    "payments": {
+      "byCustomer": "By customer",
+      "byDepot": "By depot",
+      "empty": "No payment totals",
+      "total": "Total",
+      "paid": "Paid"
+    },
+    "history": {
+      "empty": "No order history",
+      "orderCount": "{{count}} orders"
+    },
+    "customersByDepot": {
+      "empty": "No depots",
+      "count": "{{count}} customers",
+      "none": "No customers in this depot"
+    },
+    "users": {
+      "empty": "No users",
+      "createTitle": "New user",
+      "editTitle": "Edit user",
+      "role": "Role",
+      "username": "Username",
+      "password": "Password",
+      "newPassword": "New password (optional)",
+      "customer": "Linked customer",
+      "deliveryAgent": "Linked delivery agent",
+      "depot": "Linked depot",
+      "inactive": "Inactive",
+      "confirmDelete": "Delete this user?",
+      "deleteSelfTitle": "Not allowed",
+      "deleteSelfBody": "You cannot delete your own account.",
+      "resetTitle": "Reset password?",
+      "resetBody": "A new password will be generated for this user.",
+      "resetAction": "Reset password",
+      "resetFailed": "Could not reset password",
+      "credentialsTitle": "Credentials",
+      "credentialsMessage": "Username: {{username}}\nPassword: {{password}}"
+    },
+    "borrowed": {
+      "empty": "No records",
+      "tabMaterials": "Materials",
+      "tabBorrows": "Customer holds",
+      "tabLoans": "Order loans",
+      "tabSchedules": "Monthly",
+      "createMaterial": "New material",
+      "editMaterial": "Edit material",
+      "createBorrow": "Assign material",
+      "material": "Material",
+      "qty": "Quantity",
+      "validation": "Customer and material are required",
+      "confirmDelete": "Delete this record?"
+    },
+    "tracking": {
+      "customers": "Customers",
+      "drivers": "Live drivers",
+      "empty": "No locations to show",
+      "noCoords": "No coordinates",
+      "openMaps": "Open in Maps",
+      "openFailed": "Could not open Maps"
+    }
+  },
+  "specialDay": {
+    "loadError": "Could not load special day data",
+    "saveError": "Could not save special day",
+    "assignError": "Could not assign delivery agent",
+    "registerError": "Could not register",
+    "cancelError": "Could not cancel registration",
+    "fulfillError": "Could not record delivery",
+    "acceptError": "Could not accept this stop",
+    "createTitle": "Create special day",
+    "createAction": "Create",
+    "createRequired": "Name, date, and item are required",
+    "created": "Special day created",
+    "backToList": "Back to list",
+    "emptyDays": "No special days yet",
+    "emptyOpenDays": "No open special days",
+    "emptyRegistrations": "No registrations yet",
+    "emptyAssignments": "No assigned stops",
+    "registrationsTitle": "Registrations",
+    "registered": "Registered",
+    "assigned": "Assigned",
+    "unassigned": "Unassigned",
+    "deliveredQty": "Delivered qty",
+    "trips": "Trips",
+    "deliveredShort": "Delivered",
+    "assignAction": "Assign / reassign",
+    "assignedOk": "Driver assigned",
+    "selectAgent": "Select delivery agent",
+    "name": "Name",
+    "notes": "Notes",
+    "unspecifiedProvince": "Unspecified province",
+    "unknownTarget": "Unknown",
+    "youAreRegistered": "You are registered",
+    "registerAction": "Register",
+    "cancelRegistration": "Cancel registration",
+    "registeredOk": "Registered for special day",
+    "cancelledOk": "Registration cancelled",
+    "fulfillTitle": "Enter quantity",
+    "fulfillAction": "Record delivery",
+    "fulfillOk": "Delivery recorded",
+    "quantityRequired": "Enter a positive quantity",
+    "acceptAction": "Accept",
+    "assignmentPending": "Waiting for accept",
+    "assignmentAccepted": "Accepted · open map",
+    "tapForMap": "Tap to open map",
+    "noStopCoords": "This stop has no map location. You can still record delivery.",
+    "status": {
+      "open": "Open",
+      "active": "Active",
+      "closed": "Closed"
+    }
   }
 }
+

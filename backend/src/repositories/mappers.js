@@ -24,6 +24,7 @@ function mapOrder(row) {
     deliveryAgentName: row.delivery_agent_name != null ? row.delivery_agent_name : null,
     amountTotal: Number(row.amount_total),
     paymentStatus: row.payment_status || "unpaid",
+    isSpecialDay: Boolean(Number(row.is_special_day)),
     masterOrderId: row.master_order_id != null ? String(row.master_order_id) : null,
     masterOrderType: row.master_order_type != null ? Number(row.master_order_type) : 1,
     masterOrderNo: row.master_order_no != null ? String(row.master_order_no) : null,

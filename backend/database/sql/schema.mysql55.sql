@@ -25,8 +25,6 @@ DROP TABLE IF EXISTS `provinces`;
 DROP TABLE IF EXISTS `roles`;
 DROP TABLE IF EXISTS `status`;
 DROP TABLE IF EXISTS `users`;
-DROP TABLE IF EXISTS `app_settings`;
-
 CREATE TABLE `borrow_materials` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `name` varchar(120) NOT NULL,
@@ -307,11 +305,66 @@ CREATE TABLE `users` (
   KEY `idx_users_role_id` (`role_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-CREATE TABLE `app_settings` (
-  `setting_key` varchar(64) NOT NULL,
-  `setting_value` text NOT NULL,
+CREATE TABLE `special_days` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(120) NOT NULL,
+  `event_date` date NOT NULL,
+  `item_id` int(10) unsigned NOT NULL,
+  `status` varchar(20) NOT NULL DEFAULT 'open',
+  `notes` text,
+  `created_by` int(10) unsigned DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime DEFAULT NULL,
-  PRIMARY KEY (`setting_key`)
+  PRIMARY KEY (`id`),
+  KEY `idx_special_days_status_date` (`status`,`event_date`),
+  KEY `idx_special_days_item` (`item_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE `special_day_registrations` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `special_day_id` int(10) unsigned NOT NULL,
+  `target_type` tinyint(3) unsigned NOT NULL DEFAULT '1',
+  `customer_id` int(10) unsigned DEFAULT NULL,
+  `depot_id` int(10) unsigned DEFAULT NULL,
+  `registered_by_user_id` int(10) unsigned DEFAULT NULL,
+  `registered_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `status` varchar(20) NOT NULL DEFAULT 'registered',
+  `updated_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_sdr_day_status` (`special_day_id`,`status`),
+  KEY `idx_sdr_day_customer` (`special_day_id`,`customer_id`),
+  KEY `idx_sdr_day_depot` (`special_day_id`,`depot_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE `special_day_assignments` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `special_day_id` int(10) unsigned NOT NULL,
+  `registration_id` int(10) unsigned NOT NULL,
+  `delivery_agent_id` int(10) unsigned NOT NULL,
+  `status` varchar(20) NOT NULL DEFAULT 'pending',
+  `assigned_by` int(10) unsigned DEFAULT NULL,
+  `assigned_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `accepted_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_sda_registration` (`registration_id`),
+  KEY `idx_sda_day_agent` (`special_day_id`,`delivery_agent_id`),
+  KEY `idx_sda_agent_status` (`delivery_agent_id`,`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE `special_day_deliveries` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `special_day_id` int(10) unsigned NOT NULL,
+  `registration_id` int(10) unsigned NOT NULL,
+  `delivery_agent_id` int(10) unsigned NOT NULL,
+  `delivered_by_user_id` int(10) unsigned DEFAULT NULL,
+  `quantity` int(10) unsigned NOT NULL,
+  `delivered_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `order_detail_id` int(10) unsigned DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_sdd_day` (`special_day_id`),
+  KEY `idx_sdd_registration` (`registration_id`),
+  KEY `idx_sdd_order_detail` (`order_detail_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- Read views (replaces sp_get_* / sp_list_* for queries)

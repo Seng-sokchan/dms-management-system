@@ -16,6 +16,7 @@ import CustomerRootNavigator from "./src/navigation/CustomerRootNavigator";
 import { LEGAL_DOCUMENT_ROUTE } from "./src/navigation/ProfileNavigator";
 import DeliveryNavigator from "./src/navigation/DeliveryNavigator";
 import DepotRootNavigator from "./src/navigation/DepotRootNavigator";
+import AdminRootNavigator from "./src/navigation/AdminRootNavigator";
 import { useStackScreenOptions } from "./src/navigation/screenOptions";
 import { bootstrapI18n } from "./src/i18n/config";
 import i18n from "./src/i18n/config";
@@ -93,6 +94,12 @@ function AppNavigator() {
               })}
             />
           </>
+        ) : mobileRoot === "AdminMain" ? (
+          <Stack.Screen
+            name="AdminMain"
+            component={AdminRootNavigator}
+            options={{ headerShown: false }}
+          />
         ) : mobileRoot === "DeliveryMain" ? (
           <Stack.Screen
             name="DeliveryMain"

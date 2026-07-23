@@ -1,13 +1,15 @@
 import roleMobileMenus from "../constants/roleMobileMenus.json";
 
 const MOBILE_MENU_ORDER = {
+  "mobile.adminHome": 0,
   "mobile.newOrder": 1,
   "mobile.myOrders": 2,
-  "mobile.tracking": 3,
-  "mobile.profile": 4,
-  "mobile.live": 5,
-  "mobile.prepareBatch": 6,
-  "mobile.depotOrders": 7,
+  "mobile.specialDay": 3,
+  "mobile.tracking": 4,
+  "mobile.profile": 5,
+  "mobile.live": 6,
+  "mobile.prepareBatch": 7,
+  "mobile.depotOrders": 8,
 };
 
 export function getMobileMenusForRole(role) {
@@ -25,6 +27,7 @@ export function canUseMobileApp(user) {
 }
 
 export function resolveMobileRoot(user) {
+  if (hasMobileMenu(user, "mobile.adminHome")) return "AdminMain";
   if (hasMobileMenu(user, "mobile.live")) return "DeliveryMain";
   if (hasMobileMenu(user, "mobile.prepareBatch") || hasMobileMenu(user, "mobile.depotOrders")) {
     return "DepotMain";

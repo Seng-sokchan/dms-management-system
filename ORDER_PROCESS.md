@@ -35,10 +35,8 @@ Payment does **not** drive these transitions.
 - Create order from admin UI or API (`POST /v1/orders`)
 - Initial status: `Owner_Preparing`
 - Initial payment status: `UNPAID`
-- Placement gate: a customer cannot place a new order while they already have unpaid `Recieve_By_Customer` order(s) at or above the current limit
-  - Normal: max **1** unpaid received order
-  - Special day (Admin/Owner toggle): max **2** unpaid received orders
-  - Flag: `app_settings.special_day_enabled` via `GET/PUT /v1/app-settings/special-day`
+- Placement gate: a customer cannot place a new order while they already have **1** unpaid normal `Recieve_By_Customer` order
+  - Special-day deliveries do not count toward this limit and do not require instant payment
 
 ### Step 2 — Owner prepares and assigns
 
@@ -108,7 +106,7 @@ Tracking is available **only** at `Ready_For_Delivery` with a delivery agent ass
 - `delivery_agents` — agent master data
 - `delivery_agent_locations` — latest GPS per agent
 - `payments` — payment transactions
-- `app_settings` — system flags (e.g. `special_day_enabled`)
+- `special_days` / `special_day_registrations` / `special_day_assignments` / `special_day_deliveries` — festival day opt-in, assign, and delivery history
 
 ## Notes
 
