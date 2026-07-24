@@ -99,8 +99,8 @@ android {
         applicationId "com.dmscambodia.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode 4
+        versionName "1.0.3"
         manifestPlaceholders = [
             MAPS_API_KEY: (project.findProperty("MAPS_API_KEY") ?: ""),
             usesCleartextTraffic: "true",
