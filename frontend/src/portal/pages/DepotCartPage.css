@@ -1,0 +1,257 @@
+.batch-cart {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100dvh - 40px);
+}
+
+.batch-cart__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.batch-cart__back {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  border: 1.5px solid #9898a8;
+  background: #fff;
+  color: #111;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 120ms ease, transform 120ms ease;
+}
+
+.batch-cart__back:hover {
+  background: #f4f4f6;
+}
+
+.batch-cart__back:active {
+  transform: scale(0.96);
+}
+
+.batch-cart__titles h1 {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #111;
+  line-height: 1.2;
+}
+
+.batch-cart__titles p {
+  margin: 3px 0 0;
+  font-size: 0.875rem;
+  color: #6b7280;
+  line-height: 1.35;
+}
+
+.batch-cart__list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+
+.batch-cart__card {
+  background: #fff;
+  border: 1.5px solid #c4c4ce;
+  border-radius: 18px;
+  padding: 16px;
+  box-shadow: 0 6px 18px rgba(17, 17, 17, 0.04);
+}
+
+.batch-cart__customer {
+  margin-bottom: 14px;
+}
+
+.batch-cart__customer h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #111;
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.batch-cart__link-danger {
+  border: 0;
+  background: transparent;
+  color: #dc2626;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+  text-align: left;
+}
+
+.batch-cart__link-danger:hover {
+  text-decoration: underline;
+}
+
+.batch-cart__line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.batch-cart__line + .batch-cart__line {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e8e8ed;
+}
+
+.batch-cart__item-name {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #111;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.batch-cart__line-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.batch-cart__qty-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  min-height: 40px;
+  padding: 3px;
+  border-radius: 999px;
+  background: #f4f4f6;
+  border: 1.5px solid #c4c4ce;
+}
+
+.batch-cart__qty-btn {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 999px;
+  background: #fff;
+  color: #111;
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.batch-cart__qty-btn:hover {
+  background: #efeff2;
+}
+
+.batch-cart__qty-btn:active {
+  transform: scale(0.96);
+}
+
+.batch-cart__qty-input {
+  width: 40px;
+  border: 0;
+  background: transparent;
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #111;
+  font-family: inherit;
+  padding: 0;
+  -moz-appearance: textfield;
+}
+
+.batch-cart__qty-input::-webkit-outer-spin-button,
+.batch-cart__qty-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.batch-cart__remove {
+  padding: 0;
+  white-space: nowrap;
+}
+
+.batch-cart__clear {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #e8e8ed;
+  width: 100%;
+}
+
+.batch-cart__footer {
+  margin-top: 20px;
+  padding-top: 4px;
+  padding-bottom: 8px;
+}
+
+.batch-cart__submit {
+  width: 100%;
+  min-height: 50px;
+  border: 0;
+  border-radius: 999px;
+  background: #16a34a;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(22, 163, 74, 0.25);
+  transition: background 120ms ease, transform 120ms ease;
+}
+
+.batch-cart__submit:hover:not(:disabled) {
+  background: #15803d;
+}
+
+.batch-cart__submit:active:not(:disabled) {
+  transform: scale(0.99);
+}
+
+.batch-cart__submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.batch-cart__empty {
+  text-align: center;
+  padding: 48px 16px;
+  color: #6b7280;
+}
+
+.batch-cart__empty h2 {
+  margin: 0 0 6px;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #111;
+}
+
+.batch-cart__empty p {
+  margin: 0 0 16px;
+  font-size: 0.9rem;
+}
+
+.batch-cart__soft-btn {
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 1.5px solid #9898a8;
+  background: #f4f4f6;
+  color: #111;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}

@@ -1,0 +1,95 @@
+.khqr-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(17, 17, 17, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.khqr-modal {
+  width: 100%;
+  max-width: 400px;
+  border-radius: 20px;
+  overflow: hidden;
+  background: #fff;
+  border: 1.5px solid #9898a8;
+  box-shadow: 0 24px 48px rgba(17, 17, 17, 0.2);
+  padding: 0 0 16px;
+}
+
+.khqr-modal-header {
+  background: #e1232e;
+  color: #fff;
+  padding: 12px 16px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.khqr-modal .panel-header {
+  display: none;
+}
+
+.khqr-modal-merchant {
+  margin: 14px 16px 4px;
+  font-weight: 800;
+  color: #111;
+}
+
+.khqr-modal-amount {
+  margin: 0 16px 8px;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #005e7b;
+}
+
+.khqr-modal-hint,
+.khqr-modal-timer,
+.khqr-modal-status {
+  margin: 0 16px 8px;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.khqr-modal-qr {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 280px;
+  margin: 12px 16px;
+  background: #fff;
+  border: 1.5px dashed #c4c4ce;
+  border-radius: 16px;
+  padding: 12px;
+}
+
+.khqr-modal-qr img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.khqr-modal-ok {
+  margin: 0 16px;
+  color: #16a34a;
+  font-weight: 700;
+}
+
+.khqr-modal-warn {
+  margin: 0 16px;
+  color: #b45309;
+  font-weight: 700;
+}
+
+.khqr-modal-actions {
+  display: flex;
+  justify-content: stretch;
+  margin: 16px 16px 0;
+}
+
+.khqr-modal-actions .portal-btn,
+.khqr-modal-actions button {
+  width: 100%;
+}

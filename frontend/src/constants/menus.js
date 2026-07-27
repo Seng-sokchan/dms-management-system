@@ -1,8 +1,10 @@
 /**
  * Admin sidebar menu keys and paths (aligned with i18n `nav.*` / `page.*`).
  * Panel access is role-based: Admin and Owner only (see `hasAdminPanelAccess`).
+ * Customer/Depot use the temporary web portal (see `hasPortalAccess`).
  */
 export const ADMIN_PANEL_ROLES = ["Admin", "Owner"];
+export const PORTAL_ROLES = ["Customer", "Depot"];
 
 export const MENU_ITEMS = [
   { key: "overview", path: "/overview", labelKey: "nav.overview", subKey: "nav.overviewSub" },
@@ -55,6 +57,11 @@ export function hasAdminPanelAccess(user) {
   return ADMIN_PANEL_ROLES.includes(user.role);
 }
 
+export function hasPortalAccess(user) {
+  if (!user) return false;
+  return PORTAL_ROLES.includes(user.role);
+}
+
 /** @deprecated use hasAdminPanelAccess */
 export function hasAdminClientAccess(user) {
   return hasAdminPanelAccess(user);
@@ -70,6 +77,9 @@ export function canManageMenuKey(user, _menuKey) {
 }
 
 export function canAccessPath(user, pathname) {
+  if (hasPortalAccess(user)) {
+    return typeof pathname === "string" && pathname.startsWith("/portal");
+  }
   const key = menuKeyForPathname(pathname);
   if (!key) return hasAdminPanelAccess(user);
   return canAccessMenuKey(user, key);

@@ -16,8 +16,8 @@ const ROLE_CLIENTS = {
   Owner: ["admin", "mobile"],
   Logistics: [],
   Delivery: ["mobile"],
-  Customer: ["mobile"],
-  Depot: ["mobile"],
+  Customer: ["mobile", "admin"],
+  Depot: ["mobile", "admin"],
 };
 
 const ROLE_STATUS_PERMISSIONS = {

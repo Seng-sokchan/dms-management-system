@@ -5,7 +5,7 @@ import { fetchBorrowMaterialMonthlySchedules } from "./borrowMaterialMonthlySche
 import { fetchCustomerItemPrices } from "./customerItemPrices";
 import { fetchDepotItemPrices } from "./depotItemPrices";
 import { fetchRoles } from "./rules";
-import { hasAdminPanelAccess } from "../../constants/menus";
+import { hasAdminPanelAccess, hasPortalAccess } from "../../constants/menus";
 
 /**
  * Route-aware dashboard load so each page requests only needed data.
@@ -42,19 +42,8 @@ function getKeysForRoute(pathname = "/overview") {
   return ROUTE_DATA_MAP[pathname] || ROUTE_DATA_MAP["/overview"];
 }
 
-export async function fetchDashboardData(token, pathname = "/overview") {
-  const config = authConfig(token);
-  const profile = await apiClient.get("/users/me", config);
-  const user = unwrapApiData(profile.data);
-  const safePathname = hasAdminPanelAccess(user) ? pathname : "/overview";
-  const routeKeys = getKeysForRoute(safePathname);
-  const requested = new Set(routeKeys);
-
-  if (hasAdminPanelAccess(user)) {
-    requested.add("users");
-    requested.add("roles");
-  }
-  const data = {
+function emptyDashboardData(user) {
+  return {
     user,
     summary: null,
     statuses: [],
@@ -76,6 +65,25 @@ export async function fetchDashboardData(token, pathname = "/overview") {
     customerItemPrices: [],
     depotItemPrices: [],
   };
+}
+
+export async function fetchDashboardData(token, pathname = "/overview") {
+  const config = authConfig(token);
+  const profile = await apiClient.get("/users/me", config);
+  const user = unwrapApiData(profile.data);
+
+  // Portal / non-admin sessions only need the profile — skip admin data fetches.
+  if (hasPortalAccess(user) || !hasAdminPanelAccess(user)) {
+    return emptyDashboardData(user);
+  }
+
+  const safePathname = pathname;
+  const routeKeys = getKeysForRoute(safePathname);
+  const requested = new Set(routeKeys);
+
+  requested.add("users");
+  requested.add("roles");
+  const data = emptyDashboardData(user);
 
   const tasks = [];
   const queue = (key, run) => {

@@ -61,8 +61,9 @@
   --radius-xl:  24px;
 
   /* Typography */
-  --font:      "Plus Jakarta Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font:      "Plus Jakarta Sans", "Noto Sans Khmer", "Segoe UI", system-ui, -apple-system, sans-serif;
   --font-mono: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace;
+  --font-khmer: "Noto Sans Khmer", "Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif;
 
   /* Transitions */
   --t-fast:   120ms ease;

@@ -1,11 +1,12 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { hasAdminPanelAccess } from "./constants/menus";
+import { hasAdminPanelAccess, hasPortalAccess } from "./constants/menus";
 import { AdminLayout } from "./components/layout/AdminLayout";
 import { Button } from "./components/ui/Button";
 import { DashboardBootstrapScreen } from "./components/ui/DashboardBootstrapScreen";
 import { LoginForm } from "./features/auth/LoginForm";
 import { useAdminDashboard } from "./hooks/useAdminDashboard";
+import { PortalApp } from "./portal";
 import { DeliveryAgentsPage } from "./pages/DeliveryAgentsPage";
 import { OrdersPage } from "./pages/OrdersPage";
 import { AssignOrdersPage } from "./pages/AssignOrdersPage";
@@ -129,6 +130,7 @@ function App() {
     refresh,
   } = useAdminDashboard();
   const isAllowedAdminPanelRole = hasAdminPanelAccess(user);
+  const isPortalRole = hasPortalAccess(user);
 
   if (!token) {
     return (
@@ -151,6 +153,18 @@ function App() {
 
   if (isDashboardBootstrapping) {
     return <DashboardBootstrapScreen />;
+  }
+
+  if (user && isPortalRole) {
+    return (
+      <PortalApp
+        token={token}
+        user={user}
+        logout={logout}
+        flash={flash}
+        dismissFlash={dismissFlash}
+      />
+    );
   }
 
   if (user && !isAllowedAdminPanelRole) {
