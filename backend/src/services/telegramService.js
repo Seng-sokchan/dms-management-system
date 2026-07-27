@@ -83,6 +83,8 @@ function getOrderProvinceName(order) {
 function formatOrderSentToFactoryMessage(orderOrOrders) {
   const orders = normalizeOrders(orderOrOrders);
   const firstOrder = orders[0] || {};
+
+  // Customized names
   const driverName = firstOrder.deliveryAgentName || "—";
   const provinceNames = [
     ...new Set(
@@ -93,8 +95,10 @@ function formatOrderSentToFactoryMessage(orderOrOrders) {
   ];
   const provinceName = provinceNames.length > 0 ? provinceNames.join(", ") : "—";
 
+  // Group by customers and items
   const customers = new Map();
   const totalItems = new Map();
+  let totalOrderQty = 0;
   for (const order of orders) {
     const customerKey = order.customerId || order.customerName || `order-${order.id}`;
     if (!customers.has(customerKey)) {
@@ -110,23 +114,47 @@ function formatOrderSentToFactoryMessage(orderOrOrders) {
 
     addItemQty(customer.items, itemKey, itemName, order.orderedQty);
     addItemQty(totalItems, itemKey, itemName, order.orderedQty);
+
+    // Count all order quantity (order.orderedQty)
+    const qty = Number(order.orderedQty);
+    if (Number.isFinite(qty) && qty > 0) {
+      totalOrderQty += qty;
+    }
   }
 
-  const lines = [
-    `${escapeHtml(formatDateTime())}: ${escapeHtml(driverName)} - ${escapeHtml(provinceName)}`,
-  ];
-  lines.push("\n");
-  lines.push("-សរុប:");
+  // Header with Khmer prefix for province
+  const provinceDisplay = `ខេត្ត ${escapeHtml(provinceName)}`;
+  const dateStr = escapeHtml(formatDateTime());
+  const driverDisplay = escapeHtml(driverName);
+
+  const lines = [];
+
+  // 27.07.2026: ចេង ពិសិដ្ឋ  - ខេត្ត កំពង់ស្ពឺ
+  lines.push(`${dateStr}: ${driverDisplay}  - ${provinceDisplay}`);
+
+  lines.push(""); // blank line
+
+  // -សរុប: total order quantity
+  lines.push(`-សរុប: ${escapeHtml(formatQty(totalOrderQty))}`);
+
+  lines.push(""); // blank line
+
+  // Items list:
+  // បេ ស គ្រាប់ធំ ( 20kg ): ចំនួន: 1
   for (const item of totalItems.values()) {
     lines.push(`${escapeHtml(item.name)}: ចំនួន: ${escapeHtml(formatQty(item.qty))}`);
   }
-  lines.push("\n");
 
+  lines.push(""); // blank line
+
+  // Customer lines
   for (const customer of customers.values()) {
-    const items = [...customer.items.values()]
+    // Items for customer: បេ ស គ្រាប់ធំ ( 20kg ) ចំនួន: 1
+    const itemsStr = [...customer.items.values()]
       .map((item) => `${escapeHtml(item.name)} ចំនួន: ${escapeHtml(formatQty(item.qty))}`)
       .join(" + ");
-    lines.push(`-${escapeHtml(customer.name)}: ${items}`);
+    // -សុ គា ត្រែងត្រយឹង: បេ ស គ្រាប់ធំ ( 20kg ) ចំនួន: 1
+    lines.push(`-${escapeHtml(customer.name)}: ${itemsStr}`);
   }
 
   return lines.join("\n");

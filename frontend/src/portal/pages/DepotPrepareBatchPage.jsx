@@ -57,7 +57,6 @@ export function DepotPrepareBatchPage({ token, user }) {
   function handlePick(itemId) {
     if (!pickerCustomerId || orderWindowClosed) return;
     addLine(pickerCustomerId, itemId);
-    setPickerCustomerId("");
   }
 
   return (

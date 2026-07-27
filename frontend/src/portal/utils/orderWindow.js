@@ -1,6 +1,6 @@
 export const CAMBODIA_TZ = "Asia/Phnom_Penh";
 export const ORDER_WINDOW_OPEN_HOUR = 6;
-export const ORDER_WINDOW_CLOSE_HOUR = 18;
+export const ORDER_WINDOW_CLOSE_HOUR = 19;
 
 /** Cambodia uses UTC+7 year-round (no DST). */
 const CAMBODIA_UTC_OFFSET_HOURS = 7;

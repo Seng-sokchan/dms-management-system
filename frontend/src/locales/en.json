@@ -1145,8 +1145,16 @@
       "completedTitle": "Transaction completed",
       "completedSubtitle": "Your payment was confirmed successfully.",
       "resultPendingHint": "Confirming payment with the server…",
-      "backToOrders": "Back to orders",
-      "continueShopping": "Continue shopping",
+      "successTitle": "Success",
+      "successNameHint": "Order confirmation details sent to {{name}}",
+      "successNameFallback": "you",
+      "downloadReceipt": "Download Receipt",
+      "orderNumberLabel": "Order",
+      "paidAtLabel": "Paid at",
+      "total": "TOTAL",
+      "redirectingUnpaid": "Payment was not completed. Returning to checkout…",
+      "backToOrders": "Back to Orders",
+      "continueShopping": "Continue Shopping",
       "status": {
         "unpaid": "Unpaid",
         "paid": "Paid"
