@@ -14,12 +14,33 @@ function getBotToken() {
   return String(process.env.TELEGRAM_BOT_TOKEN || "").trim();
 }
 
-function getChatId() {
+function getFallbackChatId() {
   return String(process.env.TELEGRAM_CHAT_ID || "").trim();
 }
 
+function getFactoryChatId() {
+  return (
+    String(process.env.TELEGRAM_CHAT_ID_FACTORY || "").trim() || getFallbackChatId()
+  );
+}
+
+function getDeliveredChatId() {
+  return (
+    String(process.env.TELEGRAM_CHAT_ID_DELIVERED || "").trim() || getFallbackChatId()
+  );
+}
+
+function isFactoryTelegramConfigured() {
+  return Boolean(getBotToken() && getFactoryChatId());
+}
+
+function isDeliveredTelegramConfigured() {
+  return Boolean(getBotToken() && getDeliveredChatId());
+}
+
+/** True when bot token and at least one usable chat ID are set. */
 function isTelegramConfigured() {
-  return Boolean(getBotToken() && getChatId());
+  return Boolean(getBotToken() && (getFactoryChatId() || getDeliveredChatId()));
 }
 
 function escapeHtml(value) {
@@ -160,9 +181,13 @@ function formatOrderSentToFactoryMessage(orderOrOrders) {
   return lines.join("\n");
 }
 
-async function sendMessage(text) {
+async function sendMessage(text, chatId) {
   const token = getBotToken();
-  const chatId = getChatId();
+  const targetChatId = String(chatId || "").trim();
+  if (!token || !targetChatId) {
+    throw new BadRequestError(NOTIFY_FAILURE_MESSAGE);
+  }
+
   const url = `${TELEGRAM_API_BASE}/bot${token}/sendMessage`;
 
   let response;
@@ -171,7 +196,7 @@ async function sendMessage(text) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        chat_id: chatId,
+        chat_id: targetChatId,
         text,
         parse_mode: "HTML",
       }),
@@ -180,6 +205,7 @@ async function sendMessage(text) {
   } catch (err) {
     logError("Telegram sendMessage network error", {
       message: err?.message || String(err),
+      chatId: targetChatId,
     });
     throw new BadRequestError(NOTIFY_FAILURE_MESSAGE);
   }
@@ -191,6 +217,7 @@ async function sendMessage(text) {
     logError("Telegram sendMessage invalid JSON response", {
       status: response.status,
       message: err?.message || String(err),
+      chatId: targetChatId,
     });
     throw new BadRequestError(NOTIFY_FAILURE_MESSAGE);
   }
@@ -200,6 +227,7 @@ async function sendMessage(text) {
       status: response.status,
       description: body?.description,
       errorCode: body?.error_code,
+      chatId: targetChatId,
     });
     throw new BadRequestError(NOTIFY_FAILURE_MESSAGE);
   }
@@ -208,7 +236,7 @@ async function sendMessage(text) {
 }
 
 async function notifyOrderSentToFactory(orderOrOrders, user) {
-  if (!isTelegramConfigured()) {
+  if (!isFactoryTelegramConfigured()) {
     logError("Telegram not configured for factory notification", {
       orderId: normalizeOrders(orderOrOrders)[0]?.id,
     });
@@ -216,7 +244,7 @@ async function notifyOrderSentToFactory(orderOrOrders, user) {
   }
 
   const text = formatOrderSentToFactoryMessage(orderOrOrders, user);
-  await sendMessage(text);
+  await sendMessage(text, getFactoryChatId());
 }
 
 function formatOrderDeliveredMessage(order, { deliveredQty, lossQty } = {}) {
@@ -240,7 +268,7 @@ function formatOrderDeliveredMessage(order, { deliveredQty, lossQty } = {}) {
  * Soft-fail: logs and returns on missing config or send errors so delivery confirm is not blocked.
  */
 async function notifyOrderDelivered(order, { deliveredQty, lossQty } = {}) {
-  if (!isTelegramConfigured()) {
+  if (!isDeliveredTelegramConfigured()) {
     logError("Telegram not configured for delivered notification", {
       orderId: order?.id,
     });
@@ -249,7 +277,7 @@ async function notifyOrderDelivered(order, { deliveredQty, lossQty } = {}) {
 
   try {
     const text = formatOrderDeliveredMessage(order, { deliveredQty, lossQty });
-    await sendMessage(text);
+    await sendMessage(text, getDeliveredChatId());
   } catch (err) {
     logError("Telegram delivered notification failed", {
       orderId: order?.id,
@@ -260,6 +288,8 @@ async function notifyOrderDelivered(order, { deliveredQty, lossQty } = {}) {
 
 module.exports = {
   isTelegramConfigured,
+  isFactoryTelegramConfigured,
+  isDeliveredTelegramConfigured,
   formatOrderSentToFactoryMessage,
   formatOrderDeliveredMessage,
   sendMessage,

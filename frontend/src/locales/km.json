@@ -1040,6 +1040,13 @@
       "loading": "កំពុងផ្ទុក…",
       "refresh": "ផ្ទុកស្ថានភាពម្តងទៀត"
     },
+    "getApp": {
+      "title": "ទាញយកកម្មវិធី DMS Cambodia",
+      "subtitle": "សួស្តី {{name}} — សូមបើកកម្មវិធីទូរស័ព្ទដើម្បីបន្ត។",
+      "you": "អ្នក",
+      "openPlayStore": "បើក Play Store",
+      "openAppStore": "បើក App Store"
+    },
     "currency": {
       "khr": "រៀល",
       "usd": "ដុល្លារ"

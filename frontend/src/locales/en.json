@@ -1040,6 +1040,13 @@
       "loading": "Loading…",
       "refresh": "Refresh"
     },
+    "getApp": {
+      "title": "Get the DMS Cambodia app",
+      "subtitle": "Hi {{name}} — please open the mobile app to continue.",
+      "you": "there",
+      "openPlayStore": "Open Play Store",
+      "openAppStore": "Open App Store"
+    },
     "currency": {
       "khr": "KHR",
       "usd": "USD"

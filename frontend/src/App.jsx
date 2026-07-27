@@ -7,6 +7,8 @@ import { DashboardBootstrapScreen } from "./components/ui/DashboardBootstrapScre
 import { LoginForm } from "./features/auth/LoginForm";
 import { useAdminDashboard } from "./hooks/useAdminDashboard";
 import { PortalApp } from "./portal";
+import { GetAppPage } from "./portal/pages/GetAppPage";
+import { shouldShowStorePrompt } from "./utils/storeLinks";
 import { DeliveryAgentsPage } from "./pages/DeliveryAgentsPage";
 import { OrdersPage } from "./pages/OrdersPage";
 import { AssignOrdersPage } from "./pages/AssignOrdersPage";
@@ -156,6 +158,10 @@ function App() {
   }
 
   if (user && isPortalRole) {
+    if (shouldShowStorePrompt()) {
+      return <GetAppPage user={user} onLogout={logout} />;
+    }
+
     return (
       <PortalApp
         token={token}
