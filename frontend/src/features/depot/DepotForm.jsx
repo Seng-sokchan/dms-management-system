@@ -1,103 +1,120 @@
 import { useTranslation } from "react-i18next";
 import { Button } from "../../components/ui/Button";
-import "./DepotForm.css";
+import { FormModal } from "../../components/ui/FormModal";
+
+function DepotFields({ mode, formId, value, onChange, onSubmit }) {
+  const { t } = useTranslation();
+  const prefix = mode === "edit" ? "depot-edit" : "depot";
+
+  function patch(partial) {
+    onChange((prev) => ({ ...prev, ...partial }));
+  }
+
+  return (
+    <form id={formId} className="form" onSubmit={onSubmit}>
+      <div className="form-grid form-grid--2">
+        <div className="form-field">
+          <label className="form-label" htmlFor={`${prefix}-name`}>
+            {t("depots.name")}
+          </label>
+          <input
+            id={`${prefix}-name`}
+            value={value.name || ""}
+            onChange={(event) => patch({ name: event.target.value })}
+            required
+            minLength={2}
+          />
+        </div>
+        <div className="form-field">
+          <label className="form-label" htmlFor={`${prefix}-phone`}>
+            {t("depots.phone")}
+          </label>
+          <input
+            id={`${prefix}-phone`}
+            value={value.phone || ""}
+            onChange={(event) => patch({ phone: event.target.value })}
+          />
+        </div>
+        <div className="form-field form-grid--full">
+          <label className="form-label" htmlFor={`${prefix}-address`}>
+            {t("depots.address")}
+          </label>
+          <input
+            id={`${prefix}-address`}
+            value={value.address || ""}
+            onChange={(event) => patch({ address: event.target.value })}
+          />
+        </div>
+      </div>
+    </form>
+  );
+}
 
 export function DepotCreatePopupForm({ open, newDepot, setNewDepot, onCreateDepot, onClose }) {
   const { t } = useTranslation();
-  if (!open) return null;
+  const formId = "depot-create-form";
 
   return (
-    <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="depot-create-title">
-      <form
-        className="panel form modal-card depot-modal-card--form"
+    <FormModal
+      open={open}
+      title={t("depots.formTitle")}
+      titleId="depot-create-title"
+      size="md"
+      onClose={onClose}
+      footer={
+        <div className="row-actions">
+          <Button variant="ghost" tone="cancel" onClick={onClose}>
+            {t("depots.cancel")}
+          </Button>
+          <Button variant="primary" type="submit" form={formId}>
+            {t("depots.save")}
+          </Button>
+        </div>
+      }
+    >
+      <DepotFields
+        mode="create"
+        formId={formId}
+        value={newDepot}
+        onChange={setNewDepot}
         onSubmit={async (event) => {
           await onCreateDepot(event);
           onClose();
         }}
-      >
-        <h3 id="depot-create-title">{t("depots.formTitle")}</h3>
-        <label className="form-label" htmlFor="depot-name">
-          {t("depots.name")}
-        </label>
-        <input
-          id="depot-name"
-          value={newDepot.name}
-          onChange={(event) => setNewDepot((prev) => ({ ...prev, name: event.target.value }))}
-          required
-          minLength={2}
-        />
-        <label className="form-label" htmlFor="depot-phone">
-          {t("depots.phone")}
-        </label>
-        <input
-          id="depot-phone"
-          value={newDepot.phone}
-          onChange={(event) => setNewDepot((prev) => ({ ...prev, phone: event.target.value }))}
-        />
-        <label className="form-label" htmlFor="depot-address">
-          {t("depots.address")}
-        </label>
-        <input
-          id="depot-address"
-          value={newDepot.address}
-          onChange={(event) => setNewDepot((prev) => ({ ...prev, address: event.target.value }))}
-        />
-        <div className="row-actions">
-          <Button variant="primary" type="submit">
-            {t("depots.save")}
-          </Button>
-          <Button variant="ghost" tone="cancel" onClick={onClose}>
-            {t("depots.cancel")}
-          </Button>
-        </div>
-      </form>
-    </div>
+      />
+    </FormModal>
   );
 }
 
 export function DepotEditPopupForm({ open, editingDepot, setEditingDepot, onSubmitEdit, onClose }) {
   const { t } = useTranslation();
-  if (!open) return null;
+  const formId = "depot-edit-form";
 
   return (
-    <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="depot-edit-title">
-      <form className="panel form modal-card depot-modal-card--form" onSubmit={onSubmitEdit}>
-        <h3 id="depot-edit-title">{t("depots.editTitle")}</h3>
-        <label className="form-label" htmlFor="depot-edit-name">
-          {t("depots.name")}
-        </label>
-        <input
-          id="depot-edit-name"
-          value={editingDepot.name}
-          onChange={(event) => setEditingDepot((prev) => ({ ...prev, name: event.target.value }))}
-          required
-          minLength={2}
-        />
-        <label className="form-label" htmlFor="depot-edit-phone">
-          {t("depots.phone")}
-        </label>
-        <input
-          id="depot-edit-phone"
-          value={editingDepot.phone}
-          onChange={(event) => setEditingDepot((prev) => ({ ...prev, phone: event.target.value }))}
-        />
-        <label className="form-label" htmlFor="depot-edit-address">
-          {t("depots.address")}
-        </label>
-        <input
-          id="depot-edit-address"
-          value={editingDepot.address}
-          onChange={(event) => setEditingDepot((prev) => ({ ...prev, address: event.target.value }))}
-        />
+    <FormModal
+      open={open}
+      title={t("depots.editTitle")}
+      titleId="depot-edit-title"
+      size="md"
+      onClose={onClose}
+      footer={
         <div className="row-actions">
-          <Button variant="primary" type="submit">
-            {t("depots.update")}
-          </Button>
           <Button variant="ghost" tone="cancel" onClick={onClose}>
             {t("depots.cancel")}
           </Button>
+          <Button variant="primary" type="submit" form={formId}>
+            {t("depots.update")}
+          </Button>
         </div>
-      </form>
-    </div>
+      }
+    >
+      <DepotFields
+        mode="edit"
+        formId={formId}
+        value={editingDepot}
+        onChange={setEditingDepot}
+        onSubmit={onSubmitEdit}
+      />
+    </FormModal>
   );
 }

@@ -427,6 +427,7 @@ export function AssignOrdersPage({
             </div>
             <p className="form-hint">{t("assignOrders.assignModalHint", { date: todayLabel })}</p>
 
+            <div className="assign-orders-modal__body">
             <DataTable
               showSearch
               searchValue={orderSearchText}
@@ -500,6 +501,7 @@ export function AssignOrdersPage({
                 )}
               </tbody>
             </DataTable>
+            </div>
 
             <div className="assign-orders-modal-footer">
               <p className="panel-meta">

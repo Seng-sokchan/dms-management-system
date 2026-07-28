@@ -12,8 +12,55 @@
   color: var(--text);
 }
 
-.assign-orders-modal {
-  width: min(920px, 100%);
+.assign-orders-modal.modal-card {
+  width: min(98vw, 100%);
+  height: min(96vh, calc(100vh - 1rem));
+  max-width: none;
+  max-height: none;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+  border-radius: 14px;
+}
+
+.modal-overlay:has(.assign-orders-modal) {
+  padding: 0.5rem;
+  align-items: stretch;
+  justify-content: stretch;
+}
+
+.modal-overlay:has(.assign-orders-modal) .assign-orders-modal.modal-card {
+  margin: auto;
+  width: min(98vw, 100%);
+  height: min(96vh, calc(100vh - 1rem));
+}
+
+.assign-orders-modal .panel-header {
+  flex-shrink: 0;
+}
+
+.assign-orders-modal .form-hint {
+  flex-shrink: 0;
+}
+
+.assign-orders-modal__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.assign-orders-modal__body .data-table-search {
+  flex-shrink: 0;
+}
+
+.assign-orders-modal__body .table-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
 }
 
 .assign-orders-check-col {
@@ -95,9 +142,10 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  margin-top: 1rem;
+  margin-top: auto;
   padding-top: 0.85rem;
   border-top: 1px solid var(--border);
+  flex-shrink: 0;
 }
 
 .assign-orders-modal-actions {

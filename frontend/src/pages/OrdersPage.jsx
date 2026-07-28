@@ -5,6 +5,27 @@ import { Button } from "../components/ui/Button";
 import { DataTable } from "../components/ui/DataTable";
 import "./OrdersPage.css";
 
+function localDateKey(date) {
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0"),
+  ].join("-");
+}
+
+/** True when created_at is on the user's local calendar day. */
+function isCreatedToday(createdAt) {
+  if (createdAt == null || createdAt === "") return false;
+  const raw = String(createdAt).trim();
+  const datePart = raw.slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
+    return datePart === localDateKey(new Date());
+  }
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return false;
+  return localDateKey(parsed) === localDateKey(new Date());
+}
+
 function buildAgentLookup(deliveryAgents) {
   const map = new Map();
   (deliveryAgents || []).forEach((a) => {
@@ -222,9 +243,24 @@ export function OrdersPage({ orders, deliveryAgents = [] }) {
   const agentById = useMemo(() => buildAgentLookup(deliveryAgents), [deliveryAgents]);
   const dash = t("orders.dash");
 
+  const todayLabel = useMemo(
+    () =>
+      new Date().toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      }),
+    [],
+  );
+
+  const todayOrders = useMemo(
+    () => (orders || []).filter((order) => isCreatedToday(order.createdAt)),
+    [orders],
+  );
+
   const groupedByProvince = useMemo(() => {
     const map = new Map();
-    (orders || []).forEach((order) => {
+    todayOrders.forEach((order) => {
       const id =
         order.customerProvinceId != null && String(order.customerProvinceId).trim() !== ""
           ? String(order.customerProvinceId)
@@ -250,7 +286,7 @@ export function OrdersPage({ orders, deliveryAgents = [] }) {
         };
       })
       .sort((a, b) => a.provinceLabel.localeCompare(b.provinceLabel));
-  }, [orders, t, dash]);
+  }, [todayOrders, t, dash]);
 
   const filteredGroupedProvinces = useMemo(() => {
     const keyword = appliedProvinceSearch.trim().toLowerCase();
@@ -285,7 +321,7 @@ export function OrdersPage({ orders, deliveryAgents = [] }) {
 
   const groupedByTruck = useMemo(() => {
     const map = new Map();
-    (orders || []).forEach((order) => {
+    todayOrders.forEach((order) => {
       const id = order.deliveryAgentId != null && String(order.deliveryAgentId).trim() !== ""
         ? String(order.deliveryAgentId)
         : null;
@@ -312,7 +348,7 @@ export function OrdersPage({ orders, deliveryAgents = [] }) {
         statusLabel: statuses.length === 1 ? statuses[0] : t("orders.mixedStatus", { defaultValue: "MIXED" }),
       };
     });
-  }, [orders, agentById, t]);
+  }, [todayOrders, agentById, t]);
 
   const filteredGroupedTrucks = useMemo(() => {
     const keyword = appliedTruckSearch.trim().toLowerCase();
@@ -372,6 +408,7 @@ export function OrdersPage({ orders, deliveryAgents = [] }) {
       <div className="section-heading">
         <h2>{t("orders.title")}</h2>
         <p className="section-lead">{t("orders.lead")}</p>
+        <p className="form-hint">{t("orders.todayOnlyHint", { date: todayLabel })}</p>
       </div>
       <section className="panel">
         <div className="panel-header">

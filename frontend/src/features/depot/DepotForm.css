@@ -1,9 +1,0 @@
-/* Depot create/edit popup forms */
-
-.panel.form.modal-card.depot-modal-card--form {
-  width: min(24rem, 92vw);
-  max-width: 100%;
-  max-height: min(92vh, calc(100vh - 2rem));
-  overflow: auto;
-  box-sizing: border-box;
-}

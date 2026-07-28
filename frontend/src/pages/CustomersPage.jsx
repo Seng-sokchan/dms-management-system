@@ -4,6 +4,7 @@ import { usePagination } from "../hooks/usePagination";
 import { CustomerForm } from "../features/customer/CustomerForm";
 import { Button } from "../components/ui/Button";
 import { DataTable } from "../components/ui/DataTable";
+import { FormModal } from "../components/ui/FormModal";
 import { useConfirm } from "../components/ui/ConfirmProvider";
 
 const EMPTY_EDIT = { id: "", name: "", phone: "", latitude: "", longitude: "", depotId: "", provinceId: "" };
@@ -205,114 +206,63 @@ export function CustomersPage({
           </DataTable>
         )}
       </section>
-      {showCreateModal ? (
-        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="customer-create-title">
-          <div className="modal-card">
-            <CustomerForm
-              depots={depots}
-              provinces={provinces}
-              newCustomer={newCustomer}
-              setNewCustomer={setNewCustomer}
-              onCreateCustomer={async (event) => {
-                await onCreateCustomer(event);
-                closeCreateModal();
-              }}
-            />
-            <div className="row-actions" style={{ marginTop: 12 }}>
-              <Button variant="ghost" tone="cancel" onClick={closeCreateModal}>
-                {t("customers.cancel")}
-              </Button>
-            </div>
+      <FormModal
+        open={showCreateModal}
+        title={t("customers.formTitle")}
+        titleId="customer-create-title"
+        size="lg"
+        onClose={closeCreateModal}
+        footer={
+          <div className="row-actions">
+            <Button variant="ghost" tone="cancel" onClick={closeCreateModal}>
+              {t("customers.cancel")}
+            </Button>
+            <Button variant="primary" type="submit" form="customer-create-form">
+              {t("customers.save")}
+            </Button>
           </div>
-        </div>
-      ) : null}
-      {isEditing ? (
-        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="customer-edit-title">
-          <form className="panel form modal-card" onSubmit={submitEdit}>
-            <h3 id="customer-edit-title">{t("customers.editTitle")}</h3>
-            <label className="form-label" htmlFor="customer-edit-name">
-              {t("customers.name")}
-            </label>
-            <input
-              id="customer-edit-name"
-              value={editingCustomer.name}
-              onChange={(event) => setEditingCustomer({ ...editingCustomer, name: event.target.value })}
-              required
-              minLength={2}
-            />
-            <label className="form-label" htmlFor="customer-edit-phone">
-              {t("customers.phone")}
-            </label>
-            <input
-              id="customer-edit-phone"
-              value={editingCustomer.phone}
-              onChange={(event) => setEditingCustomer({ ...editingCustomer, phone: event.target.value })}
-            />
-            <label className="form-label" htmlFor="customer-edit-latitude">
-              {t("customers.latitude")}
-            </label>
-            <input
-              id="customer-edit-latitude"
-              type="number"
-              step="any"
-              value={editingCustomer.latitude}
-              onChange={(event) => setEditingCustomer({ ...editingCustomer, latitude: event.target.value })}
-              placeholder={t("customers.latitudePlaceholder")}
-            />
-            <label className="form-label" htmlFor="customer-edit-longitude">
-              {t("customers.longitude")}
-            </label>
-            <input
-              id="customer-edit-longitude"
-              type="number"
-              step="any"
-              value={editingCustomer.longitude}
-              onChange={(event) => setEditingCustomer({ ...editingCustomer, longitude: event.target.value })}
-              placeholder={t("customers.longitudePlaceholder")}
-            />
-            <label className="form-label" htmlFor="customer-edit-depot">
-              {t("customers.depot", { defaultValue: "Depot" })}{" "}
-              <span className="form-optional">({t("createOrder.optional")})</span>
-            </label>
-            <select
-              id="customer-edit-depot"
-              value={editingCustomer.depotId || ""}
-              onChange={(event) => setEditingCustomer({ ...editingCustomer, depotId: event.target.value })}
-            >
-              <option value="">{t("customers.selectDepot", { defaultValue: "— Select depot —" })}</option>
-              {depots.map((depot) => (
-                <option key={depot.id} value={depot.id}>
-                  {depot.name}
-                </option>
-              ))}
-            </select>
-            <label className="form-label" htmlFor="customer-edit-province">
-              {t("customers.province", { defaultValue: "Province" })}{" "}
-              <span className="form-optional">({t("createOrder.optional")})</span>
-            </label>
-            <select
-              id="customer-edit-province"
-              value={editingCustomer.provinceId || ""}
-              onChange={(event) => setEditingCustomer({ ...editingCustomer, provinceId: event.target.value })}
-            >
-              <option value="">{t("customers.selectProvince", { defaultValue: "— Select province —" })}</option>
-              {provinces.map((province) => (
-                <option key={province.id} value={province.id}>
-                  {province.name}
-                </option>
-              ))}
-            </select>
-            <div className="row-actions">
-              <Button variant="primary" type="submit">
-                {t("customers.update")}
-              </Button>
-              <Button variant="ghost" tone="cancel" onClick={cancelEdit}>
-                {t("customers.cancel")}
-              </Button>
-            </div>
-          </form>
-        </div>
-      ) : null}
+        }
+      >
+        <CustomerForm
+          mode="create"
+          formId="customer-create-form"
+          depots={depots}
+          provinces={provinces}
+          value={newCustomer}
+          onChange={setNewCustomer}
+          onSubmit={async (event) => {
+            await onCreateCustomer(event);
+            closeCreateModal();
+          }}
+        />
+      </FormModal>
+      <FormModal
+        open={isEditing}
+        title={t("customers.editTitle")}
+        titleId="customer-edit-title"
+        size="lg"
+        onClose={cancelEdit}
+        footer={
+          <div className="row-actions">
+            <Button variant="ghost" tone="cancel" onClick={cancelEdit}>
+              {t("customers.cancel")}
+            </Button>
+            <Button variant="primary" type="submit" form="customer-edit-form">
+              {t("customers.update")}
+            </Button>
+          </div>
+        }
+      >
+        <CustomerForm
+          mode="edit"
+          formId="customer-edit-form"
+          depots={depots}
+          provinces={provinces}
+          value={editingCustomer}
+          onChange={setEditingCustomer}
+          onSubmit={submitEdit}
+        />
+      </FormModal>
     </section>
   );
 }

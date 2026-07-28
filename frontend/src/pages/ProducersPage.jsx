@@ -4,6 +4,7 @@ import { usePagination } from "../hooks/usePagination";
 import { ProducerForm } from "../features/producer/ProducerForm";
 import { Button } from "../components/ui/Button";
 import { DataTable } from "../components/ui/DataTable";
+import { FormModal } from "../components/ui/FormModal";
 import { useConfirm } from "../components/ui/ConfirmProvider";
 
 const EMPTY_EDIT = { id: "", name: "", phone: "", capacityNote: "" };
@@ -151,68 +152,59 @@ export function ProducersPage({
           </DataTable>
         )}
       </section>
-      {showCreateModal ? (
-        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="producer-create-title">
-          <div className="modal-card">
-            <ProducerForm
-              newProducer={newProducer}
-              setNewProducer={setNewProducer}
-              onCreateProducer={async (event) => {
-                await onCreateProducer(event);
-                closeCreateModal();
-              }}
-            />
-            <div className="row-actions" style={{ marginTop: 12 }}>
-              <Button variant="ghost" tone="cancel" onClick={closeCreateModal}>
-                {t("producers.cancel")}
-              </Button>
-            </div>
+      <FormModal
+        open={showCreateModal}
+        title={t("producers.formTitle")}
+        titleId="producer-create-title"
+        size="md"
+        onClose={closeCreateModal}
+        footer={
+          <div className="row-actions">
+            <Button variant="ghost" tone="cancel" onClick={closeCreateModal}>
+              {t("producers.cancel")}
+            </Button>
+            <Button variant="primary" type="submit" form="producer-create-form">
+              {t("producers.save")}
+            </Button>
           </div>
-        </div>
-      ) : null}
-      {isEditing ? (
-        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="producer-edit-title">
-          <form className="panel form modal-card" onSubmit={submitEdit}>
-            <h3 id="producer-edit-title">{t("producers.editTitle")}</h3>
-            <label className="form-label" htmlFor="producer-edit-name">
-              {t("producers.namePh")}
-            </label>
-            <input
-              id="producer-edit-name"
-              value={editingProducer.name}
-              onChange={(event) => setEditingProducer({ ...editingProducer, name: event.target.value })}
-              required
-              minLength={2}
-            />
-            <label className="form-label" htmlFor="producer-edit-phone">
-              {t("producers.phonePh")}
-            </label>
-            <input
-              id="producer-edit-phone"
-              value={editingProducer.phone}
-              onChange={(event) => setEditingProducer({ ...editingProducer, phone: event.target.value })}
-              required
-              minLength={5}
-            />
-            <label className="form-label" htmlFor="producer-edit-capacity">
-              {t("producers.capacityPh")}
-            </label>
-            <input
-              id="producer-edit-capacity"
-              value={editingProducer.capacityNote}
-              onChange={(event) => setEditingProducer({ ...editingProducer, capacityNote: event.target.value })}
-            />
-            <div className="row-actions">
-              <Button variant="primary" type="submit">
-                {t("producers.update")}
-              </Button>
-              <Button variant="ghost" tone="cancel" onClick={cancelEdit}>
-                {t("producers.cancel")}
-              </Button>
-            </div>
-          </form>
-        </div>
-      ) : null}
+        }
+      >
+        <ProducerForm
+          mode="create"
+          formId="producer-create-form"
+          value={newProducer}
+          onChange={setNewProducer}
+          onSubmit={async (event) => {
+            await onCreateProducer(event);
+            closeCreateModal();
+          }}
+        />
+      </FormModal>
+      <FormModal
+        open={isEditing}
+        title={t("producers.editTitle")}
+        titleId="producer-edit-title"
+        size="md"
+        onClose={cancelEdit}
+        footer={
+          <div className="row-actions">
+            <Button variant="ghost" tone="cancel" onClick={cancelEdit}>
+              {t("producers.cancel")}
+            </Button>
+            <Button variant="primary" type="submit" form="producer-edit-form">
+              {t("producers.update")}
+            </Button>
+          </div>
+        }
+      >
+        <ProducerForm
+          mode="edit"
+          formId="producer-edit-form"
+          value={editingProducer}
+          onChange={setEditingProducer}
+          onSubmit={submitEdit}
+        />
+      </FormModal>
     </section>
   );
 }

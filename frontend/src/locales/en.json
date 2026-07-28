@@ -685,6 +685,7 @@
   "orders": {
     "title": "Orders",
     "lead": "Status, payment tie-in, and delivery confirmation.",
+    "todayOnlyHint": "Showing orders created today ({{date}}).",
     "allOrders": "All orders",
     "rowOne": "{{n}} row",
     "rowMany": "{{n}} rows",

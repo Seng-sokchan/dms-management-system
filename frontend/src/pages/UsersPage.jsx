@@ -4,6 +4,7 @@ import { usePagination } from "../hooks/usePagination";
 import "./UsersPage.css";
 import { Button } from "../components/ui/Button";
 import { DataTable } from "../components/ui/DataTable";
+import { FormModal } from "../components/ui/FormModal";
 import { useConfirm } from "../components/ui/ConfirmProvider";
 
 const FALLBACK_ROLES = ["Admin", "Owner", "Logistics", "Delivery", "Customer", "Depot"];
@@ -337,117 +338,126 @@ export function UsersPage({
         )}
       </section>
 
-      {createModalOpen ? (
-        <div
-          className="modal-overlay"
-          role="presentation"
-          onClick={requestCloseCreateModal}
-        >
-          <form
-            className="panel form modal-card"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="user-create-title"
-            onClick={(e) => e.stopPropagation()}
-            onSubmit={submitCreate}
-          >
-            <h3 id="user-create-title">{t("users.formTitle")}</h3>
-            <label className="form-label" htmlFor="user-name">{t("users.name")}</label>
-            <input id="user-name" value={newUser.name} onChange={(event) => setNewUser({ ...newUser, name: event.target.value })} required minLength={2} autoFocus />
-
-            <label className="form-label" htmlFor="user-role">{t("users.role")}</label>
-            <select
-              id="user-role"
-              value={newUser.role}
-              onChange={(event) => {
-                const role = event.target.value;
-                setNewUser((prev) => ({
-                  ...prev,
-                  role,
-                  ...(role !== "Customer" ? { customerId: "" } : {}),
-                  ...(role !== "Delivery" ? { deliveryAgentId: "" } : {}),
-                  ...(role !== "Depot" ? { depotId: "" } : {}),
-                }));
-              }}
-              required
-            >
-              {createRoleNames.map((role) => (
-                <option key={role} value={role}>{t(`roles.${role}`, { defaultValue: role })}</option>
-              ))}
-            </select>
-
-            {newUser.role === "Customer" ? (
-              <>
-                <label className="form-label" htmlFor="user-create-customer">{t("users.linkedCustomer")}</label>
-                <select
-                  id="user-create-customer"
-                  value={newUser.customerId || ""}
-                  onChange={(event) => setNewUser({ ...newUser, customerId: event.target.value })}
-                >
-                  <option value="">{t("users.selectCustomer")}</option>
-                  {customers.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {(c.name && String(c.name).trim()) || `Customer #${c.id}`} (#{c.id})
-                    </option>
-                  ))}
-                </select>
-                <p className="section-lead" style={{ marginTop: 8, fontSize: "0.9rem" }}>
-                  {t("users.customerLinkHint")}
-                </p>
-              </>
-            ) : null}
-
-            {newUser.role === "Delivery" ? (
-              <>
-                <label className="form-label" htmlFor="user-create-delivery-agent">
-                  {t("users.linkedDeliveryAgent")}
-                </label>
-                <select
-                  id="user-create-delivery-agent"
-                  value={newUser.deliveryAgentId || ""}
-                  onChange={(event) => setNewUser({ ...newUser, deliveryAgentId: event.target.value })}
-                >
-                  <option value="">{t("users.selectDeliveryAgent")}</option>
-                  {deliveryAgents.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {(a.name && String(a.name).trim()) || `Agent #${a.id}`} (#{a.id})
-                    </option>
-                  ))}
-                </select>
-                <p className="section-lead" style={{ marginTop: 8, fontSize: "0.9rem" }}>
-                  {t("users.deliveryLinkHint")}
-                </p>
-              </>
-            ) : null}
-
-            {newUser.role === "Depot" ? (
-              <>
-                <label className="form-label" htmlFor="user-create-depot">{t("users.linkedDepot")}</label>
-                <select
-                  id="user-create-depot"
-                  value={newUser.depotId || ""}
-                  onChange={(event) => setNewUser({ ...newUser, depotId: event.target.value })}
-                >
-                  <option value="">{t("users.selectDepot")}</option>
-                  {depots.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {(d.name && String(d.name).trim()) || `Depot #${d.id}`} (#{d.id})
-                    </option>
-                  ))}
-                </select>
-                <p className="section-lead" style={{ marginTop: 8, fontSize: "0.9rem" }}>
-                  {t("users.depotLinkHint")}
-                </p>
-              </>
-            ) : null}
-
-            <div className="row-actions">
-              <Button variant="primary" type="submit">{t("users.save")}</Button>
-              <Button variant="ghost" tone="cancel" onClick={requestCloseCreateModal}>{t("users.cancel")}</Button>
+      <FormModal
+        open={createModalOpen}
+        title={t("users.formTitle")}
+        titleId="user-create-title"
+        size="lg"
+        onClose={requestCloseCreateModal}
+        footer={
+          <div className="row-actions">
+            <Button variant="ghost" tone="cancel" onClick={requestCloseCreateModal}>
+              {t("users.cancel")}
+            </Button>
+            <Button variant="primary" type="submit" form="user-create-form">
+              {t("users.save")}
+            </Button>
+          </div>
+        }
+      >
+        <form id="user-create-form" className="form" onSubmit={submitCreate}>
+          <div className="form-grid form-grid--2">
+            <div className="form-field">
+              <label className="form-label" htmlFor="user-name">{t("users.name")}</label>
+              <input
+                id="user-name"
+                value={newUser.name}
+                onChange={(event) => setNewUser({ ...newUser, name: event.target.value })}
+                required
+                minLength={2}
+                autoFocus
+              />
             </div>
-          </form>
-        </div>
-      ) : null}
+            <div className="form-field">
+              <label className="form-label" htmlFor="user-role">{t("users.role")}</label>
+              <select
+                id="user-role"
+                value={newUser.role}
+                onChange={(event) => {
+                  const role = event.target.value;
+                  setNewUser((prev) => ({
+                    ...prev,
+                    role,
+                    ...(role !== "Customer" ? { customerId: "" } : {}),
+                    ...(role !== "Delivery" ? { deliveryAgentId: "" } : {}),
+                    ...(role !== "Depot" ? { depotId: "" } : {}),
+                  }));
+                }}
+                required
+              >
+                {createRoleNames.map((role) => (
+                  <option key={role} value={role}>
+                    {t(`roles.${role}`, { defaultValue: role })}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {newUser.role === "Customer" ? (
+            <div className="form-field form-stack-gap">
+              <label className="form-label" htmlFor="user-create-customer">
+                {t("users.linkedCustomer")}
+              </label>
+              <select
+                id="user-create-customer"
+                value={newUser.customerId || ""}
+                onChange={(event) => setNewUser({ ...newUser, customerId: event.target.value })}
+              >
+                <option value="">{t("users.selectCustomer")}</option>
+                {customers.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {(c.name && String(c.name).trim()) || `Customer #${c.id}`} (#{c.id})
+                  </option>
+                ))}
+              </select>
+              <p className="form-hint">{t("users.customerLinkHint")}</p>
+            </div>
+          ) : null}
+
+          {newUser.role === "Delivery" ? (
+            <div className="form-field form-stack-gap">
+              <label className="form-label" htmlFor="user-create-delivery-agent">
+                {t("users.linkedDeliveryAgent")}
+              </label>
+              <select
+                id="user-create-delivery-agent"
+                value={newUser.deliveryAgentId || ""}
+                onChange={(event) => setNewUser({ ...newUser, deliveryAgentId: event.target.value })}
+              >
+                <option value="">{t("users.selectDeliveryAgent")}</option>
+                {deliveryAgents.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {(a.name && String(a.name).trim()) || `Agent #${a.id}`} (#{a.id})
+                  </option>
+                ))}
+              </select>
+              <p className="form-hint">{t("users.deliveryLinkHint")}</p>
+            </div>
+          ) : null}
+
+          {newUser.role === "Depot" ? (
+            <div className="form-field form-stack-gap">
+              <label className="form-label" htmlFor="user-create-depot">
+                {t("users.linkedDepot")}
+              </label>
+              <select
+                id="user-create-depot"
+                value={newUser.depotId || ""}
+                onChange={(event) => setNewUser({ ...newUser, depotId: event.target.value })}
+              >
+                <option value="">{t("users.selectDepot")}</option>
+                {depots.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {(d.name && String(d.name).trim()) || `Depot #${d.id}`} (#{d.id})
+                  </option>
+                ))}
+              </select>
+              <p className="form-hint">{t("users.depotLinkHint")}</p>
+            </div>
+          ) : null}
+        </form>
+      </FormModal>
 
       {createdCredentials ? (
         <div
@@ -456,7 +466,7 @@ export function UsersPage({
           onClick={() => setCreatedCredentials(null)}
         >
           <div
-            className="panel form modal-card"
+            className="panel form modal-card modal-card--md"
             role="dialog"
             aria-modal="true"
             aria-labelledby="creds-modal-title"
@@ -516,123 +526,155 @@ export function UsersPage({
         </div>
       ) : null}
 
-      {isEditing ? (
-        <div
-          className="modal-overlay"
-          role="presentation"
-          onClick={requestCancelEdit}
-        >
-          <form
-            className="panel form modal-card"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="user-edit-title"
-            onClick={(e) => e.stopPropagation()}
-            onSubmit={submitEdit}
-          >
-            <h3 id="user-edit-title">{t("users.editTitle")}</h3>
-            <label className="form-label" htmlFor="user-edit-name">{t("users.name")}</label>
-            <input id="user-edit-name" value={editingUser.name} onChange={(event) => setEditingUser({ ...editingUser, name: event.target.value })} required minLength={2} />
-
-            <label className="form-label" htmlFor="user-edit-username">{t("users.username")}</label>
-            <input id="user-edit-username" value={editingUser.username} onChange={(event) => setEditingUser({ ...editingUser, username: event.target.value })} required minLength={3} />
-
-            <label className="form-label" htmlFor="user-edit-password">{t("users.passwordOptional")}</label>
-            <input id="user-edit-password" type="password" value={editingUser.password} onChange={(event) => setEditingUser({ ...editingUser, password: event.target.value })} minLength={6} />
-
-            <label className="form-label" htmlFor="user-edit-role">{t("users.role")}</label>
-            <select
-              id="user-edit-role"
-              value={editingUser.role}
-              onChange={(event) => {
-                const role = event.target.value;
-                setEditingUser((prev) => ({
-                  ...prev,
-                  role,
-                  ...(role !== "Customer" ? { customerId: "" } : {}),
-                  ...(role !== "Delivery" ? { deliveryAgentId: "" } : {}),
-                  ...(role !== "Depot" ? { depotId: "" } : {}),
-                }));
-              }}
-              required
-            >
-              {roleNames.map((role) => (
-                <option key={role} value={role}>{t(`roles.${role}`, { defaultValue: role })}</option>
-              ))}
-            </select>
-
-            {editingUser.role === "Customer" ? (
-              <>
-                <label className="form-label" htmlFor="user-edit-customer">{t("users.linkedCustomer")}</label>
-                <select
-                  id="user-edit-customer"
-                  value={editingUser.customerId || ""}
-                  onChange={(event) => setEditingUser({ ...editingUser, customerId: event.target.value })}
-                >
-                  <option value="">{t("users.selectCustomer")}</option>
-                  {customers.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {(c.name && String(c.name).trim()) || `Customer #${c.id}`} (#{c.id})
-                    </option>
-                  ))}
-                </select>
-                <p className="section-lead" style={{ marginTop: 8, fontSize: "0.9rem" }}>
-                  {t("users.customerLinkHint")}
-                </p>
-              </>
-            ) : null}
-
-            {editingUser.role === "Delivery" ? (
-              <>
-                <label className="form-label" htmlFor="user-edit-delivery-agent">
-                  {t("users.linkedDeliveryAgent")}
-                </label>
-                <select
-                  id="user-edit-delivery-agent"
-                  value={editingUser.deliveryAgentId || ""}
-                  onChange={(event) => setEditingUser({ ...editingUser, deliveryAgentId: event.target.value })}
-                >
-                  <option value="">{t("users.selectDeliveryAgent")}</option>
-                  {deliveryAgents.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {(a.name && String(a.name).trim()) || `Agent #${a.id}`} (#{a.id})
-                    </option>
-                  ))}
-                </select>
-                <p className="section-lead" style={{ marginTop: 8, fontSize: "0.9rem" }}>
-                  {t("users.deliveryLinkHint")}
-                </p>
-              </>
-            ) : null}
-
-            {editingUser.role === "Depot" ? (
-              <>
-                <label className="form-label" htmlFor="user-edit-depot">{t("users.linkedDepot")}</label>
-                <select
-                  id="user-edit-depot"
-                  value={editingUser.depotId || ""}
-                  onChange={(event) => setEditingUser({ ...editingUser, depotId: event.target.value })}
-                >
-                  <option value="">{t("users.selectDepot")}</option>
-                  {depots.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {(d.name && String(d.name).trim()) || `Depot #${d.id}`} (#{d.id})
-                    </option>
-                  ))}
-                </select>
-                <p className="section-lead" style={{ marginTop: 8, fontSize: "0.9rem" }}>
-                  {t("users.depotLinkHint")}
-                </p>
-              </>
-            ) : null}
-
-            <div className="row-actions">
-              <Button variant="primary" type="submit">{t("users.update")}</Button>
-              <Button variant="ghost" tone="cancel" onClick={requestCancelEdit}>{t("users.cancel")}</Button>
+      <FormModal
+        open={isEditing}
+        title={t("users.editTitle")}
+        titleId="user-edit-title"
+        size="lg"
+        onClose={requestCancelEdit}
+        footer={
+          <div className="row-actions">
+            <Button variant="ghost" tone="cancel" onClick={requestCancelEdit}>
+              {t("users.cancel")}
+            </Button>
+            <Button variant="primary" type="submit" form="user-edit-form">
+              {t("users.update")}
+            </Button>
+          </div>
+        }
+      >
+        <form id="user-edit-form" className="form" onSubmit={submitEdit}>
+          <div className="form-grid form-grid--2">
+            <div className="form-field">
+              <label className="form-label" htmlFor="user-edit-name">
+                {t("users.name")}
+              </label>
+              <input
+                id="user-edit-name"
+                value={editingUser.name}
+                onChange={(event) => setEditingUser({ ...editingUser, name: event.target.value })}
+                required
+                minLength={2}
+              />
             </div>
-          </form>
-        </div>
-      ) : null}
+            <div className="form-field">
+              <label className="form-label" htmlFor="user-edit-username">
+                {t("users.username")}
+              </label>
+              <input
+                id="user-edit-username"
+                value={editingUser.username}
+                onChange={(event) => setEditingUser({ ...editingUser, username: event.target.value })}
+                required
+                minLength={3}
+              />
+            </div>
+            <div className="form-field">
+              <label className="form-label" htmlFor="user-edit-password">
+                {t("users.passwordOptional")}
+              </label>
+              <input
+                id="user-edit-password"
+                type="password"
+                value={editingUser.password}
+                onChange={(event) => setEditingUser({ ...editingUser, password: event.target.value })}
+                minLength={6}
+              />
+            </div>
+            <div className="form-field">
+              <label className="form-label" htmlFor="user-edit-role">
+                {t("users.role")}
+              </label>
+              <select
+                id="user-edit-role"
+                value={editingUser.role}
+                onChange={(event) => {
+                  const role = event.target.value;
+                  setEditingUser((prev) => ({
+                    ...prev,
+                    role,
+                    ...(role !== "Customer" ? { customerId: "" } : {}),
+                    ...(role !== "Delivery" ? { deliveryAgentId: "" } : {}),
+                    ...(role !== "Depot" ? { depotId: "" } : {}),
+                  }));
+                }}
+                required
+              >
+                {roleNames.map((role) => (
+                  <option key={role} value={role}>
+                    {t(`roles.${role}`, { defaultValue: role })}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {editingUser.role === "Customer" ? (
+            <div className="form-field form-stack-gap">
+              <label className="form-label" htmlFor="user-edit-customer">
+                {t("users.linkedCustomer")}
+              </label>
+              <select
+                id="user-edit-customer"
+                value={editingUser.customerId || ""}
+                onChange={(event) => setEditingUser({ ...editingUser, customerId: event.target.value })}
+              >
+                <option value="">{t("users.selectCustomer")}</option>
+                {customers.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {(c.name && String(c.name).trim()) || `Customer #${c.id}`} (#{c.id})
+                  </option>
+                ))}
+              </select>
+              <p className="form-hint">{t("users.customerLinkHint")}</p>
+            </div>
+          ) : null}
+
+          {editingUser.role === "Delivery" ? (
+            <div className="form-field form-stack-gap">
+              <label className="form-label" htmlFor="user-edit-delivery-agent">
+                {t("users.linkedDeliveryAgent")}
+              </label>
+              <select
+                id="user-edit-delivery-agent"
+                value={editingUser.deliveryAgentId || ""}
+                onChange={(event) =>
+                  setEditingUser({ ...editingUser, deliveryAgentId: event.target.value })
+                }
+              >
+                <option value="">{t("users.selectDeliveryAgent")}</option>
+                {deliveryAgents.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {(a.name && String(a.name).trim()) || `Agent #${a.id}`} (#{a.id})
+                  </option>
+                ))}
+              </select>
+              <p className="form-hint">{t("users.deliveryLinkHint")}</p>
+            </div>
+          ) : null}
+
+          {editingUser.role === "Depot" ? (
+            <div className="form-field form-stack-gap">
+              <label className="form-label" htmlFor="user-edit-depot">
+                {t("users.linkedDepot")}
+              </label>
+              <select
+                id="user-edit-depot"
+                value={editingUser.depotId || ""}
+                onChange={(event) => setEditingUser({ ...editingUser, depotId: event.target.value })}
+              >
+                <option value="">{t("users.selectDepot")}</option>
+                {depots.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {(d.name && String(d.name).trim()) || `Depot #${d.id}`} (#{d.id})
+                  </option>
+                ))}
+              </select>
+              <p className="form-hint">{t("users.depotLinkHint")}</p>
+            </div>
+          ) : null}
+        </form>
+      </FormModal>
 
     </section>
   );

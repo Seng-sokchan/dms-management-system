@@ -5,6 +5,7 @@ import { usePagination } from "../hooks/usePagination";
 import { ItemForm } from "../features/item/ItemForm";
 import { Button } from "../components/ui/Button";
 import { DataTable } from "../components/ui/DataTable";
+import { FormModal } from "../components/ui/FormModal";
 import { useConfirm } from "../components/ui/ConfirmProvider";
 
 const EMPTY_EDIT = {
@@ -173,75 +174,61 @@ export function ItemsPage({
           )}
         </section>
       ) : null}
-      {showCreateModal && hasCatalogs ? (
-        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="item-create-title">
-          <div className="modal-card">
-            <ItemForm
-              catalogs={catalogs}
-              newItem={newItem}
-              setNewItem={setNewItem}
-              onCreateItem={async (event) => {
-                await onCreateItem(event);
-                closeCreateModal();
-              }}
-            />
-            <div className="row-actions" style={{ marginTop: 12 }}>
-              <Button variant="ghost" tone="cancel" onClick={closeCreateModal}>
-                {t("items.cancel")}
-              </Button>
-            </div>
+      <FormModal
+        open={showCreateModal && hasCatalogs}
+        title={t("items.formTitle")}
+        titleId="item-create-title"
+        size="lg"
+        onClose={closeCreateModal}
+        footer={
+          <div className="row-actions">
+            <Button variant="ghost" tone="cancel" onClick={closeCreateModal}>
+              {t("items.cancel")}
+            </Button>
+            <Button variant="primary" type="submit" form="item-create-form">
+              {t("items.save")}
+            </Button>
           </div>
-        </div>
-      ) : null}
-      {isEditing ? (
-        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="item-edit-title">
-          <form className="panel form modal-card" onSubmit={submitEdit}>
-            <h3 id="item-edit-title">{t("items.editTitle")}</h3>
-            <label className="form-label" htmlFor="item-edit-catalog">
-              {t("items.labelCatalog")}
-            </label>
-            <select
-              id="item-edit-catalog"
-              value={editingItem.catalogId}
-              onChange={(event) => setEditingItem({ ...editingItem, catalogId: event.target.value })}
-              required
-            >
-              <option value="">{t("items.catalogPlaceholder")}</option>
-              {catalogs.map((catalog) => (
-                <option key={catalog.id} value={catalog.id}>
-                  {catalog.name}
-                </option>
-              ))}
-            </select>
-            <label className="form-label" htmlFor="item-edit-name">
-              {t("items.labelName")}
-            </label>
-            <input
-              id="item-edit-name"
-              value={editingItem.name}
-              onChange={(event) => setEditingItem({ ...editingItem, name: event.target.value })}
-              required
-              minLength={2}
-            />
-            <label className="form-label" htmlFor="item-edit-sku">
-              {t("items.labelSku")}
-            </label>
-            <input
-              id="item-edit-sku"
-              value={editingItem.sku}
-              onChange={(event) => setEditingItem({ ...editingItem, sku: event.target.value })}
-            />
-            <div className="row-actions">
-              <Button variant="primary" type="submit">
-                {t("items.update")}
-              </Button>
-              <Button variant="ghost" tone="cancel" onClick={cancelEdit}>
-                {t("items.cancel")}
-              </Button>
-            </div>
-          </form>
-        </div>
-      ) : null}
+        }
+      >
+        <ItemForm
+          mode="create"
+          formId="item-create-form"
+          catalogs={catalogs}
+          value={newItem}
+          onChange={setNewItem}
+          onSubmit={async (event) => {
+            await onCreateItem(event);
+            closeCreateModal();
+          }}
+        />
+      </FormModal>
+      <FormModal
+        open={isEditing}
+        title={t("items.editTitle")}
+        titleId="item-edit-title"
+        size="lg"
+        onClose={cancelEdit}
+        footer={
+          <div className="row-actions">
+            <Button variant="ghost" tone="cancel" onClick={cancelEdit}>
+              {t("items.cancel")}
+            </Button>
+            <Button variant="primary" type="submit" form="item-edit-form">
+              {t("items.update")}
+            </Button>
+          </div>
+        }
+      >
+        <ItemForm
+          mode="edit"
+          formId="item-edit-form"
+          catalogs={catalogs}
+          value={editingItem}
+          onChange={setEditingItem}
+          onSubmit={submitEdit}
+        />
+      </FormModal>
     </section>
   );
 }

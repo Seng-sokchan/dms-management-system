@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "../components/ui/Button";
 import { DataTable } from "../components/ui/DataTable";
+import { FormModal } from "../components/ui/FormModal";
 import { useConfirm } from "../components/ui/ConfirmProvider";
 import { ProvinceForm } from "../features/province/ProvinceForm";
 import { usePagination } from "../hooks/usePagination";
@@ -140,51 +141,59 @@ export function ProvincesPage({
         )}
       </section>
 
-      {showCreateModal ? (
-        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="province-create-title">
-          <div className="modal-card">
-            <ProvinceForm
-              newProvince={newProvince}
-              setNewProvince={setNewProvince}
-              onCreateProvince={async (event) => {
-                await onCreateProvince(event);
-                closeCreateModal();
-              }}
-            />
-            <div className="row-actions" style={{ marginTop: 12 }}>
-              <Button variant="ghost" tone="cancel" onClick={closeCreateModal}>
-                {t("provinces.cancel")}
-              </Button>
-            </div>
+      <FormModal
+        open={showCreateModal}
+        title={t("provinces.formTitle")}
+        titleId="province-create-title"
+        size="sm"
+        onClose={closeCreateModal}
+        footer={
+          <div className="row-actions">
+            <Button variant="ghost" tone="cancel" onClick={closeCreateModal}>
+              {t("provinces.cancel")}
+            </Button>
+            <Button variant="primary" type="submit" form="province-create-form">
+              {t("provinces.save")}
+            </Button>
           </div>
-        </div>
-      ) : null}
-
-      {isEditing ? (
-        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="province-edit-title">
-          <form className="panel form modal-card" onSubmit={submitEdit}>
-            <h3 id="province-edit-title">{t("provinces.editTitle")}</h3>
-            <label className="form-label" htmlFor="province-edit-name">
-              {t("provinces.name")}
-            </label>
-            <input
-              id="province-edit-name"
-              value={editingProvince.name}
-              onChange={(event) => setEditingProvince({ ...editingProvince, name: event.target.value })}
-              required
-              minLength={2}
-            />
-            <div className="row-actions">
-              <Button variant="primary" type="submit">
-                {t("provinces.update")}
-              </Button>
-              <Button variant="ghost" tone="cancel" onClick={cancelEdit}>
-                {t("provinces.cancel")}
-              </Button>
-            </div>
-          </form>
-        </div>
-      ) : null}
+        }
+      >
+        <ProvinceForm
+          mode="create"
+          formId="province-create-form"
+          value={newProvince}
+          onChange={setNewProvince}
+          onSubmit={async (event) => {
+            await onCreateProvince(event);
+            closeCreateModal();
+          }}
+        />
+      </FormModal>
+      <FormModal
+        open={isEditing}
+        title={t("provinces.editTitle")}
+        titleId="province-edit-title"
+        size="sm"
+        onClose={cancelEdit}
+        footer={
+          <div className="row-actions">
+            <Button variant="ghost" tone="cancel" onClick={cancelEdit}>
+              {t("provinces.cancel")}
+            </Button>
+            <Button variant="primary" type="submit" form="province-edit-form">
+              {t("provinces.update")}
+            </Button>
+          </div>
+        }
+      >
+        <ProvinceForm
+          mode="edit"
+          formId="province-edit-form"
+          value={editingProvince}
+          onChange={setEditingProvince}
+          onSubmit={submitEdit}
+        />
+      </FormModal>
     </section>
   );
 }

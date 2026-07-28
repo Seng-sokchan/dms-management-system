@@ -4,6 +4,7 @@ import { usePagination } from "../hooks/usePagination";
 import { DeliveryAgentForm } from "../features/delivery/DeliveryAgentForm";
 import { Button } from "../components/ui/Button";
 import { DataTable } from "../components/ui/DataTable";
+import { FormModal } from "../components/ui/FormModal";
 import { useConfirm } from "../components/ui/ConfirmProvider";
 
 const EMPTY_EDIT = { id: "", name: "", phone: "", vehicleType: "" };
@@ -151,70 +152,59 @@ export function DeliveryAgentsPage({
           </DataTable>
         )}
       </section>
-      {showCreateModal ? (
-        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="delivery-create-title">
-          <div className="modal-card">
-            <DeliveryAgentForm
-              newDelivery={newDelivery}
-              setNewDelivery={setNewDelivery}
-              onCreateDelivery={async (event) => {
-                await onCreateDelivery(event);
-                closeCreateModal();
-              }}
-            />
-            <div className="row-actions" style={{ marginTop: 12 }}>
-              <Button variant="ghost" tone="cancel" onClick={closeCreateModal}>
-                {t("deliveryAgents.cancel")}
-              </Button>
-            </div>
+      <FormModal
+        open={showCreateModal}
+        title={t("deliveryAgents.formTitle")}
+        titleId="delivery-create-title"
+        size="md"
+        onClose={closeCreateModal}
+        footer={
+          <div className="row-actions">
+            <Button variant="ghost" tone="cancel" onClick={closeCreateModal}>
+              {t("deliveryAgents.cancel")}
+            </Button>
+            <Button variant="primary" type="submit" form="delivery-create-form">
+              {t("deliveryAgents.save")}
+            </Button>
           </div>
-        </div>
-      ) : null}
-      {isEditing ? (
-        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="delivery-edit-title">
-          <form className="panel form modal-card" onSubmit={submitEdit}>
-            <h3 id="delivery-edit-title">{t("deliveryAgents.editTitle")}</h3>
-            <label className="form-label" htmlFor="delivery-edit-name">
-              {t("deliveryAgents.namePh")}
-            </label>
-            <input
-              id="delivery-edit-name"
-              value={editingDelivery.name}
-              onChange={(event) => setEditingDelivery({ ...editingDelivery, name: event.target.value })}
-              required
-              minLength={2}
-            />
-            <label className="form-label" htmlFor="delivery-edit-phone">
-              {t("deliveryAgents.phonePh")}
-            </label>
-            <input
-              id="delivery-edit-phone"
-              value={editingDelivery.phone}
-              onChange={(event) => setEditingDelivery({ ...editingDelivery, phone: event.target.value })}
-              required
-              minLength={5}
-            />
-            <label className="form-label" htmlFor="delivery-edit-vehicle">
-              {t("deliveryAgents.vehiclePh")}
-            </label>
-            <input
-              id="delivery-edit-vehicle"
-              value={editingDelivery.vehicleType}
-              onChange={(event) => setEditingDelivery({ ...editingDelivery, vehicleType: event.target.value })}
-              required
-              minLength={2}
-            />
-            <div className="row-actions">
-              <Button variant="primary" type="submit">
-                {t("deliveryAgents.update")}
-              </Button>
-              <Button variant="ghost" tone="cancel" onClick={cancelEdit}>
-                {t("deliveryAgents.cancel")}
-              </Button>
-            </div>
-          </form>
-        </div>
-      ) : null}
+        }
+      >
+        <DeliveryAgentForm
+          mode="create"
+          formId="delivery-create-form"
+          value={newDelivery}
+          onChange={setNewDelivery}
+          onSubmit={async (event) => {
+            await onCreateDelivery(event);
+            closeCreateModal();
+          }}
+        />
+      </FormModal>
+      <FormModal
+        open={isEditing}
+        title={t("deliveryAgents.editTitle")}
+        titleId="delivery-edit-title"
+        size="md"
+        onClose={cancelEdit}
+        footer={
+          <div className="row-actions">
+            <Button variant="ghost" tone="cancel" onClick={cancelEdit}>
+              {t("deliveryAgents.cancel")}
+            </Button>
+            <Button variant="primary" type="submit" form="delivery-edit-form">
+              {t("deliveryAgents.update")}
+            </Button>
+          </div>
+        }
+      >
+        <DeliveryAgentForm
+          mode="edit"
+          formId="delivery-edit-form"
+          value={editingDelivery}
+          onChange={setEditingDelivery}
+          onSubmit={submitEdit}
+        />
+      </FormModal>
     </section>
   );
 }

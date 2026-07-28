@@ -1,46 +1,58 @@
 ﻿import { useTranslation } from "react-i18next";
-import { Button } from "../../components/ui/Button";
-import "./ProducerForm.css";
 
-export function ProducerForm({ newProducer, setNewProducer, onCreateProducer }) {
+export function ProducerForm({
+  mode = "create",
+  formId = "producer-form",
+  value,
+  onChange,
+  onSubmit,
+}) {
   const { t } = useTranslation();
+  const prefix = mode === "edit" ? "producer-edit" : "producer";
+
+  function patch(partial) {
+    onChange({ ...value, ...partial });
+  }
 
   return (
-    <form className="panel form producer-form" onSubmit={onCreateProducer}>
-      <h3>{t("producers.formTitle")}</h3>
-      <label className="form-label" htmlFor="producer-name">
-        {t("producers.namePh")}
-      </label>
-      <input
-        id="producer-name"
-        value={newProducer.name}
-        onChange={(event) => setNewProducer({ ...newProducer, name: event.target.value })}
-        placeholder={t("producers.namePh")}
-        required
-      />
-      <label className="form-label" htmlFor="producer-phone">
-        {t("producers.phonePh")}
-      </label>
-      <input
-        id="producer-phone"
-        value={newProducer.phone}
-        onChange={(event) => setNewProducer({ ...newProducer, phone: event.target.value })}
-        placeholder={t("producers.phonePh")}
-        required
-      />
-      <label className="form-label" htmlFor="producer-capacity-note">
-        {t("producers.capacityPh")}
-      </label>
-      <input
-        id="producer-capacity-note"
-        value={newProducer.capacityNote}
-        onChange={(event) => setNewProducer({ ...newProducer, capacityNote: event.target.value })}
-        placeholder={t("producers.capacityPh")}
-      />
-      <Button variant="primary" type="submit">
-        {t("producers.save")}
-      </Button>
+    <form id={formId} className="form" onSubmit={onSubmit}>
+      <div className="form-grid form-grid--2">
+        <div className="form-field">
+          <label className="form-label" htmlFor={`${prefix}-name`}>
+            {t("producers.namePh")}
+          </label>
+          <input
+            id={`${prefix}-name`}
+            value={value.name || ""}
+            onChange={(event) => patch({ name: event.target.value })}
+            placeholder={t("producers.namePh")}
+            required
+          />
+        </div>
+        <div className="form-field">
+          <label className="form-label" htmlFor={`${prefix}-phone`}>
+            {t("producers.phonePh")}
+          </label>
+          <input
+            id={`${prefix}-phone`}
+            value={value.phone || ""}
+            onChange={(event) => patch({ phone: event.target.value })}
+            placeholder={t("producers.phonePh")}
+            required
+          />
+        </div>
+        <div className="form-field form-grid--full">
+          <label className="form-label" htmlFor={`${prefix}-capacity-note`}>
+            {t("producers.capacityPh")}
+          </label>
+          <input
+            id={`${prefix}-capacity-note`}
+            value={value.capacityNote || ""}
+            onChange={(event) => patch({ capacityNote: event.target.value })}
+            placeholder={t("producers.capacityPh")}
+          />
+        </div>
+      </div>
     </form>
   );
 }
-
