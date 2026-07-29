@@ -1,0 +1,61 @@
+.portal-customer-cart--busy {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.portal-customer-cart__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+  padding-top: 12px;
+}
+
+.portal-customer-cart__total {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--p-text);
+}
+
+.portal-qty__value {
+  min-width: 32px;
+  text-align: center;
+  font-weight: 700;
+}
+
+.portal-banner__link {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 800;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.portal-restored-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border-radius: var(--p-radius-sm);
+  border: 1.5px solid var(--p-border-strong);
+  background: var(--p-surface);
+  font-size: 0.875rem;
+  color: var(--p-text-secondary);
+}
+
+.portal-restored-banner button {
+  flex-shrink: 0;
+  border: 0;
+  background: transparent;
+  color: var(--p-text);
+  font-weight: 700;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}

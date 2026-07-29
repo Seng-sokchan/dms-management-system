@@ -19,6 +19,7 @@ const {
   updateOrderStatus,
   moveOrderStatus,
   confirmDelivery,
+  updateOrderLossQty,
   dashboardSummary,
   deleteOrder,
   mobileListOrders,
@@ -26,7 +27,7 @@ const {
   mobileConfirmDelivery,
 } = require("../../../controllers/orderController");
 const { mobileGetOrderDeliveryLocation } = require("../../../controllers/deliveryLocationController");
-const { requireAuth, requireDataScope } = require("../../../middleware/auth");
+const { requireAuth, requireDataScope, requireRoles } = require("../../../middleware/auth");
 const { validate } = require("../../../validators/validate");
 const {
   createOrderSchema,
@@ -35,10 +36,12 @@ const {
   assignOrderSchema,
   updateOrderStatusSchema,
   confirmDeliverySchema,
+  updateOrderLossQtySchema,
   orderIdParamsSchema,
 } = require("../../../validators/order.validator");
 
 const router = express.Router();
+const requireAdminPanel = requireRoles("Admin", "Owner");
 
 router.get("/statuses", requireAuth, listStatuses);
 router.get("/orders", requireAuth, listOrders);
@@ -75,6 +78,14 @@ router.post(
   requireAuth,
   validate({ params: orderIdParamsSchema, body: confirmDeliverySchema }),
   confirmDelivery,
+);
+
+router.post(
+  "/orders/:id/loss-qty",
+  requireAuth,
+  requireAdminPanel,
+  validate({ params: orderIdParamsSchema, body: updateOrderLossQtySchema }),
+  updateOrderLossQty,
 );
 
 router.post(

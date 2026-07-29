@@ -8,6 +8,10 @@ export async function confirmDelivery(token, orderId, payload = {}) {
   return apiClient.post(`/orders/${orderId}/delivery-confirmation`, payload, authConfig(token));
 }
 
+export async function updateOrderLossQty(token, orderId, payload) {
+  return apiClient.post(`/orders/${orderId}/loss-qty`, payload, authConfig(token));
+}
+
 export async function updateOrderStatus(token, orderId, payload) {
   return apiClient.post(`/orders/${orderId}/status`, payload, authConfig(token));
 }

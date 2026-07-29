@@ -1,6 +1,43 @@
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 const DepotBatchCartContext = createContext(null);
+
+const STORAGE_KEY = "portal-depot-batch-cart";
+
+function readStoredCart() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+    const next = {};
+    for (const [customerId, lines] of Object.entries(parsed)) {
+      if (!Array.isArray(lines) || lines.length === 0) continue;
+      const cleaned = lines
+        .filter((row) => row && row.itemId != null)
+        .map((row) => ({
+          itemId: String(row.itemId),
+          orderedQty: Math.max(1, Number(row.orderedQty) || 1),
+        }));
+      if (cleaned.length > 0) next[String(customerId)] = cleaned;
+    }
+    return next;
+  } catch {
+    return {};
+  }
+}
+
+function writeStoredCart(cartByCustomer) {
+  try {
+    if (!cartByCustomer || Object.keys(cartByCustomer).length === 0) {
+      localStorage.removeItem(STORAGE_KEY);
+      return;
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(cartByCustomer));
+  } catch {
+    // private mode or quota
+  }
+}
 
 function mergeLineArrays(existing, incoming) {
   const map = new Map();
@@ -24,7 +61,11 @@ function mergeLineArrays(existing, incoming) {
 }
 
 export function DepotBatchCartProvider({ children }) {
-  const [cartByCustomer, setCartByCustomer] = useState({});
+  const [cartByCustomer, setCartByCustomer] = useState(readStoredCart);
+
+  useEffect(() => {
+    writeStoredCart(cartByCustomer);
+  }, [cartByCustomer]);
 
   const addLine = useCallback((customerId, itemId) => {
     setCartByCustomer((prev) => {

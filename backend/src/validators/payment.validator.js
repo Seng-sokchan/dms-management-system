@@ -22,6 +22,11 @@ const createBatchPaymentIntentSchema = z.object({
   idempotencyKey: z.string().max(64).optional(),
 });
 
+const createManualPaymentSchema = z.object({
+  masterOrderId: z.coerce.number().int().positive(),
+  note: z.string().max(500).optional().default(""),
+});
+
 const paymentAmountOptionsSchema = z.object({
   orderIds: z.array(z.coerce.number().int().positive()).min(1),
 });
@@ -29,6 +34,7 @@ const paymentAmountOptionsSchema = z.object({
 module.exports = {
   createPaymentIntentSchema,
   createBatchPaymentIntentSchema,
+  createManualPaymentSchema,
   paymentAmountOptionsSchema,
   paymentIdParamsSchema,
   orderIdPaymentParamsSchema,

@@ -2,6 +2,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import {
   confirmDelivery as confirmDeliveryRequest,
+  updateOrderLossQty as updateOrderLossQtyRequest,
+  createManualPayment as createManualPaymentRequest,
+  fetchUnpaidMasterOrders,
   createDeliveryAgent,
   deleteDeliveryAgent,
   deleteCatalog,
@@ -519,6 +522,37 @@ export function useAdminDashboard() {
     }
   }
 
+  async function submitOrderLossQty(orderId, payload = { lossQty: 0 }) {
+    try {
+      await updateOrderLossQtyRequest(token, orderId, payload);
+      await refresh();
+      await showSuccessPopup(i18n.t("success.lossQtyUpdated"));
+    } catch (error) {
+      showError(getErrorMessage(error, "errors.updateLossQty"));
+    }
+  }
+
+  async function submitManualPayment(payload) {
+    try {
+      await createManualPaymentRequest(token, payload);
+      await refresh();
+      await showSuccessPopup(i18n.t("success.manualPaymentRecorded"));
+      return true;
+    } catch (error) {
+      showError(getErrorMessage(error, "errors.createManualPayment"));
+      return false;
+    }
+  }
+
+  async function loadUnpaidMasterOrders() {
+    try {
+      return await fetchUnpaidMasterOrders(token);
+    } catch (error) {
+      showError(getErrorMessage(error, "errors.loadUnpaidOrders"));
+      return [];
+    }
+  }
+
   async function submitOrderStatus(orderId, status) {
     try {
       await updateOrderStatus(token, orderId, { status });
@@ -945,6 +979,9 @@ export function useAdminDashboard() {
     submitDeliveryUpdate,
     submitDeliveryDelete,
     submitDeliveryConfirmation,
+    submitOrderLossQty,
+    submitManualPayment,
+    loadUnpaidMasterOrders,
     submitOrderStatus,
     submitOrderDeliveryAssignment,
     submitSendOrderToFactory,

@@ -557,3 +557,32 @@ html[lang="km"] .portal-shell {
     max-height: min(75dvh, 640px);
   }
 }
+
+/* Theme + font preferences (mobile SettingsSection) */
+.portal-shell[data-theme="dark"] {
+  --p-bg: #0f0f10;
+  --p-bg-soft: #1a1a1c;
+  --p-surface: #1e1e21;
+  --p-surface-soft: #252528;
+  --p-text: #f4f4f5;
+  --p-text-secondary: #a1a1aa;
+  --p-text-muted: #71717a;
+  --p-border: #45454f;
+  --p-border-strong: #71717a;
+  --p-primary: #f4f4f5;
+  --p-on-primary: #111111;
+  --p-success: #22c55e;
+  --p-success-soft: #14532d;
+  --p-warning-soft: #422006;
+  --p-danger: #ef4444;
+  --p-danger-soft: #450a0a;
+  color-scheme: dark;
+}
+
+.portal-shell[data-font-size="small"] .portal-main {
+  zoom: 0.92;
+}
+
+.portal-shell[data-font-size="big"] .portal-main {
+  zoom: 1.08;
+}

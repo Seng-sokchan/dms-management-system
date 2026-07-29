@@ -1,9 +1,37 @@
-import { createContext, useContext, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import {
+  clearPersistedCart,
+  loadPersistedCart,
+  savePersistedCart,
+} from "../services/cartStorage";
 
 const CartContext = createContext(null);
 
 export function CartProvider({ children }) {
   const [items, setItems] = useState([]);
+  const [hydrated, setHydrated] = useState(false);
+  const [cartRestored, setCartRestored] = useState(false);
+  const skipNextPersist = useRef(true);
+
+  useEffect(() => {
+    const { items: saved, restored } = loadPersistedCart();
+    setItems(saved);
+    setCartRestored(restored);
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    if (skipNextPersist.current) {
+      skipNextPersist.current = false;
+      return;
+    }
+    savePersistedCart(items);
+  }, [hydrated, items]);
+
+  function dismissCartRestored() {
+    setCartRestored(false);
+  }
 
   function addItem(item) {
     setItems((prev) => {
@@ -34,6 +62,7 @@ export function CartProvider({ children }) {
 
   function clearCart() {
     setItems([]);
+    clearPersistedCart();
   }
 
   const totalItems = items.reduce((acc, item) => acc + item.quantity, 0);
@@ -41,11 +70,13 @@ export function CartProvider({ children }) {
   const value = useMemo(() => ({
     items,
     totalItems,
+    cartRestored,
+    dismissCartRestored,
     addItem,
     removeItem,
     updateQuantity,
     clearCart,
-  }), [items, totalItems]);
+  }), [items, totalItems, cartRestored]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

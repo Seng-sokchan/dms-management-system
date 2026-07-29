@@ -63,6 +63,10 @@ const confirmDeliverySchema = z.object({
   lossQty: z.coerce.number().int().min(0),
 });
 
+const updateOrderLossQtySchema = z.object({
+  lossQty: z.coerce.number().int().min(0),
+});
+
 // Param + query schemas -----------------------------------------------------
 
 const orderIdParamsSchema = z.object({
@@ -83,6 +87,7 @@ module.exports = {
   assignOrderSchema,
   updateOrderStatusSchema,
   confirmDeliverySchema,
+  updateOrderLossQtySchema,
   orderIdParamsSchema,
   listOrdersQuerySchema,
 };

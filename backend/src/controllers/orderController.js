@@ -83,6 +83,13 @@ const confirmDelivery = asyncHandler(async (req, res) => {
   return success(res, order);
 });
 
+const updateOrderLossQty = asyncHandler(async (req, res) => {
+  const order = await orderService.updateLossQty(req.params.id, req.body, {
+    user: req.user,
+  });
+  return success(res, order);
+});
+
 const mobileConfirmDelivery = asyncHandler(async (req, res) => {
   const order = await orderService.confirmDelivery(req.params.id, req.body, {
     user: req.user,
@@ -120,6 +127,7 @@ module.exports = {
   updateOrderStatus,
   moveOrderStatus,
   confirmDelivery,
+  updateOrderLossQty,
   dashboardSummary,
   deleteOrder,
   mobileListOrders,

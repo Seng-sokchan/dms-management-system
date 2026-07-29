@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "../ui/LanguageSwitcher";
 import { useConfirm } from "../ui/ConfirmProvider";
 import { Button } from "../ui/Button";
-import { hasAdminPanelAccess, MENU_ITEMS } from "../../constants/menus";
+import { hasAdminPanelAccess, isMenuItemActive, MENU_ITEMS } from "../../constants/menus";
 import "./AdminLayout.css";
 
 /* ── Page title map ── */
@@ -22,7 +22,9 @@ const PAGE_PATH_MAP = {
   "/customers-by-depot": "customersByDepot",
   "/producers":       "producers",
   "/delivery-agents": "deliveryAgents",
-  "/orders":          "orders",
+  "/orders":          "ordersAll",
+  "/orders/by-province": "ordersByProvince",
+  "/orders/by-delivery": "ordersByDelivery",
   "/assign-orders":   "assignOrders",
   "/payments":        "payments",
   "/customer-order-history": "customerOrderHistory",
@@ -44,11 +46,26 @@ const NAV_ICONS = {
       <path d="M4 6h16M4 10h16M4 14h10M4 18h7" />
     </svg>
   ),
+  adminManagement: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" />
+      <path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 01-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 01-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 01-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 010-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 012.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 014 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 012.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9c.3.6.9 1.1 1.5 1.1H21a2 2 0 010 4h-.1a1.7 1.7 0 00-1.5 1z" />
+    </svg>
+  ),
   items: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" />
       <polyline points="3.29 7 12 12 20.71 7" />
       <line x1="12" y1="22" x2="12" y2="12" />
+    </svg>
+  ),
+  userInformation: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <circle cx="9" cy="10" r="2.5" />
+      <path d="M5.5 16.5c.8-1.8 2.4-3 4.5-3s3.7 1.2 4.5 3" />
+      <line x1="14" y1="9" x2="18" y2="9" />
+      <line x1="14" y1="13" x2="18" y2="13" />
     </svg>
   ),
   customerItemPrices: (
@@ -185,6 +202,68 @@ function roleLabel(t, role) {
   return t(`roles.${role}`, { defaultValue: role });
 }
 
+function ChevronIcon({ open }) {
+  return (
+    <svg
+      className={`admin-nav-chevron ${open ? "is-open" : ""}`}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+}
+
+function NavItemWithChildren({ item, pathname, onNavigate, t }) {
+  const routeActive = isMenuItemActive(item, pathname);
+  const [openByUser, setOpenByUser] = useState(false);
+  const expanded = routeActive || openByUser;
+
+  return (
+    <div className={`admin-nav-group ${expanded ? "is-expanded" : ""} ${routeActive ? "is-active" : ""}`}>
+      <button
+        type="button"
+        className={`admin-nav-item admin-nav-item--parent ${routeActive ? "is-active" : ""}`}
+        aria-expanded={expanded}
+        onClick={() => setOpenByUser((open) => !open)}
+      >
+        <span className="admin-nav-icon" aria-hidden>
+          {NAV_ICONS[item.key] ?? NAV_ICONS.orders}
+        </span>
+        <span className="admin-nav-text">
+          <span className="admin-nav-label">{t(item.labelKey)}</span>
+          <span className="admin-nav-sub">{t(item.subKey)}</span>
+        </span>
+        <ChevronIcon open={expanded} />
+      </button>
+      {expanded ? (
+        <div className="admin-nav-children" role="group">
+          {item.children.map((child) => (
+            <NavLink
+              key={child.path}
+              to={child.path}
+              className={({ isActive }) =>
+                isActive ? "admin-nav-item admin-nav-item--child is-active" : "admin-nav-item admin-nav-item--child"
+              }
+              end
+              onClick={onNavigate}
+            >
+              <span className="admin-nav-text">
+                <span className="admin-nav-label">{t(child.labelKey)}</span>
+              </span>
+            </NavLink>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 /* ── Sidebar groups ── */
 const NAV_GROUPS = [
   { labelKey: null, keys: ["overview"] },
@@ -192,17 +271,8 @@ const NAV_GROUPS = [
     labelKey: "nav.sectionOrders",
     defaultLabel: "Orders",
     keys: [
-      "catalogs",
-      "items",
-      "customerItemPrices",
-      "depotItemPrices",
-      "customers",
-      "provinces",
-      "trackingCustomerLocation",
-      "borrowedMaterials",
-      "depots",
-      "customersByDepot",
-      "producers",
+      "adminManagement",
+      "userInformation",
       "orders",
       "assignOrders",
       "payments",
@@ -212,7 +282,7 @@ const NAV_GROUPS = [
   {
     labelKey: "nav.sectionFulfillment",
     defaultLabel: "Fulfillment",
-    keys: ["deliveryAgents", "specialDay"],
+    keys: ["specialDay"],
   },
   {
     labelKey: "nav.sectionAdmin",
@@ -306,23 +376,33 @@ export function AdminLayout({ user, onLogout, flash, onFlashDismiss, children = 
                     {t(group.labelKey, { defaultValue: group.defaultLabel })}
                   </p>
                 )}
-                {groupItems.map((item) => (
-                  <NavLink
-                    key={item.path}
-                    to={item.path}
-                    className={navItemClassName}
-                    end
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    <span className="admin-nav-icon" aria-hidden>
-                      {NAV_ICONS[item.key] ?? NAV_ICONS.orders}
-                    </span>
-                    <span className="admin-nav-text">
-                      <span className="admin-nav-label">{t(item.labelKey)}</span>
-                      <span className="admin-nav-sub">{t(item.subKey)}</span>
-                    </span>
-                  </NavLink>
-                ))}
+                {groupItems.map((item) =>
+                  Array.isArray(item.children) && item.children.length > 0 ? (
+                    <NavItemWithChildren
+                      key={item.key}
+                      item={item}
+                      pathname={location.pathname}
+                      onNavigate={() => setMenuOpen(false)}
+                      t={t}
+                    />
+                  ) : (
+                    <NavLink
+                      key={item.path}
+                      to={item.path}
+                      className={navItemClassName}
+                      end
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      <span className="admin-nav-icon" aria-hidden>
+                        {NAV_ICONS[item.key] ?? NAV_ICONS.orders}
+                      </span>
+                      <span className="admin-nav-text">
+                        <span className="admin-nav-label">{t(item.labelKey)}</span>
+                        <span className="admin-nav-sub">{t(item.subKey)}</span>
+                      </span>
+                    </NavLink>
+                  ),
+                )}
               </div>
             );
           })}

@@ -7,7 +7,19 @@ import { useKhqrCheckout } from "../hooks/useKhqrCheckout";
 import { usePaymentAmountOptions } from "../hooks/usePaymentAmountOptions";
 import { listMobileOrders } from "../services/orders";
 import { createPaymentIntent } from "../services/payments";
-import { formatPaymentAmount } from "../utils/formatPaymentAmount";
+import { formatPaymentAmount, formatPaymentAmountParts } from "../utils/formatPaymentAmount";
+import "./PaymentCheckout.css";
+
+const CURRENCY_OPTIONS = ["KHR", "USD"];
+
+function AbaKhqrMethodIcon() {
+  return (
+    <span className="portal-pay-method__icon" aria-hidden>
+      <span className="portal-pay-method__icon-top">ABA</span>
+      <span className="portal-pay-method__icon-bottom">KHQR</span>
+    </span>
+  );
+}
 
 export function OrderPaymentPage({ token }) {
   const { orderId } = useParams();
@@ -39,12 +51,15 @@ export function OrderPaymentPage({ token }) {
     currency,
     setCurrency,
     amount,
-    availableCurrencies,
     loading: loadingAmounts,
   } = usePaymentAmountOptions({ token, orders });
 
   const amountLabel = useMemo(
     () => (amount != null ? formatPaymentAmount(amount, currency) : ""),
+    [amount, currency],
+  );
+  const amountParts = useMemo(
+    () => formatPaymentAmountParts(amount, currency),
     [amount, currency],
   );
 
@@ -80,8 +95,10 @@ export function OrderPaymentPage({ token }) {
     );
   }
 
+  const showAmount = !loadingAmounts && amount != null && amountParts.value !== "—";
+
   return (
-    <div>
+    <div className="portal-pay-checkout">
       <div className="portal-stack-header">
         <button type="button" className="portal-back" onClick={() => navigate(-1)} aria-label="Back">
           ←
@@ -89,55 +106,93 @@ export function OrderPaymentPage({ token }) {
         <h1>{t("portal.payment.checkoutTitle")}</h1>
       </div>
 
-      <article className="portal-card">
-        <h3>{t("portal.payment.orderLabel", { id: order.id })}</h3>
-        <p className="portal-card-meta">{order.itemName || "—"}</p>
-        <p className="portal-card-meta">
-          {t("portal.depot.batchOrderQuantity", { qty: Number(order.orderedQty || 0) })}
-        </p>
+      <article className="portal-card portal-pay-summary">
+        <div className="portal-pay-summary__line portal-pay-summary__line--last">
+          <p className="portal-pay-summary__title">
+            {t("portal.payment.orderLabel", { id: order.id })}
+          </p>
+          <p className="portal-pay-summary__meta">{order.itemName || "—"}</p>
+          <p className="portal-pay-summary__meta">
+            {t("portal.depot.batchOrderQuantity", { qty: Number(order.orderedQty || 0) })}
+          </p>
+        </div>
       </article>
 
-      <article className="portal-card">
-        <p className="portal-card-meta">{t("portal.payment.amountToPay")}</p>
-        <h3 style={{ fontSize: "1.5rem", marginBottom: 12 }}>
-          {loadingAmounts
-            ? t("portal.payment.loadingAmount")
-            : amountLabel || t("portal.payment.amountUnavailable")}
-        </h3>
-        <div className="portal-actions">
-          {availableCurrencies.map((code) => (
-            <PortalButton
+      <article className="portal-card portal-pay-amount">
+        <p className="portal-pay-amount__label">{t("portal.payment.amountToPay")}</p>
+        <p className="portal-pay-amount__currency-label">{t("portal.payment.currencyLabel")}</p>
+        <div className="portal-pay-amount__hint" role="note">
+          <span className="portal-pay-amount__hint-icon" aria-hidden>
+            i
+          </span>
+          <span>{t("portal.payment.currencySelectHint")}</span>
+        </div>
+        <div
+          className="portal-pay-amount__segments"
+          role="radiogroup"
+          aria-label={t("portal.payment.currencyLabel")}
+        >
+          {CURRENCY_OPTIONS.map((code) => (
+            <button
               key={code}
-              tone={currency === code ? "primary" : "soft"}
+              type="button"
+              role="radio"
+              aria-checked={currency === code}
+              className={`portal-pay-amount__segment${
+                currency === code ? " portal-pay-amount__segment--active" : ""
+              }`}
               onClick={() => setCurrency(code)}
             >
               {code}
-            </PortalButton>
+            </button>
           ))}
+        </div>
+        <div className="portal-pay-amount__divider" />
+        <div className="portal-pay-amount__value-row">
+          {loadingAmounts ? (
+            <p className="portal-pay-amount__placeholder">{t("portal.payment.loadingAmount")}</p>
+          ) : showAmount ? (
+            <>
+              <span className="portal-pay-amount__value">{amountParts.value}</span>
+              <span className="portal-pay-amount__unit">{amountParts.unit}</span>
+            </>
+          ) : (
+            <p className="portal-pay-amount__placeholder">
+              {t("portal.payment.amountUnavailable")}
+            </p>
+          )}
         </div>
       </article>
 
-      <article className="portal-card">
-        <h3>{t("portal.payment.choosePaymentTitle")}</h3>
-        <p className="portal-card-meta">{t("portal.payment.methodAbaKhqrHint")}</p>
-        <div className="portal-actions">
-          <PortalButton
-            block
-            disabled={submitting || loadingAmounts || amount == null}
-            onClick={() =>
-              void startCheckout(() =>
-                createPaymentIntent(token, {
-                  orderId: order.id,
-                  paymentOption: "checkout",
-                  currency,
-                }),
-              )
-            }
-          >
-            {submitting ? t("portal.payment.starting") : t("portal.payment.methodAbaKhqr")}
-          </PortalButton>
-        </div>
-      </article>
+      <h2 className="portal-pay-checkout__title">{t("portal.payment.choosePaymentTitle")}</h2>
+
+      <div className="portal-pay-methods">
+        <button
+          type="button"
+          className="portal-pay-method"
+          disabled={submitting || loadingAmounts || amount == null}
+          onClick={() =>
+            void startCheckout(() =>
+              createPaymentIntent(token, {
+                orderId: order.id,
+                paymentOption: "checkout",
+                currency,
+              }),
+            )
+          }
+        >
+          <AbaKhqrMethodIcon />
+          <span className="portal-pay-method__body">
+            <span className="portal-pay-method__name">
+              {submitting ? t("portal.payment.starting") : t("portal.payment.methodAbaKhqr")}
+            </span>
+            <span className="portal-pay-method__hint">{t("portal.payment.methodAbaKhqrHint")}</span>
+          </span>
+          <span className="portal-pay-method__chevron" aria-hidden>
+            ›
+          </span>
+        </button>
+      </div>
 
       <KhqrPaymentModal {...khqrModalProps} />
     </div>

@@ -22,17 +22,17 @@ describe("orderWindow", () => {
       expect(isOrderWindowOpen(now)).toBe(true);
     });
 
-    it("is open at 17:59 Cambodia time", () => {
-      const now = atCambodiaTime({ year: 2026, month: 7, day: 17, hour: 17, minute: 59 });
+    it("is open at 18:59 Cambodia time", () => {
+      const now = atCambodiaTime({ year: 2026, month: 7, day: 17, hour: 18, minute: 59 });
       expect(isOrderWindowOpen(now)).toBe(true);
     });
 
-    it("is closed at 18:00 Cambodia time", () => {
-      const now = atCambodiaTime({ year: 2026, month: 7, day: 17, hour: 18 });
+    it("is closed at 19:00 Cambodia time", () => {
+      const now = atCambodiaTime({ year: 2026, month: 7, day: 17, hour: 19 });
       expect(isOrderWindowOpen(now)).toBe(false);
     });
 
-    it("is closed after 18:00 Cambodia time", () => {
+    it("is closed after 19:00 Cambodia time", () => {
       const now = atCambodiaTime({ year: 2026, month: 7, day: 17, hour: 21, minute: 30 });
       expect(isOrderWindowOpen(now)).toBe(false);
     });
@@ -85,7 +85,7 @@ describe("orderWindow", () => {
     });
 
     it("returns a positive fallback at the exact close boundary", () => {
-      const now = atCambodiaTime({ year: 2026, month: 7, day: 17, hour: 18 });
+      const now = atCambodiaTime({ year: 2026, month: 7, day: 17, hour: 19 });
       expect(getMsUntilOrderWindowChange(now)).toBeGreaterThan(0);
     });
   });

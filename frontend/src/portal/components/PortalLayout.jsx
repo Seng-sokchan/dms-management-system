@@ -6,12 +6,14 @@ import {
   DEPOT_PORTAL_MENU,
   shouldHidePortalTabBar,
 } from "../constants/menus";
+import { usePortalPreferences } from "../context/PortalPreferencesContext";
 import { TabIcon } from "./TabIcon";
 import "./PortalLayout.css";
 
 export function PortalLayout({ user, flash, onFlashDismiss, cartBadge = 0 }) {
   const { t } = useTranslation();
   const location = useLocation();
+  const { resolvedTheme, fontSizePreference } = usePortalPreferences();
 
   const menuItems = useMemo(() => {
     if (user?.role === "Depot") return DEPOT_PORTAL_MENU;
@@ -27,7 +29,11 @@ export function PortalLayout({ user, flash, onFlashDismiss, cartBadge = 0 }) {
   }, [flash, onFlashDismiss]);
 
   return (
-    <div className="portal-shell">
+    <div
+      className="portal-shell"
+      data-theme={resolvedTheme}
+      data-font-size={fontSizePreference}
+    >
       <main className={`portal-main${hideTabBar ? " portal-main--full" : ""}`}>
         {flash?.text ? (
           <div

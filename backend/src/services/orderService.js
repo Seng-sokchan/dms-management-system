@@ -403,6 +403,7 @@ async function updateStatus(orderId, nextStatus, { user, allowReverse = false } 
 
 /**
  * Confirm a delivery with loss quantity; sets Recieve_By_Customer and delivered/loss qty.
+ * Recalculates amount_total as (orderedQty - lossQty) * unitPrice.
  */
 async function confirmDelivery(orderId, { lossQty }, { user } = {}) {
   const order = await orderRepository.getOrderById(orderId);
@@ -429,6 +430,7 @@ async function confirmDelivery(orderId, { lossQty }, { user } = {}) {
   }
 
   const orderedQty = Number(order.orderedQty || 0);
+  const unitPrice = Number(order.unitPrice || 0);
   const loss = Number(lossQty);
   if (!Number.isFinite(loss) || loss < 0) {
     throw new BadRequestError("Invalid loss quantity");
@@ -438,15 +440,49 @@ async function confirmDelivery(orderId, { lossQty }, { user } = {}) {
   }
 
   const deliveredQty = orderedQty - loss;
+  const billableQty = orderedQty - loss;
+  const amountTotal = Number((billableQty * unitPrice).toFixed(2));
   const updated = await orderRepository.confirmOrderDelivery(orderId, {
     deliveredQty,
     lossQty: loss,
+    amountTotal,
   });
   await telegramService.notifyOrderDelivered(updated || order, {
     deliveredQty,
     lossQty: loss,
   });
   return updated;
+}
+
+/**
+ * Admin manual loss qty update (no status / delivered qty change).
+ * Recalculates amount_total as (orderedQty - lossQty) * unitPrice.
+ */
+async function updateLossQty(orderId, { lossQty }, { user } = {}) {
+  const role = user?.role;
+  if (role !== "Admin" && role !== "Owner") {
+    throw new ForbiddenError("Only Admin or Owner can update loss quantity");
+  }
+
+  const order = await orderRepository.getOrderById(orderId);
+  if (!order) throw new NotFoundError("Order not found");
+
+  const orderedQty = Number(order.orderedQty || 0);
+  const unitPrice = Number(order.unitPrice || 0);
+  const loss = Number(lossQty);
+  if (!Number.isFinite(loss) || loss < 0 || !Number.isInteger(loss)) {
+    throw new BadRequestError("Invalid loss quantity");
+  }
+  if (loss > orderedQty) {
+    throw new BadRequestError(
+      `Loss quantity must be lower than or equal to ordered quantity (${orderedQty})`,
+    );
+  }
+
+  const billableQty = orderedQty - loss;
+  const amountTotal = Number((billableQty * unitPrice).toFixed(2));
+
+  return orderRepository.updateOrderLossQty(orderId, { lossQty: loss, amountTotal });
 }
 
 /**
@@ -522,6 +558,7 @@ module.exports = {
   assign,
   updateStatus,
   confirmDelivery,
+  updateLossQty,
   remove,
   updateStatusForMobile,
 };

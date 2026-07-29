@@ -2,6 +2,8 @@ const express = require("express");
 const {
   createPaymentIntent,
   createBatchPaymentIntent,
+  listUnpaidMasterOrders,
+  createManualPayment,
   getPaymentAmountOptions,
   getPayment,
   getOrderPayment,
@@ -11,17 +13,19 @@ const {
   startPaymentLiveCheck,
   stopPaymentLiveCheck,
 } = require("../../../controllers/paymentController");
-const { requireAuth } = require("../../../middleware/auth");
+const { requireAuth, requireRoles } = require("../../../middleware/auth");
 const { validate } = require("../../../validators/validate");
 const {
   createPaymentIntentSchema,
   createBatchPaymentIntentSchema,
+  createManualPaymentSchema,
   paymentAmountOptionsSchema,
   paymentIdParamsSchema,
   orderIdPaymentParamsSchema,
 } = require("../../../validators/payment.validator");
 
 const router = express.Router();
+const requireAdminPanel = requireRoles("Admin", "Owner");
 
 router.post(
   "/payments/intents",
@@ -35,6 +39,21 @@ router.post(
   requireAuth,
   validate({ body: createBatchPaymentIntentSchema }),
   createBatchPaymentIntent,
+);
+
+router.get(
+  "/payments/unpaid-orders",
+  requireAuth,
+  requireAdminPanel,
+  listUnpaidMasterOrders,
+);
+
+router.post(
+  "/payments/manual",
+  requireAuth,
+  requireAdminPanel,
+  validate({ body: createManualPaymentSchema }),
+  createManualPayment,
 );
 
 router.post(

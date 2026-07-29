@@ -75,6 +75,49 @@ async function getLatestPaymentByMasterOrderId(masterOrderId, executor) {
   return rows[0] ? mapPayment(rows[0]) : null;
 }
 
+/**
+ * Unpaid master orders (no row in payments) for admin manual recording.
+ */
+async function listUnpaidMasterOrders(executor) {
+  const db = executor || getPool();
+  const [rows] = await db.query(
+    `SELECT
+       om.id AS master_order_id,
+       om.order_no,
+       om.target_type,
+       om.created_at,
+       CASE
+         WHEN om.target_type = 2 THEN MAX(d.name)
+         ELSE MAX(c.name)
+       END AS party_name,
+       MIN(od.customer_id) AS customer_id,
+       COUNT(od.id) AS line_count,
+       SUM(od.amount_total) AS amount_total,
+       MIN(od.currency) AS currency,
+       COUNT(DISTINCT od.currency) AS currency_count
+     FROM orders om
+     INNER JOIN order_details od ON od.order_id = om.id
+     INNER JOIN customers c ON c.id = od.customer_id
+     LEFT JOIN depots d ON d.id = c.depot_id AND d.is_active = 1
+     WHERE NOT EXISTS (SELECT 1 FROM payments p WHERE p.order_id = om.id)
+     GROUP BY om.id, om.order_no, om.target_type, om.created_at
+     ORDER BY om.id DESC`,
+  );
+  return (rows || []).map((row) => ({
+    masterOrderId: Number(row.master_order_id),
+    orderNo: row.order_no != null ? String(row.order_no) : null,
+    targetType: Number(row.target_type) === 2 ? 2 : 1,
+    targetLabel: Number(row.target_type) === 2 ? "depot" : "customer",
+    partyName: row.party_name || "—",
+    customerId: row.customer_id != null ? String(row.customer_id) : null,
+    lineCount: Number(row.line_count || 0),
+    amountTotal: Number(row.amount_total || 0),
+    currency: row.currency || "KHR",
+    mixedCurrency: Number(row.currency_count || 0) > 1,
+    createdAt: row.created_at,
+  }));
+}
+
 module.exports = {
   mapPayment,
   insertPayment,
@@ -82,4 +125,5 @@ module.exports = {
   getPaymentByPaywayTranId,
   hasPaidPaymentForMasterOrderId,
   getLatestPaymentByMasterOrderId,
+  listUnpaidMasterOrders,
 };

@@ -343,7 +343,7 @@ async function updateOrderStatuses(ids, status) {
   }
 }
 
-async function confirmOrderDelivery(id, { deliveredQty, lossQty } = {}) {
+async function confirmOrderDelivery(id, { deliveredQty, lossQty, amountTotal } = {}) {
   const order = await getOrderById(id);
   if (!order) return null;
   const nextStatus = "Recieve_By_Customer";
@@ -351,13 +351,31 @@ async function confirmOrderDelivery(id, { deliveredQty, lossQty } = {}) {
   if (!nextStatusId) {
     throw new Error("Status not found");
   }
+  const updatedAt = nowIso();
   await getPool().query("CALL sp_confirm_order_delivery(?, ?, ?, ?, ?)", [
     id,
     nextStatusId,
     deliveredQty,
     lossQty,
-    nowIso(),
+    updatedAt,
   ]);
+  if (amountTotal != null && Number.isFinite(Number(amountTotal))) {
+    await getPool().query(
+      "UPDATE order_details SET amount_total = ?, updated_at = ? WHERE id = ?",
+      [amountTotal, updatedAt, id],
+    );
+  }
+  return getOrderById(id);
+}
+
+/** Update loss_qty and amount_total; does not change status or delivered qty. */
+async function updateOrderLossQty(id, { lossQty, amountTotal }) {
+  const order = await getOrderById(id);
+  if (!order) return null;
+  await getPool().query(
+    "UPDATE order_details SET loss_qty = ?, amount_total = ?, updated_at = ? WHERE id = ?",
+    [lossQty, amountTotal, nowIso(), id],
+  );
   return getOrderById(id);
 }
 
@@ -386,5 +404,6 @@ module.exports = {
   updateOrderStatus,
   updateOrderStatuses,
   confirmOrderDelivery,
+  updateOrderLossQty,
   deleteOrder,
 };

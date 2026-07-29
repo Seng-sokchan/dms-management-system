@@ -73,6 +73,19 @@ export function TabIcon({ name, active }) {
           <circle cx="17" cy="20" r="1.5" />
         </svg>
       );
+    case "logout":
+      return (
+        <svg {...common}>
+          <path d="M10 4H6a2 2 0 00-2 2v12a2 2 0 002 2h4" />
+          <path d="M15 16l4-4-4-4M10 12h9" />
+        </svg>
+      );
+    case "trash":
+      return (
+        <svg {...common}>
+          <path d="M4 7h16M9 7V5h6v2M8 7l1 12h6l1-12" />
+        </svg>
+      );
     default:
       return (
         <svg {...common}>

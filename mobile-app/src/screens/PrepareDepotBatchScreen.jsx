@@ -337,7 +337,6 @@ export default function PrepareDepotBatchScreen() {
           }
           onPick={(itemId) => {
             addLine(pickerCustomerId, itemId);
-            setPickerCustomerId("");
           }}
           onClose={() => setPickerCustomerId("")}
         />

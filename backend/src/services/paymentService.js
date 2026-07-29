@@ -681,9 +681,108 @@ async function getPaymentAmountOptions({ orderIds }, { user }) {
   };
 }
 
+/**
+ * List unpaid master orders for admin manual payment recording.
+ */
+async function listUnpaidMasterOrdersForManual({ user } = {}) {
+  const role = user?.role;
+  if (role !== "Admin" && role !== "Owner") {
+    throw new ForbiddenError("Only Admin or Owner can list unpaid orders for manual payment");
+  }
+  const rows = await paymentRepository.listUnpaidMasterOrders();
+  return rows.filter((row) => !row.mixedCurrency);
+}
+
+/**
+ * Record a full manual payment for an unpaid master order (outside PayWay).
+ */
+async function createManualPayment({ masterOrderId, note }, { user } = {}) {
+  const role = user?.role;
+  if (role !== "Admin" && role !== "Owner") {
+    throw new ForbiddenError("Only Admin or Owner can record manual payments");
+  }
+
+  const master = await orderRepository.getMasterOrderById(masterOrderId);
+  if (!master) {
+    throw new NotFoundError("Master order not found");
+  }
+
+  if (await paymentRepository.hasPaidPaymentForMasterOrderId(masterOrderId)) {
+    throw new BadRequestError("Order is already paid");
+  }
+
+  const orders = await orderRepository.listOrdersByMasterOrderId(masterOrderId);
+  if (!orders.length) {
+    throw new NotFoundError("No order lines found for this master order");
+  }
+
+  if (orders.some((order) => order.paymentStatus === "paid")) {
+    throw new BadRequestError("Order is already paid");
+  }
+
+  const currencies = [...new Set(orders.map((o) => normalizePaymentCurrency(o.currency)))];
+  if (currencies.length > 1) {
+    throw new BadRequestError("Cannot record manual payment for mixed-currency orders");
+  }
+
+  const currency = currencies[0] || "KHR";
+  const amount = Number(
+    orders.reduce((sum, order) => sum + Number(order.amountTotal || 0), 0).toFixed(2),
+  );
+  if (!(amount > 0)) {
+    throw new BadRequestError("Payment amount must be greater than zero");
+  }
+
+  const customerId = orders[0]?.customerId;
+  if (customerId == null || String(customerId).trim() === "") {
+    throw new BadRequestError("Order has no customer");
+  }
+
+  const existingCheckout = await paymentStatusCache.findCheckoutByMasterOrderId(Number(masterOrderId));
+  if (existingCheckout) {
+    await paymentStatusCache.removeCheckoutSession(existingCheckout.id);
+  }
+
+  const paymentId = crypto.randomUUID();
+  const paywayTranId = generatePaywayTranId();
+  const now = new Date();
+  const trimmedNote = typeof note === "string" ? note.trim() : "";
+
+  const payment = await paymentRepository.insertPayment({
+    id: paymentId,
+    orderId: Number(masterOrderId),
+    customerId: Number(customerId),
+    provider: "manual",
+    paywayTranId,
+    providerTranId: paywayTranId,
+    amount,
+    currency,
+    rawCallbackPayload: {
+      source: "admin_manual",
+      recordedBy: user?.sub != null ? String(user.sub) : null,
+      recordedByRole: role,
+      note: trimmedNote || null,
+      masterOrderId: Number(masterOrderId),
+      orderNo: master.orderNo,
+      lineCount: orders.length,
+    },
+    verifiedAt: now,
+    paidAt: now,
+  });
+
+  return mapPaymentResponse(payment, {
+    provider: "manual",
+    masterOrderId: Number(masterOrderId),
+    orderNo: master.orderNo,
+    note: trimmedNote || null,
+  });
+}
+
 module.exports = {
   createPaymentIntent,
   createBatchPaymentIntent,
+  createManualPayment,
+  listUnpaidMasterOrdersForManual,
   getPaymentAmountOptions,
   getPaymentById,
   getLatestPaymentForOrder,

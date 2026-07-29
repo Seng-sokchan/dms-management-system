@@ -36,6 +36,17 @@ function formatQty(value) {
   return Number.isFinite(n) ? n.toLocaleString("en-US") : String(value || "—");
 }
 
+function orderDeliveryAgentId(order) {
+  return order.deliveryAgentId != null && order.deliveryAgentId !== ""
+    ? String(order.deliveryAgentId)
+    : "";
+}
+
+function isAssignedToAgent(order, agentId) {
+  if (!agentId) return false;
+  return orderDeliveryAgentId(order) === String(agentId);
+}
+
 function currentDeliveryLabel(order, t) {
   if (order.deliveryAgentName) {
     return order.deliveryAgentName;
@@ -215,8 +226,9 @@ export function AssignOrdersPage({
     setAppliedOrderSearch("");
   }
 
-  function toggleOrderSelected(orderId) {
-    const id = String(orderId);
+  function toggleOrderSelected(order) {
+    if (isAssignedToAgent(order, assignAgent?.id)) return;
+    const id = String(order.id);
     setSelectedOrderIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -226,14 +238,17 @@ export function AssignOrdersPage({
   }
 
   function toggleSelectAllVisible() {
-    const visibleIds = pagedModalOrders.map((order) => String(order.id));
+    const selectableIds = pagedModalOrders
+      .filter((order) => !isAssignedToAgent(order, assignAgent?.id))
+      .map((order) => String(order.id));
     setSelectedOrderIds((prev) => {
       const next = new Set(prev);
-      const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => next.has(id));
-      if (allVisibleSelected) {
-        for (const id of visibleIds) next.delete(id);
+      const allSelectableSelected =
+        selectableIds.length > 0 && selectableIds.every((id) => next.has(id));
+      if (allSelectableSelected) {
+        for (const id of selectableIds) next.delete(id);
       } else {
-        for (const id of visibleIds) next.add(id);
+        for (const id of selectableIds) next.add(id);
       }
       return next;
     });
@@ -241,7 +256,10 @@ export function AssignOrdersPage({
 
   async function handleConfirmAssign() {
     if (!assignAgent || !onAssignDelivery) return;
-    const orderIds = [...selectedOrderIds];
+    const orderIds = [...selectedOrderIds].filter((id) => {
+      const order = eligibleOrders.find((item) => String(item.id) === id);
+      return order && !isAssignedToAgent(order, assignAgent.id);
+    });
     if (orderIds.length === 0) return;
 
     setBusyAgentId(String(assignAgent.id));
@@ -276,10 +294,13 @@ export function AssignOrdersPage({
       : t("assignOrders.groupMany", { n: submitGroups.length });
 
   const selectedCount = selectedOrderIds.size;
-  const visibleIds = pagedModalOrders.map((order) => String(order.id));
+  const visibleSelectableIds = pagedModalOrders
+    .filter((order) => !isAssignedToAgent(order, assignAgent?.id))
+    .map((order) => String(order.id));
   const allVisibleSelected =
-    visibleIds.length > 0 && visibleIds.every((id) => selectedOrderIds.has(id));
-  const someVisibleSelected = visibleIds.some((id) => selectedOrderIds.has(id));
+    visibleSelectableIds.length > 0
+    && visibleSelectableIds.every((id) => selectedOrderIds.has(id));
+  const someVisibleSelected = visibleSelectableIds.some((id) => selectedOrderIds.has(id));
 
   return (
     <section className="admin-page">
@@ -426,6 +447,7 @@ export function AssignOrdersPage({
               </Button>
             </div>
             <p className="form-hint">{t("assignOrders.assignModalHint", { date: todayLabel })}</p>
+            <p className="form-hint">{t("assignOrders.alreadyAssignedHint")}</p>
 
             <div className="assign-orders-modal__body">
             <DataTable
@@ -453,7 +475,9 @@ export function AssignOrdersPage({
                       ref={(el) => {
                         if (el) el.indeterminate = !allVisibleSelected && someVisibleSelected;
                       }}
-                      disabled={pagedModalOrders.length === 0 || Boolean(busyAgentId)}
+                      disabled={
+                        visibleSelectableIds.length === 0 || Boolean(busyAgentId)
+                      }
                       onChange={toggleSelectAllVisible}
                     />
                   </th>
@@ -473,17 +497,39 @@ export function AssignOrdersPage({
                 ) : (
                   pagedModalOrders.map((order) => {
                     const id = String(order.id);
+                    const alreadyOnThisDriver = isAssignedToAgent(order, assignAgent.id);
+                    const otherDriverId = orderDeliveryAgentId(order);
+                    const assignedToOther =
+                      Boolean(otherDriverId) && !alreadyOnThisDriver;
                     const checked = selectedOrderIds.has(id);
                     return (
-                      <tr key={`modal-order-${order.id}`}>
+                      <tr
+                        key={`modal-order-${order.id}`}
+                        className={
+                          alreadyOnThisDriver
+                            ? "assign-orders-row--already-assigned"
+                            : assignedToOther
+                              ? "assign-orders-row--other-driver"
+                              : undefined
+                        }
+                      >
                         <td className="assign-orders-check-col">
-                          <input
-                            type="checkbox"
-                            aria-label={t("assignOrders.selectOrder", { id: order.id })}
-                            checked={checked}
-                            disabled={Boolean(busyAgentId)}
-                            onChange={() => toggleOrderSelected(order.id)}
-                          />
+                          {alreadyOnThisDriver ? (
+                            <span
+                              className="assign-orders-assigned-badge"
+                              title={t("assignOrders.alreadyAssignedToThisDriver")}
+                            >
+                              {t("assignOrders.alreadyAssignedBadge")}
+                            </span>
+                          ) : (
+                            <input
+                              type="checkbox"
+                              aria-label={t("assignOrders.selectOrder", { id: order.id })}
+                              checked={checked}
+                              disabled={Boolean(busyAgentId)}
+                              onChange={() => toggleOrderSelected(order)}
+                            />
+                          )}
                         </td>
                         <td>{order.customerName || t("orders.dash")}</td>
                         <td>
@@ -494,7 +540,17 @@ export function AssignOrdersPage({
                         <td>
                           <span className="status-chip">{order.status}</span>
                         </td>
-                        <td>{currentDeliveryLabel(order, t)}</td>
+                        <td>
+                          {assignedToOther ? (
+                            <span className="assign-orders-reassign-label">
+                              {t("assignOrders.reassignFrom", {
+                                name: currentDeliveryLabel(order, t),
+                              })}
+                            </span>
+                          ) : (
+                            currentDeliveryLabel(order, t)
+                          )}
+                        </td>
                       </tr>
                     );
                   })

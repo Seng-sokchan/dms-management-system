@@ -1,4 +1,4 @@
-SET NAMES utf8;
+SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- Indexes target hot WHERE/JOIN paths; no FOREIGN KEY constraints (integrity in app layer).
@@ -887,6 +887,7 @@ UPDATE order_details
 SET status = p_status,
     delivered_qty = p_delivered_qty,
     loss_qty = p_loss_qty,
+    amount_total = ROUND((ordered_qty - p_loss_qty) * unit_price, 2),
     updated_at = p_updated_at
 WHERE id = p_id;
 CREATE PROCEDURE sp_delete_order(IN p_id INT UNSIGNED)

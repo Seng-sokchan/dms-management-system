@@ -1,52 +1,128 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { LanguageSwitcher } from "../../components/ui/LanguageSwitcher";
 import { useConfirm } from "../../components/ui/ConfirmProvider";
+import { getApiErrorMessage } from "../../services/apiClient";
 import { SectionHeader } from "../components/SectionHeader";
-import { PortalButton } from "../components/PortalButton";
+import { PortalSettingsSection } from "../components/PortalSettingsSection";
+import { TabIcon } from "../components/TabIcon";
+import { deleteMyAccount } from "../services/auth";
+import "./ProfilePage.css";
 
-export function ProfilePage({ user, onLogout }) {
+function pickLabel(user, key) {
+  if (!user) return "—";
+  const v = user[key];
+  return v != null && String(v).trim() !== "" ? String(v) : "—";
+}
+
+function roleSubtitle(role, t) {
+  if (role === "Admin") return t("portal.profile.roleAdmin");
+  if (role === "Owner") return t("portal.profile.roleOwner");
+  if (role === "Delivery") return t("portal.profile.roleDelivery");
+  if (role === "Depot") return t("portal.profile.roleDepot");
+  return t("portal.profile.roleCustomer");
+}
+
+export function ProfilePage({ token, user, onLogout }) {
   const { t } = useTranslation();
-  const { confirm } = useConfirm();
+  const { confirm, alert } = useConfirm();
+  const [signingOut, setSigningOut] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const busy = signingOut || deleting;
 
-  async function handleLogout() {
-    if (
-      !(await confirm({
-        title: t("confirm.signOutTitle"),
-        message: t("confirm.signOutMessage"),
-        tone: "danger",
-      }))
-    ) {
-      return;
+  async function handleSignOut() {
+    if (busy) return;
+    setSigningOut(true);
+    try {
+      onLogout();
+    } finally {
+      setSigningOut(false);
     }
-    onLogout();
+  }
+
+  async function performDeleteAccount() {
+    if (!token || deleting) return;
+    setDeleting(true);
+    try {
+      await deleteMyAccount(token);
+      onLogout();
+    } catch (error) {
+      await alert({
+        title: t("portal.profile.deleteAccountFailed"),
+        message: getApiErrorMessage(error, t("portal.profile.deleteAccountFailedDefault")),
+        tone: "primary",
+      });
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  async function handleDeleteAccount() {
+    if (busy) return;
+    const ok = await confirm({
+      title: t("portal.profile.deleteAccountTitle"),
+      message: t("portal.profile.deleteAccountMessage"),
+      confirmLabel: t("portal.profile.deleteAccountConfirm"),
+      tone: "danger",
+    });
+    if (!ok) return;
+    await performDeleteAccount();
   }
 
   return (
-    <div>
+    <div className={`portal-profile${busy ? " portal-profile--busy" : ""}`}>
       <SectionHeader
         title={t("portal.profile.title")}
-        subtitle={t("portal.profile.subtitle")}
+        subtitle={roleSubtitle(user?.role, t)}
+        action={
+          <button
+            type="button"
+            className="portal-profile__sign-out"
+            onClick={() => void handleSignOut()}
+            disabled={busy}
+            aria-label={t("portal.profile.signOut")}
+          >
+            <TabIcon name="logout" active />
+            <span>{t("portal.profile.signOut")}</span>
+          </button>
+        }
       />
 
-      <article className="portal-card">
-        <h3>{user?.name || user?.username || "—"}</h3>
-        <p className="portal-card-meta">{user?.username}</p>
-        <p className="portal-card-meta">{user?.role}</p>
-        {user?.phone ? <p className="portal-card-meta">{user.phone}</p> : null}
+      <article className="portal-card portal-profile__fields">
+        <p className="portal-profile__field-label">{t("portal.profile.username")}</p>
+        <p className="portal-profile__field-value">{pickLabel(user, "username")}</p>
+
+        <p className="portal-profile__field-label portal-profile__field-label--spaced">
+          {t("portal.profile.name")}
+        </p>
+        <p className="portal-profile__field-value">{pickLabel(user, "name")}</p>
+
+        <p className="portal-profile__field-label portal-profile__field-label--spaced">
+          {t("portal.profile.role")}
+        </p>
+        <p className="portal-profile__field-value">{pickLabel(user, "role")}</p>
+
+        <p className="portal-profile__field-label portal-profile__field-label--spaced">
+          {t("portal.profile.phone")}
+        </p>
+        <p className="portal-profile__field-value">{pickLabel(user, "phone")}</p>
       </article>
 
-      <article className="portal-card">
-        <h3>{t("language.label")}</h3>
-        <div style={{ marginTop: 10 }}>
-          <LanguageSwitcher />
-        </div>
-      </article>
+      <PortalSettingsSection />
 
-      <div className="portal-actions">
-        <PortalButton tone="soft" block onClick={() => void handleLogout()}>
-          {t("auth.signOut")}
-        </PortalButton>
-      </div>
+      <article className="portal-card portal-profile__danger">
+        <h3 className="portal-profile__danger-title">{t("portal.profile.deleteAccount")}</h3>
+        <p className="portal-profile__danger-body">{t("portal.profile.deleteAccountHint")}</p>
+        <button
+          type="button"
+          className="portal-profile__delete"
+          onClick={() => void handleDeleteAccount()}
+          disabled={busy}
+          aria-label={t("portal.profile.deleteAccount")}
+        >
+          <TabIcon name="trash" active />
+          <span>{t("portal.profile.deleteAccount")}</span>
+        </button>
+      </article>
     </div>
   );
 }

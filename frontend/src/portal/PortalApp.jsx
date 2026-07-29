@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { CartProvider, useCart } from "./context/CartContext";
 import { DepotBatchCartProvider, useDepotBatchCart } from "./context/DepotBatchCartContext";
+import { PortalPreferencesProvider } from "./context/PortalPreferencesContext";
 import { PortalLayout } from "./components/PortalLayout";
 import { portalHomePath } from "./constants/menus";
 import { CustomerItemsPage } from "./pages/CustomerItemsPage";
@@ -59,7 +60,7 @@ function PortalRoutes({ token, user, logout, flash, dismissFlash }) {
             <Route path="orders" element={<CustomerOrdersPage token={token} />} />
           </>
         )}
-        <Route path="profile" element={<ProfilePage user={user} onLogout={logout} />} />
+        <Route path="profile" element={<ProfilePage token={token} user={user} onLogout={logout} />} />
         <Route path="pay/:orderId" element={<OrderPaymentPage token={token} />} />
         <Route path="pay-batch/:masterOrderId" element={<BatchOrderPaymentPage token={token} />} />
         <Route
@@ -82,24 +83,26 @@ export function PortalApp({ token, user, logout, flash, dismissFlash }) {
   const home = portalHomePath(user);
 
   return (
-    <CartProvider>
-      <DepotBatchCartProvider>
-        <Routes>
-          <Route
-            path="/portal/*"
-            element={
-              <PortalRoutes
-                token={token}
-                user={user}
-                logout={logout}
-                flash={flash}
-                dismissFlash={dismissFlash}
-              />
-            }
-          />
-          <Route path="*" element={<Navigate to={home} replace />} />
-        </Routes>
-      </DepotBatchCartProvider>
-    </CartProvider>
+    <PortalPreferencesProvider>
+      <CartProvider>
+        <DepotBatchCartProvider>
+          <Routes>
+            <Route
+              path="/portal/*"
+              element={
+                <PortalRoutes
+                  token={token}
+                  user={user}
+                  logout={logout}
+                  flash={flash}
+                  dismissFlash={dismissFlash}
+                />
+              }
+            />
+            <Route path="*" element={<Navigate to={home} replace />} />
+          </Routes>
+        </DepotBatchCartProvider>
+      </CartProvider>
+    </PortalPreferencesProvider>
   );
 }

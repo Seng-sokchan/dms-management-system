@@ -5,24 +5,139 @@ import { getApiErrorMessage } from "../../services/apiClient";
 import { listMobileOrders } from "../services/orders";
 import { groupDepotOrders, sumBatchAmountDue } from "../utils/groupOrdersByBatch";
 import { formatPaymentAmount } from "../utils/formatPaymentAmount";
+import { DepotBatchPaymentActions } from "../components/DepotBatchPaymentActions";
 import { SectionHeader } from "../components/SectionHeader";
 import { PortalButton } from "../components/PortalButton";
 import { TabIcon } from "../components/TabIcon";
+import "./DepotOrdersPage.css";
 
-function StatusBadge({ status, t }) {
-  const paid = String(status || "unpaid").toLowerCase() === "paid";
+function PaymentStatusBadge({ status, t }) {
+  const normalized = String(status || "unpaid").toLowerCase();
+  const paid = normalized === "paid";
   return (
     <span className={`portal-status${paid ? " portal-status--paid" : ""}`}>
-      {paid ? t("portal.payment.status.paid") : t("portal.payment.status.unpaid")}
+      {t(`portal.payment.status.${paid ? "paid" : "unpaid"}`, paid ? "Paid" : "Unpaid")}
     </span>
   );
 }
 
+function formatDate(value, locale) {
+  try {
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return String(value);
+    return d.toLocaleString(locale);
+  } catch {
+    return String(value);
+  }
+}
+
+function BatchOrderCard({ masterOrderId, orders, t, locale }) {
+  const totalAmount = orders.reduce((sum, order) => sum + Number(order?.amountTotal || 0), 0);
+  const totalQuantity = orders.reduce((sum, order) => sum + Number(order?.orderedQty || 0), 0);
+  const amountDue = sumBatchAmountDue(orders);
+  const amountPaid = Math.max(0, totalAmount - amountDue);
+  const currency = orders[0]?.currency || "KHR";
+
+  return (
+    <article className="portal-card portal-depot-order-card">
+      <div className="portal-depot-order-card__header">
+        <h3 className="portal-depot-order-card__title">
+          {orders[0]?.masterOrderNo || t("portal.depot.batchGroupTitle")}
+        </h3>
+      </div>
+      <p className="portal-depot-order-card__total">
+        {t(
+          totalQuantity === 1
+            ? "portal.depot.batchTotalQuantity"
+            : "portal.depot.batchTotalQuantity_plural",
+          { qty: totalQuantity.toLocaleString(locale) },
+        )}
+      </p>
+      {amountDue > 0 ? (
+        <p className="portal-depot-order-card__pay-line">
+          {t("portal.depot.batchToPay", {
+            amount: formatPaymentAmount(amountDue, currency),
+          })}
+        </p>
+      ) : (
+        <p className="portal-depot-order-card__pay-line">
+          {t("portal.depot.batchPaidAmount", {
+            amount: formatPaymentAmount(amountPaid, currency),
+          })}
+        </p>
+      )}
+      <div className="portal-depot-order-card__divider" />
+      <DepotBatchPaymentActions masterOrderId={masterOrderId} orders={orders} />
+    </article>
+  );
+}
+
+function OrderCard({ order, t, locale }) {
+  const qty = Number(order?.orderedQty || 0);
+  const total = Number(order?.amountTotal || 0);
+  const skuPart = order.itemSku ? t("portal.depot.orderItemSku", { sku: order.itemSku }) : "";
+  const paymentStatus = order?.paymentStatus || "unpaid";
+  const canPay = String(paymentStatus).toLowerCase() !== "paid";
+
+  return (
+    <article className="portal-card portal-depot-order-card">
+      <div className="portal-depot-order-card__header">
+        <h3 className="portal-depot-order-card__title">#{order.id}</h3>
+        <span className="portal-depot-order-card__status">{order.status || "—"}</span>
+      </div>
+      <p className="portal-depot-order-card__line">
+        {t("portal.depot.orderCustomer", { name: order.customerName || "—" })}
+      </p>
+      <p className="portal-depot-order-card__line">
+        {t("portal.depot.orderItem", { name: order.itemName || "—", sku: skuPart })}
+      </p>
+      <p className="portal-depot-order-card__line">
+        {t("portal.depot.orderQty", {
+          qty,
+          total: formatPaymentAmount(total, order.currency || "KHR"),
+        })}
+      </p>
+      {order.deliveryAgentName ? (
+        <p className="portal-depot-order-card__line">
+          {t("portal.depot.orderDriver", { name: order.deliveryAgentName })}
+        </p>
+      ) : null}
+      {order.createdAt ? (
+        <p className="portal-depot-order-card__meta">
+          {t("portal.depot.orderCreated", {
+            date: formatDate(order.createdAt, locale),
+          })}
+        </p>
+      ) : null}
+      <div className="portal-batch-pay">
+        <div
+          className={`portal-batch-pay__badge-row${
+            canPay ? " portal-batch-pay__badge-row--spaced" : ""
+          }`}
+        >
+          <PaymentStatusBadge status={paymentStatus} t={t} />
+        </div>
+        {canPay ? (
+          <Link
+            to={`/portal/pay/${order.id}`}
+            state={{ order }}
+            className="portal-btn portal-btn--primary portal-btn--block"
+          >
+            {t("portal.payment.payNow")}
+          </Link>
+        ) : null}
+      </div>
+    </article>
+  );
+}
+
 export function DepotOrdersPage({ token }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const locale = i18n.language === "km" ? "km-KH" : "en-US";
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -42,11 +157,25 @@ export function DepotOrdersPage({ token }) {
 
   const sections = useMemo(() => groupDepotOrders(orders), [orders]);
 
+  const subtitle =
+    orders.length > 0
+      ? t(
+          orders.length === 1
+            ? "portal.depot.ordersSubtitleCount"
+            : "portal.depot.ordersSubtitleCount_plural",
+          { count: orders.length },
+        )
+      : t("portal.depot.ordersSubtitleEmpty");
+
+  const headerSubtitle = loading
+    ? t("portal.depot.loadingOrders")
+    : `${subtitle}\n${t("portal.depot.ordersPaymentHint")}`;
+
   return (
-    <div>
+    <div className="portal-depot-orders">
       <SectionHeader
         title={t("portal.depot.ordersTitle")}
-        subtitle={t("portal.depot.ordersPaymentHint")}
+        subtitle={headerSubtitle}
         action={
           <PortalButton tone="soft" onClick={() => void refresh()}>
             {t("portal.common.refresh")}
@@ -55,7 +184,23 @@ export function DepotOrdersPage({ token }) {
       />
 
       {loading ? <p className="portal-empty">{t("portal.common.loading")}</p> : null}
-      {error ? <p className="portal-empty">{error}</p> : null}
+
+      {!loading && error ? (
+        <article className="portal-card">
+          <h3>{t("portal.depot.loadOrdersError")}</h3>
+          <p className="portal-card-meta">{error}</p>
+          <div className="portal-actions">
+            <PortalButton
+              onClick={() => {
+                void refresh();
+              }}
+            >
+              {t("portal.common.tryAgain")}
+            </PortalButton>
+          </div>
+        </article>
+      ) : null}
+
       {!loading && !error && sections.length === 0 ? (
         <div className="portal-empty">
           <div className="portal-empty-icon">
@@ -66,90 +211,29 @@ export function DepotOrdersPage({ token }) {
         </div>
       ) : null}
 
-      {sections.map((section) => {
-        if (section.type === "batch") {
-          const due = sumBatchAmountDue(section.orders);
-          const allPaid = section.orders.every(
-            (o) => String(o.paymentStatus || "").toLowerCase() === "paid",
-          );
-          const currency = section.orders[0]?.currency || "KHR";
-          return (
-            <article key={`batch-${section.masterOrderId}`} className="portal-card">
-              <div className="portal-row" style={{ borderBottom: 0, paddingTop: 0 }}>
-                <h3 style={{ margin: 0 }}>{t("portal.depot.batchGroupTitle")}</h3>
-                <StatusBadge status={allPaid ? "paid" : "unpaid"} t={t} />
-              </div>
-              <p className="portal-card-meta">
-                {t("portal.depot.batchGroupCount", { count: section.orders.length })}
-              </p>
-              <p className="portal-card-meta">
-                {t("portal.depot.batchToPay", {
-                  amount: formatPaymentAmount(due, currency),
-                })}
-              </p>
-              {section.orders.map((order) => (
-                <p key={order.id} className="portal-card-meta">
-                  {t("portal.depot.orderCustomer", {
-                    name: order.customerName || order.customerId || "—",
-                  })}
-                  {" · "}
-                  {order.itemName || "—"}
-                </p>
-              ))}
-              {!allPaid ? (
-                <div className="portal-actions">
-                  <Link
-                    to={`/portal/pay-batch/${section.masterOrderId}`}
-                    state={{ orders: section.orders }}
-                    className="portal-btn portal-btn--primary portal-btn--block"
-                  >
-                    {t("portal.depot.payBatch")}
-                  </Link>
-                </div>
-              ) : null}
-            </article>
-          );
-        }
-
-        const order = section.order;
-        const paid = String(order.paymentStatus || "").toLowerCase() === "paid";
-        return (
-          <article key={`order-${order.id}`} className="portal-card">
-            <div className="portal-row" style={{ borderBottom: 0, paddingTop: 0 }}>
-              <h3 style={{ margin: 0 }}>{t("portal.payment.orderLabel", { id: order.id })}</h3>
-              <StatusBadge status={order.paymentStatus} t={t} />
-            </div>
-            <p className="portal-card-meta">
-              {t("portal.depot.orderCustomer", {
-                name: order.customerName || order.customerId || "—",
-              })}
-            </p>
-            <p className="portal-card-meta">
-              {t("portal.depot.orderItem", {
-                name: order.itemName || "—",
-                sku: order.itemSku ? t("portal.depot.orderItemSku", { sku: order.itemSku }) : "",
-              })}
-            </p>
-            <p className="portal-card-meta">
-              {t("portal.depot.orderQty", {
-                qty: order.orderedQty || 0,
-                total: formatPaymentAmount(order.amountTotal, order.currency || "KHR"),
-              })}
-            </p>
-            {!paid ? (
-              <div className="portal-actions">
-                <Link
-                  to={`/portal/pay/${order.id}`}
-                  state={{ order }}
-                  className="portal-btn portal-btn--primary portal-btn--block"
-                >
-                  {t("portal.payment.payNow")}
-                </Link>
-              </div>
-            ) : null}
-          </article>
-        );
-      })}
+      {!loading
+        ? sections.map((section) => {
+            if (section.type === "batch") {
+              return (
+                <BatchOrderCard
+                  key={`batch-${section.masterOrderId}`}
+                  masterOrderId={section.masterOrderId}
+                  orders={section.orders}
+                  t={t}
+                  locale={locale}
+                />
+              );
+            }
+            return (
+              <OrderCard
+                key={`order-${section.order.id}`}
+                order={section.order}
+                t={t}
+                locale={locale}
+              />
+            );
+          })
+        : null}
     </div>
   );
 }

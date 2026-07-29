@@ -4,6 +4,26 @@
   margin-top: 1.5rem;
 }
 
+.orders-loss-editor {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 9rem;
+}
+
+.orders-loss-editor__input {
+  width: 4.5rem;
+  min-width: 4.5rem;
+  padding: 0.35rem 0.45rem;
+}
+
+.orders-loss-editor__error {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 0.75rem;
+}
+
 .orders-truck-actions {
   display: flex;
   flex-wrap: wrap;

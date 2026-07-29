@@ -27,6 +27,16 @@ const createBatchPaymentIntent = asyncHandler(async (req, res) => {
   return created(res, data);
 });
 
+const listUnpaidMasterOrders = asyncHandler(async (req, res) => {
+  const data = await paymentService.listUnpaidMasterOrdersForManual({ user: req.user });
+  return success(res, data);
+});
+
+const createManualPayment = asyncHandler(async (req, res) => {
+  const data = await paymentService.createManualPayment(req.body, { user: req.user });
+  return created(res, data);
+});
+
 const getPaymentAmountOptions = asyncHandler(async (req, res) => {
   const data = await paymentService.getPaymentAmountOptions(req.body, { user: req.user });
   return success(res, data);
@@ -57,6 +67,8 @@ const stopPaymentLiveCheck = asyncHandler(async (req, res) => {
 module.exports = {
   createPaymentIntent,
   createBatchPaymentIntent,
+  listUnpaidMasterOrders,
+  createManualPayment,
   getPaymentAmountOptions,
   getPayment,
   getOrderPayment,

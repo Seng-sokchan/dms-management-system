@@ -5,6 +5,7 @@ export { login } from "./auth";
 export { fetchDashboardData } from "./dashboard";
 export * from "./rules";
 export * from "./orders";
+export * from "./payments";
 export * from "./catalogs";
 export * from "./items";
 export * from "./customers";

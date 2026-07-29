@@ -1,0 +1,79 @@
+.portal-depot-orders .portal-section-header p {
+  white-space: pre-line;
+}
+
+.portal-depot-order-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.portal-depot-order-card__title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--p-text);
+}
+
+.portal-depot-order-card__status {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--p-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.portal-depot-order-card__total {
+  margin: 8px 0 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--p-text);
+}
+
+.portal-depot-order-card__pay-line {
+  margin: 4px 0 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--p-text-secondary);
+}
+
+.portal-depot-order-card__line {
+  margin: 2px 0 0;
+  font-size: 0.8125rem;
+  color: var(--p-text-secondary);
+}
+
+.portal-depot-order-card__meta {
+  margin: 8px 0 0;
+  font-size: 0.75rem;
+  color: var(--p-text-muted);
+}
+
+.portal-depot-order-card__divider {
+  margin: 12px 0 8px;
+  border-top: 1.5px solid var(--p-border);
+}
+
+.portal-batch-pay__badge-row {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.portal-batch-pay__badge-row--spaced {
+  margin-bottom: 8px;
+}
+
+.portal-batch-pay__hint {
+  margin: 0 0 8px;
+  font-size: 0.75rem;
+  color: var(--p-text-muted);
+  line-height: 1.4;
+}
+
+.portal-status--mixed {
+  background: var(--p-warning-soft);
+  border-color: #f59e0b;
+  color: #92400e;
+}

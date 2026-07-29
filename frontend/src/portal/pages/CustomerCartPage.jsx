@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useCart } from "../context/CartContext";
@@ -7,32 +7,34 @@ import { useConfirm } from "../../components/ui/ConfirmProvider";
 import { getApiErrorMessage } from "../../services/apiClient";
 import { preOrderCart } from "../services/orders";
 import { PortalButton } from "../components/PortalButton";
+import "./CustomerCartPage.css";
 
 export function CustomerCartPage({ token, user }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { alert } = useConfirm();
+  const { alert, confirm } = useConfirm();
   const { items, totalItems, updateQuantity, removeItem, clearCart } = useCart();
   const { orderWindowClosed, blockerOrder, canPlaceOrder } = useOrderPlacementGate({ token });
   const [submitting, setSubmitting] = useState(false);
 
-  async function handlePreOrder() {
-    if (!canPlaceOrder) {
-      if (orderWindowClosed) {
-        await alert({
-          title: t("portal.orderWindow.closedTitle"),
-          message: t("portal.orderWindow.closedAlertMessage"),
-        });
-        return;
-      }
-      if (blockerOrder) {
-        await alert({
-          title: t("portal.cart.unpaidReceivedBlockTitle"),
-          message: t("portal.cart.unpaidReceivedBlockMessage", { id: blockerOrder.id }),
-        });
-        return;
-      }
+  const totalQty = useMemo(
+    () => items.reduce((acc, entry) => acc + Number(entry.quantity || 0), 0),
+    [items],
+  );
+
+  async function showUnpaidReceivedAlert(order) {
+    const pay = await confirm({
+      title: t("portal.cart.unpaidReceivedBlockTitle"),
+      message: t("portal.cart.unpaidReceivedBlockMessage", { id: order.id }),
+      confirmLabel: t("portal.cart.unpaidReceivedPayNow"),
+      tone: "primary",
+    });
+    if (pay) {
+      navigate(`/portal/pay/${order.id}`, { state: { order } });
     }
+  }
+
+  async function handlePreOrder() {
     if (items.length === 0) {
       await alert({
         title: t("portal.cart.emptyAlertTitle"),
@@ -40,16 +42,30 @@ export function CustomerCartPage({ token, user }) {
       });
       return;
     }
+    if (orderWindowClosed) {
+      await alert({
+        title: t("portal.orderWindow.closedTitle"),
+        message: t("portal.orderWindow.closedAlertMessage"),
+      });
+      return;
+    }
+    if (blockerOrder) {
+      await showUnpaidReceivedAlert(blockerOrder);
+      return;
+    }
 
     setSubmitting(true);
     try {
       await preOrderCart(token, user, items);
       clearCart();
-      await alert({
+      const viewOrders = await confirm({
         title: t("portal.cart.preOrderReadyTitle"),
         message: t("portal.cart.viewMyOrders"),
+        confirmLabel: t("portal.cart.viewMyOrders"),
+        cancelLabel: t("portal.cart.continueShopping"),
+        tone: "primary",
       });
-      navigate("/portal/orders");
+      navigate(viewOrders ? "/portal/orders" : "/portal/items");
     } catch (err) {
       await alert({
         title: t("portal.cart.preOrderFailedTitle"),
@@ -60,15 +76,18 @@ export function CustomerCartPage({ token, user }) {
     }
   }
 
+  const subtitleKey =
+    totalQty === 1 ? "portal.cart.subtitle" : "portal.cart.subtitle_plural";
+
   return (
-    <div>
+    <div className={`portal-customer-cart${submitting ? " portal-customer-cart--busy" : ""}`}>
       <div className="portal-stack-header">
         <Link to="/portal/items" className="portal-back" aria-label="Back">
           ←
         </Link>
         <div>
           <h1>{t("portal.cart.title")}</h1>
-          <p className="portal-card-meta">{t("portal.cart.subtitle", { count: totalItems })}</p>
+          <p className="portal-card-meta">{t(subtitleKey, { count: totalQty || totalItems })}</p>
         </div>
       </div>
 
@@ -78,9 +97,13 @@ export function CustomerCartPage({ token, user }) {
       {blockerOrder ? (
         <div className="portal-banner">
           {t("portal.cart.unpaidReceivedBanner")}{" "}
-          <Link to={`/portal/pay/${blockerOrder.id}`}>
+          <button
+            type="button"
+            className="portal-banner__link"
+            onClick={() => void showUnpaidReceivedAlert(blockerOrder)}
+          >
             {t("portal.cart.unpaidReceivedPayNow")}
-          </Link>
+          </button>
         </div>
       ) : null}
 
@@ -88,11 +111,6 @@ export function CustomerCartPage({ token, user }) {
         <div className="portal-empty">
           <h2>{t("portal.cart.emptyTitle")}</h2>
           <p>{t("portal.cart.emptySubtitle")}</p>
-          <div className="portal-actions" style={{ justifyContent: "center" }}>
-            <Link to="/portal/items" className="portal-btn portal-btn--primary">
-              {t("portal.cart.continueShopping")}
-            </Link>
-          </div>
         </div>
       ) : (
         <>
@@ -104,16 +122,19 @@ export function CustomerCartPage({ token, user }) {
               </p>
               <div className="portal-row" style={{ borderBottom: 0, paddingBottom: 0 }}>
                 <div className="portal-qty">
-                  <button type="button" onClick={() => updateQuantity(entry.item.id, entry.quantity - 1)}>
+                  <button
+                    type="button"
+                    onClick={() => updateQuantity(entry.item.id, entry.quantity - 1)}
+                    aria-label={t("portal.cart.decreaseQty", { name: entry.item.name })}
+                  >
                     −
                   </button>
-                  <input
-                    type="number"
-                    min={1}
-                    value={entry.quantity}
-                    onChange={(e) => updateQuantity(entry.item.id, e.target.value)}
-                  />
-                  <button type="button" onClick={() => updateQuantity(entry.item.id, entry.quantity + 1)}>
+                  <span className="portal-qty__value">{entry.quantity}</span>
+                  <button
+                    type="button"
+                    onClick={() => updateQuantity(entry.item.id, entry.quantity + 1)}
+                    aria-label={t("portal.cart.increaseQty", { name: entry.item.name })}
+                  >
                     +
                   </button>
                 </div>
@@ -124,12 +145,14 @@ export function CustomerCartPage({ token, user }) {
             </article>
           ))}
 
-          <div className="portal-actions">
+          <div className="portal-customer-cart__footer">
+            <p className="portal-customer-cart__total">
+              {t("portal.cart.total", { count: totalQty })}
+            </p>
             <PortalButton
               tone="success"
-              block
               disabled={submitting || !canPlaceOrder}
-              onClick={handlePreOrder}
+              onClick={() => void handlePreOrder()}
             >
               {submitting ? t("portal.common.loading") : t("portal.cart.preOrder")}
             </PortalButton>

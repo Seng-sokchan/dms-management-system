@@ -5,6 +5,7 @@ import { Button } from "../../components/ui/Button";
 import { DataTable } from "../../components/ui/DataTable";
 import { useConfirm } from "../../components/ui/ConfirmProvider";
 import { DeliveryConfirmModal } from "./DeliveryConfirmModal";
+import { LossUpdateModal } from "./LossUpdateModal";
 
 const ORDER_STATUS_FALLBACK = [
   "Owner_Preparing",
@@ -13,16 +14,42 @@ const ORDER_STATUS_FALLBACK = [
   "Recieve_By_Customer",
 ];
 
-export function OrdersTable({ orders, statuses, onUpdateStatus, onConfirmDelivery, readOnly = false, renderActions }) {
+function formatOrderTotal(amount, currency) {
+  const value = Number(amount) || 0;
+  const code = String(currency || "KHR").toUpperCase();
+  if (code === "USD") {
+    return `$${value.toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+  }
+  return `៛${value.toLocaleString(undefined, {
+    maximumFractionDigits: 0,
+  })}`;
+}
+
+export function OrdersTable({
+  orders,
+  statuses,
+  onUpdateStatus,
+  onConfirmDelivery,
+  onUpdateLoss,
+  readOnly = false,
+  lossEditable = false,
+  renderActions,
+}) {
   const { t } = useTranslation();
   const { confirm } = useConfirm();
   const [searchText, setSearchText] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
   const [confirmOrder, setConfirmOrder] = useState(null);
+  const [lossOrder, setLossOrder] = useState(null);
   const statusRows = Array.isArray(statuses) && statuses.length
     ? statuses
     : ORDER_STATUS_FALLBACK.map((name) => ({ name }));
   const statusOptions = statusRows.map((row) => row.name);
+  const statusReadOnly = readOnly || lossEditable;
+  const showDeliverySave = !readOnly && !lossEditable;
 
   async function handleSaveDelivery(order) {
     if (order.status !== "Ready_For_Delivery") {
@@ -42,6 +69,13 @@ export function OrdersTable({ orders, statuses, onUpdateStatus, onConfirmDeliver
     if (!confirmOrder) return;
     onConfirmDelivery(confirmOrder.id, { lossQty });
     setConfirmOrder(null);
+  }
+
+  async function handleLossUpdateSubmit({ lossQty }) {
+    if (!lossOrder) return;
+    const orderId = lossOrder.id;
+    await onUpdateLoss?.(orderId, { lossQty });
+    setLossOrder(null);
   }
 
   const rowMeta =
@@ -105,7 +139,8 @@ export function OrdersTable({ orders, statuses, onUpdateStatus, onConfirmDeliver
               <th>{t("orders.loss")}</th>
               <th>{t("orders.status")}</th>
               <th>{t("orders.orderTotal", { defaultValue: "Total" })}</th>
-              <th>{t("orders.saveDelivery")}</th>
+              {showDeliverySave ? <th>{t("orders.saveDelivery")}</th> : null}
+              {lossEditable ? <th>{t("orders.actions", { defaultValue: "Actions" })}</th> : null}
               {renderActions ? <th>Actions</th> : null}
             </tr>
           </thead>
@@ -124,7 +159,7 @@ export function OrdersTable({ orders, statuses, onUpdateStatus, onConfirmDeliver
                   <td>{order.deliveredQty != null ? order.deliveredQty : t("orders.dash")}</td>
                   <td>{order.lossQty != null ? order.lossQty : t("orders.dash")}</td>
                   <td>
-                    {readOnly ? (
+                    {statusReadOnly ? (
                       <span className="status-chip">{order.status}</span>
                     ) : (
                       <>
@@ -142,17 +177,24 @@ export function OrdersTable({ orders, statuses, onUpdateStatus, onConfirmDeliver
                     )}
                   </td>
                   <td>
-                    <span className="money-inline">${Number(order.amountTotal || 0).toFixed(2)}</span>
+                    <span className="money-inline">
+                      {formatOrderTotal(order.amountTotal, order.currency)}
+                    </span>
                   </td>
-                  <td>
-                    {readOnly ? (
-                      <span>{t("orders.dash")}</span>
-                    ) : (
+                  {showDeliverySave ? (
+                    <td>
                       <Button variant="sm" onClick={() => void handleSaveDelivery(order)}>
                         {t("orders.saveDelivery")}
                       </Button>
-                    )}
-                  </td>
+                    </td>
+                  ) : null}
+                  {lossEditable ? (
+                    <td>
+                      <Button variant="sm" onClick={() => setLossOrder(order)}>
+                        {t("orders.updateLoss", { defaultValue: "Update" })}
+                      </Button>
+                    </td>
+                  ) : null}
                   {renderActions ? <td>{renderActions(order)}</td> : null}
                 </tr>
               );
@@ -165,6 +207,15 @@ export function OrdersTable({ orders, statuses, onUpdateStatus, onConfirmDeliver
           order={confirmOrder}
           onConfirm={handleConfirmDeliverySubmit}
           onClose={() => setConfirmOrder(null)}
+        />
+      ) : null}
+
+      {lossOrder ? (
+        <LossUpdateModal
+          key={lossOrder.id}
+          order={lossOrder}
+          onConfirm={handleLossUpdateSubmit}
+          onClose={() => setLossOrder(null)}
         />
       ) : null}
     </section>

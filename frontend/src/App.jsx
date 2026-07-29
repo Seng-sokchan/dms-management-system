@@ -10,7 +10,7 @@ import { PortalApp } from "./portal";
 import { GetAppPage } from "./portal/pages/GetAppPage";
 import { shouldShowStorePrompt } from "./utils/storeLinks";
 import { DeliveryAgentsPage } from "./pages/DeliveryAgentsPage";
-import { OrdersPage } from "./pages/OrdersPage";
+import { OrdersAllPage, OrdersByDeliveryPage, OrdersByProvincePage } from "./pages/orders";
 import { AssignOrdersPage } from "./pages/AssignOrdersPage";
 import { PaymentsPage } from "./pages/PaymentsPage";
 import { CustomerOrderHistoryPage } from "./pages/CustomerOrderHistoryPage";
@@ -109,6 +109,9 @@ function App() {
     submitDeliveryDelete,
     submitOrderDeliveryAssignment,
     submitSendOrderToFactory,
+    submitOrderLossQty,
+    submitManualPayment,
+    loadUnpaidMasterOrders,
     submitBorrowMaterial,
     submitBorrowMaterialUpdate,
     submitBorrowMaterialDelete,
@@ -432,7 +435,23 @@ function App() {
       <Route
         path="/orders"
         element={withLayout(
-          <OrdersPage orders={orders} deliveryAgents={deliveryAgents} />
+          <OrdersAllPage
+            orders={orders}
+            statuses={statuses}
+            onUpdateLoss={submitOrderLossQty}
+          />
+        )}
+      />
+      <Route
+        path="/orders/by-province"
+        element={withLayout(
+          <OrdersByProvincePage orders={orders} />
+        )}
+      />
+      <Route
+        path="/orders/by-delivery"
+        element={withLayout(
+          <OrdersByDeliveryPage orders={orders} deliveryAgents={deliveryAgents} />
         )}
       />
       <Route
@@ -449,7 +468,11 @@ function App() {
       <Route
         path="/payments"
         element={withLayout(
-          <PaymentsPage paymentTotals={paymentTotals} />
+          <PaymentsPage
+            paymentTotals={paymentTotals}
+            onRecordManualPayment={submitManualPayment}
+            onLoadUnpaidOrders={loadUnpaidMasterOrders}
+          />
         )}
       />
       <Route
