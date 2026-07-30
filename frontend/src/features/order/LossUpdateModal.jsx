@@ -69,7 +69,7 @@ export function LossUpdateModal({ order, onConfirm, onClose }) {
             variant="primary"
             disabled={!canSubmit}
           >
-            {t("orders.updateLoss", { defaultValue: "Update" })}
+            {t("orders.updateLoss", { defaultValue: "Update Loss" })}
           </Button>
         </div>
       }

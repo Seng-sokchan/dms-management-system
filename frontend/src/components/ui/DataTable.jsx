@@ -12,6 +12,7 @@ import { Pagination } from "./Pagination";
  * @param {() => void} [props.onSearch] — search button click handler
  * @param {string} [props.searchPlaceholder] — search input placeholder
  * @param {string} [props.searchButtonLabel] — search button label
+ * @param {import('react').ReactNode} [props.searchExtra] — optional control(s) in the search row
  * @param {{ page: number, pageSize: number, totalRows: number, onPageChange: (p: number) => void, onPageSizeChange: (s: number) => void, pageSizeOptions?: number[] }} [props.pagination]
  */
 export function DataTable({
@@ -24,6 +25,7 @@ export function DataTable({
   onSearch,
   searchPlaceholder = "Search...",
   searchButtonLabel = "Search",
+  searchExtra = null,
   pagination,
 }) {
   const wrap = ["table-wrap", className].filter(Boolean).join(" ");
@@ -40,6 +42,7 @@ export function DataTable({
     <>
       {showSearch ? (
         <div className="data-table-search">
+          {searchExtra}
           <input
             type="text"
             value={searchValue}

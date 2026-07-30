@@ -92,7 +92,12 @@ export function OrdersByDeliveryPage({ orders, deliveryAgents = [] }) {
   } = usePagination(pivotedTruck.rows, { resetKey: activeTruck?.truckKey ?? "" });
 
   async function handleCopyTruck(row) {
-    const text = formatTruckCopyText(row, dash, i18n.language);
+    const text = formatTruckCopyText(
+      row,
+      dash,
+      i18n.language,
+      t("orders.copyTotalAmount"),
+    );
     try {
       await copyTextToClipboard(text);
       setCopiedTruckKey(row.truckKey);

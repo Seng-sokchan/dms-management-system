@@ -37,6 +37,8 @@ export function OrdersTable({
   readOnly = false,
   lossEditable = false,
   renderActions,
+  searchExtra = null,
+  filterKey = "",
 }) {
   const { t } = useTranslation();
   const { confirm } = useConfirm();
@@ -105,7 +107,7 @@ export function OrdersTable({
     paged: pagedOrders,
     setPage,
     setPageSize,
-  } = usePagination(filteredOrders, { resetKey: appliedSearch });
+  } = usePagination(filteredOrders, { resetKey: `${appliedSearch}:${filterKey}` });
 
   return (
     <section className="panel">
@@ -120,6 +122,7 @@ export function OrdersTable({
         onSearch={() => setAppliedSearch(searchText)}
         searchPlaceholder={t("orders.searchPlaceholder", { defaultValue: "Search orders..." })}
         searchButtonLabel={t("common.search", { defaultValue: "Search" })}
+        searchExtra={searchExtra}
         pagination={{
           page,
           pageSize,
@@ -191,7 +194,7 @@ export function OrdersTable({
                   {lossEditable ? (
                     <td>
                       <Button variant="sm" onClick={() => setLossOrder(order)}>
-                        {t("orders.updateLoss", { defaultValue: "Update" })}
+                        {t("orders.updateLoss", { defaultValue: "Update Loss" })}
                       </Button>
                     </td>
                   ) : null}

@@ -5,8 +5,10 @@ import { Button } from "../components/ui/Button";
 import { DataTable } from "../components/ui/DataTable";
 import { OrdersPivotTable } from "./orders/OrdersPivotTable";
 import {
+  copyTextToClipboard,
   filterOrdersCreatedToday,
   formatTodayLabel,
+  formatTruckCopyText,
   getCustomerKey,
   pivotOrdersByCustomer,
 } from "./orders/ordersTodayUtils";
@@ -18,6 +20,29 @@ import {
 } from "./prepareGroupOrderStorage";
 import "./OrdersPage.css";
 import "./PrepareGroupOrderPage.css";
+
+function buildTruckRowFromCachedGroup(group, todayOrders, dash, getCustomerKeyFn) {
+  const orderIds = new Set(
+    resolveGroupOrderIds(group, todayOrders, dash, getCustomerKeyFn).map(String),
+  );
+  let rows = (todayOrders || []).filter((order) => orderIds.has(String(order.id)));
+
+  if (rows.length === 0 && group?.customers?.length) {
+    rows = group.customers.flatMap((customer) =>
+      Object.entries(customer.qtyByItem || {}).map(([itemName, qty]) => ({
+        customerName: customer.customerLabel || dash,
+        itemName,
+        orderedQty: qty,
+      })),
+    );
+  }
+
+  return {
+    truckKey: group.id,
+    truckLabel: group.deliveryAgentName || dash,
+    rows,
+  };
+}
 
 function formatGroupTime(iso) {
   if (!iso) return "";
@@ -119,7 +144,7 @@ export function AssignOrdersPage({
   onAssignDelivery,
   onSubmitToFactory,
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [createOpen, setCreateOpen] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
@@ -132,6 +157,7 @@ export function AssignOrdersPage({
   const [appliedAgentSearch, setAppliedAgentSearch] = useState("");
   const [busyAssignGroupId, setBusyAssignGroupId] = useState(null);
   const [busySubmitId, setBusySubmitId] = useState(null);
+  const [copiedGroupId, setCopiedGroupId] = useState(null);
 
   const dash = t("orders.dash");
   const todayLabel = useMemo(() => formatTodayLabel(), []);
@@ -338,6 +364,23 @@ export function AssignOrdersPage({
     }
   }
 
+  async function handleCopyGroup(group) {
+    const truckRow = buildTruckRowFromCachedGroup(group, todayOrders, dash, getCustomerKey);
+    const text = formatTruckCopyText(
+      truckRow,
+      dash,
+      i18n.language,
+      t("orders.copyTotalAmount"),
+    );
+    try {
+      await copyTextToClipboard(text);
+      setCopiedGroupId(group.id);
+      window.setTimeout(() => setCopiedGroupId((id) => (id === group.id ? null : id)), 2000);
+    } catch {
+      setCopiedGroupId(null);
+    }
+  }
+
   async function handleSubmitAssignDelivery() {
     if (!assignGroup || !onAssignDelivery || !selectedAgentId) return;
     if (assignGroup.deliveryAgentId) return;
@@ -481,6 +524,11 @@ export function AssignOrdersPage({
                     <td className="prepare-group-order-page__actions">
                       <Button variant="sm" onClick={() => setActiveGroupId(group.id)}>
                         {t("orders.view", { defaultValue: "View" })}
+                      </Button>
+                      <Button variant="sm" onClick={() => void handleCopyGroup(group)}>
+                        {copiedGroupId === group.id
+                          ? t("orders.copyTruckDone")
+                          : t("orders.copyTruck")}
                       </Button>
                       {hasDelivery ? (
                         <span

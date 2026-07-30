@@ -9,6 +9,10 @@ import { useConfirm } from "../components/ui/ConfirmProvider";
 
 const EMPTY_EDIT = { id: "", name: "", phone: "", latitude: "", longitude: "", depotId: "", provinceId: "" };
 
+function customerHasDepot(customer) {
+  return customer?.depotId != null && String(customer.depotId).trim() !== "";
+}
+
 function buildCustomerSavePayload(editing) {
   const payload = {
     name: editing.name,
@@ -41,12 +45,15 @@ export function CustomersPage({
   const [editingCustomer, setEditingCustomer] = useState(EMPTY_EDIT);
   const [searchText, setSearchText] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
+  const [depotFilter, setDepotFilter] = useState("all");
   const isEditing = useMemo(() => Boolean(editingCustomer.id), [editingCustomer.id]);
   const filteredCustomers = useMemo(() => {
     const keyword = appliedSearch.trim().toLowerCase();
-    if (!keyword) return customers;
-    return customers.filter((customer) =>
-      [
+    return customers.filter((customer) => {
+      if (depotFilter === "underDepot" && !customerHasDepot(customer)) return false;
+      if (depotFilter === "independent" && customerHasDepot(customer)) return false;
+      if (!keyword) return true;
+      return [
         customer.id,
         customer.name,
         customer.phone,
@@ -58,16 +65,16 @@ export function CustomersPage({
         customer.longitude,
       ]
         .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(keyword)),
-    );
-  }, [customers, appliedSearch]);
+        .some((value) => String(value).toLowerCase().includes(keyword));
+    });
+  }, [customers, appliedSearch, depotFilter]);
   const {
     page: customerPage,
     pageSize: customerPageSize,
     paged: pagedCustomers,
     setPage: setCustomerPage,
     setPageSize: setCustomerPageSize,
-  } = usePagination(filteredCustomers, { resetKey: appliedSearch });
+  } = usePagination(filteredCustomers, { resetKey: `${appliedSearch}:${depotFilter}` });
 
   function startEdit(customer) {
     setEditingCustomer({
@@ -142,6 +149,21 @@ export function CustomersPage({
             onSearch={() => setAppliedSearch(searchText)}
             searchPlaceholder={t("customers.searchPlaceholder", { defaultValue: "Search customers..." })}
             searchButtonLabel={t("common.search", { defaultValue: "Search" })}
+            searchExtra={
+              <select
+                value={depotFilter}
+                onChange={(event) => setDepotFilter(event.target.value)}
+                aria-label={t("customers.filterByType", { defaultValue: "Filter by customer type" })}
+              >
+                <option value="all">{t("customers.filterAll", { defaultValue: "All customers" })}</option>
+                <option value="underDepot">
+                  {t("customers.filterUnderDepot", { defaultValue: "Customer under depot" })}
+                </option>
+                <option value="independent">
+                  {t("customers.filterIndependent", { defaultValue: "Independent customer" })}
+                </option>
+              </select>
+            }
             pagination={{
               page: customerPage,
               pageSize: customerPageSize,
