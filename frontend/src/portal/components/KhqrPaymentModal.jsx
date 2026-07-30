@@ -1,9 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import QRCode from "qrcode";
 import { PAYMENT_INTENT_TTL_MS } from "../constants/paymentConstants";
 import { usePaymentStatus } from "../hooks/usePaymentStatus";
-import { PortalButton } from "./PortalButton";
 import "./KhqrPaymentModal.css";
 
 function resolveExpiryMs(expiresAt) {
@@ -21,6 +20,69 @@ function formatCountdown(ms) {
   const m = Math.floor(totalSec / 60);
   const s = totalSec % 60;
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+function parseAmountLabel(amountLabel) {
+  const raw = String(amountLabel || "").trim();
+  if (!raw) return { value: "—", unit: "" };
+  const parts = raw.split(/\s+/);
+  if (parts.length >= 2) {
+    return { value: parts.slice(0, -1).join(" "), unit: parts[parts.length - 1] };
+  }
+  return { value: raw, unit: "" };
+}
+
+function KhqrWordmark() {
+  return (
+    <svg className="khqr-aba__wordmark" viewBox="0 0 120 28" role="img" aria-label="KHQR">
+      <text
+        x="0"
+        y="22"
+        fill="#fff"
+        fontFamily="Arial Black, Arial, sans-serif"
+        fontSize="24"
+        fontWeight="900"
+        letterSpacing="1"
+      >
+        KHQR
+      </text>
+    </svg>
+  );
+}
+
+function BackChevron() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M15 5L8 12l7 7"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function MerchantPlaceholderIcon() {
+  return (
+    <span className="khqr-aba__merchant-icon" aria-hidden>
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+        <rect x="3" y="5" width="18" height="14" rx="2" stroke="#7dd3fc" strokeWidth="1.6" />
+        <circle cx="9" cy="10" r="1.6" fill="#7dd3fc" />
+        <path d="M4 16l5-4 4 3 3-2 4 3" stroke="#7dd3fc" strokeWidth="1.6" strokeLinejoin="round" />
+      </svg>
+    </span>
+  );
+}
+
+function CurrencyBadge({ unit }) {
+  const isUsd = String(unit || "").toUpperCase() === "USD";
+  return (
+    <span className="khqr-aba__qr-badge" aria-hidden>
+      {isUsd ? "$" : "៛"}
+    </span>
+  );
 }
 
 export function KhqrPaymentModal({
@@ -47,6 +109,12 @@ export function KhqrPaymentModal({
 
   const isPaid = status === "paid";
   const isExpired = sessionExpired || status === "expired";
+  const { value: amountValue, unit: amountUnit } = useMemo(
+    () => parseAmountLabel(amountLabel),
+    [amountLabel],
+  );
+  const displayAmount = amountLabel || "—";
+  const showLocalQrBadge = Boolean(qrDataUrl) && !qrImageUrl;
 
   useEffect(() => {
     if (!visible || !qrString) {
@@ -54,7 +122,11 @@ export function KhqrPaymentModal({
       return undefined;
     }
     let cancelled = false;
-    QRCode.toDataURL(qrString, { width: 280, margin: 1 })
+    QRCode.toDataURL(qrString, {
+      width: 280,
+      margin: 1,
+      color: { dark: "#111111", light: "#ffffff" },
+    })
       .then((url) => {
         if (!cancelled) setQrDataUrl(url);
       })
@@ -103,41 +175,74 @@ export function KhqrPaymentModal({
   if (!visible) return null;
 
   const imageSrc = qrImageUrl || qrDataUrl;
+  const titleMerchant = merchantName || t("portal.payment.storeName");
 
   return (
-    <div className="khqr-modal-backdrop" role="dialog" aria-modal="true">
-      <section className="khqr-modal">
-        <div className="khqr-modal-header">KHQR</div>
-        <p className="khqr-modal-merchant">{merchantName || t("portal.payment.khqrTitle")}</p>
-        {amountLabel ? <p className="khqr-modal-amount">{amountLabel}</p> : null}
-        <p className="khqr-modal-hint">{t("portal.payment.khqrScanHint")}</p>
+    <div className="khqr-aba-backdrop" role="dialog" aria-modal="true" aria-labelledby="khqr-aba-title">
+      <section className="khqr-aba">
+        <header className="khqr-aba__top">
+          <button type="button" className="khqr-aba__back" onClick={onClose} aria-label={t("portal.payment.khqrClose")}>
+            <BackChevron />
+          </button>
+          <h2 id="khqr-aba-title" className="khqr-aba__title">
+            {t("portal.payment.methodAbaKhqr")}
+          </h2>
+          <span className="khqr-aba__top-spacer" aria-hidden />
+        </header>
 
-        <div className="khqr-modal-qr">
-          {imageSrc ? (
-            <img src={imageSrc} alt="KHQR" width={280} height={280} />
-          ) : (
-            <p>{t("portal.payment.khqrNoQr")}</p>
-          )}
+        <MerchantPlaceholderIcon />
+
+        <div className="khqr-aba__card">
+          <div className="khqr-aba__banner">
+            <KhqrWordmark />
+          </div>
+
+          <div className="khqr-aba__card-body">
+            <p className="khqr-aba__merchant">{titleMerchant}</p>
+            <p className="khqr-aba__amount">
+              <span className="khqr-aba__amount-value">{amountValue}</span>
+              {amountUnit ? <span className="khqr-aba__amount-unit">{amountUnit}</span> : null}
+            </p>
+
+            <div className="khqr-aba__dash" aria-hidden />
+
+            <div className="khqr-aba__qr">
+              {imageSrc ? (
+                <>
+                  <img src={imageSrc} alt="KHQR" width={260} height={260} />
+                  {showLocalQrBadge ? <CurrencyBadge unit={amountUnit} /> : null}
+                </>
+              ) : (
+                <p className="khqr-aba__qr-empty">{t("portal.payment.khqrNoQr")}</p>
+              )}
+            </div>
+          </div>
         </div>
 
+        <p className="khqr-aba__scan">{t("portal.payment.khqrScanToPay")}</p>
+
         {!isPaid && !isExpired ? (
-          <p className="khqr-modal-timer">
-            {t("portal.payment.khqrExpiresIn", { time: formatCountdown(remainingMs) })}
-          </p>
+          <p className="khqr-aba__meta">{t("portal.payment.khqrExpiresIn", { time: formatCountdown(remainingMs) })}</p>
         ) : null}
-        {isPaid ? <p className="khqr-modal-ok">{t("portal.payment.khqrPaidHint")}</p> : null}
+        {isPaid ? <p className="khqr-aba__meta khqr-aba__meta--ok">{t("portal.payment.khqrPaidHint")}</p> : null}
         {isExpired && !isPaid ? (
-          <p className="khqr-modal-warn">{t("portal.payment.khqrExpiredHint")}</p>
+          <p className="khqr-aba__meta khqr-aba__meta--warn">{t("portal.payment.khqrExpiredHint")}</p>
         ) : null}
-        {error ? <p className="khqr-modal-warn">{error}</p> : null}
-        <p className="khqr-modal-status">
+        {error ? <p className="khqr-aba__meta khqr-aba__meta--warn">{error}</p> : null}
+        <p className="khqr-aba__meta khqr-aba__meta--muted">
           {t("portal.payment.khqrChecking", { status })}
         </p>
 
-        <div className="khqr-modal-actions">
-          <PortalButton tone="soft" onClick={onClose}>
-            {t("portal.payment.khqrClose")}
-          </PortalButton>
+        <div className="khqr-aba__summary">
+          <div className="khqr-aba__summary-row">
+            <span>{t("portal.payment.khqrSubtotal")}</span>
+            <span>{displayAmount}</span>
+          </div>
+          <div className="khqr-aba__summary-dash" aria-hidden />
+          <div className="khqr-aba__summary-row khqr-aba__summary-row--total">
+            <span>{t("portal.payment.total")}</span>
+            <span>{displayAmount}</span>
+          </div>
         </div>
       </section>
     </div>

@@ -125,8 +125,8 @@
   },
   "orderWindow": {
     "closedTitle": "Ordering closed",
-    "closedBanner": "Orders are accepted daily from 6:00 AM to 7:00 PM (Cambodia time).",
-    "closedAlertMessage": "Ordering is closed for today. Please try again between 6:00 AM and 7:00 PM Cambodia time."
+    "closedBanner": "Orders are accepted daily from 6:00 AM to 8:00 PM (Cambodia time).",
+    "closedAlertMessage": "Ordering is closed for today. Please try again between 6:00 AM and 8:00 PM Cambodia time."
   },
   "tracking": {
     "title": "Tracking",

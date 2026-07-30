@@ -1,6 +1,6 @@
 export const CAMBODIA_TZ = "Asia/Phnom_Penh";
 export const ORDER_WINDOW_OPEN_HOUR = 6;
-export const ORDER_WINDOW_CLOSE_HOUR = 19;
+export const ORDER_WINDOW_CLOSE_HOUR = 20;
 
 /** Cambodia uses UTC+7 year-round (no DST). Prefer offset math over Intl for Hermes reliability. */
 const CAMBODIA_UTC_OFFSET_HOURS = 7;

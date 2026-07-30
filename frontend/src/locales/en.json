@@ -1265,8 +1265,8 @@
     },
     "orderWindow": {
       "closedTitle": "Ordering closed",
-      "closedBanner": "Orders are accepted daily from 6:00 AM to 7:00 PM (Cambodia time).",
-      "closedAlertMessage": "Ordering is closed for today. Please try again between 6:00 AM and 7:00 PM Cambodia time."
+      "closedBanner": "Orders are accepted daily from 6:00 AM to 8:00 PM (Cambodia time).",
+      "closedAlertMessage": "Ordering is closed for today. Please try again between 6:00 AM and 8:00 PM Cambodia time."
     },
     "payment": {
       "myOrdersTitle": "My orders",
@@ -1302,6 +1302,8 @@
       "amountUnavailable": "Amount unavailable",
       "khqrTitle": "Scan KHQR to pay",
       "khqrScanHint": "Scan with ABA PAY or any KHQR bank app. Status updates automatically.",
+      "khqrScanToPay": "Scan to Pay",
+      "khqrSubtotal": "Subtotal:",
       "khqrExpiresIn": "QR expires in {{time}}",
       "khqrExpired": "QR expired",
       "khqrExpiredHint": "This QR code has expired. Close and start payment again.",
