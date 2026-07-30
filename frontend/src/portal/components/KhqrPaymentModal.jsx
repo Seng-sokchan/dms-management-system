@@ -64,15 +64,15 @@ function BackChevron() {
   );
 }
 
-function MerchantPlaceholderIcon() {
+function SokleapLogo({ alt }) {
   return (
-    <span className="khqr-aba__merchant-icon" aria-hidden>
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-        <rect x="3" y="5" width="18" height="14" rx="2" stroke="#7dd3fc" strokeWidth="1.6" />
-        <circle cx="9" cy="10" r="1.6" fill="#7dd3fc" />
-        <path d="M4 16l5-4 4 3 3-2 4 3" stroke="#7dd3fc" strokeWidth="1.6" strokeLinejoin="round" />
-      </svg>
-    </span>
+    <img
+      className="khqr-aba__merchant-logo"
+      src="/logo.png"
+      alt={alt || "Sokleap"}
+      width={64}
+      height={64}
+    />
   );
 }
 
@@ -190,7 +190,7 @@ export function KhqrPaymentModal({
           <span className="khqr-aba__top-spacer" aria-hidden />
         </header>
 
-        <MerchantPlaceholderIcon />
+        <SokleapLogo alt={titleMerchant} />
 
         <div className="khqr-aba__card">
           <div className="khqr-aba__banner">

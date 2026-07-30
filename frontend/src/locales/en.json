@@ -1291,7 +1291,7 @@
       "checkoutTitle": "Pay order",
       "checkoutOrderSubtitle": "1 order in one payment",
       "orderLabel": "Order #{{id}}",
-      "storeName": "DMS Store",
+      "storeName": "Sokleap",
       "methodAbaKhqr": "ABA KHQR",
       "methodAbaKhqrHint": "Scan to pay with any banking app",
       "choosePaymentTitle": "Choose way to pay",
