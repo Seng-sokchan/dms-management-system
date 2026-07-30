@@ -91,6 +91,14 @@ function addItemQty(items, itemKey, itemName, orderedQty) {
   });
 }
 
+function itemsSortedByName(items) {
+  return [...items.values()].sort((a, b) =>
+    String(a.name || "").localeCompare(String(b.name || ""), undefined, {
+      sensitivity: "base",
+    }),
+  );
+}
+
 function getOrderProvinceName(order) {
   return String(
     order?.customerProvinceName ||
@@ -124,6 +132,7 @@ function formatOrderSentToFactoryMessage(orderOrOrders) {
     const customerKey = order.customerId || order.customerName || `order-${order.id}`;
     if (!customers.has(customerKey)) {
       customers.set(customerKey, {
+        id: order.customerId != null && order.customerId !== "" ? Number(order.customerId) : null,
         name: order.customerName || "—",
         items: new Map(),
       });
@@ -143,6 +152,15 @@ function formatOrderSentToFactoryMessage(orderOrOrders) {
     }
   }
 
+  const customersSortedById = [...customers.values()].sort((a, b) => {
+    const aId = Number.isFinite(a.id) ? a.id : Number.POSITIVE_INFINITY;
+    const bId = Number.isFinite(b.id) ? b.id : Number.POSITIVE_INFINITY;
+    if (aId !== bId) return aId - bId;
+    return String(a.name || "").localeCompare(String(b.name || ""), undefined, {
+      sensitivity: "base",
+    });
+  });
+
   // Header with Khmer prefix for province
   const provinceDisplay = `ខេត្ត ${escapeHtml(provinceName)}`;
   const dateStr = escapeHtml(formatDateTime());
@@ -160,18 +178,18 @@ function formatOrderSentToFactoryMessage(orderOrOrders) {
 
   lines.push(""); // blank line
 
-  // Items list:
+  // Items list (sorted by item name):
   // បេ ស គ្រាប់ធំ ( 20kg ): ចំនួន: 1
-  for (const item of totalItems.values()) {
+  for (const item of itemsSortedByName(totalItems)) {
     lines.push(`${escapeHtml(item.name)}: ចំនួន: ${escapeHtml(formatQty(item.qty))}`);
   }
 
   lines.push(""); // blank line
 
-  // Customer lines
-  for (const customer of customers.values()) {
-    // Items for customer: បេ ស គ្រាប់ធំ ( 20kg ) ចំនួន: 1
-    const itemsStr = [...customer.items.values()]
+  // Customer lines (sorted by customer id)
+  for (const customer of customersSortedById) {
+    // Items for customer (sorted by item name): បេ ស គ្រាប់ធំ ( 20kg ) ចំនួន: 1
+    const itemsStr = itemsSortedByName(customer.items)
       .map((item) => `${escapeHtml(item.name)} ចំនួន: ${escapeHtml(formatQty(item.qty))}`)
       .join(" + ");
     // -សុ គា ត្រែងត្រយឹង: បេ ស គ្រាប់ធំ ( 20kg ) ចំនួន: 1

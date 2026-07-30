@@ -9,7 +9,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { useAuth } from "../context/AuthContext";
@@ -134,15 +133,6 @@ function createStyles({ colors, radii, spacing, typography, sizes, layout, borde
       fontSize: typography.h3,
       fontWeight: "700",
       color: colors.textPrimary,
-    },
-    modalSearch: {
-      backgroundColor: colors.surfaceSoft,
-      borderRadius: radii.md,
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
-      color: colors.textPrimary,
-      marginBottom: spacing.md,
-      ...borders.panel,
     },
     modalList: {
       flexGrow: 0,
@@ -365,16 +355,6 @@ function CustomerListRow({ customer, styles, colors, onPress, disabled = false }
 
 function ItemPickerModal({ visible, items, alreadyChosenItemIds, onPick, onClose, styles, colors }) {
   const { t } = useTranslation();
-  const [query, setQuery] = useState("");
-
-  const filteredItems = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return items;
-    return items.filter((item) => {
-      const hay = `${item.name || ""} ${item.sku || ""}`.toLowerCase();
-      return hay.includes(q);
-    });
-  }, [items, query]);
 
   return (
     <Modal
@@ -391,19 +371,11 @@ function ItemPickerModal({ visible, items, alreadyChosenItemIds, onPick, onClose
               <AppIcon name="close" size={20} color={colors.textPrimary} />
             </Pressable>
           </View>
-          <TextInput
-            placeholder={t("depot.searchPlaceholder")}
-            placeholderTextColor={colors.textMuted}
-            style={styles.modalSearch}
-            value={query}
-            onChangeText={setQuery}
-            autoCapitalize="none"
-          />
           <ScrollView style={styles.modalList}>
-            {filteredItems.length === 0 ? (
+            {items.length === 0 ? (
               <Text style={styles.modalEmpty}>{t("depot.noItemsMatch")}</Text>
             ) : (
-              filteredItems.map((item) => {
+              items.map((item) => {
                 const isAdded = alreadyChosenItemIds.has(String(item.id));
                 return (
                   <Pressable

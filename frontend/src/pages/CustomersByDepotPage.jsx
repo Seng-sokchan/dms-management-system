@@ -54,9 +54,7 @@ export function CustomersByDepotPage({ depots = [], customers = [] }) {
       m.get(did).push(c);
     }
     for (const list of m.values()) {
-      list.sort((a, b) =>
-        String(a.name || "").localeCompare(String(b.name || ""), undefined, { sensitivity: "base" }),
-      );
+      list.sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0));
     }
     return m;
   }, [customers]);

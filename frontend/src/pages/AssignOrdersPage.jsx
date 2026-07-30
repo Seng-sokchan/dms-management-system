@@ -3,11 +3,32 @@ import { useTranslation } from "react-i18next";
 import { usePagination } from "../hooks/usePagination";
 import { Button } from "../components/ui/Button";
 import { DataTable } from "../components/ui/DataTable";
-import "./AssignOrdersPage.css";
+import { OrdersPivotTable } from "./orders/OrdersPivotTable";
+import {
+  filterOrdersCreatedToday,
+  formatTodayLabel,
+  getCustomerKey,
+  pivotOrdersByCustomer,
+} from "./orders/ordersTodayUtils";
+import {
+  buildCachedGroup,
+  loadCachedGroups,
+  resolveGroupOrderIds,
+  saveCachedGroups,
+} from "./prepareGroupOrderStorage";
+import "./OrdersPage.css";
+import "./PrepareGroupOrderPage.css";
 
-function deliveryAgentOptionLabel(agent) {
-  const phone = agent.phone?.trim();
-  return phone ? `${agent.name} (${phone})` : agent.name;
+function formatGroupTime(iso) {
+  if (!iso) return "";
+  const parsed = new Date(iso);
+  if (Number.isNaN(parsed.getTime())) return "";
+  return parsed.toLocaleString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+    month: "short",
+    day: "numeric",
+  });
 }
 
 function localDateKey(date) {
@@ -18,7 +39,6 @@ function localDateKey(date) {
   ].join("-");
 }
 
-/** True when created_at is on the user's local calendar day. */
 function isCreatedToday(createdAt) {
   if (createdAt == null || createdAt === "") return false;
   const raw = String(createdAt).trim();
@@ -34,24 +54,6 @@ function isCreatedToday(createdAt) {
 function formatQty(value) {
   const n = Number(value);
   return Number.isFinite(n) ? n.toLocaleString("en-US") : String(value || "—");
-}
-
-function orderDeliveryAgentId(order) {
-  return order.deliveryAgentId != null && order.deliveryAgentId !== ""
-    ? String(order.deliveryAgentId)
-    : "";
-}
-
-function isAssignedToAgent(order, agentId) {
-  if (!agentId) return false;
-  return orderDeliveryAgentId(order) === String(agentId);
-}
-
-function currentDeliveryLabel(order, t) {
-  if (order.deliveryAgentName) {
-    return order.deliveryAgentName;
-  }
-  return t("orders.dash");
 }
 
 function buildSubmitGroups(orders, deliveryAgents, t) {
@@ -118,47 +120,97 @@ export function AssignOrdersPage({
   onSubmitToFactory,
 }) {
   const { t } = useTranslation();
-  const [busyAgentId, setBusyAgentId] = useState(null);
-  const [busySubmitId, setBusySubmitId] = useState(null);
+  const [createOpen, setCreateOpen] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
-  const [assignAgent, setAssignAgent] = useState(null);
-  const [selectedOrderIds, setSelectedOrderIds] = useState(() => new Set());
-  const [orderSearchText, setOrderSearchText] = useState("");
-  const [appliedOrderSearch, setAppliedOrderSearch] = useState("");
+  const [selectedCustomerKeys, setSelectedCustomerKeys] = useState(() => new Set());
+  const [cachedGroups, setCachedGroups] = useState(() => loadCachedGroups());
+  const [activeGroupId, setActiveGroupId] = useState(null);
+  const [assignGroupId, setAssignGroupId] = useState(null);
+  const [selectedAgentId, setSelectedAgentId] = useState(null);
+  const [agentSearchText, setAgentSearchText] = useState("");
+  const [appliedAgentSearch, setAppliedAgentSearch] = useState("");
+  const [busyAssignGroupId, setBusyAssignGroupId] = useState(null);
+  const [busySubmitId, setBusySubmitId] = useState(null);
 
-  const todayLabel = useMemo(
-    () =>
-      new Date().toLocaleDateString(undefined, {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      }),
-    [],
+  const dash = t("orders.dash");
+  const todayLabel = useMemo(() => formatTodayLabel(), []);
+  const todayOrders = useMemo(() => filterOrdersCreatedToday(orders), [orders]);
+
+  const pivoted = useMemo(
+    () => pivotOrdersByCustomer(todayOrders, dash),
+    [todayOrders, dash],
   );
 
-  const eligibleOrders = useMemo(() => {
-    const todayOwnerPreparing = (orders || []).filter(
-      (order) => isCreatedToday(order.createdAt) && order.status === "Owner_Preparing",
-    );
-    return [...todayOwnerPreparing].sort((a, b) => Number(b.id) - Number(a.id));
-  }, [orders]);
-
-  const assignedCountByAgentId = useMemo(() => {
-    const counts = new Map();
-    for (const order of eligibleOrders) {
-      const agentId =
-        order.deliveryAgentId != null && order.deliveryAgentId !== ""
-          ? String(order.deliveryAgentId)
-          : "";
-      if (!agentId) continue;
-      counts.set(agentId, (counts.get(agentId) || 0) + 1);
+  const cachedCustomerKeys = useMemo(() => {
+    const keys = new Set();
+    for (const group of cachedGroups) {
+      for (const key of group.customerKeys || []) keys.add(key);
     }
-    return counts;
-  }, [eligibleOrders]);
+    return keys;
+  }, [cachedGroups]);
+
+  const availableRows = useMemo(
+    () => pivoted.rows.filter((row) => !cachedCustomerKeys.has(row.customerKey)),
+    [pivoted.rows, cachedCustomerKeys],
+  );
+
+  const filteredRows = useMemo(() => {
+    const keyword = appliedSearch.trim().toLowerCase();
+    if (!keyword) return availableRows;
+    return availableRows.filter((row) => {
+      const itemHits = Object.keys(row.qtyByItem || {}).some((name) =>
+        name.toLowerCase().includes(keyword),
+      );
+      return itemHits || String(row.customerLabel || "").toLowerCase().includes(keyword);
+    });
+  }, [availableRows, appliedSearch]);
+
+  const {
+    page,
+    pageSize,
+    paged: pagedRows,
+    setPage,
+    setPageSize,
+  } = usePagination(filteredRows, { resetKey: appliedSearch });
+
+  const activeGroup = useMemo(
+    () => cachedGroups.find((group) => group.id === activeGroupId) || null,
+    [cachedGroups, activeGroupId],
+  );
+
+  const assignGroup = useMemo(
+    () => cachedGroups.find((group) => group.id === assignGroupId) || null,
+    [cachedGroups, assignGroupId],
+  );
+
+  const activeGroupPivot = useMemo(() => {
+    if (!activeGroup?.customers?.length) {
+      return { itemColumns: [], rows: [] };
+    }
+    const itemSet = new Set();
+    for (const customer of activeGroup.customers) {
+      Object.keys(customer.qtyByItem || {}).forEach((item) => itemSet.add(item));
+    }
+    const itemColumns = Array.from(itemSet).sort((a, b) => a.localeCompare(b));
+    const rows = activeGroup.customers.map((customer) => ({
+      customerKey: customer.customerKey,
+      customerLabel: customer.customerLabel,
+      qtyByItem: customer.qtyByItem || {},
+    }));
+    return { itemColumns, rows };
+  }, [activeGroup]);
+
+  const {
+    page: groupDetailPage,
+    pageSize: groupDetailPageSize,
+    paged: pagedGroupDetailRows,
+    setPage: setGroupDetailPage,
+    setPageSize: setGroupDetailPageSize,
+  } = usePagination(activeGroupPivot.rows, { resetKey: activeGroupId || "" });
 
   const filteredAgents = useMemo(() => {
-    const keyword = appliedSearch.trim().toLowerCase();
+    const keyword = appliedAgentSearch.trim().toLowerCase();
     const list = [...(deliveryAgents || [])].sort((a, b) =>
       String(a.name || "").localeCompare(String(b.name || ""), undefined, { sensitivity: "base" }),
     );
@@ -168,22 +220,7 @@ export function AssignOrdersPage({
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(keyword)),
     );
-  }, [deliveryAgents, appliedSearch]);
-
-  const submitGroups = useMemo(
-    () => buildSubmitGroups(eligibleOrders, deliveryAgents, t),
-    [eligibleOrders, deliveryAgents, t],
-  );
-
-  const modalOrders = useMemo(() => {
-    const keyword = appliedOrderSearch.trim().toLowerCase();
-    if (!keyword) return eligibleOrders;
-    return eligibleOrders.filter((order) =>
-      [order.id, order.customerName, order.itemName, order.status, order.deliveryAgentName]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(keyword)),
-    );
-  }, [eligibleOrders, appliedOrderSearch]);
+  }, [deliveryAgents, appliedAgentSearch]);
 
   const {
     page: agentPage,
@@ -191,7 +228,19 @@ export function AssignOrdersPage({
     paged: pagedAgents,
     setPage: setAgentPage,
     setPageSize: setAgentPageSize,
-  } = usePagination(filteredAgents, { resetKey: appliedSearch });
+  } = usePagination(filteredAgents, { resetKey: `${assignGroupId || ""}:${appliedAgentSearch}` });
+
+  const eligibleOrders = useMemo(() => {
+    const todayOwnerPreparing = (orders || []).filter(
+      (order) => isCreatedToday(order.createdAt) && order.status === "Owner_Preparing",
+    );
+    return [...todayOwnerPreparing].sort((a, b) => Number(b.id) - Number(a.id));
+  }, [orders]);
+
+  const submitGroups = useMemo(
+    () => buildSubmitGroups(eligibleOrders, deliveryAgents, t),
+    [eligibleOrders, deliveryAgents, t],
+  );
 
   const {
     page: submitPage,
@@ -201,76 +250,134 @@ export function AssignOrdersPage({
     setPageSize: setSubmitPageSize,
   } = usePagination(submitGroups, { resetKey: `${eligibleOrders.length}` });
 
-  const {
-    page: orderPage,
-    pageSize: orderPageSize,
-    paged: pagedModalOrders,
-    setPage: setOrderPage,
-    setPageSize: setOrderPageSize,
-  } = usePagination(modalOrders, {
-    resetKey: `${assignAgent?.id || ""}:${appliedOrderSearch}`,
-  });
-
-  function openAssignModal(agent) {
-    setAssignAgent(agent);
-    setSelectedOrderIds(new Set());
-    setOrderSearchText("");
-    setAppliedOrderSearch("");
+  function persistGroups(nextGroups) {
+    setCachedGroups(nextGroups);
+    saveCachedGroups(nextGroups);
   }
 
-  function closeAssignModal() {
-    if (busyAgentId) return;
-    setAssignAgent(null);
-    setSelectedOrderIds(new Set());
-    setOrderSearchText("");
-    setAppliedOrderSearch("");
+  function openCreateGroup() {
+    setSearchText("");
+    setAppliedSearch("");
+    setSelectedCustomerKeys(new Set());
+    setCreateOpen(true);
   }
 
-  function toggleOrderSelected(order) {
-    if (isAssignedToAgent(order, assignAgent?.id)) return;
-    const id = String(order.id);
-    setSelectedOrderIds((prev) => {
+  function closeCreateGroup() {
+    setCreateOpen(false);
+    setSearchText("");
+    setAppliedSearch("");
+    setSelectedCustomerKeys(new Set());
+  }
+
+  function openAssignDelivery(groupId) {
+    setAssignGroupId(groupId);
+    setSelectedAgentId(null);
+    setAgentSearchText("");
+    setAppliedAgentSearch("");
+  }
+
+  function closeAssignDelivery() {
+    if (busyAssignGroupId) return;
+    setAssignGroupId(null);
+    setSelectedAgentId(null);
+    setAgentSearchText("");
+    setAppliedAgentSearch("");
+  }
+
+  function selectAgent(agentId) {
+    const id = String(agentId);
+    setSelectedAgentId((prev) => (prev === id ? null : id));
+  }
+
+  function toggleCustomerKey(customerKey) {
+    setSelectedCustomerKeys((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(customerKey)) next.delete(customerKey);
+      else next.add(customerKey);
       return next;
     });
   }
 
-  function toggleSelectAllVisible() {
-    const selectableIds = pagedModalOrders
-      .filter((order) => !isAssignedToAgent(order, assignAgent?.id))
-      .map((order) => String(order.id));
-    setSelectedOrderIds((prev) => {
+  function toggleAllVisible() {
+    const visibleKeys = pagedRows.map((row) => row.customerKey);
+    setSelectedCustomerKeys((prev) => {
       const next = new Set(prev);
-      const allSelectableSelected =
-        selectableIds.length > 0 && selectableIds.every((id) => next.has(id));
-      if (allSelectableSelected) {
-        for (const id of selectableIds) next.delete(id);
+      const allSelected = visibleKeys.length > 0 && visibleKeys.every((key) => next.has(key));
+      if (allSelected) {
+        visibleKeys.forEach((key) => next.delete(key));
       } else {
-        for (const id of selectableIds) next.add(id);
+        visibleKeys.forEach((key) => next.add(key));
       }
       return next;
     });
   }
 
-  async function handleConfirmAssign() {
-    if (!assignAgent || !onAssignDelivery) return;
-    const orderIds = [...selectedOrderIds].filter((id) => {
-      const order = eligibleOrders.find((item) => String(item.id) === id);
-      return order && !isAssignedToAgent(order, assignAgent.id);
+  function handleCreateGroup() {
+    const selectedRows = availableRows.filter((row) =>
+      selectedCustomerKeys.has(row.customerKey),
+    );
+    if (selectedRows.length === 0) return;
+
+    const group = buildCachedGroup({
+      selectedRows,
+      todayOrders,
+      dash,
+      getCustomerKey,
     });
+    persistGroups([group, ...cachedGroups]);
+    closeCreateGroup();
+  }
+
+  function handleRemoveGroup(groupId) {
+    const next = cachedGroups.filter((group) => group.id !== groupId);
+    persistGroups(next);
+    if (activeGroupId === groupId) setActiveGroupId(null);
+    if (assignGroupId === groupId) {
+      setAssignGroupId(null);
+      setSelectedAgentId(null);
+    }
+  }
+
+  async function handleSubmitAssignDelivery() {
+    if (!assignGroup || !onAssignDelivery || !selectedAgentId) return;
+    if (assignGroup.deliveryAgentId) return;
+
+    const agent = (deliveryAgents || []).find(
+      (item) => String(item.id) === String(selectedAgentId),
+    );
+    if (!agent?.id) return;
+
+    const orderIds = resolveGroupOrderIds(assignGroup, todayOrders, dash, getCustomerKey);
     if (orderIds.length === 0) return;
 
-    setBusyAgentId(String(assignAgent.id));
+    const groupId = assignGroup.id;
+    const agentId = String(agent.id);
+    const agentName = agent.name || dash;
+
+    setBusyAssignGroupId(groupId);
     try {
-      await onAssignDelivery(orderIds, String(assignAgent.id));
-      setAssignAgent(null);
-      setSelectedOrderIds(new Set());
-      setOrderSearchText("");
-      setAppliedOrderSearch("");
+      await onAssignDelivery(orderIds, agentId);
+      setCachedGroups((prev) => {
+        const next = prev.map((group) =>
+          group.id === groupId
+            ? {
+                ...group,
+                deliveryAgentId: agentId,
+                deliveryAgentName: agentName,
+                orderIds,
+                orderCount: orderIds.length,
+              }
+            : group,
+        );
+        saveCachedGroups(next);
+        return next;
+      });
+      setAssignGroupId(null);
+      setSelectedAgentId(null);
+      setAgentSearchText("");
+      setAppliedAgentSearch("");
     } finally {
-      setBusyAgentId(null);
+      setBusyAssignGroupId(null);
     }
   }
 
@@ -284,26 +391,14 @@ export function AssignOrdersPage({
     }
   }
 
-  const agentMeta =
-    filteredAgents.length === 1
-      ? t("assignOrders.deliveryOne", { n: filteredAgents.length })
-      : t("assignOrders.deliveryMany", { n: filteredAgents.length });
+  const selectedCount = selectedCustomerKeys.size;
   const submitMeta =
     submitGroups.length === 1
       ? t("assignOrders.groupOne", { n: submitGroups.length })
       : t("assignOrders.groupMany", { n: submitGroups.length });
 
-  const selectedCount = selectedOrderIds.size;
-  const visibleSelectableIds = pagedModalOrders
-    .filter((order) => !isAssignedToAgent(order, assignAgent?.id))
-    .map((order) => String(order.id));
-  const allVisibleSelected =
-    visibleSelectableIds.length > 0
-    && visibleSelectableIds.every((id) => selectedOrderIds.has(id));
-  const someVisibleSelected = visibleSelectableIds.some((id) => selectedOrderIds.has(id));
-
   return (
-    <section className="admin-page">
+    <section className="admin-page prepare-group-order-page">
       <div className="section-heading">
         <h2>{t("assignOrders.title")}</h2>
         <p className="section-lead">{t("assignOrders.lead")}</p>
@@ -312,66 +407,122 @@ export function AssignOrdersPage({
 
       <section className="panel">
         <div className="panel-header">
-          <h3>{t("assignOrders.deliveryPanelTitle")}</h3>
-          <p className="panel-meta">{agentMeta}</p>
+          <div>
+            <h3>{t("prepareGroupOrder.panelTitle")}</h3>
+            <p className="panel-meta">
+              {todayOrders.length === 1
+                ? t("prepareGroupOrder.orderOne", { n: todayOrders.length })
+                : t("prepareGroupOrder.orderMany", { n: todayOrders.length })}
+              {" · "}
+              {availableRows.length === 1
+                ? t("prepareGroupOrder.availableCustomerOne", { n: availableRows.length })
+                : t("prepareGroupOrder.availableCustomerMany", { n: availableRows.length })}
+            </p>
+          </div>
+          <Button onClick={openCreateGroup}>{t("prepareGroupOrder.createGroup")}</Button>
         </div>
-        <p className="form-hint">{t("assignOrders.deliveryPanelHint")}</p>
-        <DataTable
-          showSearch
-          searchValue={searchText}
-          onSearchValueChange={setSearchText}
-          onSearch={() => setAppliedSearch(searchText)}
-          searchPlaceholder={t("assignOrders.searchDeliveriesPlaceholder")}
-          searchButtonLabel={t("common.search")}
-          pagination={{
-            page: agentPage,
-            pageSize: agentPageSize,
-            totalRows: filteredAgents.length,
-            onPageChange: setAgentPage,
-            onPageSizeChange: setAgentPageSize,
-          }}
-        >
-          <thead>
-            <tr>
-              <th>{t("deliveryAgents.namePh")}</th>
-              <th>{t("deliveryAgents.phonePh")}</th>
-              <th>{t("deliveryAgents.vehiclePh")}</th>
-              <th>{t("assignOrders.assignedToday")}</th>
-              <th>{t("orders.actions")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pagedAgents.map((agent) => {
-              const assignedCount = assignedCountByAgentId.get(String(agent.id)) || 0;
-              return (
-                <tr key={`delivery-${agent.id}`}>
-                  <td>{agent.name || t("orders.dash")}</td>
-                  <td>{agent.phone || t("orders.dash")}</td>
-                  <td>{agent.vehicleType || t("orders.dash")}</td>
-                  <td>
-                    {t("assignOrders.assignedTodayValue", {
-                      count: assignedCount,
-                    })}
-                  </td>
-                  <td>
-                    <Button
-                      type="button"
-                      variant="primary"
-                      disabled={busyAgentId === String(agent.id)}
-                      onClick={() => openAssignModal(agent)}
-                    >
-                      {t("assignOrders.assignButton")}
-                    </Button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </DataTable>
+        <p className="form-hint prepare-group-order-page__hint">
+          {t("prepareGroupOrder.panelHint")}
+        </p>
+      </section>
 
-        <h3 className="assign-orders-subpanel-title">{t("assignOrders.submitPanelTitle")}</h3>
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>{t("prepareGroupOrder.cachedGroupsTitle")}</h3>
+            <p className="panel-meta">
+              {cachedGroups.length === 1
+                ? t("prepareGroupOrder.groupOne", { n: cachedGroups.length })
+                : t("prepareGroupOrder.groupMany", { n: cachedGroups.length })}
+            </p>
+          </div>
+        </div>
+        {cachedGroups.length === 0 ? (
+          <p className="form-hint">{t("prepareGroupOrder.noCachedGroups")}</p>
+        ) : (
+          <DataTable>
+            <thead>
+              <tr>
+                <th>{t("prepareGroupOrder.groupName")}</th>
+                <th>{t("prepareGroupOrder.customers")}</th>
+                <th>{t("prepareGroupOrder.orderLines")}</th>
+                <th>{t("prepareGroupOrder.delivery")}</th>
+                <th>{t("prepareGroupOrder.createdAt")}</th>
+                <th>{t("orders.actions", { defaultValue: "Actions" })}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {cachedGroups.map((group, index) => {
+                const hasDelivery = Boolean(group.deliveryAgentId);
+                const assigning = busyAssignGroupId === group.id;
+                return (
+                  <tr key={group.id}>
+                    <td>{t("prepareGroupOrder.groupLabel", { n: cachedGroups.length - index })}</td>
+                    <td>
+                      <span className="qty-chip">
+                        {group.customerCount || group.customers?.length || 0}
+                      </span>
+                    </td>
+                    <td>
+                      <span className="qty-chip">
+                        {group.orderCount || group.orderIds?.length || 0}
+                      </span>
+                    </td>
+                    <td>
+                      {hasDelivery ? (
+                        <span className="status-chip">
+                          {group.deliveryAgentName || dash}
+                        </span>
+                      ) : (
+                        dash
+                      )}
+                    </td>
+                    <td>{formatGroupTime(group.createdAt) || dash}</td>
+                    <td className="prepare-group-order-page__actions">
+                      <Button variant="sm" onClick={() => setActiveGroupId(group.id)}>
+                        {t("orders.view", { defaultValue: "View" })}
+                      </Button>
+                      {hasDelivery ? (
+                        <span
+                          className="prepare-group-order-assigned-badge"
+                          title={t("prepareGroupOrder.alreadyAssignedHint")}
+                        >
+                          {t("prepareGroupOrder.assignedBadge")}
+                        </span>
+                      ) : (
+                        <Button
+                          variant="sm"
+                          disabled={assigning || !onAssignDelivery}
+                          onClick={() => openAssignDelivery(group.id)}
+                        >
+                          {assigning
+                            ? t("prepareGroupOrder.assigning")
+                            : t("prepareGroupOrder.assignDelivery")}
+                        </Button>
+                      )}
+                      <Button
+                        variant="sm"
+                        tone="cancel"
+                        disabled={assigning}
+                        onClick={() => handleRemoveGroup(group.id)}
+                      >
+                        {t("prepareGroupOrder.removeGroup")}
+                      </Button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </DataTable>
+        )}
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <h3>{t("assignOrders.submitPanelTitle")}</h3>
+          <p className="panel-meta">{submitMeta}</p>
+        </div>
         <p className="form-hint">{t("assignOrders.submitPanelHint")}</p>
-        <p className="panel-meta assign-orders-submit-meta">{submitMeta}</p>
         <DataTable
           pagination={{
             page: submitPage,
@@ -425,161 +576,271 @@ export function AssignOrdersPage({
         </DataTable>
       </section>
 
-      {assignAgent ? (
+      {createOpen ? (
         <div
           className="modal-overlay"
           role="dialog"
           aria-modal="true"
-          aria-labelledby="assign-orders-modal-title"
-          onClick={(event) => {
-            if (event.target === event.currentTarget) closeAssignModal();
-          }}
+          aria-labelledby="prepare-group-order-create-title"
         >
-          <div className="modal-card panel assign-orders-modal">
+          <section className="panel modal-card modal-card--orders-truck modal-card--orders-pivot prepare-group-order-modal">
             <div className="panel-header">
-              <h3 id="assign-orders-modal-title">
-                {t("assignOrders.assignModalTitle", {
-                  name: deliveryAgentOptionLabel(assignAgent),
-                })}
+              <h3 id="prepare-group-order-create-title">
+                {t("prepareGroupOrder.createModalTitle")}
               </h3>
-              <Button type="button" variant="ghost" disabled={Boolean(busyAgentId)} onClick={closeAssignModal}>
-                {t("assignOrders.close")}
+              <Button variant="ghost" tone="cancel" onClick={closeCreateGroup}>
+                {t("prepareGroupOrder.close")}
               </Button>
             </div>
-            <p className="form-hint">{t("assignOrders.assignModalHint", { date: todayLabel })}</p>
-            <p className="form-hint">{t("assignOrders.alreadyAssignedHint")}</p>
+            <p className="form-hint">
+              {t("prepareGroupOrder.createModalHint", { date: todayLabel })}
+            </p>
 
-            <div className="assign-orders-modal__body">
-            <DataTable
-              showSearch
-              searchValue={orderSearchText}
-              onSearchValueChange={setOrderSearchText}
-              onSearch={() => setAppliedOrderSearch(orderSearchText)}
-              searchPlaceholder={t("assignOrders.searchOrdersPlaceholder")}
-              searchButtonLabel={t("common.search")}
-              pagination={{
-                page: orderPage,
-                pageSize: orderPageSize,
-                totalRows: modalOrders.length,
-                onPageChange: setOrderPage,
-                onPageSizeChange: setOrderPageSize,
-              }}
-            >
-              <thead>
-                <tr>
-                  <th className="assign-orders-check-col">
-                    <input
-                      type="checkbox"
-                      aria-label={t("assignOrders.selectAll")}
-                      checked={allVisibleSelected}
-                      ref={(el) => {
-                        if (el) el.indeterminate = !allVisibleSelected && someVisibleSelected;
-                      }}
-                      disabled={
-                        visibleSelectableIds.length === 0 || Boolean(busyAgentId)
-                      }
-                      onChange={toggleSelectAllVisible}
-                    />
-                  </th>
-                  <th>{t("orders.customer")}</th>
-                  <th>{t("orders.item")}</th>
-                  <th>{t("orders.status")}</th>
-                  <th>{t("assignOrders.currentDelivery")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pagedModalOrders.length === 0 ? (
+            {availableRows.length === 0 ? (
+              <p className="form-hint">
+                {pivoted.rows.length === 0
+                  ? t("prepareGroupOrder.noOrdersToday")
+                  : t("prepareGroupOrder.allCustomersGrouped")}
+              </p>
+            ) : (
+              <>
+                <div className="prepare-group-order-modal__body">
+                  <OrdersPivotTable
+                    itemColumns={pivoted.itemColumns}
+                    pagedRows={pagedRows}
+                    allRows={filteredRows}
+                    dash={dash}
+                    customerHeader={t("orders.customer")}
+                    totalLabel={t("orders.totalAll", { defaultValue: "Total" })}
+                    pagination={{
+                      page,
+                      pageSize,
+                      totalRows: filteredRows.length,
+                      onPageChange: setPage,
+                      onPageSizeChange: setPageSize,
+                    }}
+                    showSearch
+                    searchValue={searchText}
+                    onSearchValueChange={setSearchText}
+                    onSearch={() => setAppliedSearch(searchText)}
+                    searchPlaceholder={t("prepareGroupOrder.searchPlaceholder")}
+                    searchButtonLabel={t("common.search", { defaultValue: "Search" })}
+                    selectable
+                    selectedKeys={selectedCustomerKeys}
+                    onToggleKey={toggleCustomerKey}
+                    onToggleAllVisible={toggleAllVisible}
+                    selectAllLabel={t("prepareGroupOrder.selectAll")}
+                    selectRowLabel={(row) =>
+                      t("prepareGroupOrder.selectCustomer", { name: row.customerLabel })
+                    }
+                    checkColClassName="prepare-group-order-check-col"
+                  />
+                </div>
+                <div className="prepare-group-order-modal-footer">
+                  <p className="panel-meta">
+                    {t("prepareGroupOrder.selectedCount", { count: selectedCount })}
+                  </p>
+                  <div className="prepare-group-order-modal-actions">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      tone="cancel"
+                      onClick={closeCreateGroup}
+                    >
+                      {t("prepareGroupOrder.cancel")}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="primary"
+                      disabled={selectedCount === 0}
+                      onClick={handleCreateGroup}
+                    >
+                      {t("prepareGroupOrder.create", { count: selectedCount })}
+                    </Button>
+                  </div>
+                </div>
+              </>
+            )}
+          </section>
+        </div>
+      ) : null}
+
+      {assignGroup && !assignGroup.deliveryAgentId ? (
+        <div
+          className="modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="prepare-group-order-assign-title"
+        >
+          <section className="panel modal-card prepare-group-order-assign-modal">
+            <div className="panel-header">
+              <h3 id="prepare-group-order-assign-title">
+                {t("prepareGroupOrder.assignModalTitle")}
+              </h3>
+              <Button
+                variant="ghost"
+                tone="cancel"
+                disabled={Boolean(busyAssignGroupId)}
+                onClick={closeAssignDelivery}
+              >
+                {t("prepareGroupOrder.close")}
+              </Button>
+            </div>
+            <p className="form-hint">
+              {t("prepareGroupOrder.assignModalHint", {
+                orders: resolveGroupOrderIds(assignGroup, todayOrders, dash, getCustomerKey).length,
+                customers: assignGroup.customerCount || assignGroup.customers?.length || 0,
+              })}
+            </p>
+            <div className="prepare-group-order-assign-modal__body">
+              <DataTable
+                className="prepare-group-order-assign-table-wrap"
+                tableClassName="prepare-group-order-assign-table"
+                showSearch
+                searchValue={agentSearchText}
+                onSearchValueChange={setAgentSearchText}
+                onSearch={() => setAppliedAgentSearch(agentSearchText)}
+                searchPlaceholder={t("prepareGroupOrder.searchDeliveriesPlaceholder")}
+                searchButtonLabel={t("common.search", { defaultValue: "Search" })}
+                pagination={{
+                  page: agentPage,
+                  pageSize: agentPageSize,
+                  totalRows: filteredAgents.length,
+                  onPageChange: setAgentPage,
+                  onPageSizeChange: setAgentPageSize,
+                }}
+              >
+                <thead>
                   <tr>
-                    <td colSpan={5} className="entity-list-empty">
-                      {t("assignOrders.noOrdersToday")}
-                    </td>
+                    <th className="prepare-group-order-check-col">
+                      {t("prepareGroupOrder.select", { defaultValue: "Select" })}
+                    </th>
+                    <th>{t("orders.delivery", { defaultValue: "Delivery" })}</th>
+                    <th>{t("prepareGroupOrder.phone", { defaultValue: "Phone" })}</th>
                   </tr>
-                ) : (
-                  pagedModalOrders.map((order) => {
-                    const id = String(order.id);
-                    const alreadyOnThisDriver = isAssignedToAgent(order, assignAgent.id);
-                    const otherDriverId = orderDeliveryAgentId(order);
-                    const assignedToOther =
-                      Boolean(otherDriverId) && !alreadyOnThisDriver;
-                    const checked = selectedOrderIds.has(id);
-                    return (
-                      <tr
-                        key={`modal-order-${order.id}`}
-                        className={
-                          alreadyOnThisDriver
-                            ? "assign-orders-row--already-assigned"
-                            : assignedToOther
-                              ? "assign-orders-row--other-driver"
-                              : undefined
-                        }
-                      >
-                        <td className="assign-orders-check-col">
-                          {alreadyOnThisDriver ? (
-                            <span
-                              className="assign-orders-assigned-badge"
-                              title={t("assignOrders.alreadyAssignedToThisDriver")}
-                            >
-                              {t("assignOrders.alreadyAssignedBadge")}
-                            </span>
-                          ) : (
+                </thead>
+                <tbody>
+                  {pagedAgents.length === 0 ? (
+                    <tr>
+                      <td colSpan={3} className="entity-list-empty">
+                        {t("prepareGroupOrder.noDeliveries")}
+                      </td>
+                    </tr>
+                  ) : (
+                    pagedAgents.map((agent) => {
+                      const agentId = String(agent.id);
+                      const checked = selectedAgentId === agentId;
+                      return (
+                        <tr
+                          key={agent.id}
+                          className={
+                            checked ? "prepare-group-order-assign-row--selected" : undefined
+                          }
+                        >
+                          <td className="prepare-group-order-check-col">
                             <input
                               type="checkbox"
-                              aria-label={t("assignOrders.selectOrder", { id: order.id })}
-                              checked={checked}
-                              disabled={Boolean(busyAgentId)}
-                              onChange={() => toggleOrderSelected(order)}
-                            />
-                          )}
-                        </td>
-                        <td>{order.customerName || t("orders.dash")}</td>
-                        <td>
-                          {order.itemName
-                            ? `#${order.id} · ${order.itemName} ×${formatQty(order.orderedQty)}`
-                            : `#${order.id}`}
-                        </td>
-                        <td>
-                          <span className="status-chip">{order.status}</span>
-                        </td>
-                        <td>
-                          {assignedToOther ? (
-                            <span className="assign-orders-reassign-label">
-                              {t("assignOrders.reassignFrom", {
-                                name: currentDeliveryLabel(order, t),
+                              aria-label={t("prepareGroupOrder.selectDelivery", {
+                                name: agent.name || dash,
                               })}
-                            </span>
-                          ) : (
-                            currentDeliveryLabel(order, t)
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </DataTable>
+                              checked={checked}
+                              disabled={Boolean(busyAssignGroupId)}
+                              onChange={() => selectAgent(agentId)}
+                            />
+                          </td>
+                          <td>{agent.name || dash}</td>
+                          <td>{agent.phone || dash}</td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </DataTable>
             </div>
-
-            <div className="assign-orders-modal-footer">
+            <div className="prepare-group-order-modal-footer">
               <p className="panel-meta">
-                {t("assignOrders.selectedCount", { count: selectedCount })}
+                {selectedAgentId
+                  ? t("prepareGroupOrder.selectedDelivery", {
+                      name:
+                        (deliveryAgents || []).find(
+                          (agent) => String(agent.id) === String(selectedAgentId),
+                        )?.name || dash,
+                    })
+                  : t("prepareGroupOrder.selectDeliveryHint")}
               </p>
-              <div className="assign-orders-modal-actions">
-                <Button type="button" variant="ghost" tone="cancel" disabled={Boolean(busyAgentId)} onClick={closeAssignModal}>
-                  {t("assignOrders.cancel")}
+              <div className="prepare-group-order-modal-actions">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  tone="cancel"
+                  disabled={Boolean(busyAssignGroupId)}
+                  onClick={closeAssignDelivery}
+                >
+                  {t("prepareGroupOrder.cancel")}
                 </Button>
                 <Button
                   type="button"
                   variant="primary"
-                  disabled={selectedCount === 0 || Boolean(busyAgentId)}
-                  onClick={() => void handleConfirmAssign()}
+                  disabled={!selectedAgentId || Boolean(busyAssignGroupId)}
+                  onClick={() => void handleSubmitAssignDelivery()}
                 >
-                  {busyAgentId
-                    ? t("assignOrders.assigning")
-                    : t("assignOrders.confirmAssign", { count: selectedCount })}
+                  {busyAssignGroupId
+                    ? t("prepareGroupOrder.assigning")
+                    : t("prepareGroupOrder.submitAssign")}
                 </Button>
               </div>
             </div>
-          </div>
+          </section>
+        </div>
+      ) : null}
+
+      {activeGroup ? (
+        <div
+          className="modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="prepare-group-order-view-title"
+        >
+          <section className="panel modal-card modal-card--orders-truck modal-card--orders-pivot prepare-group-order-modal">
+            <div className="panel-header">
+              <h3 id="prepare-group-order-view-title">
+                {t("prepareGroupOrder.viewGroupTitle", {
+                  count: activeGroup.customerCount || activeGroup.customers?.length || 0,
+                })}
+              </h3>
+              <Button variant="ghost" tone="cancel" onClick={() => setActiveGroupId(null)}>
+                {t("prepareGroupOrder.close")}
+              </Button>
+            </div>
+            <p className="form-hint">
+              {t("prepareGroupOrder.viewGroupHint", {
+                orders: activeGroup.orderCount || activeGroup.orderIds?.length || 0,
+                time: formatGroupTime(activeGroup.createdAt) || dash,
+              })}
+              {activeGroup.deliveryAgentId
+                ? ` · ${t("prepareGroupOrder.deliveryAssignedTo", {
+                    name: activeGroup.deliveryAgentName || dash,
+                  })}`
+                : ""}
+            </p>
+            <div className="prepare-group-order-modal__body">
+              <OrdersPivotTable
+                itemColumns={activeGroupPivot.itemColumns}
+                pagedRows={pagedGroupDetailRows}
+                allRows={activeGroupPivot.rows}
+                dash={dash}
+                customerHeader={t("orders.customer")}
+                totalLabel={t("orders.totalAll", { defaultValue: "Total" })}
+                pagination={{
+                  page: groupDetailPage,
+                  pageSize: groupDetailPageSize,
+                  totalRows: activeGroupPivot.rows.length,
+                  onPageChange: setGroupDetailPage,
+                  onPageSizeChange: setGroupDetailPageSize,
+                }}
+              />
+            </div>
+          </section>
         </div>
       ) : null}
     </section>

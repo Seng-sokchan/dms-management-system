@@ -186,10 +186,13 @@ const NAV_ICONS = {
 /* ── Logo mark ── */
 function LogoIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <path d="M10 2L18 6.5V13.5L10 18L2 13.5V6.5L10 2Z" stroke="white" strokeWidth="1.5" strokeLinejoin="round" />
-      <path d="M10 2V18M2 6.5L18 13.5M18 6.5L2 13.5" stroke="white" strokeWidth="1.5" strokeOpacity="0.45" />
-    </svg>
+    <img
+      src="/logo.png"
+      alt=""
+      width={36}
+      height={36}
+      className="admin-logo-img"
+    />
   );
 }
 

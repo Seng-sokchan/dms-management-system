@@ -22,8 +22,8 @@ export function GetAppPage({ user, onLogout }) {
           className="get-app__logo"
           src="/logo.png"
           alt=""
-          width={64}
-          height={64}
+          width={96}
+          height={96}
         />
         <h1 className="get-app__title">{t("portal.getApp.title")}</h1>
         <p className="get-app__subtitle">

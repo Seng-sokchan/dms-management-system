@@ -163,16 +163,6 @@ export function DepotPrepareBatchPage({ token, user }) {
 
 function ItemPickerSheet({ customerName, items, alreadyChosen, onPick, onClose }) {
   const { t } = useTranslation();
-  const [query, setQuery] = useState("");
-
-  const filteredItems = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return items;
-    return items.filter((item) => {
-      const hay = `${item.name || ""} ${item.sku || ""}`.toLowerCase();
-      return hay.includes(q);
-    });
-  }, [items, query]);
 
   return (
     <div className="portal-sheet-backdrop" role="dialog" aria-modal="true" onClick={onClose}>
@@ -190,20 +180,11 @@ function ItemPickerSheet({ customerName, items, alreadyChosen, onPick, onClose }
           </button>
         </div>
 
-        <input
-          className="portal-search"
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder={t("portal.depot.searchPlaceholder")}
-          autoFocus
-        />
-
         <div className="portal-sheet__list">
-          {filteredItems.length === 0 ? (
+          {items.length === 0 ? (
             <p className="portal-empty">{t("portal.depot.noItemsMatch")}</p>
           ) : (
-            filteredItems.map((item) => {
+            items.map((item) => {
               const isAdded = alreadyChosen.has(String(item.id));
               return (
                 <button

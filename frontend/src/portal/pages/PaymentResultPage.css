@@ -45,9 +45,10 @@
 }
 
 .pay-result__logo {
-  width: 52px;
-  height: 52px;
+  width: 72px;
+  height: 72px;
   object-fit: contain;
+  border-radius: 12px;
 }
 
 .pay-result__store {

@@ -2,7 +2,6 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { ConfirmProvider } from "./components/ui/ConfirmProvider";
-import evaLogo from "./assets/eva-logo.jpg";
 import "./i18n/config.js";
 import "./index.css";
 import App from "./App.jsx";
@@ -11,7 +10,7 @@ import { PrivacyPolicyPage } from "./pages/PrivacyPolicyPage";
 import { TermsOfServicePage } from "./pages/TermsOfServicePage";
 
 (() => {
-  const href = String(evaLogo);
+  const href = "/logo.png";
   const ensure = (rel, mime) => {
     let link = document.querySelector(`link[rel="${rel}"]`);
     if (!link) {
@@ -23,7 +22,7 @@ import { TermsOfServicePage } from "./pages/TermsOfServicePage";
     if (mime) link.type = mime;
     else link.removeAttribute("type");
   };
-  ensure("icon", "image/jpeg");
+  ensure("icon", "image/png");
   ensure("apple-touch-icon");
 })();
 

@@ -28,11 +28,12 @@
 }
 
 .get-app__logo {
-  width: 64px;
-  height: 64px;
+  width: 96px;
+  height: 96px;
   object-fit: contain;
   margin: 0 auto 16px;
   display: block;
+  border-radius: 16px;
 }
 
 .get-app__title {

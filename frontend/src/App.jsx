@@ -455,6 +455,10 @@ function App() {
         )}
       />
       <Route
+        path="/prepare-group-order"
+        element={<Navigate to="/assign-orders" replace />}
+      />
+      <Route
         path="/assign-orders"
         element={withLayout(
           <AssignOrdersPage

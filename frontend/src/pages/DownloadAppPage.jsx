@@ -76,7 +76,7 @@ export function DownloadAppPage() {
             <div className="download-app-icon-wrap">
               <img
                 className="download-app-icon"
-                src="/dms-mobile-icon.png"
+                src="/logo.png"
                 alt={t("downloadApp.iconAlt")}
                 width={88}
                 height={88}
