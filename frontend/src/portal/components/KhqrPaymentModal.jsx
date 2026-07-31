@@ -64,18 +64,6 @@ function BackChevron() {
   );
 }
 
-function SokleapLogo({ alt }) {
-  return (
-    <img
-      className="khqr-aba__merchant-logo"
-      src="/logo.png"
-      alt={alt || "Sokleap"}
-      width={64}
-      height={64}
-    />
-  );
-}
-
 function CurrencyBadge({ unit }) {
   const isUsd = String(unit || "").toUpperCase() === "USD";
   return (
@@ -189,8 +177,6 @@ export function KhqrPaymentModal({
           </h2>
           <span className="khqr-aba__top-spacer" aria-hidden />
         </header>
-
-        <SokleapLogo alt={titleMerchant} />
 
         <div className="khqr-aba__card">
           <div className="khqr-aba__banner">
