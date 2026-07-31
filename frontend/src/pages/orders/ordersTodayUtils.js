@@ -108,11 +108,18 @@ export function getCustomerKey(order, dash) {
 
 /**
  * Pivot orders into one row per customer with item names as columns.
- * @returns {{ itemColumns: string[], rows: Array<{ customerKey: string, customerLabel: string, qtyByItem: Record<string, number> }> }}
+ * @param {Map<string, { depotName?: string }>|Record<string, { depotName?: string }>|null} [customersById]
+ * @returns {{ itemColumns: string[], rows: Array<{ customerKey: string, customerLabel: string, depotName: string, qtyByItem: Record<string, number> }> }}
  */
-export function pivotOrdersByCustomer(orders, dash) {
+export function pivotOrdersByCustomer(orders, dash, customersById = null) {
   const itemSet = new Set();
   const rowMap = new Map();
+  const lookup =
+    customersById instanceof Map
+      ? customersById
+      : customersById && typeof customersById === "object"
+        ? new Map(Object.entries(customersById))
+        : null;
 
   for (const order of orders || []) {
     const itemName = order.itemName != null ? String(order.itemName).trim() : "";
@@ -122,9 +129,19 @@ export function pivotOrdersByCustomer(orders, dash) {
 
     const customerKey = getCustomerKey(order, dash);
     if (!rowMap.has(customerKey)) {
+      const customerId =
+        order.customerId != null && String(order.customerId).trim() !== ""
+          ? String(order.customerId)
+          : "";
+      const customer = customerId && lookup ? lookup.get(customerId) : null;
+      const depotName =
+        customer?.depotName != null && String(customer.depotName).trim() !== ""
+          ? String(customer.depotName).trim()
+          : "";
       rowMap.set(customerKey, {
         customerKey,
         customerLabel: getCustomerLabel(order, dash),
+        depotName,
         qtyByItem: {},
       });
     }

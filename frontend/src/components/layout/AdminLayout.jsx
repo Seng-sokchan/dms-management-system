@@ -24,6 +24,7 @@ const PAGE_PATH_MAP = {
   "/delivery-agents": "deliveryAgents",
   "/orders":          "ordersAll",
   "/orders/by-province": "ordersByProvince",
+  "/orders/by-depot": "ordersByDepot",
   "/orders/by-delivery": "ordersByDelivery",
   "/assign-orders":   "assignOrders",
   "/payments":        "payments",

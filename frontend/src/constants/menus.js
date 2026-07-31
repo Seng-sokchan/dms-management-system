@@ -75,6 +75,12 @@ export const MENU_ITEMS = [
         subKey: "nav.ordersByProvinceSub",
       },
       {
+        key: "ordersByDepot",
+        path: "/orders/by-depot",
+        labelKey: "nav.ordersByDepot",
+        subKey: "nav.ordersByDepotSub",
+      },
+      {
         key: "ordersByDelivery",
         path: "/orders/by-delivery",
         labelKey: "nav.ordersByDelivery",

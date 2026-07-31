@@ -8,6 +8,7 @@ export function OrdersPivotTable({
   dash,
   pagination,
   customerHeader,
+  depotHeader,
   totalLabel,
   showSearch = false,
   searchValue,
@@ -62,6 +63,7 @@ export function OrdersPivotTable({
               </th>
             ) : null}
             <th>{customerHeader}</th>
+            {depotHeader ? <th>{depotHeader}</th> : null}
             {itemColumns.map((item) => (
               <th key={item}>{item}</th>
             ))}
@@ -88,6 +90,7 @@ export function OrdersPivotTable({
                   </td>
                 ) : null}
                 <td>{row.customerLabel}</td>
+                {depotHeader ? <td>{row.depotName || ""}</td> : null}
                 {itemColumns.map((item) => (
                   <td key={item} className="orders-pivot-table__qty">
                     {row.qtyByItem[item] != null ? (
@@ -108,6 +111,7 @@ export function OrdersPivotTable({
           <tr className="orders-pivot-table__total-row">
             {selectable ? <th scope="row" className={checkColClassName} /> : null}
             <th scope="row">{totalLabel}</th>
+            {depotHeader ? <th scope="row" /> : null}
             {itemColumns.map((item) => (
               <td key={item} className="orders-pivot-table__qty">
                 <span className="qty-chip qty-chip--total">{totalsByItem[item]}</span>

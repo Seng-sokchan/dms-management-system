@@ -140,6 +140,7 @@ function buildSubmitGroups(orders, deliveryAgents, t) {
 
 export function AssignOrdersPage({
   orders = [],
+  customers = [],
   deliveryAgents = [],
   onAssignDelivery,
   onSubmitToFactory,
@@ -163,9 +164,18 @@ export function AssignOrdersPage({
   const todayLabel = useMemo(() => formatTodayLabel(), []);
   const todayOrders = useMemo(() => filterOrdersCreatedToday(orders), [orders]);
 
+  const customersById = useMemo(() => {
+    const map = new Map();
+    for (const customer of customers || []) {
+      if (customer?.id == null) continue;
+      map.set(String(customer.id), customer);
+    }
+    return map;
+  }, [customers]);
+
   const pivoted = useMemo(
-    () => pivotOrdersByCustomer(todayOrders, dash),
-    [todayOrders, dash],
+    () => pivotOrdersByCustomer(todayOrders, dash, customersById),
+    [todayOrders, dash, customersById],
   );
 
   const cachedCustomerKeys = useMemo(() => {
@@ -188,7 +198,11 @@ export function AssignOrdersPage({
       const itemHits = Object.keys(row.qtyByItem || {}).some((name) =>
         name.toLowerCase().includes(keyword),
       );
-      return itemHits || String(row.customerLabel || "").toLowerCase().includes(keyword);
+      return (
+        itemHits ||
+        String(row.customerLabel || "").toLowerCase().includes(keyword) ||
+        String(row.depotName || "").toLowerCase().includes(keyword)
+      );
     });
   }, [availableRows, appliedSearch]);
 
@@ -659,6 +673,7 @@ export function AssignOrdersPage({
                     allRows={filteredRows}
                     dash={dash}
                     customerHeader={t("orders.customer")}
+                    depotHeader={t("customers.depot")}
                     totalLabel={t("orders.totalAll", { defaultValue: "Total" })}
                     pagination={{
                       page,

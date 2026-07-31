@@ -26,8 +26,9 @@ const ROUTE_DATA_MAP = {
   "/users": ["users", "roles", "customers", "deliveryAgents", "depots"],
   "/orders": ["orders", "statuses", "deliveryAgents"],
   "/orders/by-province": ["orders", "deliveryAgents"],
+  "/orders/by-depot": ["orders", "customers"],
   "/orders/by-delivery": ["orders", "deliveryAgents"],
-  "/assign-orders": ["orders", "deliveryAgents"],
+  "/assign-orders": ["orders", "deliveryAgents", "customers"],
   "/payments": ["paymentTotals"],
   "/customer-order-history": ["customers", "orders"],
   "/borrowed-materials": [

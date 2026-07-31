@@ -10,7 +10,12 @@ import { PortalApp } from "./portal";
 import { GetAppPage } from "./portal/pages/GetAppPage";
 import { shouldShowStorePrompt } from "./utils/storeLinks";
 import { DeliveryAgentsPage } from "./pages/DeliveryAgentsPage";
-import { OrdersAllPage, OrdersByDeliveryPage, OrdersByProvincePage } from "./pages/orders";
+import {
+  OrdersAllPage,
+  OrdersByDeliveryPage,
+  OrdersByDepotPage,
+  OrdersByProvincePage,
+} from "./pages/orders";
 import { AssignOrdersPage } from "./pages/AssignOrdersPage";
 import { PaymentsPage } from "./pages/PaymentsPage";
 import { CustomerOrderHistoryPage } from "./pages/CustomerOrderHistoryPage";
@@ -449,6 +454,12 @@ function App() {
         )}
       />
       <Route
+        path="/orders/by-depot"
+        element={withLayout(
+          <OrdersByDepotPage orders={orders} customers={customers} />
+        )}
+      />
+      <Route
         path="/orders/by-delivery"
         element={withLayout(
           <OrdersByDeliveryPage orders={orders} deliveryAgents={deliveryAgents} />
@@ -463,6 +474,7 @@ function App() {
         element={withLayout(
           <AssignOrdersPage
               orders={orders}
+              customers={customers}
               deliveryAgents={deliveryAgents}
               onAssignDelivery={submitOrderDeliveryAssignment}
               onSubmitToFactory={submitSendOrderToFactory}
