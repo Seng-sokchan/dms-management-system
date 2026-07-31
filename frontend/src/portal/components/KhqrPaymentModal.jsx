@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import QRCode from "qrcode";
 import { PAYMENT_INTENT_TTL_MS } from "../constants/paymentConstants";
@@ -160,12 +161,40 @@ export function KhqrPaymentModal({
     onPaid?.();
   }, [isPaid, onPaid, visible]);
 
-  if (!visible) return null;
+  useEffect(() => {
+    if (!visible) return undefined;
+
+    const html = document.documentElement;
+    const { body } = document;
+    const prevBodyOverflow = body.style.overflow;
+    const prevHtmlOverflow = html.style.overflow;
+    const prevBodyPosition = body.style.position;
+    const prevBodyTop = body.style.top;
+    const prevBodyWidth = body.style.width;
+    const scrollY = window.scrollY;
+
+    html.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.width = "100%";
+
+    return () => {
+      html.style.overflow = prevHtmlOverflow;
+      body.style.overflow = prevBodyOverflow;
+      body.style.position = prevBodyPosition;
+      body.style.top = prevBodyTop;
+      body.style.width = prevBodyWidth;
+      window.scrollTo(0, scrollY);
+    };
+  }, [visible]);
+
+  if (!visible || typeof document === "undefined") return null;
 
   const imageSrc = qrImageUrl || qrDataUrl;
   const titleMerchant = merchantName || t("portal.payment.storeName");
 
-  return (
+  return createPortal(
     <div className="khqr-aba-backdrop" role="dialog" aria-modal="true" aria-labelledby="khqr-aba-title">
       <section className="khqr-aba">
         <header className="khqr-aba__top">
@@ -231,6 +260,7 @@ export function KhqrPaymentModal({
           </div>
         </div>
       </section>
-    </div>
+    </div>,
+    document.body,
   );
 }

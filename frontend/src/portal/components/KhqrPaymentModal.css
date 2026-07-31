@@ -5,8 +5,11 @@
   background: #f3f4f6;
   display: flex;
   justify-content: center;
+  overflow-x: hidden;
   overflow-y: auto;
+  overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
 }
 
 .khqr-aba {
