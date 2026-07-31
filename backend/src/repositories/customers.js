@@ -21,6 +21,19 @@ async function listCustomersByDepotId(depotId) {
   return rows.map(mapCustomer);
 }
 
+async function listCustomersByProvinceId(provinceId) {
+  const [rows] = await getPool().query(
+    `SELECT c.*
+     FROM ${V.CUSTOMERS} c
+     LEFT JOIN province_customer_priority pcp
+       ON pcp.province_id = c.province_id AND pcp.customer_id = c.id
+     WHERE c.province_id = ?
+     ORDER BY (pcp.priority IS NULL) ASC, pcp.priority ASC, c.id ASC`,
+    [Number(provinceId)],
+  );
+  return rows.map(mapCustomer);
+}
+
 async function getCustomerById(id, executor) {
   const db = resolveExecutor(executor);
   const [rows] = await db.query(`SELECT * FROM ${V.CUSTOMERS} WHERE id = ? LIMIT 1`, [id]);
@@ -104,8 +117,9 @@ async function updateCustomer(id, payload, executor) {
   return getCustomerById(id, db);
 }
 
-async function deleteCustomer(id) {
-  const [rowsRaw] = await getPool().query("CALL sp_delete_customer(?, ?)", [id, nowIso()]);
+async function deleteCustomer(id, executor) {
+  const db = resolveExecutor(executor);
+  const [rowsRaw] = await db.query("CALL sp_delete_customer(?, ?)", [id, nowIso()]);
   const meta = getProcedureMeta(rowsRaw);
   return Number(meta.affectedRows || 0) > 0;
 }
@@ -113,6 +127,7 @@ async function deleteCustomer(id) {
 module.exports = {
   listCustomers,
   listCustomersByDepotId,
+  listCustomersByProvinceId,
   getCustomerById,
   getCustomerByUserId,
   setCustomerUserLink,

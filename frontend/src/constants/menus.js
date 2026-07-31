@@ -59,6 +59,12 @@ export const MENU_ITEMS = [
         labelKey: "nav.customersByDepot",
         subKey: "nav.customersByDepotSub",
       },
+      {
+        key: "customerPriority",
+        path: "/customer-priority",
+        labelKey: "nav.customerPriority",
+        subKey: "nav.customerPrioritySub",
+      },
     ],
   },
   {

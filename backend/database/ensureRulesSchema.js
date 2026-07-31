@@ -430,6 +430,7 @@ async function ensureOrderMasterType(conn) {
       c.phone AS customer_phone,
       c.province_id AS customer_province_id,
       pr.name AS customer_province_name,
+      pcp.priority AS customer_priority,
       c.latitude AS customer_latitude,
       c.longitude AS customer_longitude,
       p.name AS producer_name,
@@ -442,6 +443,8 @@ async function ensureOrderMasterType(conn) {
     INNER JOIN items it ON it.id = od.item_id
     INNER JOIN status s ON s.id = od.status
     LEFT JOIN provinces pr ON pr.id = c.province_id AND pr.is_active = 1
+    LEFT JOIN province_customer_priority pcp
+      ON pcp.province_id = c.province_id AND pcp.customer_id = c.id
     LEFT JOIN producers p ON p.id = od.producer_id
     LEFT JOIN delivery_agents da ON da.id = od.delivery_agent_id
   `);
@@ -614,6 +617,59 @@ async function ensureSpecialDayTables(conn) {
   `);
 }
 
+async function ensureProvinceCustomerPriorityTable(conn) {
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS province_customer_priority (
+      id int(10) unsigned NOT NULL AUTO_INCREMENT,
+      province_id int(10) unsigned NOT NULL,
+      customer_id int(10) unsigned NOT NULL,
+      priority int(10) unsigned NOT NULL,
+      created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at datetime DEFAULT NULL,
+      PRIMARY KEY (id),
+      UNIQUE KEY uq_pcp_province_customer (province_id, customer_id),
+      UNIQUE KEY uq_pcp_province_priority (province_id, priority),
+      KEY idx_pcp_province_priority (province_id, priority)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8
+  `);
+
+  const [provinces] = await conn.query(
+    `SELECT DISTINCT province_id AS id
+     FROM customers
+     WHERE is_active = 1 AND province_id IS NOT NULL`,
+  );
+  for (const province of provinces) {
+    const provinceId = Number(province.id);
+    const [existingRows] = await conn.query(
+      `SELECT customer_id FROM province_customer_priority WHERE province_id = ?`,
+      [provinceId],
+    );
+    const existingIds = new Set(existingRows.map((row) => Number(row.customer_id)));
+    const [maxRows] = await conn.query(
+      `SELECT COALESCE(MAX(priority), 0) AS max_priority
+       FROM province_customer_priority WHERE province_id = ?`,
+      [provinceId],
+    );
+    let nextPriority = Number(maxRows[0].max_priority) + 1;
+    const [customers] = await conn.query(
+      `SELECT id FROM customers
+       WHERE is_active = 1 AND province_id = ?
+       ORDER BY id ASC`,
+      [provinceId],
+    );
+    for (const customer of customers) {
+      const customerId = Number(customer.id);
+      if (existingIds.has(customerId)) continue;
+      await conn.query(
+        `INSERT INTO province_customer_priority (province_id, customer_id, priority, updated_at)
+         VALUES (?, ?, ?, NOW())`,
+        [provinceId, customerId, nextPriority],
+      );
+      nextPriority += 1;
+    }
+  }
+}
+
 async function ensureRulesSchema() {
   const pool = getPool();
   const conn = await pool.getConnection();
@@ -621,6 +677,7 @@ async function ensureRulesSchema() {
     await ensureDepotUserLinkOnUsers(conn);
     await dropLegacyDepotOwnerUser(conn);
     await dropLegacyRulesArtifacts(conn);
+    await ensureProvinceCustomerPriorityTable(conn);
     await ensureOrderMasterType(conn);
     await ensureDashboardViews(conn);
     await ensureOptimizedIndexes(conn);

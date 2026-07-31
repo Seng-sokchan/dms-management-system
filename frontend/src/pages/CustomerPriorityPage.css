@@ -1,0 +1,126 @@
+.customer-priority-page .customer-priority-panel {
+  padding: 1rem 1.1rem;
+}
+
+.customer-priority-province {
+  max-width: 22rem;
+  margin-bottom: 1rem;
+}
+
+.customer-priority-province select {
+  width: 100%;
+}
+
+.customer-priority-error {
+  margin: 0 0 0.75rem;
+}
+
+.customer-priority-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.customer-priority-list-header h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.customer-priority-columns,
+.customer-priority-row {
+  display: grid;
+  grid-template-columns: 2.25rem 3.5rem minmax(0, 1fr) minmax(6rem, 12rem);
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.customer-priority-columns {
+  padding: 0 0.65rem 0.4rem;
+  color: var(--muted, #6b7280);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.customer-priority-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.customer-priority-row {
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: var(--radius, 10px);
+  background: var(--surface, #fff);
+}
+
+.customer-priority-row.is-dragging {
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
+  z-index: 1;
+}
+
+.customer-priority-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted, #6b7280);
+  cursor: grab;
+  touch-action: none;
+}
+
+.customer-priority-handle:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.customer-priority-handle:not(:disabled):active {
+  cursor: grabbing;
+}
+
+.customer-priority-rank {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.customer-priority-name {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.customer-priority-depot {
+  color: var(--muted, #6b7280);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .customer-priority-columns,
+  .customer-priority-row {
+    grid-template-columns: 2rem 2.5rem minmax(0, 1fr);
+  }
+
+  .customer-priority-columns span:last-child,
+  .customer-priority-depot {
+    display: none;
+  }
+
+  .customer-priority-list-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

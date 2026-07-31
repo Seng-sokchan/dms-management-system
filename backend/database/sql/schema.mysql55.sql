@@ -21,6 +21,7 @@ DROP TABLE IF EXISTS `orders`;
 DROP TABLE IF EXISTS `order_details`;
 DROP TABLE IF EXISTS `payments`;
 DROP TABLE IF EXISTS `producers`;
+DROP TABLE IF EXISTS `province_customer_priority`;
 DROP TABLE IF EXISTS `provinces`;
 DROP TABLE IF EXISTS `roles`;
 DROP TABLE IF EXISTS `status`;
@@ -267,6 +268,19 @@ CREATE TABLE `provinces` (
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE `province_customer_priority` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `province_id` int(10) unsigned NOT NULL,
+  `customer_id` int(10) unsigned NOT NULL,
+  `priority` int(10) unsigned NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_pcp_province_customer` (`province_id`,`customer_id`),
+  UNIQUE KEY `uq_pcp_province_priority` (`province_id`,`priority`),
+  KEY `idx_pcp_province_priority` (`province_id`,`priority`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE `roles` (
@@ -525,6 +539,7 @@ SELECT
   c.phone AS customer_phone,
   c.province_id AS customer_province_id,
   pr.name AS customer_province_name,
+  pcp.priority AS customer_priority,
   c.latitude AS customer_latitude,
   c.longitude AS customer_longitude,
   p.name AS producer_name,
@@ -537,6 +552,8 @@ INNER JOIN customers c ON c.id = od.customer_id
 INNER JOIN items it ON it.id = od.item_id
 INNER JOIN status s ON s.id = od.status
 LEFT JOIN provinces pr ON pr.id = c.province_id AND pr.is_active = 1
+LEFT JOIN province_customer_priority pcp
+  ON pcp.province_id = c.province_id AND pcp.customer_id = c.id
 LEFT JOIN producers p ON p.id = od.producer_id
 LEFT JOIN delivery_agents da ON da.id = od.delivery_agent_id;
 

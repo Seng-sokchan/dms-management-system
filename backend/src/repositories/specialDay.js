@@ -141,6 +141,8 @@ const REGISTRATION_FROM = `
   FROM special_day_registrations r
   LEFT JOIN customers c ON c.id = r.customer_id
   LEFT JOIN provinces p ON p.id = c.province_id
+  LEFT JOIN province_customer_priority pcp
+    ON pcp.province_id = c.province_id AND pcp.customer_id = c.id
   LEFT JOIN depots d ON d.id = r.depot_id
   LEFT JOIN special_day_assignments a ON a.registration_id = r.id
   LEFT JOIN delivery_agents da ON da.id = a.delivery_agent_id
@@ -347,7 +349,7 @@ async function listRegistrations(specialDayId, { provinceId } = {}, executor) {
   const [rows] = await db.query(
     `SELECT ${REGISTRATION_SELECT} ${REGISTRATION_FROM}
      ${where}
-     ORDER BY p.name ASC, c.name ASC, d.name ASC, r.id ASC`,
+     ORDER BY p.name ASC, (pcp.priority IS NULL) ASC, pcp.priority ASC, c.name ASC, d.name ASC, r.id ASC`,
     params,
   );
   return rows.map(mapRegistration);
@@ -473,7 +475,7 @@ async function listAssignmentsForAgent(deliveryAgentId, executor) {
      WHERE a.delivery_agent_id = ?
        AND r.status = 'registered'
        AND sd.status IN ('open', 'active')
-     ORDER BY sd.event_date ASC, p.name ASC, c.name ASC, d.name ASC`,
+     ORDER BY sd.event_date ASC, p.name ASC, (pcp.priority IS NULL) ASC, pcp.priority ASC, c.name ASC, d.name ASC`,
     [Number(deliveryAgentId)],
   );
   return rows.map((row) => ({

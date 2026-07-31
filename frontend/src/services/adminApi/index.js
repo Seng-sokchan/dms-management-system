@@ -21,3 +21,4 @@ export * from "./customerItemPrices";
 export * from "./depotItemPrices";
 export * from "./borrowMaterialOrderLoans";
 export * from "./borrowMaterialMonthlySchedules";
+export * from "./customerPriorities";

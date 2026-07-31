@@ -142,6 +142,10 @@ export function pivotOrdersByCustomer(orders, dash, customersById = null) {
         customerKey,
         customerLabel: getCustomerLabel(order, dash),
         depotName,
+        customerPriority:
+          order.customerPriority != null && Number.isFinite(Number(order.customerPriority))
+            ? Number(order.customerPriority)
+            : null,
         qtyByItem: {},
       });
     }
@@ -153,9 +157,14 @@ export function pivotOrdersByCustomer(orders, dash, customersById = null) {
   }
 
   const itemColumns = Array.from(itemSet).sort((a, b) => a.localeCompare(b));
-  const rows = Array.from(rowMap.values()).sort((a, b) =>
-    a.customerLabel.localeCompare(b.customerLabel),
-  );
+  const rows = Array.from(rowMap.values()).sort((a, b) => {
+    const aPrio = a.customerPriority;
+    const bPrio = b.customerPriority;
+    if (aPrio != null && bPrio != null && aPrio !== bPrio) return aPrio - bPrio;
+    if (aPrio != null && bPrio == null) return -1;
+    if (aPrio == null && bPrio != null) return 1;
+    return a.customerLabel.localeCompare(b.customerLabel);
+  });
 
   return { itemColumns, rows };
 }
@@ -182,6 +191,9 @@ export function computePivotTotals(rows, itemColumns) {
  * {date}: {driver}
  * {Total amount}: {order qty sum}
  * -{customer}: {item qty summary}
+ *
+ * Customer lines are ordered by province, then province_customer_priority
+ * (unconfigured customers last), then customer name.
  */
 export function formatTruckCopyText(truckRow, dash, locale, totalAmountLabel = "Total amount") {
   const dateStr = new Date().toLocaleString(locale || undefined, {
@@ -203,17 +215,48 @@ export function formatTruckCopyText(truckRow, dash, locale, totalAmountLabel = "
   const byCustomerAddress = new Map();
   for (const order of rows) {
     const customerAddr = getCustomerLabelForCopy(order, dash);
-    if (!byCustomerAddress.has(customerAddr)) byCustomerAddress.set(customerAddr, []);
-    byCustomerAddress.get(customerAddr).push(order);
+    if (!byCustomerAddress.has(customerAddr)) {
+      byCustomerAddress.set(customerAddr, {
+        label: customerAddr,
+        provinceKey:
+          order.customerProvinceId != null && String(order.customerProvinceId).trim() !== ""
+            ? String(order.customerProvinceId)
+            : "",
+        provinceName:
+          order.customerProvinceName != null && String(order.customerProvinceName).trim() !== ""
+            ? String(order.customerProvinceName).trim()
+            : "",
+        customerPriority:
+          order.customerPriority != null && Number.isFinite(Number(order.customerPriority))
+            ? Number(order.customerPriority)
+            : null,
+        orders: [],
+      });
+    }
+    byCustomerAddress.get(customerAddr).orders.push(order);
   }
 
-  for (const [custAddr, addrOrders] of byCustomerAddress) {
-    const itemStrs = addrOrders.map((order) => {
+  const sortedCustomers = Array.from(byCustomerAddress.values()).sort((a, b) => {
+    const provinceCmp = (a.provinceName || a.provinceKey || "").localeCompare(
+      b.provinceName || b.provinceKey || "",
+    );
+    if (provinceCmp !== 0) return provinceCmp;
+
+    const aPrio = a.customerPriority;
+    const bPrio = b.customerPriority;
+    if (aPrio != null && bPrio != null && aPrio !== bPrio) return aPrio - bPrio;
+    if (aPrio != null && bPrio == null) return -1;
+    if (aPrio == null && bPrio != null) return 1;
+    return a.label.localeCompare(b.label);
+  });
+
+  for (const group of sortedCustomers) {
+    const itemStrs = group.orders.map((order) => {
       const itemName = (order.itemName || dash).trim();
       const qty = Number(order.orderedQty || 0);
       return `${itemName} ចំនួន: ${qty}`;
     });
-    lines.push(`-${custAddr}: ${itemStrs.join(" + ")}`);
+    lines.push(`-${group.label}: ${itemStrs.join(" + ")}`);
   }
 
   return lines.join("\n");

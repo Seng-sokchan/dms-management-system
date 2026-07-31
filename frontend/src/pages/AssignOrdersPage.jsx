@@ -21,6 +21,29 @@ import {
 import "./OrdersPage.css";
 import "./PrepareGroupOrderPage.css";
 
+function compareOrdersByCustomerPriority(a, b, dash, getCustomerKeyFn) {
+  const provinceCmp = String(a.customerProvinceName || a.customerProvinceId || "").localeCompare(
+    String(b.customerProvinceName || b.customerProvinceId || ""),
+  );
+  if (provinceCmp !== 0) return provinceCmp;
+
+  const aPrio =
+    a.customerPriority != null && Number.isFinite(Number(a.customerPriority))
+      ? Number(a.customerPriority)
+      : null;
+  const bPrio =
+    b.customerPriority != null && Number.isFinite(Number(b.customerPriority))
+      ? Number(b.customerPriority)
+      : null;
+  if (aPrio != null && bPrio != null && aPrio !== bPrio) return aPrio - bPrio;
+  if (aPrio != null && bPrio == null) return -1;
+  if (aPrio == null && bPrio != null) return 1;
+
+  const aLabel = getCustomerKeyFn ? getCustomerKeyFn(a, dash) : String(a.customerName || "");
+  const bLabel = getCustomerKeyFn ? getCustomerKeyFn(b, dash) : String(b.customerName || "");
+  return aLabel.localeCompare(bLabel);
+}
+
 function buildTruckRowFromCachedGroup(group, todayOrders, dash, getCustomerKeyFn) {
   const orderIds = new Set(
     resolveGroupOrderIds(group, todayOrders, dash, getCustomerKeyFn).map(String),
@@ -28,14 +51,35 @@ function buildTruckRowFromCachedGroup(group, todayOrders, dash, getCustomerKeyFn
   let rows = (todayOrders || []).filter((order) => orderIds.has(String(order.id)));
 
   if (rows.length === 0 && group?.customers?.length) {
-    rows = group.customers.flatMap((customer) =>
-      Object.entries(customer.qtyByItem || {}).map(([itemName, qty]) => ({
+    const priorityByCustomerKey = new Map();
+    for (const order of todayOrders || []) {
+      const key = getCustomerKeyFn(order, dash);
+      if (!priorityByCustomerKey.has(key) && order.customerPriority != null) {
+        priorityByCustomerKey.set(key, {
+          customerPriority: Number(order.customerPriority),
+          customerProvinceId: order.customerProvinceId ?? null,
+          customerProvinceName: order.customerProvinceName ?? null,
+        });
+      }
+    }
+
+    rows = group.customers.flatMap((customer) => {
+      const meta = priorityByCustomerKey.get(customer.customerKey) || {};
+      return Object.entries(customer.qtyByItem || {}).map(([itemName, qty]) => ({
         customerName: customer.customerLabel || dash,
+        customerId: customer.customerKey?.startsWith("id:")
+          ? customer.customerKey.slice(3)
+          : null,
         itemName,
         orderedQty: qty,
-      })),
-    );
+        customerPriority: meta.customerPriority ?? null,
+        customerProvinceId: meta.customerProvinceId ?? null,
+        customerProvinceName: meta.customerProvinceName ?? null,
+      }));
+    });
   }
+
+  rows = [...rows].sort((a, b) => compareOrdersByCustomerPriority(a, b, dash, getCustomerKeyFn));
 
   return {
     truckKey: group.id,

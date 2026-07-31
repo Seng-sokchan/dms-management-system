@@ -144,6 +144,7 @@ async function listFactoryNotificationOrdersByOrderId(id) {
        c.phone AS customer_phone,
        c.province_id AS customer_province_id,
        pr.name AS customer_province_name,
+       pcp.priority AS customer_priority,
        c.latitude AS customer_latitude,
        c.longitude AS customer_longitude,
        p.name AS producer_name,
@@ -163,10 +164,12 @@ async function listFactoryNotificationOrdersByOrderId(id) {
      INNER JOIN items it ON it.id = od.item_id
      INNER JOIN status s ON s.id = od.status
      LEFT JOIN provinces pr ON pr.id = c.province_id AND pr.is_active = 1
+     LEFT JOIN province_customer_priority pcp
+       ON pcp.province_id = c.province_id AND pcp.customer_id = c.id
      LEFT JOIN producers p ON p.id = od.producer_id
      LEFT JOIN delivery_agents da ON da.id = od.delivery_agent_id
      WHERE source.id = ?
-     ORDER BY c.name, it.name, od.id`,
+     ORDER BY (pcp.priority IS NULL) ASC, pcp.priority ASC, c.name, it.name, od.id`,
     [id],
   );
   return rows.map(mapOrder);

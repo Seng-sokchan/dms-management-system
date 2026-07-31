@@ -109,6 +109,47 @@ function getOrderProvinceName(order) {
   ).trim();
 }
 
+function getOrderProvinceKey(order) {
+  const id =
+    order?.customerProvinceId ??
+    order?.provinceId ??
+    order?.customer_province_id ??
+    order?.province_id ??
+    null;
+  if (id != null && String(id).trim() !== "") return String(id);
+  return getOrderProvinceName(order);
+}
+
+function getOrderCustomerPriority(order) {
+  const raw =
+    order?.customerPriority ??
+    order?.customer_priority ??
+    order?.priority ??
+    null;
+  if (raw == null || raw === "") return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+}
+
+function compareCustomersByProvincePriority(a, b) {
+  const provinceCmp = String(a.provinceName || a.provinceKey || "").localeCompare(
+    String(b.provinceName || b.provinceKey || ""),
+    undefined,
+    { sensitivity: "base" },
+  );
+  if (provinceCmp !== 0) return provinceCmp;
+
+  const aPrio = a.priority;
+  const bPrio = b.priority;
+  if (aPrio != null && bPrio != null && aPrio !== bPrio) return aPrio - bPrio;
+  if (aPrio != null && bPrio == null) return -1;
+  if (aPrio == null && bPrio != null) return 1;
+
+  return String(a.name || "").localeCompare(String(b.name || ""), undefined, {
+    sensitivity: "base",
+  });
+}
+
 function formatOrderSentToFactoryMessage(orderOrOrders) {
   const orders = normalizeOrders(orderOrOrders);
   const firstOrder = orders[0] || {};
@@ -134,11 +175,22 @@ function formatOrderSentToFactoryMessage(orderOrOrders) {
       customers.set(customerKey, {
         id: order.customerId != null && order.customerId !== "" ? Number(order.customerId) : null,
         name: order.customerName || "—",
+        provinceKey: getOrderProvinceKey(order),
+        provinceName: getOrderProvinceName(order),
+        priority: getOrderCustomerPriority(order),
         items: new Map(),
       });
     }
 
     const customer = customers.get(customerKey);
+    if (customer.priority == null) {
+      customer.priority = getOrderCustomerPriority(order);
+    }
+    if (!customer.provinceName) {
+      customer.provinceName = getOrderProvinceName(order);
+      customer.provinceKey = getOrderProvinceKey(order);
+    }
+
     const itemName = order.itemName || "—";
     const itemKey = order.itemId || itemName;
 
@@ -152,14 +204,7 @@ function formatOrderSentToFactoryMessage(orderOrOrders) {
     }
   }
 
-  const customersSortedById = [...customers.values()].sort((a, b) => {
-    const aId = Number.isFinite(a.id) ? a.id : Number.POSITIVE_INFINITY;
-    const bId = Number.isFinite(b.id) ? b.id : Number.POSITIVE_INFINITY;
-    if (aId !== bId) return aId - bId;
-    return String(a.name || "").localeCompare(String(b.name || ""), undefined, {
-      sensitivity: "base",
-    });
-  });
+  const customersSortedByPriority = [...customers.values()].sort(compareCustomersByProvincePriority);
 
   // Header with Khmer prefix for province
   const provinceDisplay = `ខេត្ត ${escapeHtml(provinceName)}`;
@@ -186,8 +231,8 @@ function formatOrderSentToFactoryMessage(orderOrOrders) {
 
   lines.push(""); // blank line
 
-  // Customer lines (sorted by customer id)
-  for (const customer of customersSortedById) {
+  // Customer lines (sorted by province_customer_priority)
+  for (const customer of customersSortedByPriority) {
     // Items for customer (sorted by item name): បេ ស គ្រាប់ធំ ( 20kg ) ចំនួន: 1
     const itemsStr = itemsSortedByName(customer.items)
       .map((item) => `${escapeHtml(item.name)} ចំនួន: ${escapeHtml(formatQty(item.qty))}`)

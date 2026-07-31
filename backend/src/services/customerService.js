@@ -7,6 +7,7 @@ const {
   getCustomerById,
   setCustomerUserLink,
 } = require("../repositories");
+const provinceCustomerPriority = require("../repositories/provinceCustomerPriority");
 const {
   listCustomersForUser,
   getDepotForUser,
@@ -14,6 +15,11 @@ const {
   getDataScopeForUser,
 } = require("./accessScopeService");
 const { BadRequestError, NotFoundError } = require("../errors");
+
+function normalizeProvinceId(value) {
+  if (value === null || value === undefined || value === "") return null;
+  return String(value);
+}
 
 async function getAllowedCustomers(user) {
   return listCustomersForUser(user);
@@ -87,6 +93,13 @@ async function createCustomer(user, payload) {
     if (userId) {
       await setCustomerUserLink(conn, Number(created.id), Number(userId));
     }
+    if (customerPayload.provinceId) {
+      await provinceCustomerPriority.assignNextPriority(
+        customerPayload.provinceId,
+        created.id,
+        conn,
+      );
+    }
     await conn.commit();
     return getCustomerById(created.id);
   } catch (err) {
@@ -101,6 +114,8 @@ async function updateCustomer(user, customerId, payload) {
   const allowedCustomers = await getAllowedCustomers(user);
   const canAccess = allowedCustomers.some((customer) => String(customer.id) === String(customerId));
   if (!canAccess) throw new NotFoundError("Customer not found");
+  const existing = await getCustomerById(customerId);
+  if (!existing) throw new NotFoundError("Customer not found");
   const nextPayload = { ...payload };
   await validateCustomerUser(nextPayload.userId);
   if (hasDataScope(user, "depot")) {
@@ -112,6 +127,8 @@ async function updateCustomer(user, customerId, payload) {
   await assertProvinceExists(nextPayload.provinceId);
 
   const { userId, ...customerPayload } = nextPayload;
+  const fromProvinceId = normalizeProvinceId(existing.provinceId);
+  const toProvinceId = normalizeProvinceId(customerPayload.provinceId);
   const pool = getPool();
   const conn = await pool.getConnection();
   try {
@@ -128,6 +145,14 @@ async function updateCustomer(user, customerId, payload) {
         await setCustomerUserLink(conn, Number(customerId), null);
       }
     }
+    if (fromProvinceId !== toProvinceId) {
+      await provinceCustomerPriority.moveCustomerProvincePriority(
+        customerId,
+        fromProvinceId,
+        toProvinceId,
+        conn,
+      );
+    }
     await conn.commit();
     return getCustomerById(customerId);
   } catch (err) {
@@ -142,8 +167,23 @@ async function deleteCustomer(user, customerId) {
   const allowedCustomers = await getAllowedCustomers(user);
   const canAccess = allowedCustomers.some((customer) => String(customer.id) === String(customerId));
   if (!canAccess) throw new NotFoundError("Customer not found");
-  const deleted = await require("../repositories").deleteCustomer(customerId);
-  if (!deleted) throw new NotFoundError("Customer not found");
+  const pool = getPool();
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    const deleted = await require("../repositories").deleteCustomer(customerId, conn);
+    if (!deleted) {
+      await conn.rollback();
+      throw new NotFoundError("Customer not found");
+    }
+    await provinceCustomerPriority.removeCustomerPriority(customerId, conn);
+    await conn.commit();
+  } catch (err) {
+    await conn.rollback().catch(() => {});
+    throw err;
+  } finally {
+    conn.release();
+  }
 }
 
 module.exports = {

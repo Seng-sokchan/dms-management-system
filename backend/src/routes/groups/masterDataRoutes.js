@@ -6,6 +6,7 @@ const provinceRoutes = require("./masterData/provinceRoutes");
 const depotRoutes = require("./masterData/depotRoutes");
 const customerItemPriceRoutes = require("./masterData/customerItemPriceRoutes");
 const depotItemPriceRoutes = require("./masterData/depotItemPriceRoutes");
+const customerPriorityRoutes = require("./masterData/customerPriorityRoutes");
 
 module.exports = [
   catalogRoutes,
@@ -16,4 +17,5 @@ module.exports = [
   depotRoutes,
   customerItemPriceRoutes,
   depotItemPriceRoutes,
+  customerPriorityRoutes,
 ];

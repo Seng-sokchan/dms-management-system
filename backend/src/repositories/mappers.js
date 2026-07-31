@@ -7,6 +7,7 @@ function mapOrder(row) {
     customerPhone: row.customer_phone != null ? row.customer_phone : null,
     customerProvinceId: row.customer_province_id != null ? String(row.customer_province_id) : null,
     customerProvinceName: row.customer_province_name != null ? row.customer_province_name : null,
+    customerPriority: row.customer_priority != null ? Number(row.customer_priority) : null,
     customerLatitude: parseCustomerCoord(row.customer_latitude),
     customerLongitude: parseCustomerCoord(row.customer_longitude),
     itemId: row.item_id != null ? String(row.item_id) : null,

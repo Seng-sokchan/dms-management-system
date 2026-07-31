@@ -1,6 +1,7 @@
 const {
   listCustomers,
   listCustomersByDepotId,
+  listCustomersByProvinceId,
   getCustomerById,
   getCustomerByUserId,
   setCustomerUserLink,
@@ -46,6 +47,7 @@ const {
 module.exports = {
   listCustomers,
   listCustomersByDepotId,
+  listCustomersByProvinceId,
   getCustomerById,
   getCustomerByUserId,
   setCustomerUserLink,

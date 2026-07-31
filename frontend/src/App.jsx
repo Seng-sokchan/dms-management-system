@@ -33,6 +33,7 @@ import { DepotsPage } from "./pages/DepotsPage";
 import { BorrowedMaterialsPage } from "./pages/BorrowedMaterialsPage";
 import { UsersPage } from "./pages/UsersPage";
 import { SpecialDayPage } from "./pages/SpecialDayPage";
+import { CustomerPriorityPage } from "./pages/CustomerPriorityPage";
 import "./App.css";
 
 function App() {
@@ -351,6 +352,12 @@ function App() {
         path="/customers-by-depot"
         element={withLayout(
           <CustomersByDepotPage depots={depots} customers={customers} />
+        )}
+      />
+      <Route
+        path="/customer-priority"
+        element={withLayout(
+          <CustomerPriorityPage token={token} user={user} provinces={provinces} />,
         )}
       />
       <Route

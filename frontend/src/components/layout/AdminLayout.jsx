@@ -20,6 +20,7 @@ const PAGE_PATH_MAP = {
   "/borrowed-materials": "borrowedMaterials",
   "/depots":          "depots",
   "/customers-by-depot": "customersByDepot",
+  "/customer-priority": "customerPriority",
   "/producers":       "producers",
   "/delivery-agents": "deliveryAgents",
   "/orders":          "ordersAll",
@@ -123,6 +124,11 @@ const NAV_ICONS = {
       <path d="M3 10l9-7 9 7v9a2 2 0 01-2 2H5a2 2 0 01-2-2v-9z" />
       <circle cx="9" cy="12" r="1.75" />
       <circle cx="15" cy="12" r="1.75" />
+    </svg>
+  ),
+  customerPriority: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
     </svg>
   ),
   producers: (
