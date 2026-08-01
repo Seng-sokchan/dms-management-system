@@ -449,6 +449,7 @@ function App() {
         element={withLayout(
           <OrdersAllPage
             orders={orders}
+            customers={customers}
             statuses={statuses}
             onUpdateLoss={submitOrderLossQty}
           />

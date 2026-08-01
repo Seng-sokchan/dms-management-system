@@ -28,8 +28,21 @@ function formatOrderTotal(amount, currency) {
   })}`;
 }
 
+function resolveDepotName(order, customersById) {
+  const customerId =
+    order.customerId != null && String(order.customerId).trim() !== ""
+      ? String(order.customerId)
+      : "";
+  if (!customerId) return "";
+  const customer = customersById.get(customerId);
+  const depotName = customer?.depotName != null ? String(customer.depotName).trim() : "";
+  const depotId = customer?.depotId != null ? String(customer.depotId).trim() : "";
+  return depotId && depotName ? depotName : "";
+}
+
 export function OrdersTable({
   orders,
+  customers = [],
   statuses,
   onUpdateStatus,
   onConfirmDelivery,
@@ -52,6 +65,15 @@ export function OrdersTable({
   const statusOptions = statusRows.map((row) => row.name);
   const statusReadOnly = readOnly || lossEditable;
   const showDeliverySave = !readOnly && !lossEditable;
+
+  const customersById = useMemo(() => {
+    const map = new Map();
+    for (const customer of customers || []) {
+      if (customer?.id == null) continue;
+      map.set(String(customer.id), customer);
+    }
+    return map;
+  }, [customers]);
 
   async function handleSaveDelivery(order) {
     if (order.status !== "Ready_For_Delivery") {
@@ -90,6 +112,7 @@ export function OrdersTable({
     return orders.filter((order) =>
       [
         order.customerName,
+        resolveDepotName(order, customersById),
         order.itemName,
         order.producerName,
         order.deliveryAgentName,
@@ -100,7 +123,7 @@ export function OrdersTable({
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(keyword)),
     );
-  }, [orders, appliedSearch]);
+  }, [orders, appliedSearch, customersById]);
   const {
     page,
     pageSize,
@@ -134,6 +157,7 @@ export function OrdersTable({
           <thead>
             <tr>
               <th>{t("orders.customer")}</th>
+              <th>{t("orders.depot")}</th>
               <th>{t("orders.item")}</th>
               <th>{t("orders.producer")}</th>
               <th>{t("orders.delivery")}</th>
@@ -150,9 +174,11 @@ export function OrdersTable({
           <tbody>
             {pagedOrders.map((order) => {
               const statusId = `order-status-${order.id}`;
+              const depotName = resolveDepotName(order, customersById);
               return (
                 <tr key={order.id}>
                   <td>{order.customerName}</td>
+                  <td>{depotName}</td>
                   <td>{order.itemName}</td>
                   <td>{order.producerName || t("orders.dash")}</td>
                   <td>{order.deliveryAgentName || t("orders.dash")}</td>
