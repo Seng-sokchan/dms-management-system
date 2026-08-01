@@ -4,7 +4,13 @@ import { OrdersTable } from "../../features/order/OrdersTable";
 import { filterOrdersByDay, formatDayLabel } from "./ordersTodayUtils";
 import "../OrdersPage.css";
 
-export function OrdersAllPage({ orders, customers = [], statuses = [], onUpdateLoss }) {
+export function OrdersAllPage({
+  orders,
+  customers = [],
+  statuses = [],
+  onUpdateLoss,
+  onDeleteOrder,
+}) {
   const { t } = useTranslation();
   const [dayFilter, setDayFilter] = useState("yesterday");
 
@@ -37,6 +43,7 @@ export function OrdersAllPage({ orders, customers = [], statuses = [], onUpdateL
         readOnly
         lossEditable
         onUpdateLoss={onUpdateLoss}
+        onDelete={onDeleteOrder}
         filterKey={dayFilter}
         searchExtra={
           <select

@@ -116,6 +116,7 @@ function App() {
     submitOrderDeliveryAssignment,
     submitSendOrderToFactory,
     submitOrderLossQty,
+    submitOrderDelete,
     submitManualPayment,
     loadUnpaidMasterOrders,
     submitBorrowMaterial,
@@ -452,6 +453,7 @@ function App() {
             customers={customers}
             statuses={statuses}
             onUpdateLoss={submitOrderLossQty}
+            onDeleteOrder={submitOrderDelete}
           />
         )}
       />

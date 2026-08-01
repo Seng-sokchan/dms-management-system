@@ -47,6 +47,7 @@ export function OrdersTable({
   onUpdateStatus,
   onConfirmDelivery,
   onUpdateLoss,
+  onDelete,
   readOnly = false,
   lossEditable = false,
   renderActions,
@@ -65,6 +66,7 @@ export function OrdersTable({
   const statusOptions = statusRows.map((row) => row.name);
   const statusReadOnly = readOnly || lossEditable;
   const showDeliverySave = !readOnly && !lossEditable;
+  const showActions = lossEditable || Boolean(onDelete);
 
   const customersById = useMemo(() => {
     const map = new Map();
@@ -100,6 +102,18 @@ export function OrdersTable({
     const orderId = lossOrder.id;
     await onUpdateLoss?.(orderId, { lossQty });
     setLossOrder(null);
+  }
+
+  async function handleDelete(order) {
+    const ok = await confirm({
+      title: t("confirm.deleteTitle"),
+      message: t("orders.confirmDelete", {
+        defaultValue: "Delete this order?",
+      }),
+      tone: "danger",
+    });
+    if (!ok) return;
+    await onDelete?.(order.id);
   }
 
   const rowMeta =
@@ -167,7 +181,7 @@ export function OrdersTable({
               <th>{t("orders.status")}</th>
               <th>{t("orders.orderTotal", { defaultValue: "Total" })}</th>
               {showDeliverySave ? <th>{t("orders.saveDelivery")}</th> : null}
-              {lossEditable ? <th>{t("orders.actions", { defaultValue: "Actions" })}</th> : null}
+              {showActions ? <th>{t("orders.actions", { defaultValue: "Actions" })}</th> : null}
               {renderActions ? <th>Actions</th> : null}
             </tr>
           </thead>
@@ -217,11 +231,24 @@ export function OrdersTable({
                       </Button>
                     </td>
                   ) : null}
-                  {lossEditable ? (
+                  {showActions ? (
                     <td>
-                      <Button variant="sm" onClick={() => setLossOrder(order)}>
-                        {t("orders.updateLoss", { defaultValue: "Update Loss" })}
-                      </Button>
+                      <div className="row-actions">
+                        {lossEditable ? (
+                          <Button variant="sm" onClick={() => setLossOrder(order)}>
+                            {t("orders.updateLoss", { defaultValue: "Update Loss" })}
+                          </Button>
+                        ) : null}
+                        {onDelete ? (
+                          <Button
+                            variant="ghost"
+                            tone="delete"
+                            onClick={() => void handleDelete(order)}
+                          >
+                            {t("orders.delete", { defaultValue: "Delete" })}
+                          </Button>
+                        ) : null}
+                      </div>
                     </td>
                   ) : null}
                   {renderActions ? <td>{renderActions(order)}</td> : null}

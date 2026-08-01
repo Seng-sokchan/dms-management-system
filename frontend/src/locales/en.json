@@ -793,6 +793,8 @@
     "dash": "—",
     "mixedStatus": "Mixed",
     "actions": "Actions",
+    "delete": "Delete",
+    "confirmDelete": "Delete this order? Only orders in Owner_Preparing status can be deleted.",
     "view": "View",
     "totalAll": "Total"
   },

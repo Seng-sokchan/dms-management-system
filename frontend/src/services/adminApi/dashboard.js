@@ -25,7 +25,7 @@ const ROUTE_DATA_MAP = {
   "/producers": ["producers"],
   "/delivery-agents": ["deliveryAgents"],
   "/users": ["users", "roles", "customers", "deliveryAgents", "depots"],
-  "/orders": ["orders", "statuses", "deliveryAgents"],
+  "/orders": ["orders", "statuses", "deliveryAgents", "customers"],
   "/orders/by-province": ["orders", "deliveryAgents"],
   "/orders/by-depot": ["orders", "customers"],
   "/orders/by-delivery": ["orders", "deliveryAgents"],
