@@ -112,7 +112,7 @@ export function KhqrPaymentModal({
     }
     let cancelled = false;
     QRCode.toDataURL(qrString, {
-      width: 280,
+      width: 180,
       margin: 1,
       color: { dark: "#111111", light: "#ffffff" },
     })
@@ -224,7 +224,7 @@ export function KhqrPaymentModal({
             <div className="khqr-aba__qr">
               {imageSrc ? (
                 <>
-                  <img src={imageSrc} alt="KHQR" width={220} height={220} />
+                  <img src={imageSrc} alt="KHQR" width={180} height={180} />
                   {showLocalQrBadge ? <CurrencyBadge unit={amountUnit} /> : null}
                 </>
               ) : (
