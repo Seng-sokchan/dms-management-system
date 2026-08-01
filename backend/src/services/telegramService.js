@@ -61,10 +61,31 @@ function formatDateTime(date = new Date()) {
   return `${day}.${month}.${year}`;
 }
 
+/** Compact date for factory message: 1.8.2026 */
+function formatFactoryDate(date = new Date()) {
+  return `${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}`;
+}
+
 function formatQty(value) {
   const n = Number(value);
   if (!Number.isFinite(n)) return String(value ?? "—");
   return n.toLocaleString("en-US");
+}
+
+/** Display-only short names for Telegram (does not affect DB). */
+const ITEM_SHORTCUT_NAMES = {
+  1: "តូច",
+  2: "ធំ",
+  3: "តូច ស",
+  4: "ធំ ស",
+};
+
+function getItemDisplayName(itemId, fallbackName) {
+  const id = Number(itemId);
+  if (Number.isFinite(id) && ITEM_SHORTCUT_NAMES[id]) {
+    return ITEM_SHORTCUT_NAMES[id];
+  }
+  return fallbackName || "—";
 }
 
 function normalizeOrders(orderOrOrders) {
@@ -72,7 +93,7 @@ function normalizeOrders(orderOrOrders) {
   return orderOrOrders ? [orderOrOrders] : [];
 }
 
-function addItemQty(items, itemKey, itemName, orderedQty) {
+function addItemQty(items, itemKey, itemName, orderedQty, itemId = null) {
   const current = items.get(itemKey);
   const qty = Number(orderedQty);
 
@@ -86,17 +107,31 @@ function addItemQty(items, itemKey, itemName, orderedQty) {
   }
 
   items.set(itemKey, {
+    id: itemId,
     name: itemName,
     qty: orderedQty,
   });
 }
 
-function itemsSortedByName(items) {
-  return [...items.values()].sort((a, b) =>
-    String(a.name || "").localeCompare(String(b.name || ""), undefined, {
+function itemsSortedById(items) {
+  return [...items.values()].sort((a, b) => {
+    const aId = Number(a.id);
+    const bId = Number(b.id);
+    const aHasId = Number.isFinite(aId);
+    const bHasId = Number.isFinite(bId);
+    if (aHasId && bHasId && aId !== bId) return aId - bId;
+    if (aHasId && !bHasId) return -1;
+    if (!aHasId && bHasId) return 1;
+    return String(a.name || "").localeCompare(String(b.name || ""), undefined, {
       sensitivity: "base",
-    }),
-  );
+    });
+  });
+}
+
+function formatItemQtyPairs(items, { joiner = "+" } = {}) {
+  return itemsSortedById(items)
+    .map((item) => `${escapeHtml(item.name)} ${escapeHtml(formatQty(item.qty))}`)
+    .join(joiner);
 }
 
 function getOrderProvinceName(order) {
@@ -153,9 +188,8 @@ function compareCustomersByProvincePriority(a, b) {
 function formatOrderSentToFactoryMessage(orderOrOrders) {
   const orders = normalizeOrders(orderOrOrders);
   const firstOrder = orders[0] || {};
-
-  // Customized names
   const driverName = firstOrder.deliveryAgentName || "—";
+
   const provinceNames = [
     ...new Set(
       orders
@@ -191,53 +225,54 @@ function formatOrderSentToFactoryMessage(orderOrOrders) {
       customer.provinceKey = getOrderProvinceKey(order);
     }
 
-    const itemName = order.itemName || "—";
+    const itemId =
+      order.itemId != null && order.itemId !== "" ? Number(order.itemId) : null;
+    const itemName = getItemDisplayName(order.itemId, order.itemName);
     const itemKey = order.itemId || itemName;
 
-    addItemQty(customer.items, itemKey, itemName, order.orderedQty);
-    addItemQty(totalItems, itemKey, itemName, order.orderedQty);
+    addItemQty(customer.items, itemKey, itemName, order.orderedQty, itemId);
+    addItemQty(totalItems, itemKey, itemName, order.orderedQty, itemId);
 
-    // Count all order quantity (order.orderedQty)
     const qty = Number(order.orderedQty);
     if (Number.isFinite(qty) && qty > 0) {
       totalOrderQty += qty;
     }
   }
 
-  const customersSortedByPriority = [...customers.values()].sort(compareCustomersByProvincePriority);
+  const customersSortedByPriority = [...customers.values()].sort(
+    compareCustomersByProvincePriority,
+  );
 
-  // Header with Khmer prefix for province
-  const provinceDisplay = `ខេត្ត ${escapeHtml(provinceName)}`;
-  const dateStr = escapeHtml(formatDateTime());
-  const driverDisplay = escapeHtml(driverName);
-
+  // 1.8.2026 ចេង ពិសិដ្ឋ ឡានកំពង់ស្ពឺ
   const lines = [];
+  lines.push(
+    `${escapeHtml(formatFactoryDate())} ${escapeHtml(driverName)} ឡាន${escapeHtml(provinceName)}`,
+  );
+  lines.push("");
 
-  // 27.07.2026: ចេង ពិសិដ្ឋ  - ខេត្ត កំពង់ស្ពឺ
-  lines.push(`${dateStr}: ${driverDisplay}  - ${provinceDisplay}`);
-
-  lines.push(""); // blank line
-
-  // -សរុប: total order quantity
-  lines.push(`-សរុប: ${escapeHtml(formatQty(totalOrderQty))}`);
-
-  lines.push(""); // blank line
-
-  // Items list (sorted by item name):
-  // បេ ស គ្រាប់ធំ ( 20kg ): ចំនួន: 1
-  for (const item of itemsSortedByName(totalItems)) {
-    lines.push(`${escapeHtml(item.name)}: ចំនួន: ${escapeHtml(formatQty(item.qty))}`);
+  // -សរុប 420
+  // +តូច 345
+  // +ធំ 65
+  lines.push(`-សរុប ${escapeHtml(formatQty(totalOrderQty))}`);
+  for (const item of itemsSortedById(totalItems)) {
+    lines.push(
+      `+${escapeHtml(item.name)} ${escapeHtml(formatQty(item.qty))}`,
+    );
   }
 
-  lines.push(""); // blank line
+  lines.push("");
+  lines.push("");
 
-  // Customer lines (sorted by province_customer_priority)
+  // -ចន្ថា តូច 135+ធំ 5
+  let lastProvinceKey = null;
   for (const customer of customersSortedByPriority) {
-    // Items for customer (sorted by item name): បេ ស គ្រាប់ធំ ( 20kg ) ចំនួន: 1
-    const itemsStr = itemsSortedByName(customer.items)
-      .map((item) => `${escapeHtml(item.name)} ចំនួន: ${escapeHtml(formatQty(item.qty))}`)
-      .join(" + ");
-    // -សុ គា ត្រែងត្រយឹង: បេ ស គ្រាប់ធំ ( 20kg ) ចំនួន: 1
+    const provinceKey = customer.provinceKey || customer.provinceName || "";
+    if (lastProvinceKey != null && provinceKey !== lastProvinceKey) {
+      lines.push("");
+    }
+    lastProvinceKey = provinceKey;
+
+    const itemsStr = formatItemQtyPairs(customer.items);
     lines.push(`-${escapeHtml(customer.name)}: ${itemsStr}`);
   }
 
@@ -313,7 +348,7 @@ async function notifyOrderSentToFactory(orderOrOrders, user) {
 function formatOrderDeliveredMessage(order, { deliveredQty, lossQty } = {}) {
   const driverName = order?.deliveryAgentName || "—";
   const customerName = order?.customerName || "—";
-  const itemName = order?.itemName || "—";
+  const itemName = getItemDisplayName(order?.itemId, order?.itemName);
   const orderedQty = order?.orderedQty;
 
   const lines = [
