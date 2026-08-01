@@ -139,8 +139,8 @@
 
 .khqr-aba__qr {
   position: relative;
-  width: 260px;
-  height: 260px;
+  width: 220px;
+  height: 220px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -149,8 +149,8 @@
 
 .khqr-aba__qr img {
   display: block;
-  width: 260px;
-  height: 260px;
+  width: 220px;
+  height: 220px;
   object-fit: contain;
 }
 
@@ -248,8 +248,8 @@
 
   .khqr-aba__qr,
   .khqr-aba__qr img {
-    width: 230px;
-    height: 230px;
+    width: 200px;
+    height: 200px;
   }
 
   .khqr-aba__amount-value {

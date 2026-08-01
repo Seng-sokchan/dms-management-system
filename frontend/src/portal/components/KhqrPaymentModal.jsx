@@ -224,7 +224,7 @@ export function KhqrPaymentModal({
             <div className="khqr-aba__qr">
               {imageSrc ? (
                 <>
-                  <img src={imageSrc} alt="KHQR" width={260} height={260} />
+                  <img src={imageSrc} alt="KHQR" width={220} height={220} />
                   {showLocalQrBadge ? <CurrencyBadge unit={amountUnit} /> : null}
                 </>
               ) : (
