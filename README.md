@@ -1,6 +1,6 @@
 # Order Management Admin Panel
 
-Fullstack implementation based on the attached plan:
+Fullstack implementation based on the attached
 - Frontend: React.js (`frontend`)
 - Backend: Express.js (`backend`)
 - Database design: MySQL 5.5.8 schema (`backend/db/schema.mysql55.sql`)
