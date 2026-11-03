@@ -10,7 +10,7 @@ export function unwrapApiData(payload) {
   if (payload && typeof payload === "object" && Object.prototype.hasOwnProperty.call(payload, "data")) {
     return payload.data;
   }
-  return payload;
+  
 }
 
 export function getApiErrorMessage(error, fallback = "Request failed") {
